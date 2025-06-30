@@ -1,16 +1,10 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bubles – Bolsa que Respira</title>
-  <link rel="stylesheet" href="/style.css">
-  <script src="/bolhas.js" defer></script>
-</head>
-<body>
-  <h1>Bubles – Bolsa que Respira</h1>
-
-  <!-- ✅ Corrigido: container onde a bolha será inserida -->
-  <div id="bubbles-container"></div>
-</body>
-</html>
+document.addEventListener("DOMContentLoaded", function () {
+  const container = document.getElementById("bubbles-container");
+  const bubble = document.createElement("div");
+  bubble.textContent = "💬 B3 bolha simulada!";
+  bubble.style.padding = "20px";
+  bubble.style.backgroundColor = "#cceeff";
+  bubble.style.borderRadius = "50%";
+  bubble.style.display = "inline-block";
+  container.appendChild(bubble);
+});
