@@ -1,18 +1,17 @@
-body {
-  margin: 0;
-  padding: 0;
-  background-color: black;
-  color: cyan;
-  font-family: sans-serif;
-  text-align: center;
+.bubble text {
+  font-family: Arial, sans-serif;
+  fill: white;
+  pointer-events: none;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-weight: bold;
+  font-size: 12px;
+  white-space: pre-line;
 }
 
-h1 {
-  margin-top: 20px;
-  font-size: 1.2rem;
-}
-
-canvas {
-  display: block;
-  background-color: transparent;
+/* Responsivo para bolhas menores */
+@media screen and (max-width: 768px) {
+  .bubble text {
+    font-size: 8px;
+  }
 }
