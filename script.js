@@ -6,8 +6,9 @@ fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&tok
     container.innerHTML = "";
 
     stocks.forEach(stock => {
-      const changeStr = stock.changesPercentage;
-      const change = parseFloat(changeStr);
+      const changeStr = stock.changesPercentage || "0";
+      const match = changeStr.match(/-?\d+(\.\d+)?/); // extrai número mesmo com % e parênteses
+      const change = match ? parseFloat(match[0]) : 0;
 
       const color = change > 0 ? "#4CAF50" : change < 0 ? "#F44336" : "#FFC107";
 
