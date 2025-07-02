@@ -1,12 +1,23 @@
 const container = document.getElementById("bubble-container");
 
-fetch("https://brapi.dev/api/quote/VALE3,PETR4,ITUB4,PRIO3,BBAS3?token=5bTDfSmR2ieax6y7JUqDAD")
-  .then((res) => res.json())
-  .then((data) => {
-    data.results.forEach((stock, i) => {
-      if (stock.changePercent === null) return;
+const symbols = "VALE3,PETR4,ITUB4,PRIO3,BBAS3";
+const token = "5bTDfSmR2ieax6y7JUqDAD";
+const url = `https://brapi.dev/api/quote/${symbols}?token=${token}`;
 
-      const change = parseFloat(stock.changePercent);
+fetch(url)
+  .then(res => res.json())
+  .then(data => {
+    if (!data.results || data.results.length === 0) {
+      console.error("Nenhum dado retornado.");
+      return;
+    }
+
+    data.results.forEach(stock => {
+      const change = stock.changePercent;
+
+      // Ignora se não tiver valor válido
+      if (change === null || isNaN(change)) return;
+
       const bubble = document.createElement("div");
       bubble.className = "bubble";
 
@@ -21,6 +32,6 @@ fetch("https://brapi.dev/api/quote/VALE3,PETR4,ITUB4,PRIO3,BBAS3?token=5bTDfSmR2
       container.appendChild(bubble);
     });
   })
-  .catch((error) => {
+  .catch(error => {
     console.error("Erro ao buscar dados:", error);
   });
