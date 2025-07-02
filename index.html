@@ -2,31 +2,89 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — Ações ao Vivo</title>
   <style>
     body {
       margin: 0;
-      background-color: black;
-      overflow: hidden;
+      background-color: #000;
       font-family: Arial, sans-serif;
-      color: cyan;
-      text-align: center;
     }
+
     h1 {
-      margin: 20px 0;
+      font-family: 'Arial', sans-serif;
+      color: #00ffff;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 32px;
     }
-    canvas {
-      display: block;
+
+    @media screen and (max-width: 768px) {
+      h1 {
+        font-size: 20px;
+        margin-top: 10px;
+      }
+    }
+
+    .bubble {
       position: absolute;
-      top: 0;
-      left: 0;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 12px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
-  <canvas id="bubbleCanvas"></canvas>
-  <script src="script.js"></script>
+  <div id="bubble-container"></div>
+
+  <script>
+    const container = document.getElementById('bubble-container');
+
+    async function fetchData() {
+      try {
+        const response = await fetch('https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD');
+        const data = await response.json();
+        renderBubbles(data.stocks.slice(0, 50)); // limitar a 50 ações
+      } catch (error) {
+        console.error('Erro ao buscar dados:', error);
+      }
+    }
+
+    function renderBubbles(stocks) {
+      container.innerHTML = '';
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      stocks.forEach(stock => {
+        const bubble = document.createElement('div');
+        const change = stock.changePercent;
+        const color = change > 0 ? '#00cc00' : (change < 0 ? '#ff3333' : '#999');
+        const size = Math.min(180, Math.max(30, Math.abs(change) * 15));
+
+        bubble.className = 'bubble';
+        bubble.style.backgroundColor = color;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${Math.random() * (width - size)}px`;
+        bubble.style.top = `${Math.random() * (height - size)}px`;
+        bubble.innerText = `${stock.stock} ${change.toFixed(2)}%`;
+
+        container.appendChild(bubble);
+      });
+    }
+
+    fetchData();
+    setInterval(fetchData, 60000); // atualiza a cada 60s
+  </script>
 </body>
 </html>
