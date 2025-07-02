@@ -20,4 +20,5 @@ fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&tok
       bubble.innerHTML = `<strong>${stock.stock}</strong><br>${change.toFixed(2)}%`;
       container.appendChild(bubble);
     });
-  });
+  })
+  .catch(error => console.error("Erro ao buscar dados da API Brapi:", error));
