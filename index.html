@@ -4,11 +4,137 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bubles — Ações ao Vivo</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #000;
+      color: #0ff;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+      font-size: 20px;
+    }
+
+    #bubble-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      text-shadow: 0 0 5px #000;
+      transition: transform 0.2s;
+      cursor: pointer;
+      animation: float 10s infinite linear;
+    }
+
+    .bubble:hover {
+      transform: scale(1.1);
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0px) translateX(0px);
+      }
+      50% {
+        transform: translateY(-20px) translateX(10px);
+      }
+      100% {
+        transform: translateY(0px) translateX(0px);
+      }
+    }
+  </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
-  <canvas id="bubbleCanvas"></canvas>
-  <script src="script.js"></script>
+  <div id="bubble-container"></div>
+
+  <script>
+    const API_KEY = "5bTDfSmR2ieax6y7JUqDAD";
+    const TICKERS = [
+      "VALE3", "PETR4", "ITUB4", "BBDC4", "ABEV3",
+      "MGLU3", "B3SA3", "BBAS3", "WEGE3", "ASAI3", "COGN3"
+    ];
+
+    async function fetchStockData() {
+      try {
+        const response = await fetch(
+          `https://brapi.dev/api/quote/${TICKERS.join(",")}?token=${API_KEY}`
+        );
+        const data = await response.json();
+        return data.results;
+      } catch (err) {
+        console.error("Erro ao buscar dados:", err);
+        return [];
+      }
+    }
+
+    function createBubble(stock) {
+      const bubble = document.createElement("div");
+      bubble.classList.add("bubble");
+
+      const change = parseFloat(stock.changePercent);
+      const color = change >= 0 ? "green" : "red";
+
+      // Tamanho proporcional ao volume (com limite)
+      const minSize = 80;
+      const maxSize = 200;
+      const volume = stock.volume || 1;
+      const size = Math.min(
+        maxSize,
+        Math.max(minSize, Math.sqrt(volume) / 10)
+      );
+
+      bubble.style.width = `${size}px`;
+      bubble.style.height = `${size}px`;
+      bubble.style.backgroundColor = color;
+
+      bubble.innerHTML = `
+        <div>
+          ${stock.stock}<br />
+          ${change.toFixed(2)}%
+        </div>
+      `;
+
+      bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
+      bubble.style.top = `${Math.random() * (window.innerHeight - size)}px`;
+
+      document.getElementById("bubble-container").appendChild(bubble);
+    }
+
+    async function initBubbles() {
+      const container = document.getElementById("bubble-container");
+      container.innerHTML = "";
+      const stocks = await fetchStockData();
+      stocks.forEach(createBubble);
+    }
+
+    // Inicia ao carregar
+    initBubbles();
+
+    // Atualiza a cada 60 segundos
+    setInterval(initBubbles, 60000);
+  </script>
 </body>
 </html>
