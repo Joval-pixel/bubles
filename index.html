@@ -1,101 +1,80 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Bubles — Ações ao Vivo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: black;
-      font-family: Arial, sans-serif;
-    }
+<script>
+  console.log("👋 script iniciado");
 
-    h1 {
-      text-align: center;
-      color: cyan;
-      margin-top: 10px;
-      font-size: 18px;
-    }
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas?.getContext("2d");
+  console.log("Canvas e contexto:", canvas, ctx);
 
-    canvas {
-      display: block;
-    }
-  </style>
-</head>
-<body onload="fetchData()">
-  <h1>Bubles — Ações ao Vivo</h1>
-  <canvas id="canvas"></canvas>
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    console.log("Canvas redimensionado:", canvas.width, canvas.height);
+  }
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
 
-  <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
+  let bubbles = [];
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
+  function createBubbles(data) {
+    console.log("Criando bolhas com dados:", data);
+    bubbles = data.map((stock) => {
+      const percent = stock.regularMarketChangePercent ?? 0;
+      return {
+        radius: Math.min(100, Math.max(20, Math.abs(percent) * 10)),
+        label: `${stock.symbol} ${percent.toFixed(2)}%`,
+        dx: (Math.random() - 0.5) * 2,
+        dy: (Math.random() - 0.5) * 2,
+        x: 0, y: 0,
+        color: percent >= 0 ? "green" : "red"
+      };
+    });
+  }
 
-    let bubbles = [];
+  function drawBubbles() {
+    console.log("Desenhando bolhas, count:", bubbles.length);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    function createBubbles(data) {
-      bubbles = data.map((stock, i) => {
-        const percent = stock.regularMarketChangePercent || 0;
-        const color = percent >= 0 ? "green" : "red";
-        const size = Math.min(100, Math.max(30, Math.abs(percent) * 10));
-        return {
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          radius: size,
-          color: color,
-          dx: (Math.random() - 0.5) * 2,
-          dy: (Math.random() - 0.5) * 2,
-          label: `${stock.symbol} ${percent.toFixed(2)}%`
-        };
-      });
-    }
-
-    function drawBubbles() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bubbles.forEach(b => {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-        ctx.fillStyle = b.color;
-        ctx.fill();
-
-        ctx.fillStyle = "white";
-        ctx.font = `${Math.max(12, b.radius / 4)}px Arial`;
-        ctx.textAlign = "center";
-        ctx.fillText(b.label, b.x, b.y + 4);
-
-        b.x += b.dx;
-        b.y += b.dy;
-
-        if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.dx *= -1;
-        if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.dy *= -1;
-      });
-
-      requestAnimationFrame(drawBubbles);
-    }
-
-    async function fetchData() {
-      try {
-        const tickers = ["VALE3", "PETR4", "B3SA3", "ITUB4", "WEGE3", "MGLU3", "COGN3"];
-        const res = await fetch(`https://brapi.dev/api/quote/${tickers.join(",")}?token=5bTDfSmR2ieax6y7JUqDAD`);
-        const json = await res.json();
-        console.log("✅ Dados recebidos:", json);
-        if (json.results) {
-          createBubbles(json.results);
-          drawBubbles();
-        }
-      } catch (e) {
-        console.error("Erro ao buscar dados:", e);
+    bubbles.forEach(b => {
+      if (b.x === 0 && b.y === 0) {
+        b.x = canvas.width * Math.random();
+        b.y = canvas.height * Math.random();
       }
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius, 0, 2 * Math.PI);
+      ctx.fillStyle = b.color;
+      ctx.fill();
+      ctx.fillStyle = "white";
+      ctx.font = `${Math.max(12, b.radius / 4)}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText(b.label, b.x, b.y + 4);
+
+      b.x += b.dx;
+      b.y += b.dy;
+      if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.dx *= -1;
+      if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.dy *= -1;
+    });
+
+    requestAnimationFrame(drawBubbles);
+  }
+
+  async function fetchData() {
+    console.log("Iniciando fetchData");
+    try {
+      const tickers = ["VALE3", "PETR4", "B3SA3"];
+      const res = await fetch(`https://brapi.dev/api/quote/${tickers.join(",")}`);
+      const json = await res.json();
+      console.log("Dados brapi.dev:", json);
+      if (json.results) {
+        createBubbles(json.results);
+        drawBubbles();
+      }
+    } catch (e) {
+      console.error("Erro no fetchData:", e);
     }
-  </script>
-</body>
-</html>
+  }
+
+  window.onload = () => {
+    console.log("onload: chamando fetchData");
+    fetchData();
+  };
+</script>
