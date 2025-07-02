@@ -1,18 +1,18 @@
 body {
   margin: 0;
-  background-color: #000;
-  overflow: hidden;
-  font-family: 'Arial', sans-serif;
+  padding: 0;
+  background-color: black;
   color: cyan;
+  font-family: sans-serif;
   text-align: center;
 }
 
 h1 {
-  font-size: 1.2em;
-  margin: 10px 0;
-  color: cyan;
+  margin-top: 20px;
+  font-size: 1.2rem;
 }
 
 canvas {
   display: block;
+  background-color: transparent;
 }

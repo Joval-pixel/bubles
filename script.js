@@ -3,73 +3,65 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const API_KEY = "5bTDfSmR2ieax6y7JUqDAD"; // sua chave da Brapi
-
-// Códigos de ações B3 para exibir bolhas
-const symbols = ["VALE3", "PETR4", "ITUB4", "B3SA3", "WEGE3", "AMBEV3", "CIEL3", "SUZB3", "BBAS3"];
+const API_KEY = "5bTDfSmR2ieax6y7JUqDAD";
+const tickers = ["VALE3", "PETR4", "ITUB4", "ABEV3", "BBAS3", "CIEL3"];
 
 let bubbles = [];
 
 function fetchData() {
-  const url = `https://brapi.dev/api/quote/${symbols.join(",")}?token=${API_KEY}`;
-  fetch(url)
+  fetch(`https://brapi.dev/api/quote/${tickers.join(",")}?token=${API_KEY}`)
     .then(res => res.json())
     .then(data => {
-      bubbles = data.results.map(stock => {
+      console.log("Dados recebidos:", data);
+      if (!data.results || data.results.length === 0) {
+        console.error("Nenhuma ação retornada da API!");
+        return;
+      }
+
+      bubbles = data.results.map((stock, index) => {
+        const change = stock.change || 0;
+        const radius = Math.max(30, Math.min(Math.abs(change) * 20, 150));
         return {
-          symbol: stock.symbol,
-          name: stock.longName || stock.name || stock.symbol,
-          change: parseFloat(stock.changePercent),
+          symbol: stock.stock,
+          name: stock.name,
+          change: change,
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
+          radius: radius,
+          color: change >= 0 ? "#00cc66" : "#ff3333",
           dx: (Math.random() - 0.5) * 2,
-          dy: (Math.random() - 0.5) * 2,
-          radius: Math.min(100 + Math.abs(stock.changePercent) * 8, 150),
+          dy: (Math.random() - 0.5) * 2
         };
       });
+    })
+    .catch(error => {
+      console.error("Erro ao buscar dados:", error);
     });
 }
 
 function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let b of bubbles) {
-    // Cor verde se positiva, vermelho se negativa
+  bubbles.forEach(b => {
     ctx.beginPath();
-    ctx.fillStyle = b.change >= 0 ? "#00cc66" : "#ff3333";
     ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    ctx.fillStyle = b.color;
     ctx.fill();
-
-    // Texto centralizado
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `${Math.max(b.radius * 0.15, 12)}px Arial`;
+    ctx.fillStyle = "#fff";
+    ctx.font = "12px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(b.symbol, b.x, b.y - 5);
-    ctx.font = `${Math.max(b.radius * 0.1, 10)}px Arial`;
-    ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 15);
-  }
-}
+    ctx.fillText(b.symbol, b.x, b.y - 10);
+    const changeText = isNaN(b.change) ? "N/A" : `${b.change.toFixed(2)}%`;
+    ctx.fillText(changeText, b.x, b.y + 10);
 
-function update() {
-  for (let b of bubbles) {
     b.x += b.dx;
     b.y += b.dy;
 
     if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.dx *= -1;
     if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.dy *= -1;
-  }
+  });
+  requestAnimationFrame(drawBubbles);
 }
-
-function animate() {
-  update();
-  drawBubbles();
-  requestAnimationFrame(animate);
-}
-
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-});
 
 fetchData();
-animate();
-setInterval(fetchData, 10000); // atualiza a cada 10 segundos
+setInterval(fetchData, 60000);
+drawBubbles();
