@@ -6,9 +6,17 @@ fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&tok
     container.innerHTML = "";
 
     stocks.forEach(stock => {
-      const changeStr = stock.changesPercentage || "0";
-      const match = changeStr.match(/-?\d+(\.\d+)?/); // extrai número mesmo com % e parênteses
-      const change = match ? parseFloat(match[0]) : 0;
+      const symbol = stock.stock || stock.symbol || "???";
+
+      // Tentamos extrair de 'changesPercentage', se não tiver, usamos 'change' com fallback 0
+      let change = 0;
+
+      if (typeof stock.changesPercentage === "string") {
+        const match = stock.changesPercentage.match(/-?\d+(\.\d+)?/);
+        if (match) change = parseFloat(match[0]);
+      } else if (typeof stock.change === "number") {
+        change = stock.change;
+      }
 
       const color = change > 0 ? "#4CAF50" : change < 0 ? "#F44336" : "#FFC107";
 
@@ -18,7 +26,7 @@ fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&tok
       bubble.style.width = `${Math.abs(change) * 20 + 50}px`;
       bubble.style.height = bubble.style.width;
 
-      bubble.innerHTML = `<strong>${stock.stock}</strong><br>${change.toFixed(2)}%`;
+      bubble.innerHTML = `<strong>${symbol}</strong><br>${change.toFixed(2)}%`;
       container.appendChild(bubble);
     });
   })
