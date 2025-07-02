@@ -1,35 +1,26 @@
-const container = document.getElementById("bubbles");
+const container = document.getElementById("bubble-container");
 
-fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=50&token=5bTDfSmR2ieax6y7JUqDAD")
-  .then(res => res.json())
-  .then(data => {
-    const stocks = data.stocks;
+fetch("https://brapi.dev/api/quote/VALE3,PETR4,ITUB4,PRIO3,BBAS3?token=5bTDfSmR2ieax6y7JUqDAD")
+  .then((res) => res.json())
+  .then((data) => {
+    data.results.forEach((stock, i) => {
+      if (stock.changePercent === null) return;
 
-    container.innerHTML = "";
-
-    stocks.forEach((stock, index) => {
+      const change = parseFloat(stock.changePercent);
       const bubble = document.createElement("div");
       bubble.className = "bubble";
 
-      const change = parseFloat(stock.changePercent || 0);
-      const color = change > 0 ? "#21c55d" : change < 0 ? "#ef4444" : "#a3a3a3";
-
-      const size = Math.min(Math.max(Math.abs(change) * 20 + 50, 50), 180);
-
+      const size = 80 + Math.abs(change) * 10;
       bubble.style.width = `${size}px`;
       bubble.style.height = `${size}px`;
-      bubble.style.backgroundColor = color;
+      bubble.style.backgroundColor = change > 0 ? "green" : change < 0 ? "red" : "gray";
+      bubble.style.left = `${Math.random() * 80}%`;
+      bubble.style.top = `${Math.random() * 80}%`;
 
-      const x = Math.random() * (window.innerWidth - size);
-      const y = Math.random() * (window.innerHeight - size);
-
-      bubble.style.left = `${x}px`;
-      bubble.style.top = `${y}px`;
-
-      const label = `${stock.stock}\n${change.toFixed(2)}%`;
-      bubble.textContent = label;
-
+      bubble.innerText = `${stock.symbol} ${change.toFixed(2)}%`;
       container.appendChild(bubble);
     });
   })
-  .catch(error => console.error("Erro ao buscar dados:", error));
+  .catch((error) => {
+    console.error("Erro ao buscar dados:", error);
+  });
