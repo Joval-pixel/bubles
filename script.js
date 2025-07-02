@@ -1,49 +1,54 @@
-fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&token=SEU_TOKEN_AQUI")
-  .then(res => res.json())
-  .then(data => {
-    const stocks = data.stocks;
-    const container = document.getElementById("bubbles");
-    container.innerHTML = "";
+const symbols = ['VALE3', 'PETR4', 'ITUB4', 'B3SA3', 'BBAS3', 'WEGE3', 'ABEV3', 'MGLU3', 'BBDC4', 'LREN3'];
 
-    const MAX_SIZE = 200; // px — você pode ajustar
+const API_KEY = '5bTDfSmR2ieax6y7JUqDAD';
+const container = document.getElementById('bubble-container');
 
-    stocks.forEach(stock => {
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
+async function fetchData() {
+  const url = `https://brapi.dev/api/quote/${symbols.join(',')}?token=${API_KEY}`;
+  const res = await fetch(url);
+  const json = await res.json();
+  return json.results;
+}
 
-      // pego o % de mudança: se existir changesPercentage uso ela, senão uso change (valor absoluto)
-      // e transformo em número. Se vier como string "3.14%", tiro o % antes.
-      let changePercent;
-      if (stock.changesPercentage) {
-        changePercent = parseFloat(stock.changesPercentage.replace("%",""));
-      } else {
-        changePercent = parseFloat(stock.change);
-      }
+function getRandomPosition(size) {
+  const padding = 100;
+  const x = Math.random() * (window.innerWidth - size - padding);
+  const y = Math.random() * (window.innerHeight - size - padding);
+  return { x, y };
+}
 
-      // cor
-      const color = changePercent > 0
-        ? "#4CAF50"
-        : changePercent < 0
-          ? "#F44336"
-          : "#FFC107";
+function renderBubbles(data) {
+  container.innerHTML = '';
 
-      // tamanho bruto
-      const rawSize = Math.abs(changePercent) * 20 + 50;
+  data.forEach(stock => {
+    const bubble = document.createElement('div');
+    const change = stock.changePercent || 0;
+    const color = change >= 0 ? '#3cb371' : '#ff4500';
+    const volume = stock.volume || 1;
+    
+    // escala logarítmica para tamanho equilibrado
+    const size = Math.max(60, Math.log10(volume + 1) * 20);
 
-      // aplico limite
-      const size = Math.min(rawSize, MAX_SIZE);
+    const { x, y } = getRandomPosition(size);
 
-      bubble.style.backgroundColor = color;
-      bubble.style.width  = `${size}px`;
-      bubble.style.height = `${size}px`;
+    bubble.className = 'bubble';
+    bubble.style.background = color;
+    bubble.style.width = `${size}px`;
+    bubble.style.height = `${size}px`;
+    bubble.style.left = `${x}px`;
+    bubble.style.top = `${y}px`;
 
-      // texto interno
-      bubble.innerHTML = `
-        <strong>${stock.stock}</strong><br>
-        ${changePercent.toFixed(2)}%
-      `;
+    bubble.innerHTML = `<span>${stock.stock}<br>${change.toFixed(2)}%</span>`;
+    
+    container.appendChild(bubble);
+  });
+}
 
-      container.appendChild(bubble);
-    });
-  })
-  .catch(err => console.error("Erro na Brapi:", err));
+async function start() {
+  const data = await fetchData();
+  renderBubbles(data);
+}
+
+start();
+setInterval(start, 60000); // Atualiza a cada 60 segundos
+
