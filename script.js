@@ -1,25 +1,22 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const container = document.getElementById("bubbles-container");
 
-  try {
-    const res = await fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&token=${API_KEY}`);
-    const data = await res.json();
-    const stocks = data.stocks.slice(0, 50); // mostrar 50 ações mais negociadas
+const apiKey = "5bTDfSmR2ieax6y7JUqDAD";
+const symbols = ["PETR4", "VALE3", "ITUB4", "BBDC4", "MGLU3"];
+const container = document.getElementById("bubble-container");
 
-    stocks.forEach(stock => {
+fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&token=${apiKey}`)
+  .then(res => res.json())
+  .then(data => {
+    data.stocks.forEach(stock => {
       const bubble = document.createElement("div");
       bubble.className = "bubble";
-      bubble.innerHTML = `
-        ${stock.stock}<br/>
-        ${stock.close.toFixed(2)}<br/>
-        <small style="color:${stock.change >= 0 ? '#0f0' : '#f00'}">
-          ${stock.change.toFixed(2)}%
-        </small>
-      `;
+      bubble.style.backgroundColor = stock.change < 0 ? "#e74c3c" : "#2ecc71";
+      bubble.innerText = `${stock.symbol}
+${stock.change.toFixed(2)}%`;
+      bubble.style.width = bubble.style.height = `${60 + Math.abs(stock.change * 10)}px`;
       container.appendChild(bubble);
     });
-  } catch (err) {
-    container.innerHTML = "<p style='color:red;'>Erro ao carregar dados 😢</p>";
+  })
+  .catch(err => {
+    container.innerText = "Erro ao carregar dados da bolsa.";
     console.error(err);
-  }
-});
+  });
