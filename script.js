@@ -1,22 +1,23 @@
-
-const apiKey = "5bTDfSmR2ieax6y7JUqDAD";
-const symbols = ["PETR4", "VALE3", "ITUB4", "BBDC4", "MGLU3"];
-const container = document.getElementById("bubble-container");
-
-fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&token=${apiKey}`)
+fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&token=5bTDfSmR2ieax6y7JUqDAD")
   .then(res => res.json())
   .then(data => {
-    data.stocks.forEach(stock => {
+    const stocks = data.stocks;
+
+    const container = document.getElementById("bubbles");
+    container.innerHTML = "";
+
+    stocks.forEach(stock => {
       const bubble = document.createElement("div");
       bubble.className = "bubble";
-      bubble.style.backgroundColor = stock.change < 0 ? "#e74c3c" : "#2ecc71";
-      bubble.innerText = `${stock.symbol}
-${stock.change.toFixed(2)}%`;
-      bubble.style.width = bubble.style.height = `${60 + Math.abs(stock.change * 10)}px`;
+
+      const change = parseFloat(stock.changePercent);
+      const color = change > 0 ? "#4CAF50" : change < 0 ? "#F44336" : "#FFC107";
+
+      bubble.style.backgroundColor = color;
+      bubble.style.width = `${Math.abs(change) * 20 + 50}px`;
+      bubble.style.height = bubble.style.width;
+
+      bubble.innerHTML = `<strong>${stock.stock}</strong><br>${change.toFixed(2)}%`;
       container.appendChild(bubble);
     });
-  })
-  .catch(err => {
-    container.innerText = "Erro ao carregar dados da bolsa.";
-    console.error(err);
   });
