@@ -54,8 +54,9 @@
   <script>
     const status = document.getElementById("status");
     const token = "5bTDfSmR2ieax6y7JUqDAD";
-    const tickers = ["VALE3", "PETR4", "ITUB4", "BBAS3", "PRIO3"];
+    const tickers = ["VALE3","PETR4","ITUB4","BBAS3","PRIO3","BBDC4","ABEV3","WEGE3","RENT3","LREN3","MGLU3","EGIE3","JBSS3","RAIZ4","NTCO3","GGBR4","SUZB3","USIM5","AZUL4","CIEL3"];
     const container = document.getElementById('container');
+    const bolhas = [];
 
     async function fetchData() {
       status.textContent = "Buscando dados da API...";
@@ -63,8 +64,6 @@
       try {
         const res = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${token}`);
         const data = await res.json();
-
-        console.log("Resposta da API:", data);
 
         if (!data || !data.results) {
           status.textContent = "Erro: dados não recebidos corretamente da API.";
@@ -76,28 +75,42 @@
 
         data.results.forEach((stock) => {
           const change = parseFloat(stock.regularMarketChangePercent);
-          if (isNaN(change)) {
-            status.textContent = `Erro: mudança de preço inválida (${stock.symbol})`;
-            return;
-          }
+          if (isNaN(change)) return;
 
           const bubble = document.createElement("div");
           bubble.className = "bubble";
 
           const color = change > 0 ? "#00C853" : (change < 0 ? "#D50000" : "#888");
           const signal = change > 0 ? "+" : "";
-          const size = Math.max(60, Math.min(200, Math.abs(change) * 25));
+          const size = Math.max(60, Math.min(200, Math.abs(change) * 20));
 
           bubble.style.width = `${size}px`;
           bubble.style.height = `${size}px`;
-          bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
-          bubble.style.top = `${Math.random() * (window.innerHeight - size)}px`;
           bubble.style.backgroundColor = color;
 
           bubble.innerHTML = `
-            <div style="font-size: 16px;">${stock.symbol}</div>
-            <div style="font-size: 18px;">${signal}${change.toFixed(2)}%</div>
+            <div style="font-size: 15px;">${stock.symbol}</div>
+            <div style="font-size: 17px;">${signal}${change.toFixed(2)}%</div>
           `;
+
+          // Posicionamento sem sobreposição (tentativa simples)
+          let tries = 0;
+          do {
+            var left = Math.random() * (window.innerWidth - size);
+            var top = Math.random() * (window.innerHeight - size);
+            var overlap = bolhas.some(b => {
+              const dx = b.left - left;
+              const dy = b.top - top;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              return dist < (b.size + size) / 1.5;
+            });
+            tries++;
+          } while (overlap && tries < 50);
+
+          bubble.style.left = `${left}px`;
+          bubble.style.top = `${top}px`;
+
+          bolhas.push({ left, top, size });
 
           container.appendChild(bubble);
         });
