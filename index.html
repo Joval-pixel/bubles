@@ -1,29 +1,14 @@
-
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bubles — Ações ao Vivo</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="script.js" defer></script>
 </head>
 <body>
-  <h1 class="titulo">Bubles — Ações ao Vivo</h1>
-  <div class="setores">
-    <button onclick="filtrarSetor('Todos')">Todos</button>
-    <button onclick="filtrarSetor('Energia')">Energia</button>
-    <button onclick="filtrarSetor('Bancos')">Bancos</button>
-    <button onclick="filtrarSetor('Tecnologia')">Tecnologia</button>
-  </div>
-  <div id="bubbles" class="bubbles-container"></div>
-
-  <div id="modal-grafico" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="fecharModal()">&times;</span>
-      <iframe id="grafico-frame" width="100%" height="400" frameborder="0"></iframe>
-    </div>
-  </div>
+  <h1>Bubles — Ações ao Vivo</h1>
+  <canvas id="bubbleCanvas"></canvas>
+  <script src="script.js"></script>
 </body>
 </html>
