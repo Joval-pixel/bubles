@@ -1,28 +1,35 @@
-import { config } from './config.js';
-import { createBubble } from './bubble.js';
+const container = document.getElementById("bubbles");
 
-const symbols = ['VALE3', 'PETR4', 'ITUB4', 'BBDC4', 'ABEV3', 'BBAS3', 'MGLU3', 'AAPL34', 'AMER3', 'COGN3'];
-const API_KEY = config.apiKey;
-const API_URL = `https://brapi.dev/api/quote/${symbols.join(',')}?token=${API_KEY}`;
+fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=50&token=5bTDfSmR2ieax6y7JUqDAD")
+  .then(res => res.json())
+  .then(data => {
+    const stocks = data.stocks;
 
-async function fetchStockData() {
-    try {
-        const response = await fetch(API_URL);
-        const data = await response.json();
+    container.innerHTML = "";
 
-        if (data.results && Array.isArray(data.results)) {
-            data.results.forEach(stock => {
-                const change = stock.regularMarketChangePercent;
-                const symbol = stock.symbol;
-                createBubble(symbol, change);
-            });
-        } else {
-            console.error("Erro ao carregar dados:", data);
-        }
-    } catch (error) {
-        console.error('Erro ao buscar dados:', error);
-    }
-}
+    stocks.forEach((stock, index) => {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
 
-fetchStockData();
-setInterval(fetchStockData, 60000); // Atualiza a cada 1 min
+      const change = parseFloat(stock.changePercent || 0);
+      const color = change > 0 ? "#21c55d" : change < 0 ? "#ef4444" : "#a3a3a3";
+
+      const size = Math.min(Math.max(Math.abs(change) * 20 + 50, 50), 180);
+
+      bubble.style.width = `${size}px`;
+      bubble.style.height = `${size}px`;
+      bubble.style.backgroundColor = color;
+
+      const x = Math.random() * (window.innerWidth - size);
+      const y = Math.random() * (window.innerHeight - size);
+
+      bubble.style.left = `${x}px`;
+      bubble.style.top = `${y}px`;
+
+      const label = `${stock.stock}\n${change.toFixed(2)}%`;
+      bubble.textContent = label;
+
+      container.appendChild(bubble);
+    });
+  })
+  .catch(error => console.error("Erro ao buscar dados:", error));
