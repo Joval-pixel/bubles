@@ -1,15 +1,33 @@
-
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Bubles – Bolsa que Respira</title>
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bubles – Ações ao Vivo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 40px;
+    }
+    .bubble {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: white;
+      margin: 20px;
+      font-weight: bold;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-    <h1>Bubles – Ações ao Vivo</h1>
-    <div id="bubble-container"></div>
-    <script src="script.js"></script>
+  <h1>Bubles – Ações ao Vivo</h1>
+  <div id="bubbles"></div>
+
+  <script src="script.js"></script>
 </body>
 </html>
