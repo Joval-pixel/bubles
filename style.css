@@ -1,70 +1,27 @@
-
 body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  background-color: #000;
-  color: white;
-}
-.titulo {
-  font-size: 2rem;
-  margin: 20px 0;
+  background: #000;
   color: #0ff;
+  font-family: sans-serif;
+  text-align: center;
+  padding: 1rem;
 }
-.bubbles-container {
+
+#bubbles {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 15px;
-  padding: 20px;
+  gap: 1rem;
+  margin-top: 1rem;
 }
+
 .bubble {
-  border-radius: 50%;
-  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  font-weight: bold;
-  text-align: center;
-  line-height: 1.2;
-  transition: transform 0.3s ease;
-}
-.bubble:hover {
-  transform: scale(1.1);
-}
-.setores {
-  margin-bottom: 15px;
-}
-.setores button {
-  margin: 5px;
-  padding: 8px 15px;
-  background-color: #111;
-  color: white;
-  border: 1px solid #0ff;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 10;
-  padding-top: 100px;
-  left: 0; top: 0; width: 100%; height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.8);
-}
-.modal-content {
-  background-color: #222;
-  margin: auto;
-  padding: 20px;
-  border: 1px solid #0ff;
-  width: 90%;
-  max-width: 700px;
-}
-.close {
+  border-radius: 50%;
   color: #fff;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 0.8rem;
+  line-height: 1;
+  white-space: pre;
+  padding: 0.5rem;
 }
-.close:hover { color: #0ff; cursor: pointer; }
