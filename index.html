@@ -1,33 +1,29 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bubles – Ações ao Vivo</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 40px;
-    }
-    .bubble {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      color: white;
-      margin: 20px;
-      font-weight: bold;
-      font-size: 14px;
-      text-align: center;
-    }
-  </style>
+  <title>Bubles — Ações ao Vivo</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="script.js" defer></script>
 </head>
 <body>
-  <h1>Bubles – Ações ao Vivo</h1>
-  <div id="bubbles"></div>
+  <h1 class="titulo">Bubles — Ações ao Vivo</h1>
+  <div class="setores">
+    <button onclick="filtrarSetor('Todos')">Todos</button>
+    <button onclick="filtrarSetor('Energia')">Energia</button>
+    <button onclick="filtrarSetor('Bancos')">Bancos</button>
+    <button onclick="filtrarSetor('Tecnologia')">Tecnologia</button>
+  </div>
+  <div id="bubbles" class="bubbles-container"></div>
 
-  <script src="script.js"></script>
+  <div id="modal-grafico" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fecharModal()">&times;</span>
+      <iframe id="grafico-frame" width="100%" height="400" frameborder="0"></iframe>
+    </div>
+  </div>
 </body>
 </html>

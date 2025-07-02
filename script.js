@@ -1,33 +1,43 @@
-fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&token=5bTDfSmR2ieax6y7JUqDAD")
-  .then(res => res.json())
-  .then(data => {
-    const stocks = data.stocks;
-    const container = document.getElementById("bubbles");
-    container.innerHTML = "";
 
-    stocks.forEach(stock => {
-      const symbol = stock.stock || stock.symbol || "???";
+const API_KEY = "5bTDfSmR2ieax6y7JUqDAD";
 
-      // Tentamos extrair de 'changesPercentage', se não tiver, usamos 'change' com fallback 0
-      let change = 0;
-
-      if (typeof stock.changesPercentage === "string") {
-        const match = stock.changesPercentage.match(/-?\d+(\.\d+)?/);
-        if (match) change = parseFloat(match[0]);
-      } else if (typeof stock.change === "number") {
-        change = stock.change;
-      }
-
-      const color = change > 0 ? "#4CAF50" : change < 0 ? "#F44336" : "#FFC107";
-
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.style.backgroundColor = color;
-      bubble.style.width = `${Math.abs(change) * 20 + 50}px`;
-      bubble.style.height = bubble.style.width;
-
-      bubble.innerHTML = `<strong>${symbol}</strong><br>${change.toFixed(2)}%`;
-      container.appendChild(bubble);
+function carregarBolhas() {
+  fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=50&token=${API_KEY}`)
+    .then(res => res.json())
+    .then(data => {
+      const container = document.getElementById("bubbles");
+      container.innerHTML = "";
+      data.stocks.forEach(stock => {
+        const change = parseFloat(stock.changePercent);
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.style.backgroundColor = change > 0 ? "#4caf50" : change < 0 ? "#f44336" : "#999";
+        bubble.style.width = bubble.style.height = `${Math.min(200, Math.abs(change) * 20 + 50)}px`;
+        bubble.textContent = `${stock.stock}\n${change.toFixed(2)}%`;
+        bubble.onclick = () => abrirGrafico(stock.stock);
+        bubble.setAttribute("data-setor", stock.sector || "Desconhecido");
+        container.appendChild(bubble);
+      });
     });
-  })
-  .catch(error => console.error("Erro ao buscar dados da API Brapi:", error));
+}
+
+function filtrarSetor(setor) {
+  const bolhas = document.querySelectorAll(".bubble");
+  bolhas.forEach(b => {
+    const setorBolha = b.getAttribute("data-setor");
+    b.style.display = setor === "Todos" || setorBolha === setor ? "flex" : "none";
+  });
+}
+
+function abrirGrafico(ticker) {
+  const modal = document.getElementById("modal-grafico");
+  const frame = document.getElementById("grafico-frame");
+  frame.src = `https://s.tradingview.com/widgetembed/?symbol=BMFBOVESPA%3A${ticker}&interval=15&theme=dark&style=1`;
+  modal.style.display = "block";
+}
+
+function fecharModal() {
+  document.getElementById("modal-grafico").style.display = "none";
+}
+
+document.addEventListener("DOMContentLoaded", carregarBolhas);
