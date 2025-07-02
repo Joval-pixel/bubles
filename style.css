@@ -1,33 +1,46 @@
 body {
   margin: 0;
-  background-color: black;
+  padding: 0;
+  background-color: #000;
+  font-family: sans-serif;
   overflow: hidden;
-  font-family: Arial, sans-serif;
   text-align: center;
 }
 
 h1 {
   color: cyan;
-  margin: 20px 0;
+  font-size: 24px;
+  margin: 16px;
 }
 
-#bubble-container {
+#bubbles-container {
   position: relative;
-  width: 100%;
-  height: 90vh;
+  width: 100vw;
+  height: calc(100vh - 60px);
   overflow: hidden;
 }
 
 .bubble {
   position: absolute;
   border-radius: 50%;
-  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  white-space: nowrap;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
-  max-width: 200px;
-  max-height: 200px;
+  color: white;
+  font-weight: bold;
+  animation: float 15s linear infinite;
+  max-width: 160px;
+  max-height: 160px;
+  padding: 4px;
+  text-align: center;
+  box-shadow: 0 0 10px #000;
+}
+
+@keyframes float {
+  from {
+    transform: translateY(100vh);
+  }
+  to {
+    transform: translateY(-200px);
+  }
 }
