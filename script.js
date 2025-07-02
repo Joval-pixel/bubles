@@ -17,7 +17,9 @@ fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&tok
       bubble.style.width = `${Math.abs(change) * 20 + 50}px`;
       bubble.style.height = bubble.style.width;
 
-      bubble.innerHTML = `<strong>${stock.stock}</strong><br>${change.toFixed(2)}%`;
+      // CORRIGIDO AQUI:
+      bubble.innerHTML = `<strong>${stock.shortName || stock.symbol}</strong><br>${change.toFixed(2)}%`;
+
       container.appendChild(bubble);
     });
   })
