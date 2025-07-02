@@ -7,132 +7,98 @@
   <style>
     body {
       margin: 0;
+      background: #0e0e11;
+      font-family: Arial, sans-serif;
       overflow: hidden;
-      background-color: #0f1115;
-      font-family: 'Arial', sans-serif;
     }
+
     h1 {
-      color: cyan;
+      color: #00f5ff;
       text-align: center;
-      font-size: 24px;
       margin-top: 20px;
+      font-size: 26px;
     }
-    canvas {
-      display: block;
+
+    #bubble-container {
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: bold;
+      text-align: center;
+      border: 4px solid white;
+      animation: float 20s linear infinite;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0) rotate(0deg);
+      }
+      100% {
+        transform: translateY(-100vh) rotate(360deg);
+      }
     }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
-  <canvas id="canvas"></canvas>
+  <div id="bubble-container"></div>
 
   <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-
-    const tickers = [
-      'VALE3', 'PETR4', 'ITUB4', 'BBAS3', 'PRIO3',
-      'WEGE3', 'MGLU3', 'BBDC4', 'ELET3', 'LREN3',
-      'ABEV3', 'B3SA3', 'RENT3', 'CSNA3', 'GGBR4',
-      'RAIZ4', 'SUZB3', 'USIM5', 'BRKM5', 'HAPV3'
+    const container = document.getElementById("bubble-container");
+    const apiKey = "5bTDfSmR2ieax6y7JUqDAD";
+    const symbols = [
+      "PETR4", "VALE3", "ITUB4", "BBAS3", "BBDC4", "ABEV3", "PRIO3",
+      "WEGE3", "RENT3", "MGLU3", "B3SA3", "LREN3", "HAPV3", "GGBR4",
+      "CSNA3", "RADL3", "HYPE3", "TAEE11", "CPLE6", "ENEV3"
     ];
 
-    const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
-    const url = `https://brapi.dev/api/quote/${tickers.join(',')}?token=${apiKey}`;
+    async function getData() {
+      const url = `https://brapi.dev/api/quote/${symbols.join(",")}?token=${apiKey}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      return json.results.filter(stock =>
+        stock.regularMarketChangePercent !== null &&
+        !isNaN(stock.regularMarketChangePercent) &&
+        stock.regularMarketChangePercent !== 0
+      );
+    }
 
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        if (!data || !data.results) return;
+    function createBubble(stock) {
+      const perc = stock.regularMarketChangePercent.toFixed(2);
+      const symbol = stock.symbol;
+      const size = Math.min(Math.max(Math.abs(perc) * 10 + 40, 50), 180); // 50-180px
+      const color = perc > 0 ? "#00cc66" : "#e60000";
+      const sign = perc > 0 ? "+" : "";
 
-        const bubbles = data.results
-          .filter(stock => typeof stock.change_percent === 'number' && !isNaN(stock.change_percent))
-          .map(stock => {
-            const change = stock.change_percent;
-            const color = change > 0 ? '#00c853' : (change < 0 ? '#d50000' : '#9e9e9e');
-            const borderColor = '#fff';
-            const label = `${stock.stock}\n${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
-            const radius = Math.max(30, Math.min(100, Math.abs(change) * 10 + 30));
-            return {
-              x: Math.random() * canvas.width,
-              y: Math.random() * canvas.height,
-              dx: (Math.random() - 0.5) * 1.5,
-              dy: (Math.random() - 0.5) * 1.5,
-              radius,
-              color,
-              borderColor,
-              label
-            };
-          });
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.style.background = color;
+      bubble.style.width = size + "px";
+      bubble.style.height = size + "px";
+      bubble.style.left = Math.random() * (window.innerWidth - size) + "px";
+      bubble.style.top = Math.random() * (window.innerHeight - size) + "px";
+      bubble.innerHTML = `${symbol}<br/>${sign}${perc}%`;
 
-        function drawBubble(bubble) {
-          ctx.beginPath();
-          ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
-          ctx.fillStyle = bubble.color;
-          ctx.fill();
-          ctx.lineWidth = 4;
-          ctx.strokeStyle = bubble.borderColor;
-          ctx.stroke();
-          ctx.closePath();
+      container.appendChild(bubble);
+    }
 
-          ctx.fillStyle = '#ffffff';
-          ctx.font = `bold ${Math.max(12, bubble.radius / 4)}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-
-          const lines = bubble.label.split('\n');
-          lines.forEach((line, i) => {
-            ctx.fillText(line, bubble.x, bubble.y + (i - 0.5) * (bubble.radius / 3));
-          });
-        }
-
-        function animate() {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-          for (let i = 0; i < bubbles.length; i++) {
-            const b = bubbles[i];
-
-            b.x += b.dx;
-            b.y += b.dy;
-
-            if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.dx *= -1;
-            if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.dy *= -1;
-
-            for (let j = 0; j < bubbles.length; j++) {
-              if (i !== j) {
-                const b2 = bubbles[j];
-                const dx = b.x - b2.x;
-                const dy = b.y - b2.y;
-                const dist = Math.hypot(dx, dy);
-                if (dist < b.radius + b2.radius) {
-                  const angle = Math.atan2(dy, dx);
-                  const move = (b.radius + b2.radius - dist) / 2;
-                  b.x += Math.cos(angle) * move;
-                  b.y += Math.sin(angle) * move;
-                  b2.x -= Math.cos(angle) * move;
-                  b2.y -= Math.sin(angle) * move;
-                }
-              }
-            }
-
-            drawBubble(b);
-          }
-
-          requestAnimationFrame(animate);
-        }
-
-        animate();
-      })
-      .catch(error => {
-        console.error('Erro ao buscar dados:', error);
-      });
+    getData().then(stocks => {
+      if (stocks.length === 0) {
+        container.innerHTML = "<p style='color: #00f5ff; text-align: center; font-size: 18px;'>Nenhuma ação válida no momento.</p>";
+        return;
+      }
+      stocks.forEach(createBubble);
+    });
   </script>
 </body>
 </html>
