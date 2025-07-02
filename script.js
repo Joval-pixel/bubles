@@ -7,16 +7,19 @@ const url = `https://brapi.dev/api/quote/${symbols}?token=${token}`;
 fetch(url)
   .then(res => res.json())
   .then(data => {
-    if (!data.results || data.results.length === 0) {
-      console.error("Nenhum dado retornado.");
+    if (!data.results || !Array.isArray(data.results)) {
+      console.error("Erro na resposta da API:", data);
       return;
     }
 
     data.results.forEach(stock => {
       const change = stock.changePercent;
 
-      // Ignora se não tiver valor válido
-      if (change === null || isNaN(change)) return;
+      // Verifica se o valor existe e é um número
+      if (change === null || isNaN(change)) {
+        console.warn(`Sem dados de variação para ${stock.symbol}`);
+        return;
+      }
 
       const bubble = document.createElement("div");
       bubble.className = "bubble";
