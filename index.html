@@ -1,69 +1,47 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bubles — Ações ao Vivo</title>
-  <style>
-    body {
-      margin: 0;
-      background-color: black;
-      color: cyan;
-      font-family: Arial, sans-serif;
-      text-align: center;
+<script>
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
+
+  const bubbles = [
+    { x: 100, y: 100, radius: 50, color: "green", label: "VALE3 +3.63%" },
+    { x: 300, y: 200, radius: 40, color: "red", label: "PETR4 -2.10%" },
+  ];
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    bubbles.forEach(b => {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius, 0, 2 * Math.PI);
+      ctx.fillStyle = b.color;
+      ctx.fill();
+      ctx.fillStyle = "white";
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(b.label, b.x, b.y + 4);
+    });
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+
+  // 🔍 Busca dados da Brapi com chave correta
+  async function fetchStocks() {
+    try {
+      const response = await fetch("https://brapi.dev/api/quote/VALE3,PETR4?token=5bTDfSmR2ieax6y7JUqDAD");
+      const data = await response.json();
+      console.log("📈 Dados recebidos da API:", data);
+    } catch (error) {
+      console.error("❌ Erro ao buscar dados da API:", error);
     }
-    h1 {
-      padding: 20px;
-    }
-    canvas {
-      display: block;
-    }
-  </style>
-</head>
-<body>
-  <h1>Bubles — Ações ao Vivo</h1>
-  <canvas id="canvas"></canvas>
+  }
 
-  <script>
-    console.log("👋 Iniciando Bubles");
-
-    const canvas = document.getElementById("canvas");
-    if (!canvas) {
-      console.error("❌ Canvas não encontrado");
-    }
-
-    const ctx = canvas.getContext("2d");
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-
-    const bubbles = [
-      { x: 100, y: 100, radius: 50, color: "green", label: "VALE3 +3.63%" },
-      { x: 300, y: 200, radius: 40, color: "red", label: "PETR4 -2.10%" },
-    ];
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bubbles.forEach(b => {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.radius, 0, 2 * Math.PI);
-        ctx.fillStyle = b.color;
-        ctx.fill();
-
-        ctx.fillStyle = "white";
-        ctx.font = "14px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText(b.label, b.x, b.y + 4);
-      });
-      requestAnimationFrame(draw);
-    }
-
-    draw();
-  </script>
-</body>
-</html>
+  fetchStocks();
+</script>
