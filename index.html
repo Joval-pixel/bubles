@@ -7,90 +7,109 @@
   <style>
     body {
       margin: 0;
-      background: #0b0f1a;
-      font-family: 'Segoe UI', sans-serif;
+      background-color: #0f1115;
+      font-family: 'Arial', sans-serif;
       overflow: hidden;
     }
 
-    #bubbles {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
+    h1 {
+      color: #00f6ff;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 26px;
     }
 
     .bubble {
       position: absolute;
       border-radius: 50%;
-      color: white;
+      color: #fff;
       display: flex;
-      align-items: center;
+      flex-direction: column;
       justify-content: center;
-      text-align: center;
+      align-items: center;
       font-weight: bold;
-      padding: 10px;
-      border: 3px solid rgba(255,255,255,0.15);
-      animation: float 30s infinite linear;
-      user-select: none;
+      border: 2px solid #ffffffbb;
+      box-shadow: 0 0 10px #00000066;
+      text-align: center;
+      transition: transform 0.2s;
+      padding: 5px;
+      max-width: 150px;
+      max-height: 150px;
     }
 
-    @keyframes float {
-      0% {
-        transform: translateY(0px);
-      }
-      50% {
-        transform: translateY(-30px);
-      }
-      100% {
-        transform: translateY(0px);
-      }
+    .bubble:hover {
+      transform: scale(1.1);
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div id="bubbles"></div>
+  <h1>Bubles — Ações ao Vivo</h1>
 
   <script>
-    const container = document.getElementById("bubbles");
+    const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
+    const symbols = [
+      "VALE3", "PETR4", "ITUB4", "BBDC4", "BBAS3", "PRIO3", "MGLU3", "RENT3", "WEGE3", "SUZB3",
+      "ABEV3", "EGIE3", "RAIZ4", "LREN3", "B3SA3", "JBSS3", "CPLE6", "HAPV3", "GGBR4", "ENEV3",
+      "VBBR3", "KLBN11", "ALPA4", "CCRO3", "EMBR3", "EQTL3", "CSAN3", "CYRE3", "MRVE3", "CMIG4",
+      "CVCB3", "PETZ3", "USIM5", "BRFS3", "AZUL4", "GOLL4", "TOTS3", "YDUQ3", "TIMS3", "QUAL3",
+      "NEOE3", "SMTO3", "SANB11", "TRPL4", "BRKM5", "ARZZ3", "ENBR3", "RADL3", "CRFB3", "LWSA3"
+    ];
 
-    fetch("https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&limit=30&token=5bTDfSmR2ieax6y7JUqDAD")
-      .then(res => res.json())
-      .then(data => {
-        const stocks = data.stocks;
-        container.innerHTML = "";
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-        stocks.forEach(stock => {
-          const change = parseFloat(stock.changePercent);
-          const bubble = document.createElement("div");
-          bubble.className = "bubble";
+    async function fetchData() {
+      const chunks = [];
+      const chunkSize = 10;
+      for (let i = 0; i < symbols.length; i += chunkSize) {
+        const slice = symbols.slice(i, i + chunkSize);
+        const url = `https://brapi.dev/api/quote/${slice.join(',')}?token=${apiKey}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        chunks.push(...json.results);
+        await new Promise(resolve => setTimeout(resolve, 300)); // respeita limite
+      }
+      return chunks.filter(asset => asset && typeof asset.change_percent === 'number');
+    }
 
-          const color =
-            change > 0 ? "#00cc99" :
-            change < 0 ? "#ff3b3b" : "#999";
+    function createBubble(asset) {
+      const div = document.createElement('div');
+      const pct = asset.change_percent;
+      const absPct = Math.abs(pct);
+      const radius = Math.min(30 + absPct * 5, 75);
+      div.className = 'bubble';
+      div.style.width = `${radius * 2}px`;
+      div.style.height = `${radius * 2}px`;
+      div.style.left = `${Math.random() * (width - radius * 2)}px`;
+      div.style.top = `${Math.random() * (height - radius * 2)}px`;
 
-          const signal = change > 0 ? "+" : "";
-          const size = Math.min(Math.abs(change) * 15 + 50, 180);
+      let color;
+      if (pct > 0) {
+        color = '#00d26a'; // verde
+      } else if (pct < 0) {
+        color = '#ff4c4c'; // vermelho
+      } else {
+        color = '#888'; // neutro
+      }
 
-          bubble.style.backgroundColor = color;
-          bubble.style.width = `${size}px`;
-          bubble.style.height = `${size}px`;
+      div.style.backgroundColor = color;
+      div.innerHTML = `
+        <div style="font-size: 16px;">${asset.symbol}</div>
+        <div style="font-size: 14px;">${pct > 0 ? '+' : ''}${pct.toFixed(2)}%</div>
+      `;
+      return div;
+    }
 
-          bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
-          bubble.style.top = `${Math.random() * (window.innerHeight - size)}px`;
-
-          bubble.innerHTML = `
-            <div>
-              <div style="font-size: 1.1em;">${stock.stock}</div>
-              <div style="font-size: 1em; font-weight: bold;">${signal}${change.toFixed(2)}%</div>
-            </div>
-          `;
-
-          container.appendChild(bubble);
-        });
-      })
-      .catch(error => {
-        console.error("Erro ao carregar dados:", error);
+    async function init() {
+      const data = await fetchData();
+      data.forEach(asset => {
+        const bubble = createBubble(asset);
+        document.body.appendChild(bubble);
       });
+    }
+
+    init();
   </script>
 </body>
 </html>
