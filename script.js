@@ -5,39 +5,45 @@ fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&tok
     const container = document.getElementById("bubbles");
     container.innerHTML = "";
 
-    const MAX_SIZE = 200; // px — tamanho máximo da bolha
+    const MAX_SIZE = 200; // px — você pode ajustar
 
     stocks.forEach(stock => {
       const bubble = document.createElement("div");
       bubble.className = "bubble";
 
-      // calcula variação em %
-      const change = parseFloat(stock.changePercent);
+      // pego o % de mudança: se existir changesPercentage uso ela, senão uso change (valor absoluto)
+      // e transformo em número. Se vier como string "3.14%", tiro o % antes.
+      let changePercent;
+      if (stock.changesPercentage) {
+        changePercent = parseFloat(stock.changesPercentage.replace("%",""));
+      } else {
+        changePercent = parseFloat(stock.change);
+      }
 
-      // escolhe cor
-      const color = change > 0 
-        ? "#4CAF50" 
-        : change < 0 
-          ? "#F44336" 
+      // cor
+      const color = changePercent > 0
+        ? "#4CAF50"
+        : changePercent < 0
+          ? "#F44336"
           : "#FFC107";
 
-      // calcula tamanho base (pode ajustar o multiplicador)
-      const rawSize = Math.abs(change) * 20 + 50;
+      // tamanho bruto
+      const rawSize = Math.abs(changePercent) * 20 + 50;
 
-      // aplica limite máximo
+      // aplico limite
       const size = Math.min(rawSize, MAX_SIZE);
 
       bubble.style.backgroundColor = color;
       bubble.style.width  = `${size}px`;
       bubble.style.height = `${size}px`;
 
-      // conteúdo texto
+      // texto interno
       bubble.innerHTML = `
         <strong>${stock.stock}</strong><br>
-        ${change.toFixed(2)}%
+        ${changePercent.toFixed(2)}%
       `;
 
       container.appendChild(bubble);
     });
   })
-  .catch(error => console.error("Erro ao buscar dados da API Brapi:", error));
+  .catch(err => console.error("Erro na Brapi:", err));
