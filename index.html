@@ -54,7 +54,7 @@
   <script>
     const status = document.getElementById("status");
     const token = "5bTDfSmR2ieax6y7JUqDAD";
-    const tickers = ["VALE3"];
+    const tickers = ["VALE3", "PETR4", "ITUB4", "BBAS3", "PRIO3"];
     const container = document.getElementById('container');
 
     async function fetchData() {
@@ -75,7 +75,7 @@
         status.textContent = "Gerando bolhas...";
 
         data.results.forEach((stock) => {
-          const change = parseFloat(stock.change_percent);
+          const change = parseFloat(stock.regularMarketChangePercent);
           if (isNaN(change)) {
             status.textContent = `Erro: mudança de preço inválida (${stock.symbol})`;
             return;
@@ -95,13 +95,14 @@
           bubble.style.backgroundColor = color;
 
           bubble.innerHTML = `
-            <div>${stock.symbol}</div>
-            <div>${signal}${change.toFixed(2)}%</div>
+            <div style="font-size: 16px;">${stock.symbol}</div>
+            <div style="font-size: 18px;">${signal}${change.toFixed(2)}%</div>
           `;
 
           container.appendChild(bubble);
-          status.textContent = "Bolha exibida com sucesso!";
         });
+
+        status.textContent = "";
       } catch (e) {
         status.textContent = `Erro ao buscar dados: ${e.message}`;
       }
