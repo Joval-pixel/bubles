@@ -1,11 +1,4 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/index.html"
-    }
-  ],
-  "redirects": [],
-  "headers": []
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
