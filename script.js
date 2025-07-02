@@ -1,40 +1,49 @@
-const container = document.getElementById("bubble-container");
+const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
+const symbols = ['VALE3', 'PETR4', 'ITUB4', 'BBAS3', 'PRIO3']; // pode adicionar/remover
 
-const symbols = "VALE3,PETR4,ITUB4,PRIO3,BBAS3";
-const token = "5bTDfSmR2ieax6y7JUqDAD";
-const url = `https://brapi.dev/api/quote/${symbols}?token=${token}`;
+const container = document.getElementById('bubbles-container');
 
-fetch(url)
-  .then(res => res.json())
-  .then(data => {
-    if (!data.results || !Array.isArray(data.results)) {
-      console.error("Erro na resposta da API:", data);
-      return;
-    }
+async function fetchStock(symbol) {
+  const url = `https://brapi.dev/api/quote/${symbol}?token=${apiKey}`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    const result = data.results[0];
+    return {
+      symbol: result.symbol,
+      change: result.regularMarketChangePercent,
+    };
+  } catch (error) {
+    console.error(`Erro ao buscar ${symbol}:`, error);
+    return null;
+  }
+}
 
-    data.results.forEach(stock => {
-      const change = stock.changePercent;
+function createBubble(stock) {
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  const change = parseFloat(stock.change);
 
-      // Verifica se o valor existe e é um número
-      if (change === null || isNaN(change)) {
-        console.warn(`Sem dados de variação para ${stock.symbol}`);
-        return;
-      }
+  bubble.style.backgroundColor =
+    change > 0 ? 'green' : change < 0 ? 'red' : 'gray';
 
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
+  bubble.style.width = bubble.style.height =
+    60 + Math.min(Math.abs(change) * 10, 100) + 'px';
 
-      const size = 80 + Math.abs(change) * 10;
-      bubble.style.width = `${size}px`;
-      bubble.style.height = `${size}px`;
-      bubble.style.backgroundColor = change > 0 ? "green" : change < 0 ? "red" : "gray";
-      bubble.style.left = `${Math.random() * 80}%`;
-      bubble.style.top = `${Math.random() * 80}%`;
+  bubble.style.left = Math.random() * 80 + 'vw';
+  bubble.style.top = Math.random() * 60 + 60 + 'px';
 
-      bubble.innerText = `${stock.symbol} ${change.toFixed(2)}%`;
-      container.appendChild(bubble);
-    });
-  })
-  .catch(error => {
-    console.error("Erro ao buscar dados:", error);
-  });
+  bubble.innerText = `${stock.symbol}\n${change.toFixed(2)}%`;
+  container.appendChild(bubble);
+}
+
+async function renderBubbles() {
+  container.innerHTML = '';
+  for (const symbol of symbols) {
+    const stock = await fetchStock(symbol);
+    if (stock) createBubble(stock);
+  }
+}
+
+renderBubbles();
+setInterval(renderBubbles, 30000); // atualiza a cada 30s
