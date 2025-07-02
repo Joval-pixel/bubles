@@ -6,19 +6,18 @@ fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=5&tok
     container.innerHTML = "";
 
     stocks.forEach(stock => {
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
+      const changeStr = stock.changesPercentage;
+      const change = parseFloat(changeStr);
 
-      const change = parseFloat(stock.changePercent);
       const color = change > 0 ? "#4CAF50" : change < 0 ? "#F44336" : "#FFC107";
 
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
       bubble.style.backgroundColor = color;
       bubble.style.width = `${Math.abs(change) * 20 + 50}px`;
       bubble.style.height = bubble.style.width;
 
-      const label = `${stock.shortName || stock.stock}<br>${change.toFixed(2)}%`;
-      bubble.innerHTML = `<strong>${label}</strong>`;
-
+      bubble.innerHTML = `<strong>${stock.stock}</strong><br>${change.toFixed(2)}%`;
       container.appendChild(bubble);
     });
   })
