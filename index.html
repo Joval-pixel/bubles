@@ -7,16 +7,23 @@
   <style>
     body {
       margin: 0;
-      overflow: hidden;
       background-color: black;
       font-family: Arial, sans-serif;
+      overflow: hidden;
     }
 
     h1 {
-      text-align: center;
       color: cyan;
-      font-size: 18px;
-      margin: 15px 0;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 20px;
+    }
+
+    #bubble-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
     }
 
     .bubble {
@@ -26,73 +33,92 @@
       align-items: center;
       justify-content: center;
       text-align: center;
+      font-size: 12px;
       font-weight: bold;
       color: white;
-      cursor: pointer;
       padding: 5px;
       box-sizing: border-box;
+      cursor: pointer;
       transition: transform 0.3s;
-      user-select: none;
-      white-space: pre-line;
+      white-space: nowrap;
+      line-height: 1.2;
     }
 
     .bubble:hover {
       transform: scale(1.1);
-      z-index: 2;
+      z-index: 999;
     }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
+  <div id="bubble-container"></div>
 
   <script>
     const API_KEY = '5bTDfSmR2ieax6y7JUqDAD';
-    const TICKERS = ['VALE3', 'PETR4', 'ITUB4', 'BBDC4', 'ABEV3', 'MGLU3', 'BBAS3', 'ASAI3', 'COGN3', 'WEGE3'];
+    const TICKERS = [
+      "VALE3", "PETR4", "ITUB4", "BBDC4", "ABEV3", "B3SA3",
+      "MGLU3", "WEGE3", "BBAS3", "ASAI3", "COGN3", "LREN3"
+    ];
 
-    async function fetchStockData() {
+    function randomPosition(size) {
+      const containerWidth = window.innerWidth;
+      const containerHeight = window.innerHeight;
+      const x = Math.random() * (containerWidth - size);
+      const y = Math.random() * (containerHeight - size);
+      return { x, y };
+    }
+
+    function renderBubbles(stocks) {
+      const container = document.getElementById("bubble-container");
+      container.innerHTML = "";
+
+      stocks.forEach(stock => {
+        const change = stock.change_percent;
+        if (change === null || change === undefined) return;
+
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+
+        const absChange = Math.abs(change);
+        const size = Math.min(200, 30 + absChange * 10); // limita bolhas a 200px máx.
+
+        const { x, y } = randomPosition(size);
+
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${x}px`;
+        bubble.style.top = `${y}px`;
+        bubble.style.backgroundColor = change >= 0 ? "#00b300" : "#e60000";
+
+        bubble.innerHTML = `${stock.symbol}<br>${change.toFixed(2)}%`;
+
+        bubble.onclick = () => {
+          window.open(`https://www.tradingview.com/chart/?symbol=BMFBOVESPA:${stock.symbol}`, "_blank");
+        };
+
+        container.appendChild(bubble);
+      });
+    }
+
+    async function fetchStocks() {
       try {
-        const response = await fetch(https://brapi.dev/api/quote/${TICKERS.join(',')}?token=${API_KEY});
+        const tickers = TICKERS.join(",");
+        const response = await fetch(`https://brapi.dev/api/quote/${tickers}?token=${API_KEY}`);
         const data = await response.json();
-        return data.results;
+
+        if (data && Array.isArray(data.results)) {
+          renderBubbles(data.results);
+        } else {
+          console.error("Dados inválidos:", data);
+        }
       } catch (error) {
-        console.warn('Erro na API. Usando dados simulados.', error);
-        return TICKERS.map((ticker, i) => ({
-          symbol: ticker,
-          change_percent: ((Math.random() - 0.5) * 10).toFixed(2)
-        }));
+        console.error("Erro ao buscar dados:", error);
       }
     }
 
-    function createBubble(stock) {
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble';
-
-      const percent = parseFloat(stock.change_percent);
-      const size = Math.min(Math.max(Math.abs(percent) * 10, 50), 160);
-
-      bubble.style.width = ${size}px;
-      bubble.style.height = ${size}px;
-      bubble.style.left = ${Math.random() * (window.innerWidth - size)}px;
-      bubble.style.top = ${Math.random() * (window.innerHeight - size)}px;
-      bubble.style.backgroundColor = percent >= 0 ? 'green' : 'red';
-      bubble.innerText = ${stock.symbol}\n${percent > 0 ? '+' : ''}${percent}%;
-
-      bubble.onclick = () => {
-        window.open(https://br.tradingview.com/symbols/BMFBOVESPA:${stock.symbol}/, '_blank');
-      };
-
-      document.body.appendChild(bubble);
-    }
-
-    async function renderBubbles() {
-      const stocks = await fetchStockData();
-      stocks.forEach(createBubble);
-    }
-
-    renderBubbles();
-  </script>
-</body>
-</html>
+    fetchStocks();
+    setInterval(fetchStocks, 30000); // Atualiza a cada 30s
   </script>
 </body>
 </html>
