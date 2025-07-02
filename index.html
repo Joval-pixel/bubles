@@ -9,14 +9,13 @@
       margin: 0;
       background-color: #0d1117;
       overflow: hidden;
-      font-family: 'Arial', sans-serif;
+      font-family: Arial, sans-serif;
+      color: #00f0ff;
     }
 
     h1 {
-      color: #00f0ff;
       text-align: center;
-      font-size: 1.8rem;
-      margin: 20px 0;
+      margin-top: 20px;
     }
 
     .bubble {
@@ -39,53 +38,72 @@
       50% { transform: translateY(-30px) }
       100% { transform: translateY(0px) }
     }
+
+    #status {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
+  <div id="status">Carregando...</div>
   <div id="container"></div>
 
   <script>
+    const status = document.getElementById("status");
     const token = "5bTDfSmR2ieax6y7JUqDAD";
-    const tickers = ["VALE3"]; // Testando com uma única ação
+    const tickers = ["VALE3"];
     const container = document.getElementById('container');
 
     async function fetchData() {
+      status.textContent = "Buscando dados da API...";
+
       try {
-        const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${token}`);
-        const data = await response.json();
+        const res = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${token}`);
+        const data = await res.json();
 
-        if (data && data.results) {
-          container.innerHTML = '';
-          data.results.forEach((stock, index) => {
-            const change = parseFloat(stock.change_percent);
-            if (isNaN(change)) return;
+        console.log("Resposta da API:", data);
 
-            const bubble = document.createElement("div");
-            bubble.className = "bubble";
-
-            const color = change > 0 ? "#00C853" : (change < 0 ? "#D50000" : "#888");
-            const signal = change > 0 ? "+" : "";
-            const size = Math.max(60, Math.min(200, Math.abs(change) * 25));
-
-            bubble.style.width = `${size}px`;
-            bubble.style.height = `${size}px`;
-            bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
-            bubble.style.top = `${Math.random() * (window.innerHeight - size)}px`;
-            bubble.style.backgroundColor = color;
-
-            bubble.innerHTML = `
-              <div>${stock.symbol}</div>
-              <div>${signal}${change.toFixed(2)}%</div>
-            `;
-
-            container.appendChild(bubble);
-          });
-        } else {
-          document.body.innerHTML += "<p style='color:white;text-align:center;'>Erro ao carregar dados.</p>";
+        if (!data || !data.results) {
+          status.textContent = "Erro: dados não recebidos corretamente da API.";
+          return;
         }
-      } catch (err) {
-        document.body.innerHTML += `<p style='color:white;text-align:center;'>Erro: ${err.message}</p>`;
+
+        container.innerHTML = '';
+        status.textContent = "Gerando bolhas...";
+
+        data.results.forEach((stock) => {
+          const change = parseFloat(stock.change_percent);
+          if (isNaN(change)) {
+            status.textContent = `Erro: mudança de preço inválida (${stock.symbol})`;
+            return;
+          }
+
+          const bubble = document.createElement("div");
+          bubble.className = "bubble";
+
+          const color = change > 0 ? "#00C853" : (change < 0 ? "#D50000" : "#888");
+          const signal = change > 0 ? "+" : "";
+          const size = Math.max(60, Math.min(200, Math.abs(change) * 25));
+
+          bubble.style.width = `${size}px`;
+          bubble.style.height = `${size}px`;
+          bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
+          bubble.style.top = `${Math.random() * (window.innerHeight - size)}px`;
+          bubble.style.backgroundColor = color;
+
+          bubble.innerHTML = `
+            <div>${stock.symbol}</div>
+            <div>${signal}${change.toFixed(2)}%</div>
+          `;
+
+          container.appendChild(bubble);
+          status.textContent = "Bolha exibida com sucesso!";
+        });
+      } catch (e) {
+        status.textContent = `Erro ao buscar dados: ${e.message}`;
       }
     }
 
