@@ -2,14 +2,13 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bubles — Ações ao Vivo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bubles – A Bolsa que Respira</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
+      background: black;
       overflow: hidden;
-      background: #000;
     }
     canvas {
       display: block;
@@ -26,89 +25,105 @@
     canvas.height = window.innerHeight;
 
     class Bubble {
-      constructor(x, y, r, label, color) {
+      constructor(x, y, radius, color, text, vx, vy) {
         this.x = x;
         this.y = y;
-        this.r = r;
-        this.label = label;
+        this.radius = radius;
         this.color = color;
-        this.vx = Math.random() * 1 - 0.5;
-        this.vy = Math.random() * 1 - 0.5;
+        this.text = text;
+        this.vx = vx;
+        this.vy = vy;
       }
 
       draw() {
         ctx.beginPath();
-        const gradient = ctx.createRadialGradient(this.x, this.y, this.r * 0.1, this.x, this.y, this.r);
-        gradient.addColorStop(0, "#ffffff11");
-        gradient.addColorStop(1, this.color);
-        ctx.fillStyle = gradient;
-        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 15;
         ctx.fill();
+        ctx.closePath();
+        ctx.shadowBlur = 0;
 
-        ctx.fillStyle = "#fff";
-        ctx.font = `${Math.max(this.r / 3, 10)}px Arial`;
+        ctx.fillStyle = "white";
+        ctx.font = `${Math.max(this.radius / 3, 10)}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText(this.label, this.x, this.y + 4);
+        ctx.fillText(this.text, this.x, this.y + 4);
       }
 
       update(bubbles) {
         this.x += this.vx;
         this.y += this.vy;
 
-        // bordas da tela
-        if (this.x - this.r < 0 || this.x + this.r > canvas.width) this.vx *= -1;
-        if (this.y - this.r < 0 || this.y + this.r > canvas.height) this.vy *= -1;
+        if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) this.vx *= -1;
+        if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) this.vy *= -1;
 
-        // colisão entre bolhas
         for (let other of bubbles) {
-          if (other === this) continue;
-          let dx = other.x - this.x;
-          let dy = other.y - this.y;
-          let dist = Math.sqrt(dx * dx + dy * dy);
-          let minDist = this.r + other.r;
-          if (dist < minDist) {
-            let angle = Math.atan2(dy, dx);
-            let overlap = (minDist - dist) / 2;
-            this.x -= overlap * Math.cos(angle);
-            this.y -= overlap * Math.sin(angle);
-            other.x += overlap * Math.cos(angle);
-            other.y += overlap * Math.sin(angle);
+          if (other !== this) {
+            const dx = other.x - this.x;
+            const dy = other.y - this.y;
+            const dist = Math.hypot(dx, dy);
+            const minDist = this.radius + other.radius;
+            if (dist < minDist) {
+              const angle = Math.atan2(dy, dx);
+              const move = (minDist - dist) / 2;
+              this.x -= Math.cos(angle) * move;
+              this.y -= Math.sin(angle) * move;
+              other.x += Math.cos(angle) * move;
+              other.y += Math.sin(angle) * move;
+            }
           }
         }
+
+        this.draw();
       }
     }
 
-    // Exemplo de dados (pode vir da API)
-    const sampleData = [
-      { ticker: "OIBR3", change: 8.47 },
-      { ticker: "PDGR3", change: -11.54 },
-      { ticker: "ARML3", change: 28.47 },
-      { ticker: "PETR4", change: 1.23 },
-      { ticker: "VALE3", change: -0.75 },
-      { ticker: "MGLU3", change: 3.51 },
-      { ticker: "B3SA3", change: -2.77 },
-      { ticker: "RADL3", change: 0.99 },
-      { ticker: "ITUB4", change: 1.80 }
-    ];
+    const bubbles = [];
 
-    const bubbles = sampleData.map(stock => {
-      const r = 20 + Math.abs(stock.change) * 3;
-      const color = stock.change >= 0 ? "#00ff00aa" : "#ff0000aa";
-      const x = Math.random() * (canvas.width - r * 2) + r;
-      const y = Math.random() * (canvas.height - r * 2) + r;
-      return new Bubble(x, y, r, `${stock.ticker}\n${stock.change.toFixed(2)}%`, color);
-    });
+    async function fetchData() {
+      const symbols = [
+        'VALE3', 'PETR4', 'ITUB4', 'B3SA3', 'MGLU3', 'BBAS3', 'WEGE3', 'ABEV3',
+        'EMBR3', 'RDOR3', 'RENT3', 'ASAI3', 'CSNA3', 'GGBR4', 'ARML3', 'OIBR3',
+        'PDGR3', 'CEAB3', 'INTB3', 'LREN3', 'EQTL3', 'VIVT3', 'BEEF3', 'ALPA4'
+      ];
+
+      const url = `https://brapi.dev/api/quote/${symbols.join(",")}?token=5bTDfSmR2ieax6y7JUqDAD`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        for (let item of data.results) {
+          const change = item.changePercent ?? 0;
+          const radius = Math.max(30, Math.abs(change) * 5 + 20);
+          const color = change >= 0 ? "#00ff00" : "#ff0000";
+          const x = Math.random() * (canvas.width - radius * 2) + radius;
+          const y = Math.random() * (canvas.height - radius * 2) + radius;
+          const vx = (Math.random() - 0.5) * 1.2;
+          const vy = (Math.random() - 0.5) * 1.2;
+          const label = `${item.symbol} ${change.toFixed(2)}%`;
+          bubbles.push(new Bubble(x, y, radius, color, label, vx, vy));
+        }
+
+        animate();
+      } catch (e) {
+        console.error("Erro ao buscar dados da API:", e);
+        ctx.fillStyle = "white";
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("API ERRO", canvas.width / 2, canvas.height / 2);
+      }
+    }
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let b of bubbles) {
-        b.update(bubbles);
-        b.draw();
+      for (let bubble of bubbles) {
+        bubble.update(bubbles);
       }
       requestAnimationFrame(animate);
     }
 
-    animate();
+    fetchData();
   </script>
 </body>
 </html>
