@@ -2,249 +2,125 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — A Bolsa que Respira</title>
   <style>
     body {
       margin: 0;
-      background: black;
+      background-color: black;
+      font-family: Arial, sans-serif;
+      color: white;
       overflow: hidden;
-      font-family: sans-serif;
     }
-
     #menu {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      background: #111;
       display: flex;
       justify-content: center;
-      z-index: 10;
+      gap: 30px;
+      padding: 15px;
+      background: #111;
     }
-
-    .tab {
-      padding: 15px 25px;
-      color: white;
+    #menu div {
       cursor: pointer;
       font-weight: bold;
-      border-bottom: 3px solid transparent;
     }
-
-    .tab.active {
-      border-bottom: 3px solid #0f0;
+    .active {
+      border-bottom: 3px solid limegreen;
     }
-
     canvas {
       display: block;
-    }
-
-    #ranking {
-      position: fixed;
-      top: 50px;
-      right: 0;
-      width: 160px;
-      height: calc(100% - 50px);
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 10px;
-      font-size: 13px;
-      overflow-y: auto;
-      z-index: 10;
-    }
-
-    #ranking h4 {
-      margin: 10px 0 5px;
-      color: #0f0;
-    }
-
-    #ranking ul {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 10px;
-    }
-
-    #ranking li {
-      padding: 2px 0;
     }
   </style>
 </head>
 <body>
   <div id="menu">
-    <div class="tab active" data-tab="acoes">Ações</div>
-    <div class="tab" data-tab="cripto">Criptomoedas</div>
-    <div class="tab" data-tab="commodities">Commodities</div>
-  </div>
-  <div id="ranking" style="display: none;">
-    <h4>📈 Altas</h4>
-    <ul id="topGainers"></ul>
-    <h4>📉 Quedas</h4>
-    <ul id="topLosers"></ul>
+    <div id="acoes" class="active">Ações</div>
+    <div id="cripto">Criptomoedas</div>
+    <div id="commodities">Commodities</div>
   </div>
   <canvas id="canvas"></canvas>
 
-<script>
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight - 50;
-
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight - 50;
-});
-
-let bubbles = [];
-let currentTab = "acoes";
-
-const sources = {
-  acoes: "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=80&token=5bTDfSmR2ieax6y7JUqDAD",
-  cripto: "https://brapi.dev/api/crypto?coin=BTC,ETH,MATIC,SOL,DOGE,ADA,BNB,AVAX,XRP,DOT,LTC&token=5bTDfSmR2ieax6y7JUqDAD",
-  commodities: "https://brapi.dev/api/quote/B3SA3.PETR4.VALE3.GOLD.SI=F.CORN.SUGAR.PA=F&token=5bTDfSmR2ieax6y7JUqDAD"
-};
-
-async function fetchData(tab) {
-  try {
-    const res = await fetch(sources[tab]);
-    const data = await res.json();
-
-    let list = [];
-
-    if (tab === "acoes" && data.stocks) list = data.stocks;
-    else if (tab === "cripto" && data.coins) list = data.coins;
-    else if (tab === "commodities" && data.results) list = data.results;
-    else throw new Error("Dados inesperados: " + JSON.stringify(data));
-
-    if (tab === "acoes") {
-      const topGainers = [...list].sort((a, b) => b.changePercent - a.changePercent).slice(0, 5);
-      const topLosers = [...list].sort((a, b) => a.changePercent - b.changePercent).slice(0, 5);
-
-      document.getElementById("ranking").style.display = "block";
-      document.getElementById("topGainers").innerHTML = topGainers.map(s =>
-        `<li>${s.stock} <span style="color:#0f0;">${s.changePercent.toFixed(2)}%</span></li>`).join("");
-
-      document.getElementById("topLosers").innerHTML = topLosers.map(s =>
-        `<li>${s.stock} <span style="color:#f44;">${s.changePercent.toFixed(2)}%</span></li>`).join("");
-    } else {
-      document.getElementById("ranking").style.display = "none";
-    }
-
-    bubbles = list.map((item, index) => {
-      let change = 0;
-      let symbol = "???";
-
-      if (tab === "acoes") {
-        change = parseFloat(item.changePercent ?? 0);
-        symbol = item.stock ?? "???";
-      } else if (tab === "cripto") {
-        change = parseFloat(item.change_24h ?? 0);
-        symbol = item.coin ?? "???";
-      } else if (tab === "commodities") {
-        change = parseFloat(item.regularMarketChangePercent ?? 0);
-        symbol = item.symbol ?? "???";
-      }
-
-      const radius = Math.min(90, Math.max(30, Math.abs(change) * 3.5 + 25));
-      const color = change >= 0 ? "#00ff00" : "#ff0000";
-
-      return {
-        ticker: symbol,
-        change: change.toFixed(2),
-        x: (index % 10) * (canvas.width / 10) + 30 + Math.random() * 20,
-        y: Math.floor(index / 10) * (canvas.height / 10) + 60 + Math.random() * 20,
-        r: radius,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        color
-      };
+    const menuItems = document.querySelectorAll('#menu div');
+    menuItems.forEach(item => {
+      item.addEventListener('click', () => {
+        menuItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        if (item.id === 'acoes') loadData('stocks');
+        if (item.id === 'cripto') loadData('crypto');
+        if (item.id === 'commodities') loadData('commodities');
+      });
     });
 
-  } catch (err) {
-    console.error("Erro ao buscar dados:", err);
-    bubbles = [{
-      ticker: "API ERRO",
-      change: 0,
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      r: 80,
-      vx: 0,
-      vy: 0,
-      color: "#ffffff"
-    }];
-  }
-}
+    async function loadData(type) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      try {
+        const res = await fetch(`https://brapi.dev/api/${type}?token=5bTDfSmR2ieax6y7JUqDAD`);
+        const json = await res.json();
+        const list = json.stocks || json.coins || json.results || [];
+        const bubbles = list.map((item, index) => ({
+          symbol: item.stock || item.coin || item.name,
+          change: parseFloat(item.change || 0),
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.min(Math.max(Math.abs(parseFloat(item.change)) * 8, 20), 80),
+          dx: (Math.random() - 0.5) * 1.5,
+          dy: (Math.random() - 0.5) * 1.5
+        }));
 
-function drawBubble(b) {
-  ctx.beginPath();
-  const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r);
-  gradient.addColorStop(0, b.color);
-  gradient.addColorStop(1, "black");
-  ctx.fillStyle = gradient;
-  ctx.shadowBlur = 25;
-  ctx.shadowColor = b.color;
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.closePath();
-
-  ctx.fillStyle = "#fff";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `${Math.max(12, b.r / 3)}px Arial`;
-  ctx.fillText(b.ticker, b.x, b.y - b.r / 5);
-  ctx.font = `${Math.max(10, b.r / 4)}px Arial`;
-  ctx.fillText(`${b.change}%`, b.x, b.y + b.r / 5);
-}
-
-function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let i = 0; i < bubbles.length; i++) {
-    const b = bubbles[i];
-    b.x += b.vx;
-    b.y += b.vy;
-
-    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
-    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
-
-    for (let j = i + 1; j < bubbles.length; j++) {
-      const b2 = bubbles[j];
-      const dx = b2.x - b.x;
-      const dy = b2.y - b.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const minDist = b.r + b2.r;
-
-      if (dist < minDist) {
-        const angle = Math.atan2(dy, dx);
-        const tx = b.x + Math.cos(angle) * minDist;
-        const ty = b.y + Math.sin(angle) * minDist;
-        const ax = (tx - b2.x) * 0.05;
-        const ay = (ty - b2.y) * 0.05;
-
-        b.vx -= ax;
-        b.vy -= ay;
-        b2.vx += ax;
-        b2.vy += ay;
+        animate(bubbles);
+      } catch (e) {
+        console.error(e);
+        drawError();
       }
     }
 
-    drawBubble(b);
-  }
+    function drawError() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      ctx.font = '30px Arial';
+      ctx.fillText('API ERRO', canvas.width / 2, canvas.height / 2);
+    }
 
-  requestAnimationFrame(animate);
-}
+    function animate(bubbles) {
+      function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let b of bubbles) {
+          b.x += b.dx;
+          b.y += b.dy;
 
-document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    currentTab = tab.dataset.tab;
-    fetchData(currentTab);
-  });
-});
+          if (b.x < b.radius || b.x > canvas.width - b.radius) b.dx *= -1;
+          if (b.y < b.radius || b.y > canvas.height - b.radius) b.dy *= -1;
 
-fetchData("acoes").then(() => {
-  animate();
-  setInterval(() => fetchData(currentTab), 60000);
-});
-</script>
+          const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.radius);
+          const color = b.change >= 0 ? 'lime' : 'red';
+          grad.addColorStop(0, color);
+          grad.addColorStop(1, 'black');
+
+          ctx.beginPath();
+          ctx.fillStyle = grad;
+          ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = 'white';
+          ctx.font = `${Math.max(12, b.radius / 4)}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.fillText(b.symbol, b.x, b.y - 5);
+
+          ctx.font = `${Math.max(10, b.radius / 5)}px Arial`;
+          ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 15);
+        }
+        requestAnimationFrame(loop);
+      }
+      loop();
+    }
+
+    loadData('stocks');
+  </script>
 </body>
 </html>
