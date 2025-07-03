@@ -37,24 +37,41 @@ async function fetchStocks() {
   try {
     const res = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD");
     const data = await res.json();
-    bubbles = data.stocks.map((s, i) => {
-      const radius = Math.max(20, Math.abs(s.changePercent) * 5 + 20);
+
+    if (!data.stocks || !Array.isArray(data.stocks)) {
+      console.warn("Resposta inesperada da API:", data);
+      throw new Error("Formato inesperado");
+    }
+
+    bubbles = data.stocks.map((s) => {
+      const radius = Math.max(20, Math.abs(s.changePercent || 0) * 5 + 20);
       const color = s.changePercent >= 0 ? "#00ff00" : "#ff0000";
-      const glow = s.changePercent >= 0 ? "0 0 20px #00ff00" : "0 0 20px #ff0000";
       return {
-        ticker: s.stock,
-        change: s.changePercent,
+        ticker: s.stock || "???",
+        change: s.changePercent || 0,
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         r: radius,
         vx: (Math.random() - 0.5) * 0.8,
         vy: (Math.random() - 0.5) * 0.8,
-        color,
-        glow
+        color
       };
     });
+
   } catch (e) {
-    console.error("Erro ao buscar ações:", e);
+    console.error("Erro ao buscar dados da Brapi:", e);
+
+    // fallback: renderizar uma bolha de erro
+    bubbles = [{
+      ticker: "API ERRO",
+      change: 0,
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      r: 80,
+      vx: 0,
+      vy: 0,
+      color: "#ffffff"
+    }];
   }
 }
 
@@ -88,7 +105,6 @@ function animate() {
     if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
     if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
 
-    // Colisão simples
     for (let j = i + 1; j < bubbles.length; j++) {
       const b2 = bubbles[j];
       const dx = b2.x - b.x;
@@ -118,7 +134,7 @@ function animate() {
 
 fetchStocks().then(() => {
   animate();
-  setInterval(fetchStocks, 30000); // Atualiza a cada 30s
+  setInterval(fetchStocks, 60000); // atualiza a cada 60s
 });
 </script>
 </body>
