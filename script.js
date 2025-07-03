@@ -1,83 +1,83 @@
-const canvas = document.getElementById('bubbleCanvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
 let bubbles = [];
 
 function resizeCanvas() {
-  canvas.width = window.innerWidth - 220;
-  canvas.height = window.innerHeight - 90;
+  const isMobile = window.innerWidth <= 768;
+  const sidePanelWidth = isMobile ? 0 : 220;
+  canvas.width = window.innerWidth - sidePanelWidth;
+  canvas.height = window.innerHeight;
+  drawBubbles();
 }
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
 
-function createBubble(data, i) {
-  const radius = Math.max(20, Math.abs(data.change) * 8 + Math.log10(data.volume + 1));
-  const color = data.change >= 0 ? 'limegreen' : 'red';
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+function getRandomBubble() {
+  const tickers = ["VALE3", "PETR4", "ITUB4", "ARML3", "SEQL3", "EMET11", "PDGR3", "MRVE3", "AZEV4"];
+  const name = tickers[Math.floor(Math.random() * tickers.length)];
+  const change = (Math.random() * 6 - 3).toFixed(2); // -3% a +3%
   return {
+    name,
+    change: parseFloat(change),
+    radius: 30 + Math.abs(change) * 10,
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 0.7,
-    vy: (Math.random() - 0.5) * 0.7,
-    r: radius,
-    color,
-    text: `${data.stock} ${data.change.toFixed(2)}%`
+    dx: Math.random() * 1 - 0.5,
+    dy: Math.random() * 1 - 0.5,
   };
 }
 
-function drawBubble(b) {
-  ctx.beginPath();
-  const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.3, b.x, b.y, b.r);
-  gradient.addColorStop(0, b.color);
-  gradient.addColorStop(1, 'black');
-  ctx.fillStyle = gradient;
-  ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
-  ctx.fill();
-
-  ctx.fillStyle = 'white';
-  ctx.font = `${Math.min(14, b.r / 2)}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.fillText(b.text, b.x, b.y + 4);
-}
-
-function updateBubbles() {
+function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let b of bubbles) {
-    b.x += b.vx;
-    b.y += b.vy;
-    if (b.x < b.r || b.x > canvas.width - b.r) b.vx *= -1;
-    if (b.y < b.r || b.y > canvas.height - b.r) b.vy *= -1;
-    drawBubble(b);
-  }
-  requestAnimationFrame(updateBubbles);
-}
+  for (let bubble of bubbles) {
+    bubble.x += bubble.dx;
+    bubble.y += bubble.dy;
 
-function updateRanking(data) {
-  const sorted = [...data].sort((a, b) => b.change - a.change);
-  const highest = sorted.slice(0, 3);
-  const lowest = sorted.slice(-3).reverse();
-  const volumeTop = [...data].sort((a, b) => b.volume - a.volume).slice(0, 3);
+    // bordas
+    if (bubble.x < bubble.radius || bubble.x > canvas.width - bubble.radius) bubble.dx *= -1;
+    if (bubble.y < bubble.radius || bubble.y > canvas.height - bubble.radius) bubble.dy *= -1;
 
-  document.getElementById('highest').innerHTML = highest.map(s => `<li>${s.stock} <span>+${s.change.toFixed(2)}%</span></li>`).join('');
-  document.getElementById('lowest').innerHTML = lowest.map(s => `<li>${s.stock} <span>${s.change.toFixed(2)}%</span></li>`).join('');
-  document.getElementById('volume').innerHTML = volumeTop.map(s => `<li>${s.stock} <span>+${s.change.toFixed(2)}%</span></li>`).join('');
-}
+    ctx.beginPath();
+    ctx.arc(bubble.x, bubble.y, bubble.radius, 0, 2 * Math.PI);
+    ctx.fillStyle = bubble.change >= 0 ? "limegreen" : "red";
+    ctx.shadowColor = bubble.change >= 0 ? "limegreen" : "red";
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    ctx.shadowBlur = 0;
 
-async function fetchData() {
-  try {
-    const res = await fetch('https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&sortBy=volume&sortOrder=desc&limit=100');
-    const json = await res.json();
-    const data = json.stocks.map(s => ({
-      stock: s.stock,
-      change: parseFloat(s.change),
-      volume: s.volume || 0
-    })).filter(s => !isNaN(s.change));
-
-    bubbles = data.map(createBubble);
-    updateRanking(data);
-  } catch (e) {
-    console.error('Erro ao buscar dados:', e);
+    // texto
+    ctx.fillStyle = "white";
+    ctx.font = `${Math.max(10, bubble.radius / 3)}px Arial`;
+    ctx.textAlign = "center";
+    ctx.fillText(`${bubble.name}`, bubble.x, bubble.y - 5);
+    ctx.fillText(`${bubble.change}%`, bubble.x, bubble.y + 12);
   }
 }
 
-fetchData();
-updateBubbles();
-setInterval(fetchData, 60000);
+function animate() {
+  drawBubbles();
+  requestAnimationFrame(animate);
+}
+
+function updateSidebar() {
+  const sorted = [...bubbles].sort((a, b) => b.change - a.change);
+  const top = sorted.slice(0, 3);
+  const bottom = sorted.slice(-3).reverse();
+  const volume = sorted.sort((a, b) => b.radius - a.radius).slice(0, 3);
+
+  const format = (b) => `<li>${b.name} <b>${b.change > 0 ? "+" : ""}${b.change.toFixed(2)}%</b></li>`;
+
+  document.getElementById("altas").innerHTML = top.map(format).join("");
+  document.getElementById("quedas").innerHTML = bottom.map(format).join("");
+  document.getElementById("volume").innerHTML = volume.map(format).join("");
+}
+
+// Inicialização
+for (let i = 0; i < 80; i++) {
+  bubbles.push(getRandomBubble());
+}
+
+setInterval(updateSidebar, 3000);
+animate();
