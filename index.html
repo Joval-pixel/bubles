@@ -1,14 +1,75 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Bubles — Ações ao Vivo</title>
-    <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bubles – A Bolsa que Respira</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #bubbles {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-weight: bold;
+      color: white;
+      border: 3px solid white;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+      overflow: hidden;
+      white-space: nowrap;
+      flex-direction: column;
+      animation: float 40s infinite linear;
+    }
+
+    .bubble span {
+      font-size: clamp(10px, 4vw, 18px);
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .bubble.positive {
+      background-color: #00cc00;
+      box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
+      filter: drop-shadow(0 0 5px #00ff00);
+    }
+
+    .bubble.negative {
+      background-color: #cc0000;
+      box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
+      filter: drop-shadow(0 0 5px #ff0000);
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+      100% {
+        transform: translateY(0px);
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>Bubles — Ações ao Vivo</h1>
-    <canvas id="bubbleCanvas"></canvas>
-    <script src="script.js"></script>
+  <div id="bubbles"></div>
+  <script src="script.js"></script>
 </body>
 </html>
