@@ -1,189 +1,27 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles – A Bolsa que Respira</title>
-  <style>
-    body {
-      margin: 0;
-      background: black;
-      font-family: Arial, sans-serif;
-      color: white;
-      overflow: hidden;
-    }
-
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1;
-    }
-
-    .sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 240px;
-      height: 100%;
-      background-color: #111;
-      padding: 15px;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
-      z-index: 10;
-      overflow-y: auto;
-      border-right: 1px solid #444;
-    }
-
-    .section {
-      margin-bottom: 25px;
-    }
-
-    .section h2 {
-      font-size: 16px;
-      margin: 10px 0 8px;
-      padding-bottom: 5px;
-      border-bottom: 1px solid #333;
-      display: flex;
-      align-items: center;
-    }
-
-    .section h2::before {
-      content: '';
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      margin-right: 6px;
-      background-size: cover;
-    }
-
-    .altas h2 {
-      color: lime;
-    }
-
-    .altas h2::before {
-      background-image: url('https://cdn-icons-png.flaticon.com/512/1828/1828838.png');
-    }
-
-    .quedas h2 {
-      color: #00bfff;
-    }
-
-    .quedas h2::before {
-      background-image: url('https://cdn-icons-png.flaticon.com/512/1828/1828884.png');
-    }
-
-    .volume h2 {
-      color: #ffcc00;
-    }
-
-    .volume h2::before {
-      background-image: url('https://cdn-icons-png.flaticon.com/512/616/616408.png');
-    }
-
-    ul {
-      list-style: none;
-      padding-left: 0;
-      margin: 5px 0 0;
-    }
-
-    li {
-      font-size: 14px;
-      padding: 2px 0;
-      display: flex;
-      justify-content: space-between;
-      color: #ccc;
-    }
-
-    .right {
-      font-weight: bold;
-    }
-
-    .content {
-      margin-left: 250px;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="sidebar">
-    <div class="section altas">
-      <h2>Maiores Altas</h2>
-      <ul>
-        <li><span>ARML3</span> <span class="right">+26.44%</span></li>
-        <li><span>SEQL3</span> <span class="right">+7.21%</span></li>
-        <li><span>EMET11</span> <span class="right">+6.67%</span></li>
-      </ul>
-    </div>
-
-    <div class="section quedas">
-      <h2>Maiores Quedas</h2>
-      <ul>
-        <li><span>PDGR3</span> <span class="right">-6.69%</span></li>
-        <li><span>MRVE3</span> <span class="right">-3.96%</span></li>
-        <li><span>AZEV4</span> <span class="right">-1.82%</span></li>
-      </ul>
-    </div>
-
-    <div class="section volume">
-      <h2>Maior Volume</h2>
-      <ul>
-        <li><span>VALE3</span> <span class="right">+0.47%</span></li>
-        <li><span>PETR4</span> <span class="right">+0.04%</span></li>
-        <li><span>ITUB4</span> <span class="right">+2.55%</span></li>
-      </ul>
+  <div id="sidebar" class="hidden">
+    <button id="closeBtn">✖</button>
+    <div class="ranking">
+      <h3>📈 <span class="green">Maiores Altas</span></h3>
+      <ul id="highs"></ul>
+      <h3>⭐ <span class="blue">Maiores Quedas</span></h3>
+      <ul id="lows"></ul>
+      <h3>🐻 <span class="yellow">Maior Volume</span></h3>
+      <ul id="volumes"></ul>
     </div>
   </div>
 
-  <div class="content">
-    <canvas id="bubbles"></canvas>
-  </div>
+  <button id="toggleBtn">☰ RANK</button>
+  <canvas id="bubbleCanvas"></canvas>
 
-  <script>
-    const canvas = document.getElementById("bubbles");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const bubbles = [
-      { name: 'ARML3', value: 26.44, x: 300, y: 300, dx: 1, dy: 1.5 },
-      { name: 'PDGR3', value: -6.69, x: 600, y: 200, dx: -1, dy: 1 },
-      { name: 'EMET11', value: 6.67, x: 700, y: 500, dx: 1.2, dy: -1 },
-      { name: 'MRVE3', value: -3.96, x: 500, y: 100, dx: -1.5, dy: 1.3 },
-      { name: 'VALE3', value: 0.47, x: 900, y: 400, dx: 1.1, dy: -1.2 },
-      { name: 'PETR4', value: 0.04, x: 1000, y: 250, dx: -1.1, dy: 0.8 },
-      { name: 'ITUB4', value: 2.55, x: 850, y: 300, dx: 1.2, dy: 1.1 }
-    ];
-
-    function drawBubble(bubble) {
-      const radius = Math.max(20, Math.abs(bubble.value) * 6);
-      ctx.beginPath();
-      ctx.arc(bubble.x, bubble.y, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = bubble.value >= 0 ? 'limegreen' : 'red';
-      ctx.shadowColor = bubble.value >= 0 ? 'lime' : 'darkred';
-      ctx.shadowBlur = 20;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 13px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(${bubble.name} ${bubble.value.toFixed(2)}%, bubble.x, bubble.y + 4);
-    }
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bubbles.forEach(bubble => {
-        bubble.x += bubble.dx;
-        bubble.y += bubble.dy;
-
-        if (bubble.x < 270 + 30 || bubble.x > canvas.width - 30) bubble.dx *= -1;
-        if (bubble.y < 30 || bubble.y > canvas.height - 30) bubble.dy *= -1;
-
-        drawBubble(bubble);
-      });
-      requestAnimationFrame(animate);
-    }
-
-    animate();
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
