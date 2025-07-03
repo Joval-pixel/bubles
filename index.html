@@ -1,29 +1,26 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — Ações ao Vivo</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background: #000;
       overflow: hidden;
-      font-family: Arial, sans-serif;
+      background-color: #000;
+      font-family: 'Arial', sans-serif;
     }
 
     h1 {
       color: cyan;
       text-align: center;
-      margin-top: 10px;
+      margin: 20px 0;
+      font-weight: bold;
     }
 
     canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: -1;
+      display: block;
     }
   </style>
 </head>
@@ -32,107 +29,87 @@
   <canvas id="bubbleCanvas"></canvas>
 
   <script>
-    const canvas = document.getElementById('bubbleCanvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const canvas = document.getElementById("bubbleCanvas");
+    const ctx = canvas.getContext("2d");
 
-    const tickers = [
-      { symbol: "VALE3", change: 2.41 },
-      { symbol: "MGLU3", change: -6.59 },
-      { symbol: "CSNA3", change: 6.13 },
-      { symbol: "PETR4", change: -1.82 },
-      { symbol: "ITUB4", change: 0.78 },
-      { symbol: "BBAS3", change: 1.36 },
-      { symbol: "GGBR4", change: 3.13 },
-      { symbol: "HAPV3", change: -5.14 },
-      { symbol: "LREN3", change: -3.31 },
-      { symbol: "PRIO3", change: 0.86 },
-      { symbol: "BBDC4", change: -0.91 },
-      { symbol: "SUZB3", change: 3.73 },
-      { symbol: "WEGE3", change: -0.17 }
-    ];
-
-    class Bubble {
-      constructor(ticker) {
-        this.ticker = ticker.symbol;
-        this.change = ticker.change;
-        this.radius = 30 + Math.abs(ticker.change) * 8;
-        this.x = Math.random() * (canvas.width - 2 * this.radius) + this.radius;
-        this.y = Math.random() * (canvas.height - 2 * this.radius) + this.radius;
-        this.dx = (Math.random() - 0.5) * 0.5;
-        this.dy = (Math.random() - 0.5) * 0.5;
-        this.color = ticker.change >= 0 ? "#00ff55" : "#ff0033";
-        this.glow = ticker.change >= 0 ? "#00ff55aa" : "#ff0033aa";
-      }
-
-      draw() {
-        // Glow
-        ctx.shadowBlur = 25;
-        ctx.shadowColor = this.glow;
-
-        // Bolha
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        ctx.closePath();
-
-        // Texto
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = "#fff";
-        ctx.font = `${Math.min(this.radius * 0.6, 18)}px Arial`;
-        ctx.textAlign = "center";
-        ctx.fillText(this.ticker, this.x, this.y - 5);
-        ctx.font = `${Math.min(this.radius * 0.5, 14)}px Arial`;
-        ctx.fillText((this.change > 0 ? "+" : "") + this.change.toFixed(2) + "%", this.x, this.y + 12);
-      }
-
-      update(bubbles) {
-        this.x += this.dx;
-        this.y += this.dy;
-
-        // Contorno da tela
-        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.dx *= -1;
-        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.dy *= -1;
-
-        // Colisão com outras bolhas
-        for (let other of bubbles) {
-          if (other !== this) {
-            const dx = this.x - other.x;
-            const dy = this.y - other.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const minDist = this.radius + other.radius;
-            if (distance < minDist) {
-              const angle = Math.atan2(dy, dx);
-              const move = (minDist - distance) / 2;
-              this.x += Math.cos(angle) * move;
-              this.y += Math.sin(angle) * move;
-              other.x -= Math.cos(angle) * move;
-              other.y -= Math.sin(angle) * move;
-            }
-          }
-        }
-
-        this.draw();
-      }
-    }
-
-    const bubbles = tickers.map(t => new Bubble(t));
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let bubble of bubbles) {
-        bubble.update(bubbles);
-      }
-      requestAnimationFrame(animate);
-    }
-
-    animate();
-    window.addEventListener('resize', () => {
+    function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-    });
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    const bubbles = [
+      { ticker: "VALE3", change: 2.41 },
+      { ticker: "PETR4", change: -1.82 },
+      { ticker: "MGLU3", change: -6.59 },
+      { ticker: "CSNA3", change: 6.13 },
+      { ticker: "HAPV3", change: -5.14 },
+      { ticker: "SUZB3", change: 3.73 },
+      { ticker: "WEGE3", change: -0.17 },
+      { ticker: "ITUB4", change: 0.78 },
+      { ticker: "BBAS3", change: 1.36 },
+      { ticker: "LREN3", change: -3.31 },
+      { ticker: "BBDC4", change: -0.91 },
+      { ticker: "PRIO3", change: 0.86 },
+      { ticker: "GGBR4", change: 3.13 }
+    ];
+
+    const spacing = 130;
+    const positions = [];
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    function getBubbleColor(change) {
+      return change >= 0 ? "#00FF5F" : "#FF0033";
+    }
+
+    function drawBubble(x, y, radius, color, text1, text2) {
+      ctx.beginPath();
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = color;
+      ctx.fillStyle = color;
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.closePath();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+
+      // Ajuste automático do tamanho da fonte
+      ctx.font = `bold ${Math.max(12, radius * 0.35)}px Arial`;
+      ctx.fillText(text1, x, y - 5);
+      ctx.font = `${Math.max(10, radius * 0.25)}px Arial`;
+      ctx.fillText(text2, x, y + 15);
+    }
+
+    function drawBubbles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      positions.length = 0;
+
+      bubbles.forEach((bubble, i) => {
+        const radius = Math.max(30, Math.abs(bubble.change) * 8);
+        let x, y, tries = 0;
+
+        do {
+          x = Math.random() * (canvas.width - 2 * radius) + radius;
+          y = Math.random() * (canvas.height - 2 * radius) + radius;
+          tries++;
+          if (tries > 300) break;
+        } while (positions.some(p => Math.hypot(p.x - x, p.y - y) < p.r + radius + 5));
+
+        positions.push({ x, y, r: radius });
+
+        const color = getBubbleColor(bubble.change);
+        const changeText = (bubble.change > 0 ? "+" : "") + bubble.change.toFixed(2) + "%";
+        drawBubble(x, y, radius, color, bubble.ticker, changeText);
+      });
+    }
+
+    drawBubbles();
+    setInterval(drawBubbles, 7000);
   </script>
 </body>
 </html>
