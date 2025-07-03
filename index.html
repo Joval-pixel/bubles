@@ -1,108 +1,14 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bubles — Ações ao Vivo</title>
-  <style>
-    body {
-      margin: 0;
-      background-color: #0d0d0d;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-    }
-
-    h1 {
-      color: cyan;
-      text-align: center;
-      margin-top: 20px;
-      font-size: 22px;
-    }
-
-    .bubble {
-      position: absolute;
-      border-radius: 50%;
-      color: white;
-      font-weight: bold;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      white-space: nowrap;
-      padding: 8px;
-      border: 3px solid white;
-      filter: brightness(1.2);
-      text-shadow: 0 0 4px black;
-    }
-
-    .positive {
-      background: #00cc00;
-      box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
-    }
-
-    .negative {
-      background: #cc0000;
-      box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
-    }
-
-    .bubble span {
-      font-size: clamp(10px, 4vw, 16px);
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
-
-  <script>
-    const stocks = [
-      { symbol: 'VALE3', change: 2.41 },
-      { symbol: 'PETR4', change: -1.82 },
-      { symbol: 'ITUB4', change: 0.78 },
-      { symbol: 'CSNA3', change: 6.13 },
-      { symbol: 'BBDC4', change: -0.91 },
-      { symbol: 'GGBR4', change: 3.13 },
-      { symbol: 'MGLU3', change: -6.59 },
-      { symbol: 'PRIO3', change: 0.86 },
-      { symbol: 'BBAS3', change: 1.36 },
-      { symbol: 'LREN3', change: -3.31 },
-      { symbol: 'WEGE3', change: -0.17 },
-      { symbol: 'SUZB3', change: 3.73 },
-      { symbol: 'HAPV3', change: -5.14 },
-    ];
-
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
-
-    stocks.forEach(stock => {
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble ' + (stock.change >= 0 ? 'positive' : 'negative');
-
-      const size = 50 + Math.abs(stock.change) * 10; // bolha proporcional à variação
-      bubble.style.width = size + 'px';
-      bubble.style.height = size + 'px';
-
-      bubble.style.left = Math.random() * (screenW - size) + 'px';
-      bubble.style.top = Math.random() * (screenH - size) + 'px';
-
-      bubble.innerHTML = `<span>${stock.symbol}</span><span>${stock.change > 0 ? '+' : ''}${stock.change.toFixed(2)}%</span>`;
-      document.body.appendChild(bubble);
-
-      // movimento contínuo suave
-      let dx = Math.random() * 2 - 1;
-      let dy = Math.random() * 2 - 1;
-
-      setInterval(() => {
-        let x = parseFloat(bubble.style.left);
-        let y = parseFloat(bubble.style.top);
-
-        if (x + dx < 0 || x + size + dx > screenW) dx *= -1;
-        if (y + dy < 0 || y + size + dy > screenH) dy *= -1;
-
-        bubble.style.left = (x + dx) + 'px';
-        bubble.style.top = (y + dy) + 'px';
-      }, 20);
-    });
-  </script>
+  <canvas id="bubbleCanvas"></canvas>
+  <script src="script.js"></script>
 </body>
 </html>
