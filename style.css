@@ -1,76 +1,67 @@
 body {
   margin: 0;
-  background-color: #000;
+  background-color: black;
   overflow: hidden;
-  font-family: Arial, sans-serif;
+  font-family: sans-serif;
 }
+
 nav {
   position: fixed;
   top: 0;
   width: 100%;
-  display: flex;
-  justify-content: center;
   background: #111;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 0;
 }
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .tab {
-  padding: 10px 20px;
-  margin: 5px;
-  color: white;
   background: #222;
+  color: #fff;
   border: none;
+  padding: 8px 16px;
+  margin: 4px;
+  border-radius: 6px;
   cursor: pointer;
 }
-.tab.active {
-  background: #0f0;
+
+.tab.active, .tab:hover {
+  background: #00ff00;
   color: black;
 }
-#bubbles-container {
-  width: 100%;
-  height: 100vh;
-  position: relative;
-  overflow: hidden;
-}
-.bubble {
-  position: absolute;
-  border-radius: 50%;
+
+#setores {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   justify-content: center;
-  color: #fff;
-  font-weight: bold;
-  text-align: center;
-  white-space: nowrap;
-  cursor: pointer;
+  margin-top: 6px;
 }
-.green {
-  background: radial-gradient(circle, #0f0, #050);
-  box-shadow: 0 0 20px #0f0;
-}
-.red {
-  background: radial-gradient(circle, #f00, #500);
-  box-shadow: 0 0 20px #f00;
-}
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 20;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.8);
-}
-.modal-content {
-  margin: 10% auto;
-  width: 90%;
-  max-width: 600px;
-  background: #000;
-  padding: 10px;
-}
-.close {
+
+#setores button {
+  background: #333;
   color: white;
-  float: right;
-  font-size: 28px;
+  border: none;
+  margin: 3px;
+  padding: 5px 10px;
+  border-radius: 5px;
   cursor: pointer;
+}
+
+#setores button.active {
+  background-color: lime;
+  color: black;
+}
+
+canvas {
+  position: absolute;
+  top: 70px;
+  left: 0;
 }
