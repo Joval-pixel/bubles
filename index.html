@@ -3,160 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles — Ações ao Vivo</title>
-  <style>
-    body {
-      margin: 0;
-      background-color: black;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-    }
-    canvas {
-      display: block;
-    }
-    .menu {
-      position: absolute;
-      top: 0;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      background: #111;
-      padding: 10px 0;
-      z-index: 10;
-    }
-    .menu button {
-      background: #222;
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      cursor: pointer;
-      border-radius: 6px;
-      font-weight: bold;
-    }
-    .menu button.active {
-      background: limegreen;
-      color: black;
-    }
-  </style>
+  <title>Bubles — A Bolsa que Respira</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="menu">
-    <button id="btn-acoes" class="active">Ações</button>
-    <button id="btn-cripto">Criptomoedas</button>
-    <button id="btn-commodities">Commodities</button>
+    <button onclick="setCategory('stocks')" class="active">Ações</button>
+    <button onclick="setCategory('crypto')">Criptomoedas</button>
+    <button onclick="setCategory('commodities')">Commodities</button>
   </div>
-  <canvas id="canvas"></canvas>
-
-  <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let bolhas = [];
-    const apiKey = "5bTDfSmR2ieax6y7JUqDAD";
-    let tipo = "acoes";
-
-    async function buscarDados() {
-      let url = "";
-      if (tipo === "acoes") {
-        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=" + apiKey;
-      } else if (tipo === "cripto") {
-        url = "https://brapi.dev/api/crypto?token=" + apiKey;
-      } else if (tipo === "commodities") {
-        url = "https://brapi.dev/api/quote/commodities?token=" + apiKey;
-      }
-
-      try {
-        const resp = await fetch(url);
-        const data = await resp.json();
-        const lista = data.stocks || data.coins || data.results;
-
-        bolhas = lista.map((item, i) => {
-          const name = item.stock || item.symbol || item.name || "";
-          const price = item.close || item.price || item.regularMarketPrice || 0;
-          const prevClose = item.regularMarketPreviousClose || price;
-          const change = item.changePercent !== undefined
-            ? item.changePercent
-            : ((price - prevClose) / prevClose) * 100;
-
-          const raio = Math.max(30, Math.min(150, Math.abs(change) * 5 + 30));
-          const cor = change > 0 ? "rgba(0,255,0,0.8)" : "rgba(255,0,0,0.8)";
-          const x = Math.random() * canvas.width;
-          const y = Math.random() * canvas.height;
-          const dx = (Math.random() - 0.5) * 0.5;
-          const dy = (Math.random() - 0.5) * 0.5;
-
-          return { name, change: change.toFixed(2), raio, cor, x, y, dx, dy };
-        });
-      } catch (err) {
-        bolhas = [{ name: "API ERRO", change: "", raio: 80, cor: "white", x: canvas.width/2 - 40, y: canvas.height/2 - 40, dx: 0, dy: 0 }];
-      }
-    }
-
-    function desenharBolhas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (let b of bolhas) {
-        ctx.beginPath();
-        ctx.fillStyle = b.cor;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = b.cor;
-        ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.closePath();
-
-        ctx.fillStyle = "white";
-        ctx.font = `${Math.max(12, b.raio / 4)}px Arial`;
-        ctx.textAlign = "center";
-        ctx.shadowBlur = 0;
-        ctx.fillText(b.name, b.x, b.y);
-        if (b.change) ctx.fillText(`${b.change}%`, b.x, b.y + 16);
-      }
-
-      atualizarBolhas();
-      requestAnimationFrame(desenharBolhas);
-    }
-
-    function atualizarBolhas() {
-      for (let b of bolhas) {
-        b.x += b.dx;
-        b.y += b.dy;
-
-        if (b.x + b.raio > canvas.width || b.x - b.raio < 0) b.dx *= -1;
-        if (b.y + b.raio > canvas.height || b.y - b.raio < 0) b.dy *= -1;
-      }
-    }
-
-    document.getElementById("btn-acoes").onclick = () => {
-      tipo = "acoes";
-      ativarBotao("btn-acoes");
-      buscarDados();
-    };
-    document.getElementById("btn-cripto").onclick = () => {
-      tipo = "cripto";
-      ativarBotao("btn-cripto");
-      buscarDados();
-    };
-    document.getElementById("btn-commodities").onclick = () => {
-      tipo = "commodities";
-      ativarBotao("btn-commodities");
-      buscarDados();
-    };
-
-    function ativarBotao(id) {
-      document.querySelectorAll(".menu button").forEach(btn => btn.classList.remove("active"));
-      document.getElementById(id).classList.add("active");
-    }
-
-    window.onresize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    buscarDados().then(desenharBolhas);
-    setInterval(buscarDados, 30000); // atualiza a cada 30s
-  </script>
+  <div id="sectorFilters" class="filters"></div>
+  <canvas id="bubbleCanvas"></canvas>
+  <script src="script.js"></script>
 </body>
 </html>
