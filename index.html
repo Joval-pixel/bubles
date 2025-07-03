@@ -1,13 +1,125 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bubles — Ações ao Vivo</title>
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bubles — A Bolsa que Respira</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
-    <canvas id="bubbleCanvas"></canvas>
-    <script src="script.js"></script>
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+let bubbles = [];
+
+async function fetchStocks() {
+  try {
+    const res = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD");
+    const data = await res.json();
+    bubbles = data.stocks.map((s, i) => {
+      const radius = Math.max(20, Math.abs(s.changePercent) * 5 + 20);
+      const color = s.changePercent >= 0 ? "#00ff00" : "#ff0000";
+      const glow = s.changePercent >= 0 ? "0 0 20px #00ff00" : "0 0 20px #ff0000";
+      return {
+        ticker: s.stock,
+        change: s.changePercent,
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: radius,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8,
+        color,
+        glow
+      };
+    });
+  } catch (e) {
+    console.error("Erro ao buscar ações:", e);
+  }
+}
+
+function drawBubble(b) {
+  ctx.beginPath();
+  const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r);
+  gradient.addColorStop(0, b.color);
+  gradient.addColorStop(1, "black");
+  ctx.fillStyle = gradient;
+  ctx.shadowBlur = 25;
+  ctx.shadowColor = b.color;
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.closePath();
+
+  ctx.fillStyle = "#fff";
+  ctx.font = `${Math.max(12, b.r / 3)}px Arial`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(b.ticker, b.x, b.y);
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < bubbles.length; i++) {
+    const b = bubbles[i];
+
+    b.x += b.vx;
+    b.y += b.vy;
+
+    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
+    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
+
+    // Colisão simples
+    for (let j = i + 1; j < bubbles.length; j++) {
+      const b2 = bubbles[j];
+      const dx = b2.x - b.x;
+      const dy = b2.y - b.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = b.r + b2.r;
+
+      if (dist < minDist) {
+        const angle = Math.atan2(dy, dx);
+        const tx = b.x + Math.cos(angle) * minDist;
+        const ty = b.y + Math.sin(angle) * minDist;
+        const ax = (tx - b2.x) * 0.05;
+        const ay = (ty - b2.y) * 0.05;
+
+        b.vx -= ax;
+        b.vy -= ay;
+        b2.vx += ax;
+        b2.vy += ay;
+      }
+    }
+
+    drawBubble(b);
+  }
+
+  requestAnimationFrame(animate);
+}
+
+fetchStocks().then(() => {
+  animate();
+  setInterval(fetchStocks, 30000); // Atualiza a cada 30s
+});
+</script>
 </body>
 </html>
