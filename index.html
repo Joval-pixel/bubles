@@ -1,139 +1,114 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Bubles - A Bolsa que Respira</title>
-    <style>
-        body {
-            margin: 0;
-            background-color: #000;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-        }
-        #menu {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            padding: 15px;
-            background-color: #111;
-        }
-        #menu div {
-            color: white;
-            cursor: pointer;
-            font-size: 18px;
-            padding-bottom: 5px;
-        }
-        #menu .active {
-            color: #00ff00;
-            border-bottom: 3px solid #00ff00;
-        }
-        canvas {
-            display: block;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bubles — Ações ao Vivo</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
-    <div id="menu">
-        <div id="acoes" class="active">Ações</div>
-        <div id="criptos">Criptomoedas</div>
-        <div id="commodities">Commodities</div>
-    </div>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+  <canvas id="canvas"></canvas>
 
-        let bubbles = [];
-        const token = "5bTDfSmR2ieax6y7JUqDAD";
-        let currentType = "stocks";
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-        async function fetchData(type) {
-            try {
-                const res = await fetch(`https://brapi.dev/api/${type}?token=${token}`);
-                const data = await res.json();
-                return data.stocks || data.coins || data.commodities || [];
-            } catch (e) {
-                return [{ stock: "API ERRO", change: 0, close: 0 }];
-            }
+    class Bubble {
+      constructor(x, y, r, label, color) {
+        this.x = x;
+        this.y = y;
+        this.r = r;
+        this.label = label;
+        this.color = color;
+        this.vx = Math.random() * 1 - 0.5;
+        this.vy = Math.random() * 1 - 0.5;
+      }
+
+      draw() {
+        ctx.beginPath();
+        const gradient = ctx.createRadialGradient(this.x, this.y, this.r * 0.1, this.x, this.y, this.r);
+        gradient.addColorStop(0, "#ffffff11");
+        gradient.addColorStop(1, this.color);
+        ctx.fillStyle = gradient;
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#fff";
+        ctx.font = `${Math.max(this.r / 3, 10)}px Arial`;
+        ctx.textAlign = "center";
+        ctx.fillText(this.label, this.x, this.y + 4);
+      }
+
+      update(bubbles) {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // bordas da tela
+        if (this.x - this.r < 0 || this.x + this.r > canvas.width) this.vx *= -1;
+        if (this.y - this.r < 0 || this.y + this.r > canvas.height) this.vy *= -1;
+
+        // colisão entre bolhas
+        for (let other of bubbles) {
+          if (other === this) continue;
+          let dx = other.x - this.x;
+          let dy = other.y - this.y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+          let minDist = this.r + other.r;
+          if (dist < minDist) {
+            let angle = Math.atan2(dy, dx);
+            let overlap = (minDist - dist) / 2;
+            this.x -= overlap * Math.cos(angle);
+            this.y -= overlap * Math.sin(angle);
+            other.x += overlap * Math.cos(angle);
+            other.y += overlap * Math.sin(angle);
+          }
         }
+      }
+    }
 
-        function createBubbles(data) {
-            bubbles = data.map((item, i) => {
-                const pct = item.change || 0;
-                const color = pct >= 0 ? "rgba(0,255,0,0.8)" : "rgba(255,0,0,0.8)";
-                const radius = Math.min(150, 30 + Math.abs(pct) * 10);
-                return {
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    dx: Math.random() * 2 - 1,
-                    dy: Math.random() * 2 - 1,
-                    radius,
-                    label: item.stock || item.name,
-                    pct: parseFloat(pct).toFixed(2),
-                    color
-                };
-            });
-        }
+    // Exemplo de dados (pode vir da API)
+    const sampleData = [
+      { ticker: "OIBR3", change: 8.47 },
+      { ticker: "PDGR3", change: -11.54 },
+      { ticker: "ARML3", change: 28.47 },
+      { ticker: "PETR4", change: 1.23 },
+      { ticker: "VALE3", change: -0.75 },
+      { ticker: "MGLU3", change: 3.51 },
+      { ticker: "B3SA3", change: -2.77 },
+      { ticker: "RADL3", change: 0.99 },
+      { ticker: "ITUB4", change: 1.80 }
+    ];
 
-        function drawBubbles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            bubbles.forEach(b => {
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-                ctx.fillStyle = b.color;
-                ctx.shadowColor = "#fff";
-                ctx.shadowBlur = 10;
-                ctx.fill();
-                ctx.closePath();
-                ctx.font = `${Math.min(20, b.radius / 3)}px Arial`;
-                ctx.fillStyle = "#fff";
-                ctx.textAlign = "center";
-                ctx.fillText(`${b.label}`, b.x, b.y);
-                ctx.fillText(`${b.pct}%`, b.x, b.y + 15);
-            });
-        }
+    const bubbles = sampleData.map(stock => {
+      const r = 20 + Math.abs(stock.change) * 3;
+      const color = stock.change >= 0 ? "#00ff00aa" : "#ff0000aa";
+      const x = Math.random() * (canvas.width - r * 2) + r;
+      const y = Math.random() * (canvas.height - r * 2) + r;
+      return new Bubble(x, y, r, `${stock.ticker}\n${stock.change.toFixed(2)}%`, color);
+    });
 
-        function update() {
-            bubbles.forEach(b => {
-                b.x += b.dx;
-                b.y += b.dy;
-                if (b.x < b.radius || b.x > canvas.width - b.radius) b.dx *= -1;
-                if (b.y < b.radius || b.y > canvas.height - b.radius) b.dy *= -1;
-            });
-            drawBubbles();
-            requestAnimationFrame(update);
-        }
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let b of bubbles) {
+        b.update(bubbles);
+        b.draw();
+      }
+      requestAnimationFrame(animate);
+    }
 
-        async function load(type) {
-            const data = await fetchData(type);
-            createBubbles(data);
-        }
-
-        document.getElementById("acoes").onclick = () => {
-            currentType = "stocks";
-            setActive("acoes");
-            load("stocks");
-        };
-        document.getElementById("criptos").onclick = () => {
-            currentType = "crypto";
-            setActive("criptos");
-            load("crypto");
-        };
-        document.getElementById("commodities").onclick = () => {
-            currentType = "commodities";
-            setActive("commodities");
-            load("commodities");
-        };
-
-        function setActive(id) {
-            document.querySelectorAll("#menu div").forEach(el => el.classList.remove("active"));
-            document.getElementById(id).classList.add("active");
-        }
-
-        load(currentType);
-        update();
-    </script>
+    animate();
+  </script>
 </body>
 </html>
