@@ -7,144 +7,94 @@
   <style>
     body {
       margin: 0;
-      background-color: #0e0f11;
-      overflow: hidden;
+      background-color: #0e0e11;
       font-family: Arial, sans-serif;
+      overflow: hidden;
     }
-
     h1 {
-      color: #00f0ff;
+      color: cyan;
       text-align: center;
-      margin-top: 20px;
-      font-size: 24px;
+      padding: 16px;
     }
-
     .bubble {
       position: absolute;
       border-radius: 50%;
       display: flex;
-      justify-content: center;
       align-items: center;
-      flex-direction: column;
-      color: white;
-      font-weight: bold;
+      justify-content: center;
       text-align: center;
-      border: 3px solid white;
-      box-shadow: 0 0 20px rgba(255,255,255,0.3);
-      animation: float 30s linear infinite;
-      white-space: nowrap;
+      font-weight: bold;
+      color: white;
+      border: 4px solid white;
+      text-shadow: 0 0 4px rgba(0,0,0,0.7);
+      animation: float 15s linear infinite;
+      overflow: hidden;
     }
-
     @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-20px); }
-      100% { transform: translateY(0px); }
-    }
-
-    .green {
-      background: radial-gradient(circle at center, #00ff88, #006b3c);
-    }
-
-    .red {
-      background: radial-gradient(circle at center, #ff4f4f, #8b0000);
-    }
-
-    .ticker {
-      font-size: 1em;
-    }
-
-    .percent {
-      font-size: 0.9em;
-    }
-
-    @media (max-width: 600px) {
-      h1 { font-size: 20px; }
+      0% {
+        transform: translateY(0px) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-30px) rotate(2deg);
+      }
+      100% {
+        transform: translateY(0px) rotate(0deg);
+      }
     }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
+
   <script>
     const acoes = [
+      { ticker: "VALE3", change: 2.41 },
+      { ticker: "PETR4", change: -1.82 },
+      { ticker: "ITUB4", change: 0.78 },
       { ticker: "MGLU3", change: -6.59 },
-      { ticker: "CSNA3", change: 6.13 },
-      { ticker: "GGBR4", change: 3.13 },
-      { ticker: "VALE3", change: 2.38 },
-      { ticker: "PRIO3", change: 0.86 },
-      { ticker: "ITUB4", change: -0.81 },
-      { ticker: "BBDC4", change: -1.82 },
-      { ticker: "BBAS3", change: 0.36 },
-      { ticker: "PETR4", change: 1.78 },
+      { ticker: "BBAS3", change: 1.36 },
+      { ticker: "SUZB3", change: 3.73 },
       { ticker: "HAPV3", change: -5.14 },
-      { ticker: "RENT3", change: -3.12 },
-      { ticker: "SUZB3", change: 1.71 }
+      { ticker: "CSNA3", change: 6.13 },
+      { ticker: "BBDC4", change: -0.91 },
+      { ticker: "PRIO3", change: 0.86 },
+      { ticker: "WEGE3", change: -0.17 },
+      { ticker: "LREN3", change: -3.31 },
+      { ticker: "GGBR4", change: 3.13 }
     ];
 
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
+    const largura = window.innerWidth;
+    const altura = window.innerHeight;
 
-    const usedPositions = [];
+    acoes.forEach(acao => {
+      const bubble = document.createElement("div");
+      const absChange = Math.abs(acao.change);
 
-    function createBubble({ ticker, change }) {
-      const bubble = document.createElement('div');
-      const size = Math.max(50, Math.min(160, Math.abs(change) * 15 + 60));
-      const colorClass = change >= 0 ? 'green' : 'red';
-      bubble.className = `bubble ${colorClass}`;
+      // Tamanho proporcional: mínimo 60px, máximo 180px
+      const size = 60 + absChange * 10;
+      const fontSize = size < 80 ? 10 : size < 120 ? 14 : 16;
+
+      bubble.className = "bubble";
       bubble.style.width = `${size}px`;
       bubble.style.height = `${size}px`;
+      bubble.style.left = `${Math.random() * (largura - size)}px`;
+      bubble.style.top = `${Math.random() * (altura - size)}px`;
+      bubble.style.fontSize = `${fontSize}px`;
+      bubble.style.flexDirection = "column";
 
-      const fontSize = size < 70 ? '0.6em' : size < 100 ? '0.8em' : '1em';
-
-      bubble.innerHTML = `
-        <div class="ticker" style="font-size: ${fontSize}">${ticker}</div>
-        <div class="percent" style="font-size: ${fontSize}">
-          ${change >= 0 ? '+' : ''}${change.toFixed(2)}%
-        </div>
-      `;
-
-      // Evita sobreposição direta
-      let x, y, safe = false;
-      for (let tries = 0; tries < 100; tries++) {
-        x = Math.random() * (screenW - size);
-        y = Math.random() * (screenH - size - 50) + 50;
-        safe = usedPositions.every(p => {
-          const dx = p.x - x;
-          const dy = p.y - y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          return distance > (p.size / 2 + size / 2 + 10);
-        });
-        if (safe) break;
+      // Cor e brilho
+      if (acao.change >= 0) {
+        bubble.style.background = "radial-gradient(circle, #00ff80, #00aa44)";
+        bubble.style.boxShadow = "0 0 20px #00ff80";
+        bubble.innerHTML = `<div>${acao.ticker}</div><div>+${acao.change.toFixed(2)}%</div>`;
+      } else {
+        bubble.style.background = "radial-gradient(circle, #ff4d4d, #a80000)";
+        bubble.style.boxShadow = "0 0 20px #ff4d4d";
+        bubble.innerHTML = `<div>${acao.ticker}</div><div>${acao.change.toFixed(2)}%</div>`;
       }
 
-      if (!safe) return;
-
-      bubble.style.left = `${x}px`;
-      bubble.style.top = `${y}px`;
       document.body.appendChild(bubble);
-      usedPositions.push({ x, y, size });
-
-      // Movimento lento
-      let dx = (Math.random() - 0.5) * 0.6;
-      let dy = (Math.random() - 0.5) * 0.6;
-
-      function animate() {
-        const rect = bubble.getBoundingClientRect();
-        let left = rect.left + dx;
-        let top = rect.top + dy;
-
-        if (left < 0 || left + size > screenW) dx *= -1;
-        if (top < 50 || top + size > screenH) dy *= -1;
-
-        bubble.style.left = `${left}px`;
-        bubble.style.top = `${top}px`;
-
-        requestAnimationFrame(animate);
-      }
-
-      requestAnimationFrame(animate);
-    }
-
-    acoes.forEach(createBubble);
+    });
   </script>
 </body>
 </html>
