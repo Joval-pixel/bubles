@@ -63,18 +63,22 @@
     fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=25&token=${token}`)
       .then(response => response.json())
       .then(data => {
+        if (!data || !data.stocks) {
+          console.error("Erro: estrutura inesperada da resposta:", data);
+          return;
+        }
+
         const stocks = data.stocks;
         const screenW = window.innerWidth;
         const screenH = window.innerHeight;
-
         const usedPositions = [];
 
         stocks.forEach(stock => {
-          const change = stock.change || 0;
-          const size = 50 + Math.abs(change) * 6;
+          const change = parseFloat(stock.change) || 0;
+          const size = 50 + Math.min(Math.abs(change), 10) * 6;
           const isPositive = change >= 0;
 
-          // Posição aleatória sem sobrepor
+          // Evitar sobreposição
           let x, y, tries = 0;
           do {
             x = Math.random() * (screenW - size);
@@ -84,10 +88,10 @@
             usedPositions.some(pos => {
               const dx = pos.x - x;
               const dy = pos.y - y;
-              const distance = Math.sqrt(dx*dx + dy*dy);
-              return distance < (pos.size + size)/2 + 10;
+              return Math.sqrt(dx*dx + dy*dy) < (pos.size + size)/2 + 10;
             }) && tries < 100
           );
+
           usedPositions.push({ x, y, size });
 
           const bubble = document.createElement("div");
@@ -99,15 +103,16 @@
 
           bubble.innerHTML = `<span>${stock.stock}<br>${change.toFixed(2)}%</span>`;
           document.body.appendChild(bubble);
-
-          // Animação leve
           animateBubble(bubble);
         });
+      })
+      .catch(error => {
+        console.error("Erro ao buscar dados:", error);
       });
 
     function animateBubble(bubble) {
-      let dx = (Math.random() - 0.5) * 1.5;
-      let dy = (Math.random() - 0.5) * 1.5;
+      let dx = (Math.random() - 0.5) * 1.2;
+      let dy = (Math.random() - 0.5) * 1.2;
 
       function move() {
         const rect = bubble.getBoundingClientRect();
