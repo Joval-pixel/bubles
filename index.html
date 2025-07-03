@@ -1,27 +1,21 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — A Bolsa que Respira</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <nav>
-    <button class="tab active" onclick="showTab('acoes')">Ações</button>
-    <button class="tab" onclick="showTab('criptomoedas')">Criptomoedas</button>
-    <button class="tab" onclick="showTab('commodities')">Commodities</button>
-  </nav>
-  <div id="bubbles-container"></div>
-
-  <!-- Modal para o gráfico -->
-  <div id="modal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <iframe id="stockChart" width="100%" height="400" frameborder="0"></iframe>
+    <div class="tabs">
+      <button class="tab active" onclick="showCategory('acoes')">Ações</button>
+      <button class="tab" onclick="showCategory('cripto')">Criptomoedas</button>
+      <button class="tab" onclick="showCategory('commodities')">Commodities</button>
     </div>
-  </div>
-
+    <div id="setores"></div>
+  </nav>
+  <canvas id="canvas"></canvas>
   <script src="script.js"></script>
 </body>
 </html>
