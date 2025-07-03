@@ -1,48 +1,43 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Bubles — Ações ao Vivo</title>
   <style>
-    body {
+    html, body {
       margin: 0;
-      background-color: #0e0e11;
-      font-family: Arial, sans-serif;
       overflow: hidden;
+      background: #0e0e11;
+      font-family: Arial, sans-serif;
     }
     h1 {
       color: cyan;
       text-align: center;
-      padding: 16px;
+      margin-top: 20px;
     }
     .bubble {
       position: absolute;
       border-radius: 50%;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       text-align: center;
       font-weight: bold;
       color: white;
       border: 3px solid white;
-      text-shadow: 0 0 4px rgba(0,0,0,0.7);
-      animation: float 8s ease-in-out infinite alternate;
+      text-shadow: 0 0 5px black;
       white-space: nowrap;
       padding: 4px;
       flex-direction: column;
-    }
-    @keyframes float {
-      0%   { transform: translate(0px, 0px); }
-      100% { transform: translate(10px, 20px); }
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
-
+  <script src="https://d3js.org/d3.v7.min.js"></script>
   <script>
-    const acoes = [
+    const dados = [
       { ticker: "VALE3", change: 2.41 },
       { ticker: "PETR4", change: -1.82 },
       { ticker: "ITUB4", change: 0.78 },
@@ -58,56 +53,48 @@
       { ticker: "GGBR4", change: 3.13 }
     ];
 
-    const largura = window.innerWidth;
-    const altura = window.innerHeight;
-    const minDistance = 100; // distância mínima entre bolhas
-    const bolhas = [];
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-    function isOverlapping(x, y, radius) {
-      return bolhas.some(b => {
-        const dx = b.x - x;
-        const dy = b.y - y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        return distance < (b.radius + radius + 10); // espaço extra
-      });
-    }
-
-    acoes.forEach(acao => {
-      const absChange = Math.abs(acao.change);
-      const size = 60 + absChange * 10;
+    const nodes = dados.map(d => {
+      const size = 60 + Math.abs(d.change) * 10;
       const fontSize = size < 80 ? 10 : size < 120 ? 14 : 16;
-      const radius = size / 2;
-
-      let x, y, attempts = 0;
-      do {
-        x = Math.random() * (largura - size);
-        y = Math.random() * (altura - size);
-        attempts++;
-        if (attempts > 100) break; // evita loop infinito
-      } while (isOverlapping(x + radius, y + radius, radius));
-
-      bolhas.push({ x: x + radius, y: y + radius, radius });
-
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.style.width = `${size}px`;
-      bubble.style.height = `${size}px`;
-      bubble.style.left = `${x}px`;
-      bubble.style.top = `${y}px`;
-      bubble.style.fontSize = `${fontSize}px`;
-
-      if (acao.change >= 0) {
-        bubble.style.background = "radial-gradient(circle, #00ff80, #00aa44)";
-        bubble.style.boxShadow = "0 0 25px #00ff80";
-        bubble.innerHTML = `<div>${acao.ticker}</div><div>+${acao.change.toFixed(2)}%</div>`;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.style.width = size + 'px';
+      bubble.style.height = size + 'px';
+      bubble.style.fontSize = fontSize + 'px';
+      bubble.innerHTML = `
+        <div>${d.ticker}</div>
+        <div>${d.change >= 0 ? '+' : ''}${d.change.toFixed(2)}%</div>
+      `;
+      if (d.change >= 0) {
+        bubble.style.background = 'radial-gradient(circle, #00ff80, #00aa44)';
+        bubble.style.boxShadow = '0 0 25px #00ff80';
       } else {
-        bubble.style.background = "radial-gradient(circle, #ff4d4d, #a80000)";
-        bubble.style.boxShadow = "0 0 25px #ff4d4d";
-        bubble.innerHTML = `<div>${acao.ticker}</div><div>${acao.change.toFixed(2)}%</div>`;
+        bubble.style.background = 'radial-gradient(circle, #ff4d4d, #a80000)';
+        bubble.style.boxShadow = '0 0 25px #ff4d4d';
       }
-
       document.body.appendChild(bubble);
+      return { ...d, r: size / 2, el: bubble };
     });
+
+    const simulation = d3.forceSimulation(nodes)
+      .force("x", d3.forceX(width / 2).strength(0.02))
+      .force("y", d3.forceY(height / 2 + 40).strength(0.02))
+      .force("collide", d3.forceCollide().radius(d => d.r + 4).iterations(3))
+      .force("charge", d3.forceManyBody().strength(1))
+      .velocityDecay(0.2)
+      .alpha(0.9)
+      .alphaDecay(0.005)
+      .on("tick", () => {
+        nodes.forEach(d => {
+          d.x = Math.max(d.r, Math.min(width - d.r, d.x));
+          d.y = Math.max(d.r + 40, Math.min(height - d.r, d.y));
+          d.el.style.left = `${d.x - d.r}px`;
+          d.el.style.top = `${d.y - d.r}px`;
+        });
+      });
   </script>
 </body>
 </html>
