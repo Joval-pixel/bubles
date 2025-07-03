@@ -4,12 +4,97 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bubles – A Bolsa que Respira</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    #titulo {
+      text-align: center;
+      margin: 20px 0;
+      font-size: 28px;
+    }
+    #bubbles-container {
+      position: relative;
+      width: 100vw;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-weight: bold;
+      color: white;
+      border: 3px solid white;
+      flex-direction: column;
+      white-space: nowrap;
+      overflow: hidden;
+      animation: float 60s linear infinite;
+    }
+    .positive {
+      background-color: #00cc00;
+      box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
+      filter: drop-shadow(0 0 5px #00ff00);
+    }
+    .negative {
+      background-color: #cc0000;
+      box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
+      filter: drop-shadow(0 0 5px #ff0000);
+    }
+    .bubble span {
+      font-size: clamp(10px, 4vw, 18px);
+    }
+    @keyframes float {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+      100% {
+        transform: translate(0, 0) rotate(360deg);
+      }
+    }
+  </style>
 </head>
 <body>
   <h1 id="titulo">BUBLES — AÇÕES AO VIVO</h1>
   <div id="bubbles-container"></div>
 
-  <script src="script.js"></script>
+  <script>
+    const container = document.getElementById("bubbles-container");
+
+    fetch("https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&limit=30&token=5bTDfSmR2ieax6y7JUqDAD")
+      .then(res => res.json())
+      .then(data => {
+        const stocks = data.stocks;
+
+        stocks.forEach(stock => {
+          const change = parseFloat(stock.changePercent);
+          if (isNaN(change)) return;
+
+          const bubble = document.createElement("div");
+          bubble.className = `bubble ${change > 0 ? 'positive' : 'negative'}`;
+
+          const size = Math.min(200, Math.max(50, Math.abs(change) * 8));
+          bubble.style.width = `${size}px`;
+          bubble.style.height = `${size}px`;
+          bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
+          bubble.style.top = `${Math.random() * (window.innerHeight - size - 60) + 60}px`;
+
+          bubble.innerHTML = `
+            <span>${stock.stock}</span>
+            <span>${change > 0 ? '+' : ''}${change.toFixed(2)}%</span>
+          `;
+
+          container.appendChild(bubble);
+        });
+      })
+      .catch(error => console.error("Erro ao buscar dados:", error));
+  </script>
 </body>
 </html>
