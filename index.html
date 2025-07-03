@@ -1,21 +1,21 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — Ações ao Vivo</title>
   <style>
     body {
       margin: 0;
-      overflow: hidden;
-      font-family: sans-serif;
       background-color: #000;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
     }
 
-    #container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
+    h1 {
+      color: #fff;
+      text-align: center;
+      margin-top: 20px;
     }
 
     .bubble {
@@ -27,76 +27,72 @@
       text-align: center;
       font-weight: bold;
       color: white;
-      border: 3px solid white;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      border: 2px solid white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
       transition: transform 0.3s;
       overflow: hidden;
       white-space: nowrap;
       flex-direction: column;
+      animation: float 20s infinite linear;
     }
 
-    .bubble.positive {
+    .bubble span {
+      font-size: clamp(10px, 4vw, 16px);
+      line-height: 1.2;
+    }
+
+    .positive {
       background-color: #00cc00;
       box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
       filter: drop-shadow(0 0 5px #00ff00);
     }
 
-    .bubble.negative {
+    .negative {
       background-color: #cc0000;
       box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
       filter: drop-shadow(0 0 5px #ff0000);
     }
 
-    .bubble span {
-      font-size: clamp(10px, 4vw, 18px);
-      text-align: center;
-      line-height: 1.1;
+    @keyframes float {
+      0%   { transform: translate(0, 0); }
+      50%  { transform: translate(10px, -10px); }
+      100% { transform: translate(0, 0); }
     }
   </style>
 </head>
 <body>
-  <h1 style="color:white; text-align:center;">Bubles — Ações ao Vivo</h1>
-  <div id="container"></div>
+  <h1>Bubles — Ações ao Vivo</h1>
 
   <script>
-    const container = document.getElementById("container");
+    const acoes = [
+      { ticker: "VALE3", change: 3.6 },
+      { ticker: "PETR4", change: -2.1 },
+      { ticker: "ITUB4", change: 1.2 },
+      { ticker: "BBDC3", change: -0.8 },
+      { ticker: "BBAS3", change: 2.4 },
+      { ticker: "MGLU3", change: -4.3 },
+      { ticker: "WEGE3", change: 5.0 },
+      { ticker: "ABEV3", change: 0.7 },
+      { ticker: "LREN3", change: -1.5 },
+      { ticker: "ELET3", change: 3.1 },
+      { ticker: "CSNA3", change: -2.8 },
+      { ticker: "SUZB3", change: 4.9 }
+    ];
 
-    async function fetchStocks() {
-      try {
-        const response = await fetch("https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD");
-        const json = await response.json();
-        const stocks = json.stocks.slice(0, 40);
+    acoes.forEach((acao, i) => {
+      const bubble = document.createElement("div");
+      const size = 60 + Math.abs(acao.change) * 10;
+      bubble.className = "bubble " + (acao.change >= 0 ? "positive" : "negative");
+      bubble.style.width = size + "px";
+      bubble.style.height = size + "px";
 
-        container.innerHTML = "";
+      // Posição aleatória (evita sobreposição exata)
+      bubble.style.left = Math.random() * (window.innerWidth - size) + "px";
+      bubble.style.top = Math.random() * (window.innerHeight - size - 50) + 50 + "px";
 
-        stocks.forEach(stock => {
-          const variation = stock.change;
-          const bubble = document.createElement("div");
-          bubble.className = "bubble " + (variation >= 0 ? "positive" : "negative");
-
-          const size = 60 + Math.min(Math.abs(variation) * 10, 120);
-          bubble.style.width = `${size}px`;
-          bubble.style.height = `${size}px`;
-
-          const vw = window.innerWidth - size;
-          const vh = window.innerHeight - size;
-          bubble.style.left = `${Math.random() * vw}px`;
-          bubble.style.top = `${Math.random() * vh}px`;
-
-          bubble.innerHTML = `
-            <span>${stock.stock}</span>
-            <span>${variation.toFixed(2)}%</span>
-          `;
-
-          container.appendChild(bubble);
-        });
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-      }
-    }
-
-    fetchStocks();
-    setInterval(fetchStocks, 60000);
+      bubble.innerHTML = `<span>${acao.ticker}<br>${acao.change.toFixed(2)}%</span>`;
+      document.body.appendChild(bubble);
+    });
   </script>
 </body>
 </html>
