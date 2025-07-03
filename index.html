@@ -4,20 +4,170 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — A Bolsa que Respira</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: black;
+      font-family: Arial, sans-serif;
+    }
+
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      background-color: black;
+      transition: left 0.3s ease;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 220px;
+      height: 100vh;
+      background-color: #111;
+      padding: 10px;
+      overflow-y: auto;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+      z-index: 10;
+      color: white;
+    }
+
+    .category {
+      margin-bottom: 20px;
+    }
+
+    .category h3 {
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .altas h3 {
+      color: lime;
+    }
+
+    .quedas h3 {
+      color: #00bfff;
+    }
+
+    .volume h3 {
+      color: gold;
+    }
+
+    .category ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .category li {
+      font-size: 14px;
+      margin: 3px 0;
+    }
+
+    /* Só aplica margem no desktop */
+    body:not(.mobile) canvas {
+      left: 220px;
+    }
+
+    /* No celular: esconder o painel e ocupar toda a tela */
+    body.mobile .sidebar {
+      display: none;
+    }
+
+    body.mobile canvas {
+      left: 0;
+      width: 100vw !important;
+    }
+  </style>
 </head>
 <body>
+
   <div class="sidebar">
-    <h3>📈 <span class="green">Maiores Altas</span></h3>
-    <ul id="altas"></ul>
-    <h3>⭐ <span class="blue">Maiores Quedas</span></h3>
-    <ul id="quedas"></ul>
-    <h3>🐻 <span class="yellow">Maior Volume</span></h3>
-    <ul id="volume"></ul>
+    <div class="category altas">
+      <h3>📈 Maiores Altas</h3>
+      <ul>
+        <li>ARML3 +26.44%</li>
+        <li>SEQL3 +7.21%</li>
+        <li>EMET11 +6.67%</li>
+      </ul>
+    </div>
+    <div class="category quedas">
+      <h3>⭐ Maiores Quedas</h3>
+      <ul>
+        <li>PDGR3 -6.69%</li>
+        <li>MRVE3 -3.96%</li>
+        <li>AZEV4 -1.82%</li>
+      </ul>
+    </div>
+    <div class="category volume">
+      <h3>🐻 Maior Volume</h3>
+      <ul>
+        <li>VALE3 +0.47%</li>
+        <li>PETR4 +0.04%</li>
+        <li>ITUB4 +2.55%</li>
+      </ul>
+    </div>
   </div>
 
-  <canvas id="canvas"></canvas>
+  <canvas id="bubbleCanvas"></canvas>
 
-  <script src="script.js"></script>
+  <script>
+    // Detecta se é celular e aplica a classe 'mobile'
+    function checkMobile() {
+      if (window.innerWidth <= 768) {
+        document.body.classList.add("mobile");
+      } else {
+        document.body.classList.remove("mobile");
+      }
+    }
+    window.addEventListener("resize", checkMobile);
+    checkMobile();
+
+    // Código exemplo para preencher o canvas com bolhas
+    const canvas = document.getElementById("bubbleCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    const bubbles = [];
+    for (let i = 0; i < 50; i++) {
+      bubbles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: 20 + Math.random() * 30,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: (Math.random() - 0.5) * 1.5,
+        color: Math.random() > 0.5 ? "green" : "red"
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      bubbles.forEach(b => {
+        b.x += b.vx;
+        b.y += b.vy;
+
+        if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
+        if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = b.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = b.color;
+        ctx.fill();
+      });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+
 </body>
 </html>
