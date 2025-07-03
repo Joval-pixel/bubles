@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,96 +7,96 @@
   <style>
     body {
       margin: 0;
-      background: #111;
-      font-family: Arial, sans-serif;
+      background-color: #000;
       overflow: hidden;
-      color: white;
+      font-family: Arial, sans-serif;
     }
     h1 {
-      text-align: center;
-      padding: 20px;
       color: white;
+      text-align: center;
+      font-size: 1.2rem;
+      padding: 10px;
     }
-    canvas {
-      display: block;
+    .bolha {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 0 5px black;
+      white-space: nowrap;
+      overflow: hidden;
     }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
-  <canvas id="bubbleCanvas"></canvas>
+
   <script>
-    const canvas = document.getElementById('bubbleCanvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const API_KEY = '5bTDfSmR2ieax6y7JUqDAD';
 
-    let bubbles = [];
+    async function carregarAcoes() {
+      const res = await fetch(`https://brapi.dev/api/quote/list?token=${API_KEY}`);
+      const json = await res.json();
+      let acoes = json.stocks;
 
-    function createBubble(stock, change) {
-      const size = 30 + Math.abs(change) * 10;
-      return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: size,
-        color: change >= 0 ? 'rgba(0,255,0,0.7)' : 'rgba(255,0,0,0.7)',
-        text: stock,
-        dx: (Math.random() - 0.5) * 2,
-        dy: (Math.random() - 0.5) * 2
-      };
+      // Filtrar ações com volume alto e ordenar por volume
+      acoes = acoes
+        .filter(acao => acao.volume && acao.volume > 1000000)
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, 100); // Limita a 100 ações
+
+      acoes.forEach(acao => criarBolha(acao));
     }
 
-    function drawBubble(bubble) {
-      ctx.beginPath();
-      ctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
-      ctx.fillStyle = bubble.color;
-      ctx.fill();
-      ctx.closePath();
+    function criarBolha(acao) {
+      const bolha = document.createElement('div');
+      bolha.className = 'bolha';
 
-      ctx.fillStyle = 'white';
-      ctx.font = `${Math.max(12, bubble.r / 2)}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.fillText(bubble.text, bubble.x, bubble.y + 4);
+      const variacao = parseFloat(acao.change);
+      const nome = acao.stock;
+      const cor = variacao >= 0 ? 'rgba(0,255,0,0.8)' : 'rgba(255,0,0,0.8)';
+      const brilho = variacao >= 0 ? '0 0 10px lime' : '0 0 10px red';
+      const raio = 30 + Math.min(Math.abs(variacao * 3), 60); // entre 30 e 90 px
+
+      bolha.style.width = `${raio}px`;
+      bolha.style.height = `${raio}px`;
+      bolha.style.backgroundColor = cor;
+      bolha.style.boxShadow = brilho;
+      bolha.innerText = nome;
+
+      const largura = window.innerWidth - raio;
+      const altura = window.innerHeight - raio;
+      bolha.style.left = `${Math.random() * largura}px`;
+      bolha.style.top = `${Math.random() * altura}px`;
+      bolha.style.fontSize = `${Math.max(10, raio / 3)}px`;
+
+      document.body.appendChild(bolha);
+
+      animarBolha(bolha);
     }
 
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bubbles.forEach((b) => {
-        b.x += b.dx;
-        b.y += b.dy;
+    function animarBolha(bolha) {
+      const dx = (Math.random() - 0.5) * 1.5;
+      const dy = (Math.random() - 0.5) * 1.5;
+      function mover() {
+        let x = parseFloat(bolha.style.left);
+        let y = parseFloat(bolha.style.top);
+        let r = parseFloat(bolha.style.width);
 
-        // Rebote nas bordas
-        if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
-        if (b.y + b.r > canvas.height || b.y - b.r < 0) b.dy *= -1;
+        if (x + dx < 0 || x + r + dx > window.innerWidth) dx *= -1;
+        if (y + dy < 0 || y + r + dy > window.innerHeight) dy *= -1;
 
-        drawBubble(b);
-      });
-      requestAnimationFrame(animate);
+        bolha.style.left = `${x + dx}px`;
+        bolha.style.top = `${y + dy}px`;
+        requestAnimationFrame(mover);
+      }
+      mover();
     }
 
-    fetch('https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD')
-      .then(res => res.json())
-      .then(data => {
-        const ativos = data.stocks.slice(0, 30); // Pegamos 30 para teste
-        bubbles = ativos.map(stock => createBubble(stock.stock, stock.change || 0));
-        animate();
-      })
-      .catch(err => {
-        console.error("Erro ao buscar dados da API:", err);
-        // Dados mock para fallback
-        const mock = [
-          { stock: 'VALE3', change: 2.3 },
-          { stock: 'PETR4', change: -1.8 },
-          { stock: 'ITUB4', change: 0.7 }
-        ];
-        bubbles = mock.map(s => createBubble(s.stock, s.change));
-        animate();
-      });
-
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
+    carregarAcoes();
   </script>
 </body>
 </html>
