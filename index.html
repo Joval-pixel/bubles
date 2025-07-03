@@ -1,97 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Bubles — Ações ao Vivo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background-color: #000;
-      font-family: sans-serif;
-      color: #fff;
-    }
-
-    h1 {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 24px;
-      color: white;
-      z-index: 10;
-    }
-
-    .bubble {
-      position: absolute;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      font-weight: bold;
-      color: white;
-      border: 3px solid white;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      transition: transform 0.3s;
-      overflow: hidden;
-      white-space: nowrap;
-      flex-direction: column;
-      animation: float 30s linear infinite;
-    }
-
-    .bubble span {
-      font-size: clamp(10px, 4vw, 18px);
-      line-height: 1.1;
-    }
-
-    .bubble.positive {
-      background-color: #00cc00;
-      box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
-      filter: drop-shadow(0 0 5px #00ff00);
-    }
-
-    .bubble.negative {
-      background-color: #cc0000;
-      box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
-      filter: drop-shadow(0 0 5px #ff0000);
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0px) }
-      50% { transform: translateY(-20px) }
-      100% { transform: translateY(0px) }
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bubles – A Bolsa que Respira</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Bubles — Ações ao Vivo</h1>
-  <script>
-    const mockData = [
-      { ticker: 'VALE3', name: 'Vale', change: 2.45 },
-      { ticker: 'PETR4', name: 'Petrobras', change: -1.82 },
-      { ticker: 'ITUB4', name: 'Itaú', change: 0.76 },
-      { ticker: 'BBDC4', name: 'Bradesco', change: -3.2 },
-      { ticker: 'MGLU3', name: 'Magazine Luiza', change: 5.1 },
-      { ticker: 'BBAS3', name: 'Banco do Brasil', change: -0.85 }
-    ];
+  <h1 id="titulo">BUBLES — AÇÕES AO VIVO</h1>
+  <div id="bubbles-container"></div>
 
-    mockData.forEach(stock => {
-      const bubble = document.createElement('div');
-      bubble.className = `bubble ${stock.change >= 0 ? 'positive' : 'negative'}`;
-
-      const size = Math.min(200, Math.max(80, Math.abs(stock.change) * 25));
-      bubble.style.width = `${size}px`;
-      bubble.style.height = `${size}px`;
-
-      bubble.innerHTML = `<span>${stock.ticker}<br>${stock.change.toFixed(2)}%</span>`;
-
-      // Posição aleatória
-      bubble.style.top = `${Math.random() * (window.innerHeight - size)}px`;
-      bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
-
-      document.body.appendChild(bubble);
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
