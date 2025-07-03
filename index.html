@@ -62,7 +62,7 @@ window.addEventListener("resize", () => {
 let bubbles = [];
 let currentTab = "acoes";
 
-// APIs para cada aba
+// APIs por aba
 const sources = {
   acoes: "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=80&token=5bTDfSmR2ieax6y7JUqDAD",
   cripto: "https://brapi.dev/api/crypto?coin=BTC,ETH,MATIC,SOL,DOGE,ADA,BNB,AVAX,XRP,DOT,LTC&token=5bTDfSmR2ieax6y7JUqDAD",
@@ -80,14 +80,26 @@ async function fetchData(tab) {
     else if (tab === "commodities") list = data.results;
 
     bubbles = list.map((item, index) => {
-      const change = parseFloat(item.changePercent || 0);
-      const symbol = item.stock || item.coin || item.symbol || "???";
-      const radius = Math.min(90, Math.max(30, Math.abs(change) * 4 + 25));
+      let change = 0;
+      let symbol = "???";
+
+      if (tab === "acoes") {
+        change = parseFloat(item.changePercent ?? 0);
+        symbol = item.stock ?? "???";
+      } else if (tab === "cripto") {
+        change = parseFloat(item.change_24h ?? 0);
+        symbol = item.coin ?? "???";
+      } else if (tab === "commodities") {
+        change = parseFloat(item.regularMarketChangePercent ?? 0);
+        symbol = item.symbol ?? "???";
+      }
+
+      const radius = Math.min(90, Math.max(30, Math.abs(change) * 3.5 + 25));
       const color = change >= 0 ? "#00ff00" : "#ff0000";
 
       return {
         ticker: symbol,
-        change: change,
+        change: change.toFixed(2),
         x: (index % 10) * (canvas.width / 10) + 30 + Math.random() * 20,
         y: Math.floor(index / 10) * (canvas.height / 10) + 60 + Math.random() * 20,
         r: radius,
@@ -125,10 +137,12 @@ function drawBubble(b) {
   ctx.closePath();
 
   ctx.fillStyle = "#fff";
-  ctx.font = ${Math.max(12, b.r / 3)}px Arial;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(b.ticker, b.x, b.y);
+  ctx.font = ${Math.max(12, b.r / 3)}px Arial;
+  ctx.fillText(b.ticker, b.x, b.y - b.r / 5);
+  ctx.font = ${Math.max(10, b.r / 4)}px Arial;
+  ctx.fillText(${b.change}%, b.x, b.y + b.r / 5);
 }
 
 function animate() {
