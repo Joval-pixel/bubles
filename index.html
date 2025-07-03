@@ -1,22 +1,22 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — Ações ao Vivo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       margin: 0;
-      overflow: hidden;
       background-color: #000;
+      overflow: hidden;
       font-family: Arial, sans-serif;
     }
 
     h1 {
       color: white;
       text-align: center;
-      margin: 20px 0;
-      font-size: 28px;
+      padding: 20px;
+      font-size: 24px;
     }
 
     .bubble {
@@ -28,12 +28,11 @@
       text-align: center;
       font-weight: bold;
       color: white;
-      border: 3px solid white;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      transition: transform 0.3s;
-      overflow: hidden;
+      border: 2px solid white;
       white-space: nowrap;
       flex-direction: column;
+      pointer-events: none;
+      transition: transform 0.3s;
     }
 
     .bubble.positive {
@@ -58,59 +57,36 @@
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
   <script>
-    const token = "5bTDfSmR2ieax6y7JUqDAD";
+    const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
+    const tickers = ['VALE3', 'PETR4', 'ITUB4', 'BBDC4', 'ABEV3', 'MGLU3', 'B3SA3', 'BBAS3', 'WEGE3', 'JBSS3', 'ELET3', 'SUZB3', 'RENT3', 'GGBR4', 'EMBR3', 'LREN3', 'ASAI3', 'HAPV3', 'CIEL3', 'COGN3'];
 
-    fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=25&token=${token}`)
-      .then(response => response.json())
-      .then(data => {
-        if (!data || !data.stocks) {
-          console.error("Erro: estrutura inesperada da resposta:", data);
-          return;
-        }
+    async function fetchData() {
+      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?token=${apiKey}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.stocks;
+    }
 
-        const stocks = data.stocks;
-        const screenW = window.innerWidth;
-        const screenH = window.innerHeight;
-        const usedPositions = [];
+    function createBubble(stock) {
+      const bubble = document.createElement('div');
+      const change = parseFloat(stock.change);
+      const radius = 40 + Math.min(Math.abs(change) * 8, 100);
+      const isPositive = change >= 0;
+      bubble.className = `bubble ${isPositive ? 'positive' : 'negative'}`;
+      bubble.style.width = `${radius}px`;
+      bubble.style.height = `${radius}px`;
+      bubble.innerHTML = `<span>${stock.stock}<br>${change.toFixed(2)}%</span>`;
 
-        stocks.forEach(stock => {
-          const change = parseFloat(stock.change) || 0;
-          const size = 50 + Math.min(Math.abs(change), 10) * 6;
-          const isPositive = change >= 0;
+      // posição inicial aleatória
+      bubble.style.left = Math.random() * (window.innerWidth - radius) + 'px';
+      bubble.style.top = Math.random() * (window.innerHeight - radius) + 'px';
 
-          // Evitar sobreposição
-          let x, y, tries = 0;
-          do {
-            x = Math.random() * (screenW - size);
-            y = Math.random() * (screenH - size);
-            tries++;
-          } while (
-            usedPositions.some(pos => {
-              const dx = pos.x - x;
-              const dy = pos.y - y;
-              return Math.sqrt(dx*dx + dy*dy) < (pos.size + size)/2 + 10;
-            }) && tries < 100
-          );
+      // animação de movimento contínuo
+      animateBubble(bubble, radius);
+      document.body.appendChild(bubble);
+    }
 
-          usedPositions.push({ x, y, size });
-
-          const bubble = document.createElement("div");
-          bubble.className = `bubble ${isPositive ? "positive" : "negative"}`;
-          bubble.style.width = `${size}px`;
-          bubble.style.height = `${size}px`;
-          bubble.style.left = `${x}px`;
-          bubble.style.top = `${y}px`;
-
-          bubble.innerHTML = `<span>${stock.stock}<br>${change.toFixed(2)}%</span>`;
-          document.body.appendChild(bubble);
-          animateBubble(bubble);
-        });
-      })
-      .catch(error => {
-        console.error("Erro ao buscar dados:", error);
-      });
-
-    function animateBubble(bubble) {
+    function animateBubble(bubble, radius) {
       let dx = (Math.random() - 0.5) * 1.2;
       let dy = (Math.random() - 0.5) * 1.2;
 
@@ -119,15 +95,29 @@
         let x = rect.left + dx;
         let y = rect.top + dy;
 
-        if (x < 0 || x + rect.width > window.innerWidth) dx = -dx;
-        if (y < 0 || y + rect.height > window.innerHeight) dy = -dy;
+        // manter dentro da tela
+        if (x <= 0 || x + radius >= window.innerWidth) dx = -dx;
+        if (y <= 0 || y + radius >= window.innerHeight) dy = -dy;
 
-        bubble.style.left = `${x}px`;
-        bubble.style.top = `${y}px`;
+        bubble.style.left = (parseFloat(bubble.style.left) + dx) + 'px';
+        bubble.style.top = (parseFloat(bubble.style.top) + dy) + 'px';
+
         requestAnimationFrame(move);
       }
+
       move();
     }
+
+    async function renderBubbles() {
+      const stocks = await fetchData();
+      stocks.forEach(stock => {
+        if (stock && stock.change !== null) {
+          createBubble(stock);
+        }
+      });
+    }
+
+    renderBubbles();
   </script>
 </body>
 </html>
