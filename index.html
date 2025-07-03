@@ -2,36 +2,26 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles – A Bolsa que Respira</title>
+  <title>Bubles — A Bolsa que Respira</title>
   <style>
-    body {
-      margin: 0;
-      background-color: #000;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: black; color: white; font-family: Arial, sans-serif; overflow: hidden; }
     #menu {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      background-color: #111;
       display: flex;
-      justify-content: center;
-      padding: 10px 0;
-      z-index: 1000;
+      justify-content: space-around;
+      background: #111;
+      padding: 10px;
+      font-weight: bold;
     }
-    #menu button {
-      color: white;
-      background: none;
-      border: none;
-      font-size: 16px;
-      margin: 0 20px;
+    #menu div {
       cursor: pointer;
+      color: white;
       padding: 5px 10px;
+      border-bottom: 3px solid transparent;
     }
-    #menu button.active {
-      border-bottom: 2px solid lime;
+    #menu .ativo {
+      color: #0f0;
+      border-bottom: 3px solid #0f0;
     }
     canvas {
       display: block;
@@ -40,108 +30,116 @@
 </head>
 <body>
   <div id="menu">
-    <button onclick="setType('stocks')" class="active">Ações</button>
-    <button onclick="setType('crypto')">Criptomoedas</button>
-    <button onclick="setType('commodities')">Commodities</button>
+    <div class="ativo" onclick="loadBubbles('stocks')">Ações</div>
+    <div onclick="loadBubbles('coins')">Criptomoedas</div>
+    <div onclick="loadBubbles('commodities')">Commodities</div>
   </div>
   <canvas id="canvas"></canvas>
+
   <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const buttons = document.querySelectorAll("#menu button");
-    function setType(type) {
-      buttons.forEach(btn => btn.classList.remove("active"));
-      document.querySelector(`#menu button[onclick*="${type}"]`).classList.add("active");
-      loadData(type);
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
     }
+    window.addEventListener('resize', resize);
+    resize();
 
+    const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
     let bubbles = [];
 
-    async function loadData(type) {
-      try {
-        let url;
-        if (type === 'stocks') {
-          url = 'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD';
-        } else if (type === 'crypto') {
-          url = 'https://brapi.dev/api/crypto?token=5bTDfSmR2ieax6y7JUqDAD';
-        } else if (type === 'commodities') {
-          url = 'https://brapi.dev/api/quote/commodities?token=5bTDfSmR2ieax6y7JUqDAD';
-        }
-
-        const res = await fetch(url);
-        const data = await res.json();
-        const items = data.stocks || data.coins || data.results || [];
-
-        if (!items.length) {
-          drawError();
-          return;
-        }
-
-        bubbles = items.map((item, i) => {
-          const name = item.stock || item.coin || item.symbol || '---';
-          const change = parseFloat(item.change || item.changePercent || 0);
-          const color = change >= 0 ? "#00ff00aa" : "#ff0000aa";
-          const radius = 30 + Math.min(Math.abs(change) * 5, 70);
-          return {
-            name,
-            change,
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            dx: (Math.random() - 0.5) * 1.5,
-            dy: (Math.random() - 0.5) * 1.5,
-            radius,
-            color
-          };
-        });
-      } catch (e) {
-        drawError();
-      }
+    function getColor(change) {
+      return change > 0 ? 'rgba(0,255,0,0.5)' : 'rgba(255,0,0,0.5)';
     }
 
-    function drawError() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#fff";
-      ctx.font = "30px Arial";
-      ctx.fillText("API ERRO", canvas.width / 2 - 70, canvas.height / 2);
-    }
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
       for (const b of bubbles) {
-        b.x += b.dx;
-        b.y += b.dy;
-        if (b.x < b.radius || b.x > canvas.width - b.radius) b.dx *= -1;
-        if (b.y < b.radius + 30 || b.y > canvas.height - b.radius) b.dy *= -1;
-
-        const grad = ctx.createRadialGradient(b.x, b.y, b.radius / 2, b.x, b.y, b.radius);
-        grad.addColorStop(0, "#ffffff11");
-        grad.addColorStop(1, b.color);
-
         ctx.beginPath();
-        ctx.fillStyle = grad;
-        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = getColor(b.change);
         ctx.fill();
-
-        ctx.fillStyle = "#fff";
-        ctx.font = `${Math.max(12, b.radius / 3)}px Arial`;
-        ctx.textAlign = "center";
-        ctx.fillText(b.name, b.x, b.y - 4);
-        ctx.font = `${Math.max(10, b.radius / 4)}px Arial`;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'white';
+        ctx.stroke();
+        ctx.fillStyle = 'white';
+        ctx.font = `${b.r * 0.3}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(b.ticker, b.x, b.y - 4);
+        ctx.font = `${b.r * 0.25}px Arial`;
         ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 12);
+        // Movimento simples
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // Rebater nas bordas
+        if (b.x - b.r < 0 || b.x + b.r > width) b.vx *= -1;
+        if (b.y - b.r < 50 || b.y + b.r > height) b.vy *= -1;
       }
-      requestAnimationFrame(animate);
+      requestAnimationFrame(draw);
     }
 
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
+    function loadBubbles(tipo) {
+      document.querySelectorAll('#menu div').forEach(e => e.classList.remove('ativo'));
+      document.querySelector(`#menu div:nth-child(${tipo === 'stocks' ? 1 : tipo === 'coins' ? 2 : 3})`).classList.add('ativo');
 
-    loadData("stocks");
-    animate();
+      let endpoint = tipo === 'stocks' ? 'quote/list' :
+                     tipo === 'coins' ? 'quote/crypto' : 'quote/commodities';
+
+      fetch(`https://brapi.dev/api/${endpoint}?token=${apiKey}`)
+        .then(res => res.json())
+        .then(data => {
+          let list = data.stocks || data.coins || data.commodities || [];
+          bubbles = list.slice(0, 80).map((item, i) => {
+            let change = parseFloat(item.change || 0);
+            let volume = item.volume || 1;
+            let radius = 20 + Math.min(80, Math.sqrt(Math.abs(change || 1)) * 10);
+            return {
+              ticker: item.stock || item.symbol || '???',
+              change: change,
+              r: radius,
+              x: Math.random() * (width - radius * 2) + radius,
+              y: Math.random() * (height - radius * 2) + radius,
+              vx: (Math.random() - 0.5) * 0.5,
+              vy: (Math.random() - 0.5) * 0.5
+            };
+          });
+
+          // Reorganiza para evitar sobreposição
+          for (let i = 0; i < bubbles.length; i++) {
+            for (let j = i + 1; j < bubbles.length; j++) {
+              let dx = bubbles[i].x - bubbles[j].x;
+              let dy = bubbles[i].y - bubbles[j].y;
+              let dist = Math.sqrt(dx * dx + dy * dy);
+              let minDist = bubbles[i].r + bubbles[j].r + 5;
+              if (dist < minDist) {
+                let angle = Math.atan2(dy, dx);
+                let overlap = (minDist - dist) / 2;
+                bubbles[i].x += Math.cos(angle) * overlap;
+                bubbles[i].y += Math.sin(angle) * overlap;
+                bubbles[j].x -= Math.cos(angle) * overlap;
+                bubbles[j].y -= Math.sin(angle) * overlap;
+              }
+            }
+          }
+        })
+        .catch(() => {
+          bubbles = [{
+            ticker: 'API ERRO',
+            change: 0,
+            r: 100,
+            x: width / 2,
+            y: height / 2,
+            vx: 0,
+            vy: 0
+          }];
+        });
+    }
+
+    loadBubbles('stocks');
+    draw();
   </script>
 </body>
 </html>
