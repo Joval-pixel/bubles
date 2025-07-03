@@ -1,145 +1,139 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <title>Bubles — A Bolsa que Respira</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: black; color: white; font-family: Arial, sans-serif; overflow: hidden; }
-    #menu {
-      display: flex;
-      justify-content: space-around;
-      background: #111;
-      padding: 10px;
-      font-weight: bold;
-    }
-    #menu div {
-      cursor: pointer;
-      color: white;
-      padding: 5px 10px;
-      border-bottom: 3px solid transparent;
-    }
-    #menu .ativo {
-      color: #0f0;
-      border-bottom: 3px solid #0f0;
-    }
-    canvas {
-      display: block;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Bubles - A Bolsa que Respira</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #menu {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 15px;
+            background-color: #111;
+        }
+        #menu div {
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            padding-bottom: 5px;
+        }
+        #menu .active {
+            color: #00ff00;
+            border-bottom: 3px solid #00ff00;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-  <div id="menu">
-    <div class="ativo" onclick="loadBubbles('stocks')">Ações</div>
-    <div onclick="loadBubbles('coins')">Criptomoedas</div>
-    <div onclick="loadBubbles('commodities')">Commodities</div>
-  </div>
-  <canvas id="canvas"></canvas>
+    <div id="menu">
+        <div id="acoes" class="active">Ações</div>
+        <div id="criptos">Criptomoedas</div>
+        <div id="commodities">Commodities</div>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-  <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    let width, height;
-    function resize() {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resize);
-    resize();
+        let bubbles = [];
+        const token = "5bTDfSmR2ieax6y7JUqDAD";
+        let currentType = "stocks";
 
-    const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
-    let bubbles = [];
-
-    function getColor(change) {
-      return change > 0 ? 'rgba(0,255,0,0.5)' : 'rgba(255,0,0,0.5)';
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, width, height);
-      for (const b of bubbles) {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fillStyle = getColor(b.change);
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'white';
-        ctx.stroke();
-        ctx.fillStyle = 'white';
-        ctx.font = `${b.r * 0.3}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.fillText(b.ticker, b.x, b.y - 4);
-        ctx.font = `${b.r * 0.25}px Arial`;
-        ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 12);
-        // Movimento simples
-        b.x += b.vx;
-        b.y += b.vy;
-
-        // Rebater nas bordas
-        if (b.x - b.r < 0 || b.x + b.r > width) b.vx *= -1;
-        if (b.y - b.r < 50 || b.y + b.r > height) b.vy *= -1;
-      }
-      requestAnimationFrame(draw);
-    }
-
-    function loadBubbles(tipo) {
-      document.querySelectorAll('#menu div').forEach(e => e.classList.remove('ativo'));
-      document.querySelector(`#menu div:nth-child(${tipo === 'stocks' ? 1 : tipo === 'coins' ? 2 : 3})`).classList.add('ativo');
-
-      let endpoint = tipo === 'stocks' ? 'quote/list' :
-                     tipo === 'coins' ? 'quote/crypto' : 'quote/commodities';
-
-      fetch(`https://brapi.dev/api/${endpoint}?token=${apiKey}`)
-        .then(res => res.json())
-        .then(data => {
-          let list = data.stocks || data.coins || data.commodities || [];
-          bubbles = list.slice(0, 80).map((item, i) => {
-            let change = parseFloat(item.change || 0);
-            let volume = item.volume || 1;
-            let radius = 20 + Math.min(80, Math.sqrt(Math.abs(change || 1)) * 10);
-            return {
-              ticker: item.stock || item.symbol || '???',
-              change: change,
-              r: radius,
-              x: Math.random() * (width - radius * 2) + radius,
-              y: Math.random() * (height - radius * 2) + radius,
-              vx: (Math.random() - 0.5) * 0.5,
-              vy: (Math.random() - 0.5) * 0.5
-            };
-          });
-
-          // Reorganiza para evitar sobreposição
-          for (let i = 0; i < bubbles.length; i++) {
-            for (let j = i + 1; j < bubbles.length; j++) {
-              let dx = bubbles[i].x - bubbles[j].x;
-              let dy = bubbles[i].y - bubbles[j].y;
-              let dist = Math.sqrt(dx * dx + dy * dy);
-              let minDist = bubbles[i].r + bubbles[j].r + 5;
-              if (dist < minDist) {
-                let angle = Math.atan2(dy, dx);
-                let overlap = (minDist - dist) / 2;
-                bubbles[i].x += Math.cos(angle) * overlap;
-                bubbles[i].y += Math.sin(angle) * overlap;
-                bubbles[j].x -= Math.cos(angle) * overlap;
-                bubbles[j].y -= Math.sin(angle) * overlap;
-              }
+        async function fetchData(type) {
+            try {
+                const res = await fetch(`https://brapi.dev/api/${type}?token=${token}`);
+                const data = await res.json();
+                return data.stocks || data.coins || data.commodities || [];
+            } catch (e) {
+                return [{ stock: "API ERRO", change: 0, close: 0 }];
             }
-          }
-        })
-        .catch(() => {
-          bubbles = [{
-            ticker: 'API ERRO',
-            change: 0,
-            r: 100,
-            x: width / 2,
-            y: height / 2,
-            vx: 0,
-            vy: 0
-          }];
-        });
-    }
+        }
 
-    loadBubbles('stocks');
-    draw();
-  </script>
+        function createBubbles(data) {
+            bubbles = data.map((item, i) => {
+                const pct = item.change || 0;
+                const color = pct >= 0 ? "rgba(0,255,0,0.8)" : "rgba(255,0,0,0.8)";
+                const radius = Math.min(150, 30 + Math.abs(pct) * 10);
+                return {
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    dx: Math.random() * 2 - 1,
+                    dy: Math.random() * 2 - 1,
+                    radius,
+                    label: item.stock || item.name,
+                    pct: parseFloat(pct).toFixed(2),
+                    color
+                };
+            });
+        }
+
+        function drawBubbles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            bubbles.forEach(b => {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fillStyle = b.color;
+                ctx.shadowColor = "#fff";
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.closePath();
+                ctx.font = `${Math.min(20, b.radius / 3)}px Arial`;
+                ctx.fillStyle = "#fff";
+                ctx.textAlign = "center";
+                ctx.fillText(`${b.label}`, b.x, b.y);
+                ctx.fillText(`${b.pct}%`, b.x, b.y + 15);
+            });
+        }
+
+        function update() {
+            bubbles.forEach(b => {
+                b.x += b.dx;
+                b.y += b.dy;
+                if (b.x < b.radius || b.x > canvas.width - b.radius) b.dx *= -1;
+                if (b.y < b.radius || b.y > canvas.height - b.radius) b.dy *= -1;
+            });
+            drawBubbles();
+            requestAnimationFrame(update);
+        }
+
+        async function load(type) {
+            const data = await fetchData(type);
+            createBubbles(data);
+        }
+
+        document.getElementById("acoes").onclick = () => {
+            currentType = "stocks";
+            setActive("acoes");
+            load("stocks");
+        };
+        document.getElementById("criptos").onclick = () => {
+            currentType = "crypto";
+            setActive("criptos");
+            load("crypto");
+        };
+        document.getElementById("commodities").onclick = () => {
+            currentType = "commodities";
+            setActive("commodities");
+            load("commodities");
+        };
+
+        function setActive(id) {
+            document.querySelectorAll("#menu div").forEach(el => el.classList.remove("active"));
+            document.getElementById(id).classList.add("active");
+        }
+
+        load(currentType);
+        update();
+    </script>
 </body>
 </html>
