@@ -2,21 +2,17 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — Ações ao Vivo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
+    html, body {
       margin: 0;
-      background-color: #000;
+      padding: 0;
       overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      background-color: #000;
       font-family: Arial, sans-serif;
-    }
-
-    h1 {
-      color: white;
-      text-align: center;
-      padding: 20px;
-      font-size: 24px;
     }
 
     .bubble {
@@ -28,96 +24,68 @@
       text-align: center;
       font-weight: bold;
       color: white;
-      border: 2px solid white;
+      border: 3px solid white;
+      box-shadow: 0 0 20px rgba(255,255,255,0.4);
       white-space: nowrap;
+      overflow: hidden;
       flex-direction: column;
-      pointer-events: none;
-      transition: transform 0.3s;
+      animation: float 20s linear infinite;
     }
 
     .bubble.positive {
       background-color: #00cc00;
       box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
-      filter: drop-shadow(0 0 5px #00ff00);
+      filter: drop-shadow(0 0 6px #00ff00);
     }
 
     .bubble.negative {
       background-color: #cc0000;
       box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
-      filter: drop-shadow(0 0 5px #ff0000);
+      filter: drop-shadow(0 0 6px #ff0000);
     }
 
     .bubble span {
       font-size: clamp(10px, 4vw, 18px);
-      text-align: center;
-      line-height: 1.1;
+      line-height: 1.2;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+      100% { transform: translateY(0px); }
     }
   </style>
 </head>
 <body>
-  <h1>Bubles — Ações ao Vivo</h1>
   <script>
-    const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
-    const tickers = ['VALE3', 'PETR4', 'ITUB4', 'BBDC4', 'ABEV3', 'MGLU3', 'B3SA3', 'BBAS3', 'WEGE3', 'JBSS3', 'ELET3', 'SUZB3', 'RENT3', 'GGBR4', 'EMBR3', 'LREN3', 'ASAI3', 'HAPV3', 'CIEL3', 'COGN3'];
+    const stocks = [
+      { stock: 'VALE3', change: 4.2 },
+      { stock: 'PETR4', change: -2.5 },
+      { stock: 'ITUB4', change: 1.9 },
+      { stock: 'B3SA3', change: -3.1 },
+      { stock: 'MGLU3', change: 0.7 },
+      { stock: 'WEGE3', change: -1.1 },
+      { stock: 'BBAS3', change: 5.5 },
+      { stock: 'ABEV3', change: -0.8 }
+    ];
 
-    async function fetchData() {
-      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?token=${apiKey}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      return data.stocks;
-    }
+    stocks.forEach((stock, i) => {
+      const bubble = document.createElement("div");
+      const change = stock.change;
+      const size = Math.min(200, Math.max(60, Math.abs(change) * 20));
 
-    function createBubble(stock) {
-      const bubble = document.createElement('div');
-      const change = parseFloat(stock.change);
-      const radius = 40 + Math.min(Math.abs(change) * 8, 100);
-      const isPositive = change >= 0;
-      bubble.className = `bubble ${isPositive ? 'positive' : 'negative'}`;
-      bubble.style.width = `${radius}px`;
-      bubble.style.height = `${radius}px`;
-      bubble.innerHTML = `<span>${stock.stock}<br>${change.toFixed(2)}%</span>`;
+      bubble.className = `bubble ${change >= 0 ? "positive" : "negative"}`;
+      bubble.style.width = `${size}px`;
+      bubble.style.height = `${size}px`;
 
-      // posição inicial aleatória
-      bubble.style.left = Math.random() * (window.innerWidth - radius) + 'px';
-      bubble.style.top = Math.random() * (window.innerHeight - radius) + 'px';
+      bubble.style.left = `${(i % 4) * 25 + 5}%`;
+      bubble.style.top = `${Math.floor(i / 4) * 45 + 10}%`;
 
-      // animação de movimento contínuo
-      animateBubble(bubble, radius);
+      const sign = change > 0 ? "+" : "";
+      bubble.innerHTML = `<span>${stock.stock}<br>${sign}${change.toFixed(2)}%</span>`;
+
       document.body.appendChild(bubble);
-    }
-
-    function animateBubble(bubble, radius) {
-      let dx = (Math.random() - 0.5) * 1.2;
-      let dy = (Math.random() - 0.5) * 1.2;
-
-      function move() {
-        const rect = bubble.getBoundingClientRect();
-        let x = rect.left + dx;
-        let y = rect.top + dy;
-
-        // manter dentro da tela
-        if (x <= 0 || x + radius >= window.innerWidth) dx = -dx;
-        if (y <= 0 || y + radius >= window.innerHeight) dy = -dy;
-
-        bubble.style.left = (parseFloat(bubble.style.left) + dx) + 'px';
-        bubble.style.top = (parseFloat(bubble.style.top) + dy) + 'px';
-
-        requestAnimationFrame(move);
-      }
-
-      move();
-    }
-
-    async function renderBubbles() {
-      const stocks = await fetchData();
-      stocks.forEach(stock => {
-        if (stock && stock.change !== null) {
-          createBubble(stock);
-        }
-      });
-    }
-
-    renderBubbles();
+    });
   </script>
 </body>
 </html>
