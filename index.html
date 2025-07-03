@@ -3,24 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles – A Bolsa que Respira</title>
+  <title>Bubles — A Bolsa que Respira</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="sidebar">
-    <div class="ranking">
-      <h3>📈 <span class="green">Maiores Altas</span></h3>
-      <ul id="highs"></ul>
-
-      <h3>⭐ <span class="blue">Maiores Quedas</span></h3>
-      <ul id="lows"></ul>
-
-      <h3>🐻 <span class="yellow">Maior Volume</span></h3>
-      <ul id="volume"></ul>
-    </div>
+    <h3>📈 <span class="green">Maiores Altas</span></h3>
+    <ul id="altas"></ul>
+    <h3>⭐ <span class="blue">Maiores Quedas</span></h3>
+    <ul id="quedas"></ul>
+    <h3>🐻 <span class="yellow">Maior Volume</span></h3>
+    <ul id="volume"></ul>
   </div>
 
-  <canvas id="bubbleCanvas"></canvas>
+  <canvas id="canvas"></canvas>
 
   <script src="script.js"></script>
 </body>
