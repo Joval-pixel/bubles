@@ -1,14 +1,51 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Teste Bubles</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bubles — Ações ao Vivo</title>
   <style>
-    body { background: #111; color: white; margin: 0; font-family: sans-serif; }
-    #test { margin: 100px auto; text-align: center; font-size: 24px; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+      font-family: sans-serif;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-weight: bold;
+      color: white;
+      border: 3px solid white;
+      overflow: hidden;
+      white-space: nowrap;
+      flex-direction: column;
+      transition: transform 0.3s;
+    }
+
+    .bubble.positive {
+      background-color: #00cc00;
+      box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
+      filter: drop-shadow(0 0 5px #00ff00);
+    }
+
+    .bubble.negative {
+      background-color: #cc0000;
+      box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
+      filter: drop-shadow(0 0 5px #ff0000);
+    }
+
+    .bubble span {
+      font-size: clamp(10px, 4vw, 18px);
+      text-align: center;
+      line-height: 1.1;
+    }
   </style>
 </head>
 <body>
-  <div id="test">Site carregado com sucesso ✅</div>
-</body>
-</html>
+  <h1 style="color: white; padding: 20px;">Bubles —
