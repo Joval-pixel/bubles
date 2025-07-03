@@ -38,30 +38,27 @@ async function fetchStocks() {
     const res = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD");
     const data = await res.json();
 
-    if (!data.stocks || !Array.isArray(data.stocks)) {
-      console.warn("Resposta inesperada da API:", data);
-      throw new Error("Formato inesperado");
-    }
+    if (!data.stocks || !Array.isArray(data.stocks)) throw new Error("Formato inesperado");
 
-    bubbles = data.stocks.map((s) => {
-      const radius = Math.max(20, Math.abs(s.changePercent || 0) * 5 + 20);
-      const color = s.changePercent >= 0 ? "#00ff00" : "#ff0000";
+    bubbles = data.stocks.map((s, index) => {
+      const change = parseFloat(s.changePercent ?? 0);
+      const radius = Math.min(90, Math.max(30, Math.abs(change) * 5 + 25));
+      const color = change >= 0 ? "#00ff00" : "#ff0000";
+
       return {
-        ticker: s.stock || "???",
-        change: s.changePercent || 0,
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        ticker: s.stock ?? "???",
+        change: change,
+        x: (index % 10) * (canvas.width / 10) + 30 + Math.random() * 20,
+        y: Math.floor(index / 10) * (canvas.height / 10) + 30 + Math.random() * 20,
         r: radius,
-        vx: (Math.random() - 0.5) * 0.8,
-        vy: (Math.random() - 0.5) * 0.8,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
         color
       };
     });
 
   } catch (e) {
-    console.error("Erro ao buscar dados da Brapi:", e);
-
-    // fallback: renderizar uma bolha de erro
+    console.error("Erro ao buscar dados:", e);
     bubbles = [{
       ticker: "API ERRO",
       change: 0,
@@ -96,6 +93,7 @@ function drawBubble(b) {
 
 function animate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   for (let i = 0; i < bubbles.length; i++) {
     const b = bubbles[i];
 
@@ -134,7 +132,7 @@ function animate() {
 
 fetchStocks().then(() => {
   animate();
-  setInterval(fetchStocks, 60000); // atualiza a cada 60s
+  setInterval(fetchStocks, 60000); // Atualiza a cada 60s
 });
 </script>
 </body>
