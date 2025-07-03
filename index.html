@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles – A Bolsa que Respira</title>
+  <title>Bubles - Teste Local</title>
   <style>
     body {
       margin: 0;
@@ -13,10 +13,9 @@
     }
 
     #bubbles {
-      position: absolute;
+      position: relative;
       width: 100vw;
       height: 100vh;
-      overflow: hidden;
     }
 
     .bubble {
@@ -30,46 +29,69 @@
       color: white;
       border: 3px solid white;
       box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      transition: transform 0.3s;
       overflow: hidden;
       white-space: nowrap;
       flex-direction: column;
-      animation: float 40s infinite linear;
+      animation: float 20s infinite linear;
     }
 
     .bubble span {
       font-size: clamp(10px, 4vw, 18px);
-      text-align: center;
       line-height: 1.1;
     }
 
-    .bubble.positive {
+    .positive {
       background-color: #00cc00;
       box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
       filter: drop-shadow(0 0 5px #00ff00);
     }
 
-    .bubble.negative {
+    .negative {
       background-color: #cc0000;
       box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
       filter: drop-shadow(0 0 5px #ff0000);
     }
 
     @keyframes float {
-      0% {
-        transform: translateY(0px);
-      }
-      50% {
-        transform: translateY(-20px);
-      }
-      100% {
-        transform: translateY(0px);
-      }
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+      100% { transform: translateY(0); }
     }
   </style>
 </head>
 <body>
   <div id="bubbles"></div>
-  <script src="script.js"></script>
+
+  <script>
+    const container = document.getElementById("bubbles");
+
+    const dadosFicticios = [
+      { stock: "PETR4", changePercent: 2.45, volume: 30000000 },
+      { stock: "VALE3", changePercent: -1.23, volume: 25000000 },
+      { stock: "ITUB4", changePercent: 0.75, volume: 18000000 },
+    ];
+
+    dadosFicticios.forEach((stock) => {
+      const change = stock.changePercent;
+      const volume = stock.volume;
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + (change >= 0 ? "positive" : "negative");
+
+      const size = Math.min(200, Math.max(50, Math.abs(change) * 10 + Math.log10(volume) * 5));
+      bubble.style.width = `${size}px`;
+      bubble.style.height = `${size}px`;
+
+      const posX = Math.random() * (window.innerWidth - size);
+      const posY = Math.random() * (window.innerHeight - size);
+      bubble.style.left = `${posX}px`;
+      bubble.style.top = `${posY}px`;
+
+      const changeFormatted = `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
+      bubble.innerHTML = `<span>${stock.stock}<br>${changeFormatted}</span>`;
+
+      container.appendChild(bubble);
+    });
+  </script>
 </body>
 </html>
