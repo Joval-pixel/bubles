@@ -1,100 +1,154 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — Ações ao Vivo</title>
   <style>
-    html, body {
+    * {
       margin: 0;
-      overflow: hidden;
-      background: #0e0e11;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #0c0c0f;
+      color: #00f5ff;
       font-family: Arial, sans-serif;
+      overflow: hidden;
     }
+
     h1 {
-      color: cyan;
       text-align: center;
-      margin-top: 20px;
-    }
-    .bubble {
-      position: absolute;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
+      padding: 20px;
+      font-size: 22px;
       font-weight: bold;
-      color: white;
-      border: 3px solid white;
-      text-shadow: 0 0 5px black;
-      white-space: nowrap;
-      padding: 4px;
-      flex-direction: column;
-      pointer-events: none;
+    }
+
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <canvas id="canvas"></canvas>
+
   <script>
-    const dados = [
-      { ticker: "VALE3", change: 2.41 },
-      { ticker: "PETR4", change: -1.82 },
-      { ticker: "ITUB4", change: 0.78 },
-      { ticker: "MGLU3", change: -6.59 },
-      { ticker: "BBAS3", change: 1.36 },
-      { ticker: "SUZB3", change: 3.73 },
-      { ticker: "HAPV3", change: -5.14 },
-      { ticker: "CSNA3", change: 6.13 },
-      { ticker: "BBDC4", change: -0.91 },
-      { ticker: "PRIO3", change: 0.86 },
-      { ticker: "WEGE3", change: -0.17 },
-      { ticker: "LREN3", change: -3.31 },
-      { ticker: "GGBR4", change: 3.13 }
-    ];
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    const nodes = dados.map(d => {
-      const size = 60 + Math.abs(d.change) * 10;
-      const fontSize = size < 80 ? 10 : size < 120 ? 14 : 16;
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble';
-      bubble.style.width = size + 'px';
-      bubble.style.height = size + 'px';
-      bubble.style.fontSize = fontSize + 'px';
-      bubble.innerHTML = `
-        <div>${d.ticker}</div>
-        <div>${d.change >= 0 ? '+' : ''}${d.change.toFixed(2)}%</div>
-      `;
-      if (d.change >= 0) {
-        bubble.style.background = 'radial-gradient(circle, #00ff80, #00aa44)';
-        bubble.style.boxShadow = '0 0 25px #00ff80';
-      } else {
-        bubble.style.background = 'radial-gradient(circle, #ff4d4d, #a80000)';
-        bubble.style.boxShadow = '0 0 25px #ff4d4d';
-      }
-      document.body.appendChild(bubble);
-      return { ...d, r: size / 2, el: bubble };
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     });
 
-    const simulation = d3.forceSimulation(nodes)
-      .force("x", d3.forceX(width / 2).strength(0.02))
-      .force("y", d3.forceY(height / 2 + 40).strength(0.02))
-      .force("collide", d3.forceCollide().radius(d => d.r + 4).iterations(3))
-      .force("charge", d3.forceManyBody().strength(1))
-      .velocityDecay(0.2)
-      .alpha(0.9)
-      .alphaDecay(0.005)
-      .on("tick", () => {
-        nodes.forEach(d => {
-          d.x = Math.max(d.r, Math.min(width - d.r, d.x));
-          d.y = Math.max(d.r + 40, Math.min(height - d.r, d.y));
-          d.el.style.left = `${d.x - d.r}px`;
-          d.el.style.top = `${d.y - d.r}px`;
-        });
-      });
+    const stocks = [
+      { ticker: "MGLU3", change: -6.59 },
+      { ticker: "CSNA3", change: +6.13 },
+      { ticker: "GGBA4", change: +3.13 },
+      { ticker: "PETR4", change: -1.82 },
+      { ticker: "VALE3", change: +2.41 },
+      { ticker: "ITUB4", change: +0.78 },
+      { ticker: "PRIO3", change: +0.86 },
+      { ticker: "BBAS3", change: +1.36 },
+      { ticker: "LREN3", change: -3.31 },
+      { ticker: "HAPV3", change: -5.14 },
+      { ticker: "WEGE3", change: -0.17 },
+      { ticker: "BBDC4", change: -0.91 },
+      { ticker: "SUZB3", change: +3.73 }
+    ];
+
+    class Bubble {
+      constructor(stock) {
+        this.stock = stock;
+        this.radius = Math.max(40, Math.abs(stock.change) * 10 + 30);
+        this.x = Math.random() * (canvas.width - 2 * this.radius) + this.radius;
+        this.y = Math.random() * (canvas.height - 2 * this.radius) + this.radius;
+        this.dx = (Math.random() - 0.5) * 0.8;
+        this.dy = (Math.random() - 0.5) * 0.8;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        ctx.closePath();
+
+        const color = this.stock.change >= 0 ? "#00ff88" : "#ff0033";
+        const glow = this.stock.change >= 0 ? "#00ff88" : "#ff0033";
+
+        // Glow externo
+        ctx.shadowColor = glow;
+        ctx.shadowBlur = 25;
+
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.font = `${this.radius / 3.3}px Arial`;
+        ctx.fillText(this.stock.ticker, this.x, this.y - 5);
+        ctx.font = `${this.radius / 4}px Arial`;
+        ctx.fillText(
+          (this.stock.change > 0 ? "+" : "") + this.stock.change.toFixed(2) + "%",
+          this.x,
+          this.y + 15
+        );
+        ctx.restore();
+      }
+
+      update(bubbles) {
+        this.x += this.dx;
+        this.y += this.dy;
+
+        // colisão com bordas
+        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.dx *= -1;
+        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.dy *= -1;
+
+        // evitar sobreposição com outras bolhas
+        for (let other of bubbles) {
+          if (other !== this) {
+            const dx = this.x - other.x;
+            const dy = this.y - other.y;
+            const dist = Math.hypot(dx, dy);
+            const minDist = this.radius + other.radius;
+
+            if (dist < minDist) {
+              const angle = Math.atan2(dy, dx);
+              const overlap = minDist - dist;
+
+              this.x += Math.cos(angle) * overlap / 2;
+              this.y += Math.sin(angle) * overlap / 2;
+              other.x -= Math.cos(angle) * overlap / 2;
+              other.y -= Math.sin(angle) * overlap / 2;
+            }
+          }
+        }
+
+        this.draw();
+      }
+    }
+
+    const bubbles = stocks.map(stock => new Bubble(stock));
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      bubbles.forEach(b => b.update(bubbles));
+      requestAnimationFrame(animate);
+    }
+
+    animate();
   </script>
 </body>
 </html>
