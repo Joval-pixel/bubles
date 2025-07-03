@@ -125,7 +125,7 @@ function drawBubble(b) {
   ctx.closePath();
 
   ctx.fillStyle = "#fff";
-  ctx.font = `${Math.max(12, b.r / 3)}px Arial`;
+  ctx.font = ${Math.max(12, b.r / 3)}px Arial;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(b.ticker, b.x, b.y);
