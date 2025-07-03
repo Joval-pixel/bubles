@@ -1,59 +1,81 @@
-body {
-  margin: 0;
-  overflow: hidden;
-  font-family: Arial, sans-serif;
-  background-color: black;
-  color: white;
-}
-
-canvas {
-  display: block;
-  position: absolute;
-  left: 220px;
-  top: 0;
-  background-color: black;
-}
-
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 220px;
-  height: 100vh;
-  background-color: #111;
-  padding: 10px;
-  overflow-y: auto;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.3);
-  z-index: 10;
-}
-
-.sidebar h3 {
-  font-size: 16px;
-  margin-top: 20px;
-}
-
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin: 5px 0 10px 0;
-}
-
-.sidebar li {
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
-.green { color: limegreen; }
-.blue { color: deepskyblue; }
-.yellow { color: gold; }
-
-@media (max-width: 768px) {
-  .sidebar {
-    display: none;
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background-color: black;
+    font-family: Arial, sans-serif;
   }
 
   canvas {
+    display: block;
+    position: absolute;
+    top: 0;
     left: 0;
-    width: 100vw !important;
+    width: 100vw;
+    height: 100vh;
+    background-color: black;
+    transition: left 0.3s ease;
   }
-}
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 220px;
+    height: 100vh;
+    background-color: #111;
+    padding: 10px;
+    overflow-y: auto;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+    z-index: 10;
+    color: white;
+  }
+
+  .category {
+    margin-bottom: 20px;
+  }
+
+  .category h3 {
+    font-size: 16px;
+    margin-bottom: 5px;
+  }
+
+  .altas h3 {
+    color: lime;
+  }
+
+  .quedas h3 {
+    color: #00bfff;
+  }
+
+  .volume h3 {
+    color: gold;
+  }
+
+  .category ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .category li {
+    font-size: 14px;
+    margin: 3px 0;
+  }
+
+  /* Desktop: aplica margem para o canvas */
+  body:not(.mobile) canvas {
+    left: 220px;
+    width: calc(100vw - 220px);
+  }
+
+  /* Celular: esconde painel e usa largura total */
+  body.mobile .sidebar {
+    display: none;
+  }
+
+  body.mobile canvas {
+    left: 0;
+    width: 100vw;
+  }
+</style>
