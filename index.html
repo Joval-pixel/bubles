@@ -1,26 +1,27 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bubles — Ações ao Vivo</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background: #000;
+      background-color: black;
       font-family: Arial, sans-serif;
     }
+
     h1 {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
       color: cyan;
-      font-size: 24px;
+      text-align: center;
+      position: absolute;
+      width: 100%;
+      top: 10px;
       z-index: 10;
     }
+
     canvas {
       display: block;
     }
@@ -31,8 +32,8 @@
   <canvas id="canvas"></canvas>
 
   <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -43,19 +44,19 @@
     resizeCanvas();
 
     const stocks = [
-      { ticker: "VALE3", change: +2.41 },
-      { ticker: "MGLU3", change: -6.59 },
-      { ticker: "PETR4", change: -1.82 },
-      { ticker: "CSNA3", change: +6.13 },
-      { ticker: "ITUB4", change: +0.78 },
-      { ticker: "PRIO3", change: +0.86 },
-      { ticker: "WEGE3", change: -0.17 },
-      { ticker: "HAPV3", change: -5.14 },
-      { ticker: "BBAS3", change: +1.36 },
-      { ticker: "BBDC4", change: -0.91 },
-      { ticker: "LREN3", change: -3.31 },
-      { ticker: "GGBR4", change: +3.13 },
-      { ticker: "SUZB3", change: +3.73 }
+      { ticker: 'VALE3', change: +2.41 },
+      { ticker: 'MGLU3', change: -6.59 },
+      { ticker: 'PETR4', change: -1.82 },
+      { ticker: 'CSNA3', change: +6.13 },
+      { ticker: 'ITUB4', change: +0.78 },
+      { ticker: 'PRIO3', change: +0.86 },
+      { ticker: 'WEGE3', change: -0.17 },
+      { ticker: 'HAPV3', change: -5.14 },
+      { ticker: 'BBAS3', change: +1.36 },
+      { ticker: 'BBDC4', change: -0.91 },
+      { ticker: 'LREN3', change: -3.31 },
+      { ticker: 'GGBR4', change: +3.13 },
+      { ticker: 'SUZB3', change: +3.73 }
     ];
 
     class Bubble {
@@ -90,11 +91,9 @@
         this.x += this.vx;
         this.y += this.vy;
 
-        // colisão com bordas
         if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) this.vx *= -1;
         if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) this.vy *= -1;
 
-        // evitar sobreposição
         for (let other of bubbles) {
           if (other === this) continue;
           const dx = other.x - this.x;
