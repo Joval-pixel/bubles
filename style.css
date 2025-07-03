@@ -1,60 +1,76 @@
 body {
   margin: 0;
-  background: black;
+  background-color: #000;
   overflow: hidden;
   font-family: Arial, sans-serif;
 }
-
-.menu {
+nav {
   position: fixed;
   top: 0;
   width: 100%;
-  background: #111;
   display: flex;
   justify-content: center;
+  background: #111;
   z-index: 10;
 }
-
-.menu button {
-  background: none;
-  border: none;
+.tab {
+  padding: 10px 20px;
+  margin: 5px;
   color: white;
-  padding: 12px 16px;
-  font-size: 16px;
+  background: #222;
+  border: none;
   cursor: pointer;
 }
-
-.menu button.active {
-  border-bottom: 3px solid lime;
-}
-
-.filters {
-  position: fixed;
-  top: 48px;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  background: #111;
-  z-index: 9;
-}
-
-.filters button {
-  margin: 4px;
-  padding: 6px 12px;
-  font-size: 14px;
-  border: none;
-  border-radius: 4px;
-  background: #333;
-  color: white;
-  cursor: pointer;
-}
-
-.filters button.active {
-  background: lime;
+.tab.active {
+  background: #0f0;
   color: black;
 }
-
-canvas {
-  display: block;
+#bubbles-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.green {
+  background: radial-gradient(circle, #0f0, #050);
+  box-shadow: 0 0 20px #0f0;
+}
+.red {
+  background: radial-gradient(circle, #f00, #500);
+  box-shadow: 0 0 20px #f00;
+}
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.8);
+}
+.modal-content {
+  margin: 10% auto;
+  width: 90%;
+  max-width: 600px;
+  background: #000;
+  padding: 10px;
+}
+.close {
+  color: white;
+  float: right;
+  font-size: 28px;
+  cursor: pointer;
 }
