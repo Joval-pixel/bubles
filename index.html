@@ -29,7 +29,6 @@
       color: white;
       border: 2px solid white;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      transition: transform 0.3s;
       overflow: hidden;
       white-space: nowrap;
       flex-direction: column;
@@ -64,34 +63,31 @@
   <h1>Bubles — Ações ao Vivo</h1>
 
   <script>
-    const url = 'https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD';
+    const acoesFake = [
+      { stock: 'VALE3', change: 2.45 },
+      { stock: 'PETR4', change: -1.32 },
+      { stock: 'ITUB4', change: 0.87 },
+      { stock: 'BBDC4', change: -0.64 },
+      { stock: 'BBAS3', change: 3.12 },
+    ];
 
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        const acoes = data.stocks.slice(0, 25); // Exibe 25 ações
-        acoes.forEach((acao, i) => {
-          const bubble = document.createElement("div");
-          const change = acao.change || 0;
-          const size = 60 + Math.abs(change) * 10;
+    acoesFake.forEach((acao) => {
+      const bubble = document.createElement("div");
+      const change = acao.change || 0;
+      const size = 60 + Math.abs(change) * 10;
 
-          bubble.className = "bubble " + (change >= 0 ? "positive" : "negative");
-          bubble.style.width = size + "px";
-          bubble.style.height = size + "px";
+      bubble.className = "bubble " + (change >= 0 ? "positive" : "negative");
+      bubble.style.width = size + "px";
+      bubble.style.height = size + "px";
 
-          // Evita ultrapassar os limites da tela
-          const maxLeft = window.innerWidth - size;
-          const maxTop = window.innerHeight - size - 50;
-          bubble.style.left = Math.random() * maxLeft + "px";
-          bubble.style.top = Math.random() * maxTop + 50 + "px";
+      const maxLeft = window.innerWidth - size;
+      const maxTop = window.innerHeight - size - 50;
+      bubble.style.left = Math.random() * maxLeft + "px";
+      bubble.style.top = Math.random() * maxTop + 50 + "px";
 
-          bubble.innerHTML = `<span>${acao.stock}<br>${change.toFixed(2)}%</span>`;
-          document.body.appendChild(bubble);
-        });
-      })
-      .catch(error => {
-        console.error("Erro ao carregar dados da Brapi:", error);
-      });
+      bubble.innerHTML = `<span>${acao.stock}<br>${change.toFixed(2)}%</span>`;
+      document.body.appendChild(bubble);
+    });
   </script>
 </body>
 </html>
