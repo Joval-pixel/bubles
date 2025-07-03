@@ -3,28 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles — A Bolsa que Respira</title>
+  <title>Bubles – A Bolsa que Respira</title>
   <style>
     body {
       margin: 0;
-      background-color: black;
-      font-family: Arial, sans-serif;
-      color: white;
+      background-color: #000;
       overflow: hidden;
+      font-family: Arial, sans-serif;
     }
     #menu {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background-color: #111;
       display: flex;
       justify-content: center;
-      gap: 30px;
-      padding: 15px;
-      background: #111;
+      padding: 10px 0;
+      z-index: 1000;
     }
-    #menu div {
+    #menu button {
+      color: white;
+      background: none;
+      border: none;
+      font-size: 16px;
+      margin: 0 20px;
       cursor: pointer;
-      font-weight: bold;
+      padding: 5px 10px;
     }
-    .active {
-      border-bottom: 3px solid limegreen;
+    #menu button.active {
+      border-bottom: 2px solid lime;
     }
     canvas {
       display: block;
@@ -33,94 +40,108 @@
 </head>
 <body>
   <div id="menu">
-    <div id="acoes" class="active">Ações</div>
-    <div id="cripto">Criptomoedas</div>
-    <div id="commodities">Commodities</div>
+    <button onclick="setType('stocks')" class="active">Ações</button>
+    <button onclick="setType('crypto')">Criptomoedas</button>
+    <button onclick="setType('commodities')">Commodities</button>
   </div>
   <canvas id="canvas"></canvas>
-
   <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const menuItems = document.querySelectorAll('#menu div');
-    menuItems.forEach(item => {
-      item.addEventListener('click', () => {
-        menuItems.forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        if (item.id === 'acoes') loadData('stocks');
-        if (item.id === 'cripto') loadData('crypto');
-        if (item.id === 'commodities') loadData('commodities');
-      });
-    });
+    const buttons = document.querySelectorAll("#menu button");
+    function setType(type) {
+      buttons.forEach(btn => btn.classList.remove("active"));
+      document.querySelector(`#menu button[onclick*="${type}"]`).classList.add("active");
+      loadData(type);
+    }
+
+    let bubbles = [];
 
     async function loadData(type) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
       try {
-        const res = await fetch(`https://brapi.dev/api/${type}?token=5bTDfSmR2ieax6y7JUqDAD`);
-        const json = await res.json();
-        const list = json.stocks || json.coins || json.results || [];
-        const bubbles = list.map((item, index) => ({
-          symbol: item.stock || item.coin || item.name,
-          change: parseFloat(item.change || 0),
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          radius: Math.min(Math.max(Math.abs(parseFloat(item.change)) * 8, 20), 80),
-          dx: (Math.random() - 0.5) * 1.5,
-          dy: (Math.random() - 0.5) * 1.5
-        }));
+        let url;
+        if (type === 'stocks') {
+          url = 'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD';
+        } else if (type === 'crypto') {
+          url = 'https://brapi.dev/api/crypto?token=5bTDfSmR2ieax6y7JUqDAD';
+        } else if (type === 'commodities') {
+          url = 'https://brapi.dev/api/quote/commodities?token=5bTDfSmR2ieax6y7JUqDAD';
+        }
 
-        animate(bubbles);
+        const res = await fetch(url);
+        const data = await res.json();
+        const items = data.stocks || data.coins || data.results || [];
+
+        if (!items.length) {
+          drawError();
+          return;
+        }
+
+        bubbles = items.map((item, i) => {
+          const name = item.stock || item.coin || item.symbol || '---';
+          const change = parseFloat(item.change || item.changePercent || 0);
+          const color = change >= 0 ? "#00ff00aa" : "#ff0000aa";
+          const radius = 30 + Math.min(Math.abs(change) * 5, 70);
+          return {
+            name,
+            change,
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            dx: (Math.random() - 0.5) * 1.5,
+            dy: (Math.random() - 0.5) * 1.5,
+            radius,
+            color
+          };
+        });
       } catch (e) {
-        console.error(e);
         drawError();
       }
     }
 
     function drawError() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = 'white';
-      ctx.textAlign = 'center';
-      ctx.font = '30px Arial';
-      ctx.fillText('API ERRO', canvas.width / 2, canvas.height / 2);
+      ctx.fillStyle = "#fff";
+      ctx.font = "30px Arial";
+      ctx.fillText("API ERRO", canvas.width / 2 - 70, canvas.height / 2);
     }
 
-    function animate(bubbles) {
-      function loop() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (let b of bubbles) {
-          b.x += b.dx;
-          b.y += b.dy;
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const b of bubbles) {
+        b.x += b.dx;
+        b.y += b.dy;
+        if (b.x < b.radius || b.x > canvas.width - b.radius) b.dx *= -1;
+        if (b.y < b.radius + 30 || b.y > canvas.height - b.radius) b.dy *= -1;
 
-          if (b.x < b.radius || b.x > canvas.width - b.radius) b.dx *= -1;
-          if (b.y < b.radius || b.y > canvas.height - b.radius) b.dy *= -1;
+        const grad = ctx.createRadialGradient(b.x, b.y, b.radius / 2, b.x, b.y, b.radius);
+        grad.addColorStop(0, "#ffffff11");
+        grad.addColorStop(1, b.color);
 
-          const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.radius);
-          const color = b.change >= 0 ? 'lime' : 'red';
-          grad.addColorStop(0, color);
-          grad.addColorStop(1, 'black');
+        ctx.beginPath();
+        ctx.fillStyle = grad;
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fill();
 
-          ctx.beginPath();
-          ctx.fillStyle = grad;
-          ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = 'white';
-          ctx.font = `${Math.max(12, b.radius / 4)}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.fillText(b.symbol, b.x, b.y - 5);
-
-          ctx.font = `${Math.max(10, b.radius / 5)}px Arial`;
-          ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 15);
-        }
-        requestAnimationFrame(loop);
+        ctx.fillStyle = "#fff";
+        ctx.font = `${Math.max(12, b.radius / 3)}px Arial`;
+        ctx.textAlign = "center";
+        ctx.fillText(b.name, b.x, b.y - 4);
+        ctx.font = `${Math.max(10, b.radius / 4)}px Arial`;
+        ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 12);
       }
-      loop();
+      requestAnimationFrame(animate);
     }
 
-    loadData('stocks');
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    loadData("stocks");
+    animate();
   </script>
 </body>
 </html>
