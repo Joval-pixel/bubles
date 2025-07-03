@@ -1,97 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bubles — Ações ao Vivo</title>
+  <meta charset="UTF-8">
+  <title>Teste Bubles</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      overflow: hidden;
-    }
-
-    h1 {
-      text-align: center;
-      margin: 20px 0;
-      font-size: 24px;
-    }
-
-    #bubbles-container {
-      position: relative;
-      width: 100vw;
-      height: calc(100vh - 60px);
-      overflow: hidden;
-    }
-
-    .bubble {
-      position: absolute;
-      border-radius: 50%;
-      color: white;
-      font-weight: bold;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      text-align: center;
-      animation: float 40s linear infinite;
-      border: 2px solid white;
-      white-space: nowrap;
-    }
-
-    .positive {
-      background-color: #00aa00;
-      box-shadow: 0 0 10px #00ff00;
-    }
-
-    .negative {
-      background-color: #aa0000;
-      box-shadow: 0 0 10px #ff0000;
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0) rotate(0deg); }
-      100% { transform: translateY(-50px) rotate(360deg); }
-    }
-
-    .bubble span {
-      font-size: clamp(10px, 4vw, 16px);
-    }
+    body { background: #111; color: white; margin: 0; font-family: sans-serif; }
+    #test { margin: 100px auto; text-align: center; font-size: 24px; }
   </style>
 </head>
 <body>
-  <h1>Bubles — Ações ao Vivo</h1>
-  <div id="bubbles-container"></div>
-
-  <script>
-    const stocks = [
-      { stock: "VALE3", changePercent: 2.45 },
-      { stock: "PETR4", changePercent: -1.32 },
-      { stock: "ITUB4", changePercent: 0.80 },
-      { stock: "MGLU3", changePercent: 5.67 },
-      { stock: "BBDC4", changePercent: -3.12 }
-    ];
-
-    const container = document.getElementById("bubbles-container");
-
-    stocks.forEach((item) => {
-      const bubble = document.createElement("div");
-      const change = item.changePercent;
-      const size = Math.min(160, Math.max(60, Math.abs(change) * 10));
-      const top = Math.random() * (window.innerHeight - size - 60) + 60;
-      const left = Math.random() * (window.innerWidth - size);
-
-      bubble.className = `bubble ${change > 0 ? "positive" : "negative"}`;
-      bubble.style.width = `${size}px`;
-      bubble.style.height = `${size}px`;
-      bubble.style.left = `${left}px`;
-      bubble.style.top = `${top}px`;
-
-      bubble.innerHTML = `<span>${item.stock}</span><span>${change > 0 ? '+' : ''}${change.toFixed(2)}%</span>`;
-      container.appendChild(bubble);
-    });
-  </script>
+  <div id="test">Site carregado com sucesso ✅</div>
 </body>
 </html>
