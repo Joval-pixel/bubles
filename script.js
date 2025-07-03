@@ -1,83 +1,64 @@
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
+const symbols = ['VALE3', 'PETR4', 'ITUB4', 'BBDC4', 'BBAS3', 'ABEV3', 'B3SA3', 'MGLU3', 'WEGE3', 'RENT3'];
 
-let bubbles = [];
-
-function resizeCanvas() {
-  const isMobile = window.innerWidth <= 768;
-  const sidePanelWidth = isMobile ? 0 : 220;
-  canvas.width = window.innerWidth - sidePanelWidth;
-  canvas.height = window.innerHeight;
-  drawBubbles();
+async function getStockData() {
+  const url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&token=${apiKey}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return data.stocks.slice(0, 100);
 }
 
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
+function createBubble(stock) {
+  const bubble = document.createElement("div");
+  bubble.className = `bubble ${stock.changesPercentage >= 0 ? 'positive' : 'negative'}`;
+  
+  const nome = stock.stock;
+  const variacao = stock.changesPercentage?.toFixed(2);
+  const preco = stock.price?.toFixed(2);
+  
+  const texto = `
+    <span>${nome}</span>
+    <span>${variacao > 0 ? '+' : ''}${variacao}%</span>
+    <span>R$ ${preco}</span>
+  `;
+  
+  bubble.innerHTML = texto;
+  const tamanho = Math.min(Math.max(Math.abs(variacao) * 10 + stock.volume / 10000000, 60), 150);
+  
+  bubble.style.width = `${tamanho}px`;
+  bubble.style.height = `${tamanho}px`;
+  bubble.style.left = `${Math.random() * (window.innerWidth - tamanho)}px`;
+  bubble.style.top = `${Math.random() * (window.innerHeight - tamanho)}px`;
 
-function getRandomBubble() {
-  const tickers = ["VALE3", "PETR4", "ITUB4", "ARML3", "SEQL3", "EMET11", "PDGR3", "MRVE3", "AZEV4"];
-  const name = tickers[Math.floor(Math.random() * tickers.length)];
-  const change = (Math.random() * 6 - 3).toFixed(2); // -3% a +3%
-  return {
-    name,
-    change: parseFloat(change),
-    radius: 30 + Math.abs(change) * 10,
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    dx: Math.random() * 1 - 0.5,
-    dy: Math.random() * 1 - 0.5,
-  };
+  bubble.onclick = () => abrirModal(stock.stock);
+
+  return bubble;
 }
 
-function drawBubbles() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let bubble of bubbles) {
-    bubble.x += bubble.dx;
-    bubble.y += bubble.dy;
+async function renderBubbles() {
+  const container = document.getElementById("bubble-container");
+  const stocks = await getStockData();
 
-    // bordas
-    if (bubble.x < bubble.radius || bubble.x > canvas.width - bubble.radius) bubble.dx *= -1;
-    if (bubble.y < bubble.radius || bubble.y > canvas.height - bubble.radius) bubble.dy *= -1;
-
-    ctx.beginPath();
-    ctx.arc(bubble.x, bubble.y, bubble.radius, 0, 2 * Math.PI);
-    ctx.fillStyle = bubble.change >= 0 ? "limegreen" : "red";
-    ctx.shadowColor = bubble.change >= 0 ? "limegreen" : "red";
-    ctx.shadowBlur = 15;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // texto
-    ctx.fillStyle = "white";
-    ctx.font = `${Math.max(10, bubble.radius / 3)}px Arial`;
-    ctx.textAlign = "center";
-    ctx.fillText(`${bubble.name}`, bubble.x, bubble.y - 5);
-    ctx.fillText(`${bubble.change}%`, bubble.x, bubble.y + 12);
-  }
+  stocks.forEach(stock => {
+    if (stock.stock && stock.changesPercentage != null) {
+      const bubble = createBubble(stock);
+      container.appendChild(bubble);
+    }
+  });
 }
 
-function animate() {
-  drawBubbles();
-  requestAnimationFrame(animate);
+function abrirModal(symbol) {
+  const modal = document.getElementById("modal");
+  const grafico = document.getElementById("grafico");
+  modal.style.display = "block";
+  grafico.innerHTML = `
+    <iframe src="https://s.tradingview.com/embed-widget/symbol-overview/?locale=br#${symbol}"
+      width="100%" height="400" frameborder="0" allowfullscreen></iframe>`;
 }
 
-function updateSidebar() {
-  const sorted = [...bubbles].sort((a, b) => b.change - a.change);
-  const top = sorted.slice(0, 3);
-  const bottom = sorted.slice(-3).reverse();
-  const volume = sorted.sort((a, b) => b.radius - a.radius).slice(0, 3);
-
-  const format = (b) => `<li>${b.name} <b>${b.change > 0 ? "+" : ""}${b.change.toFixed(2)}%</b></li>`;
-
-  document.getElementById("altas").innerHTML = top.map(format).join("");
-  document.getElementById("quedas").innerHTML = bottom.map(format).join("");
-  document.getElementById("volume").innerHTML = volume.map(format).join("");
+function fecharModal() {
+  document.getElementById("modal").style.display = "none";
+  document.getElementById("grafico").innerHTML = "";
 }
 
-// Inicialização
-for (let i = 0; i < 80; i++) {
-  bubbles.push(getRandomBubble());
-}
-
-setInterval(updateSidebar, 3000);
-animate();
+renderBubbles();
