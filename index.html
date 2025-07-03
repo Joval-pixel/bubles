@@ -1,23 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Bubles — Ações ao Vivo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    * {
+    body {
       margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+      overflow: hidden;
+      background-color: #000;
+      font-family: Arial, sans-serif;
     }
 
-    body {
-      background: #000;
-      overflow: hidden;
-      height: 100vh;
-      width: 100vw;
-      position: relative;
-      font-family: Arial, sans-serif;
+    h1 {
+      color: white;
+      text-align: center;
+      margin: 20px 0;
+      font-size: 28px;
     }
 
     .bubble {
@@ -26,27 +25,24 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      flex-direction: column;
+      text-align: center;
       font-weight: bold;
       color: white;
-      text-align: center;
       border: 3px solid white;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
-      transition: transform 0.3s ease;
-      animation: float 40s linear infinite;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+      overflow: hidden;
       white-space: nowrap;
-      padding: 8px;
-      max-width: 200px;
-      max-height: 200px;
+      flex-direction: column;
     }
 
-    .positive {
+    .bubble.positive {
       background-color: #00cc00;
       box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
       filter: drop-shadow(0 0 5px #00ff00);
     }
 
-    .negative {
+    .bubble.negative {
       background-color: #cc0000;
       box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
       filter: drop-shadow(0 0 5px #ff0000);
@@ -54,54 +50,79 @@
 
     .bubble span {
       font-size: clamp(10px, 4vw, 18px);
+      text-align: center;
       line-height: 1.1;
-    }
-
-    @keyframes float {
-      0% {
-        transform: translateY(0) rotate(0deg);
-      }
-      100% {
-        transform: translateY(-200vh) rotate(360deg);
-      }
     }
   </style>
 </head>
 <body>
-  <div id="bubbles"></div>
-
+  <h1>Bubles — Ações ao Vivo</h1>
   <script>
     const token = "5bTDfSmR2ieax6y7JUqDAD";
 
     fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=25&token=${token}`)
-      .then(res => res.json())
+      .then(response => response.json())
       .then(data => {
-        const container = document.getElementById("bubbles");
-        const stocks = data.stocks || [];
+        const stocks = data.stocks;
+        const screenW = window.innerWidth;
+        const screenH = window.innerHeight;
+
+        const usedPositions = [];
 
         stocks.forEach(stock => {
+          const change = stock.change || 0;
+          const size = 50 + Math.abs(change) * 6;
+          const isPositive = change >= 0;
+
+          // Posição aleatória sem sobrepor
+          let x, y, tries = 0;
+          do {
+            x = Math.random() * (screenW - size);
+            y = Math.random() * (screenH - size);
+            tries++;
+          } while (
+            usedPositions.some(pos => {
+              const dx = pos.x - x;
+              const dy = pos.y - y;
+              const distance = Math.sqrt(dx*dx + dy*dy);
+              return distance < (pos.size + size)/2 + 10;
+            }) && tries < 100
+          );
+          usedPositions.push({ x, y, size });
+
           const bubble = document.createElement("div");
-          const change = parseFloat(stock.changePercent);
-          const colorClass = change > 0 ? "positive" : "negative";
+          bubble.className = `bubble ${isPositive ? "positive" : "negative"}`;
+          bubble.style.width = `${size}px`;
+          bubble.style.height = `${size}px`;
+          bubble.style.left = `${x}px`;
+          bubble.style.top = `${y}px`;
 
-          const percentage = (change > 0 ? "+" : "") + change.toFixed(2) + "%";
+          bubble.innerHTML = `<span>${stock.stock}<br>${change.toFixed(2)}%</span>`;
+          document.body.appendChild(bubble);
 
-          const size = Math.min(Math.max(Math.abs(change) * 10 + 50, 50), 200);
-
-          bubble.className = `bubble ${colorClass}`;
-          bubble.style.width = size + "px";
-          bubble.style.height = size + "px";
-
-          bubble.style.top = Math.random() * (window.innerHeight - size) + "px";
-          bubble.style.left = Math.random() * (window.innerWidth - size) + "px";
-
-          bubble.innerHTML = `<span>${stock.stock}</span><span>${percentage}</span>`;
-          container.appendChild(bubble);
+          // Animação leve
+          animateBubble(bubble);
         });
-      })
-      .catch(err => {
-        console.error("Erro ao carregar dados da API:", err);
       });
+
+    function animateBubble(bubble) {
+      let dx = (Math.random() - 0.5) * 1.5;
+      let dy = (Math.random() - 0.5) * 1.5;
+
+      function move() {
+        const rect = bubble.getBoundingClientRect();
+        let x = rect.left + dx;
+        let y = rect.top + dy;
+
+        if (x < 0 || x + rect.width > window.innerWidth) dx = -dx;
+        if (y < 0 || y + rect.height > window.innerHeight) dy = -dy;
+
+        bubble.style.left = `${x}px`;
+        bubble.style.top = `${y}px`;
+        requestAnimationFrame(move);
+      }
+      move();
+    }
   </script>
 </body>
 </html>
