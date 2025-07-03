@@ -3,96 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles — Ações ao Vivo</title>
+  <title>Teste JS</title>
   <style>
     body {
-      margin: 0;
-      padding: 0;
-      background-color: #000;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-    }
-
-    h1 {
+      background: black;
       color: white;
-      padding: 20px;
-      font-size: 24px;
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 40px;
     }
 
     .bubble {
-      position: absolute;
+      width: 100px;
+      height: 100px;
       border-radius: 50%;
+      position: absolute;
       display: flex;
       justify-content: center;
       align-items: center;
-      text-align: center;
       font-weight: bold;
       color: white;
-      border: 3px solid white;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      transition: transform 0.3s;
-      overflow: hidden;
-      white-space: nowrap;
-      flex-direction: column;
     }
 
-    .bubble.positive {
-      background-color: #00cc00;
-      box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
-      filter: drop-shadow(0 0 5px #00ff00);
+    .positive {
+      background: green;
     }
 
-    .bubble.negative {
-      background-color: #cc0000;
-      box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
-      filter: drop-shadow(0 0 5px #ff0000);
-    }
-
-    .bubble span {
-      font-size: clamp(10px, 4vw, 18px);
-      text-align: center;
-      line-height: 1.1;
+    .negative {
+      background: red;
     }
   </style>
 </head>
 <body>
-  <h1>Bubles — Ações ao Vivo</h1>
+  <h1>Teste de Bolha</h1>
 
   <script>
-    // Dados de exemplo (mockados)
-    const dadosMock = [
-      { stock: "VALE3", change: 2.8 },
-      { stock: "PETR4", change: -1.3 },
-      { stock: "ITUB4", change: 0.5 },
-      { stock: "BBDC4", change: -0.8 },
-      { stock: "MGLU3", change: 4.2 },
-      { stock: "WEGE3", change: -2.5 },
-      { stock: "ABEV3", change: 1.1 },
-    ];
-
-    function exibirBolhas(stocks) {
-      stocks.forEach(stock => {
-        const div = document.createElement("div");
-        const variation = parseFloat(stock.change || 0);
-        const name = stock.stock;
-        const percent = variation.toFixed(2) + "%";
-
-        const radius = 60 + Math.min(Math.abs(variation) * 10, 80);
-        div.className = `bubble ${variation >= 0 ? "positive" : "negative"}`;
-        div.style.width = div.style.height = radius + "px";
-
-        const x = Math.random() * (window.innerWidth - radius);
-        const y = Math.random() * (window.innerHeight - radius - 100) + 80;
-
-        div.style.left = x + "px";
-        div.style.top = y + "px";
-        div.innerHTML = `<span>${name}<br>${percent}</span>`;
-        document.body.appendChild(div);
-      });
-    }
-
-    // Executar ao carregar
-    exibirBolhas(dadosMock);
+    const div = document.createElement("div");
+    div.className = "bubble positive";
+    div.style.left = "100px";
+    div.style.top = "200px";
+    div.innerText = "VALE3\n+3.5%";
+    document.body.appendChild(div);
   </script>
 </body>
 </html>
