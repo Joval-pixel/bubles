@@ -1,54 +1,67 @@
-<style>
-  body {
-    margin: 0;
-    background-color: #000;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-  }
+body {
+  margin: 0;
+  background: #000;
+  color: white;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
 
-  h1 {
-    text-align: center;
-    color: #00ffff;
-    font-size: 24px;
-    margin-top: 20px;
-  }
+#titulo {
+  text-align: center;
+  margin: 20px 0;
+  font-size: 28px;
+  color: white;
+  z-index: 10;
+  position: relative;
+}
 
-  .bubble {
-    position: absolute;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    font-weight: bold;
-    color: white;
-    border: 2px solid rgba(255,255,255,0.5);
-    box-shadow: 0 0 15px rgba(255,255,255,0.2);
-    transition: transform 0.3s;
-    overflow: hidden;
-    white-space: nowrap;
-    flex-direction: column;
-    padding: 5px;
-    box-sizing: border-box;
-  }
+#bubbles-container {
+  position: relative;
+  width: 100vw;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
 
-  .bubble.positive {
-    background-color: #00cc00;
-    box-shadow: 0 0 25px #00ff00, inset 0 0 15px #00ff00;
-    filter: drop-shadow(0 0 8px #00ff00);
-  }
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-weight: bold;
+  color: white;
+  border: 3px solid white;
+  flex-direction: column;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: float 60s linear infinite;
+}
 
-  .bubble.negative {
-    background-color: #cc0000;
-    box-shadow: 0 0 25px #ff0000, inset 0 0 15px #ff0000;
-    filter: drop-shadow(0 0 8px #ff0000);
-  }
+.bubble.positive {
+  background-color: #00cc00;
+  box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
+  filter: drop-shadow(0 0 5px #00ff00);
+}
 
-  .bubble span {
-    font-size: clamp(10px, 3vw, 18px);
-    line-height: 1.2;
-    word-break: break-word;
-    max-width: 90%;
-    text-align: center;
+.bubble.negative {
+  background-color: #cc0000;
+  box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
+  filter: drop-shadow(0 0 5px #ff0000);
+}
+
+.bubble span {
+  font-size: clamp(10px, 4vw, 18px);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Animação contínua flutuante */
+@keyframes float {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
   }
-</style>
+  100% {
+    transform: translate(0, 0) rotate(360deg);
+  }
+}
