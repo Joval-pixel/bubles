@@ -1,49 +1,33 @@
-const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
-const symbols = ['VALE3', 'PETR4', 'ITUB4', 'BBAS3', 'PRIO3']; // pode adicionar/remover
+const container = document.getElementById("bubbles-container");
 
-const container = document.getElementById('bubbles-container');
+fetch("https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&limit=50&token=5bTDfSmR2ieax6y7JUqDAD")
+  .then(res => res.json())
+  .then(data => {
+    const stocks = data.stocks;
 
-async function fetchStock(symbol) {
-  const url = `https://brapi.dev/api/quote/${symbol}?token=${apiKey}`;
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    const result = data.results[0];
-    return {
-      symbol: result.symbol,
-      change: result.regularMarketChangePercent,
-    };
-  } catch (error) {
-    console.error(`Erro ao buscar ${symbol}:`, error);
-    return null;
-  }
-}
+    stocks.forEach((stock, i) => {
+      const change = parseFloat(stock.changePercent);
+      if (isNaN(change)) return;
 
-function createBubble(stock) {
-  const bubble = document.createElement('div');
-  bubble.className = 'bubble';
-  const change = parseFloat(stock.change);
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${change > 0 ? 'positive' : 'negative'}`;
 
-  bubble.style.backgroundColor =
-    change > 0 ? 'green' : change < 0 ? 'red' : 'gray';
+      // Tamanho da bolha proporcional ao desempenho
+      const size = Math.min(200, Math.max(50, Math.abs(change) * 8));
+      bubble.style.width = `${size}px`;
+      bubble.style.height = `${size}px`;
 
-  bubble.style.width = bubble.style.height =
-    60 + Math.min(Math.abs(change) * 10, 100) + 'px';
+      // Posição aleatória segura
+      bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
+      bubble.style.top = `${Math.random() * (window.innerHeight - size - 60) + 60}px`;
 
-  bubble.style.left = Math.random() * 80 + 'vw';
-  bubble.style.top = Math.random() * 60 + 60 + 'px';
+      // Conteúdo da bolha
+      bubble.innerHTML = `
+        <span>${stock.stock}</span>
+        <span>${change > 0 ? '+' : ''}${change.toFixed(2)}%</span>
+      `;
 
-  bubble.innerText = `${stock.symbol}\n${change.toFixed(2)}%`;
-  container.appendChild(bubble);
-}
-
-async function renderBubbles() {
-  container.innerHTML = '';
-  for (const symbol of symbols) {
-    const stock = await fetchStock(symbol);
-    if (stock) createBubble(stock);
-  }
-}
-
-renderBubbles();
-setInterval(renderBubbles, 30000); // atualiza a cada 30s
+      container.appendChild(bubble);
+    });
+  })
+  .catch(error => console.error("Erro ao buscar dados:", error));
