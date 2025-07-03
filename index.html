@@ -62,7 +62,6 @@ window.addEventListener("resize", () => {
 let bubbles = [];
 let currentTab = "acoes";
 
-// APIs por aba
 const sources = {
   acoes: "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=80&token=5bTDfSmR2ieax6y7JUqDAD",
   cripto: "https://brapi.dev/api/crypto?coin=BTC,ETH,MATIC,SOL,DOGE,ADA,BNB,AVAX,XRP,DOT,LTC&token=5bTDfSmR2ieax6y7JUqDAD",
@@ -75,9 +74,11 @@ async function fetchData(tab) {
     const data = await res.json();
 
     let list = [];
-    if (tab === "acoes") list = data.stocks;
-    else if (tab === "cripto") list = data.coins;
-    else if (tab === "commodities") list = data.results;
+
+    if (tab === "acoes" && data.stocks) list = data.stocks;
+    else if (tab === "cripto" && data.coins) list = data.coins;
+    else if (tab === "commodities" && data.results) list = data.results;
+    else throw new Error("Dados inesperados: " + JSON.stringify(data));
 
     bubbles = list.map((item, index) => {
       let change = 0;
@@ -109,8 +110,10 @@ async function fetchData(tab) {
       };
     });
 
+    if (bubbles.length === 0) throw new Error("Lista de bolhas vazia!");
+
   } catch (err) {
-    console.error("Erro:", err);
+    console.error("Erro ao buscar dados:", err);
     bubbles = [{
       ticker: "API ERRO",
       change: 0,
@@ -119,7 +122,7 @@ async function fetchData(tab) {
       r: 80,
       vx: 0,
       vy: 0,
-      color: "#fff"
+      color: "#ffffff"
     }];
   }
 }
@@ -139,10 +142,10 @@ function drawBubble(b) {
   ctx.fillStyle = "#fff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = ${Math.max(12, b.r / 3)}px Arial;
+  ctx.font = `${Math.max(12, b.r / 3)}px Arial`;
   ctx.fillText(b.ticker, b.x, b.y - b.r / 5);
-  ctx.font = ${Math.max(10, b.r / 4)}px Arial;
-  ctx.fillText(${b.change}%, b.x, b.y + b.r / 5);
+  ctx.font = `${Math.max(10, b.r / 4)}px Arial`;
+  ctx.fillText(`${b.change}%`, b.x, b.y + b.r / 5);
 }
 
 function animate() {
