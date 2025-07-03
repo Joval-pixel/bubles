@@ -1,37 +1,54 @@
-.bubble {
-  position: absolute;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-weight: bold;
-  color: white;
-  border: 3px solid white;
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-  transition: transform 0.3s;
-  overflow: hidden;
-  white-space: nowrap;
-  flex-direction: column;
-}
+<style>
+  body {
+    margin: 0;
+    background-color: #000;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+  }
 
-/* Verde com glow mais vivo */
-.bubble.positive {
-  background-color: #00cc00;
-  box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
-  filter: drop-shadow(0 0 5px #00ff00);
-}
+  h1 {
+    text-align: center;
+    color: #00ffff;
+    font-size: 24px;
+    margin-top: 20px;
+  }
 
-/* Vermelho com glow mais vivo */
-.bubble.negative {
-  background-color: #cc0000;
-  box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
-  filter: drop-shadow(0 0 5px #ff0000);
-}
+  .bubble {
+    position: absolute;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-weight: bold;
+    color: white;
+    border: 2px solid rgba(255,255,255,0.5);
+    box-shadow: 0 0 15px rgba(255,255,255,0.2);
+    transition: transform 0.3s;
+    overflow: hidden;
+    white-space: nowrap;
+    flex-direction: column;
+    padding: 5px;
+    box-sizing: border-box;
+  }
 
-/* Tamanho dinâmico da fonte para texto não sair da bolha */
-.bubble span {
-  font-size: clamp(10px, 4vw, 18px);
-  text-align: center;
-  line-height: 1.1;
-}
+  .bubble.positive {
+    background-color: #00cc00;
+    box-shadow: 0 0 25px #00ff00, inset 0 0 15px #00ff00;
+    filter: drop-shadow(0 0 8px #00ff00);
+  }
+
+  .bubble.negative {
+    background-color: #cc0000;
+    box-shadow: 0 0 25px #ff0000, inset 0 0 15px #ff0000;
+    filter: drop-shadow(0 0 8px #ff0000);
+  }
+
+  .bubble span {
+    font-size: clamp(10px, 3vw, 18px);
+    line-height: 1.2;
+    word-break: break-word;
+    max-width: 90%;
+    text-align: center;
+  }
+</style>
