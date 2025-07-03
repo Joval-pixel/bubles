@@ -56,6 +56,8 @@
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
+
+  <!-- ESSENCIAL: Aqui aparecem as bolhas -->
   <div id="container"></div>
 
   <script>
@@ -74,12 +76,10 @@
           const bubble = document.createElement("div");
           bubble.className = "bubble " + (variation >= 0 ? "positive" : "negative");
 
-          // Tamanho da bolha proporcional à variação
-          const size = 60 + Math.min(Math.abs(variation) * 10, 120); 
+          const size = 60 + Math.min(Math.abs(variation) * 10, 120);
           bubble.style.width = `${size}px`;
           bubble.style.height = `${size}px`;
 
-          // Posição aleatória dentro da viewport
           const vw = window.innerWidth - size;
           const vh = window.innerHeight - size;
           bubble.style.left = `${Math.random() * vw}px`;
