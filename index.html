@@ -5,21 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — Ações ao Vivo</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      background: #000;
+      margin: 0;
+      padding: 0;
       overflow: hidden;
-      font-family: sans-serif;
+      background: #000;
+      font-family: Arial, sans-serif;
     }
     h1 {
       position: absolute;
       top: 20px;
-      width: 100%;
-      text-align: center;
+      left: 50%;
+      transform: translateX(-50%);
       color: cyan;
       font-size: 24px;
       z-index: 10;
-      pointer-events: none;
     }
     canvas {
       display: block;
@@ -33,10 +33,16 @@
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
 
-    const bubbles = [
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const stocks = [
       { ticker: "VALE3", change: +2.41 },
       { ticker: "MGLU3", change: -6.59 },
       { ticker: "PETR4", change: -1.82 },
@@ -53,89 +59,72 @@
     ];
 
     class Bubble {
-      constructor(data) {
-        this.label = data.ticker;
-        this.change = data.change;
-        this.radius = Math.max(30, Math.abs(data.change) * 15 + 20);
-        this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
-        this.y = Math.random() * (canvas.height - this.radius * 2) + this.radius;
+      constructor(stock) {
+        this.ticker = stock.ticker;
+        this.change = stock.change;
+        this.radius = Math.max(30, Math.abs(stock.change) * 12 + 20);
+        this.x = Math.random() * (canvas.width - 2 * this.radius) + this.radius;
+        this.y = Math.random() * (canvas.height - 2 * this.radius) + this.radius;
         this.vx = (Math.random() - 0.5) * 1.5;
         this.vy = (Math.random() - 0.5) * 1.5;
-        this.color = this.change >= 0 ? "#00ff00" : "#ff0033";
-        this.glow = this.change >= 0 ? "#00ff00" : "#ff0033";
+        this.color = stock.change >= 0 ? '#00ff00' : '#ff0033';
       }
 
       draw(ctx) {
         ctx.beginPath();
-        ctx.shadowBlur = 30;
-        ctx.shadowColor = this.glow;
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = this.color;
         ctx.fillStyle = this.color;
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
-        ctx.font = `${Math.max(12, this.radius / 3)}px sans-serif`;
-        ctx.fillText(this.label, this.x, this.y - 5);
-        ctx.fillText(
-          `${this.change > 0 ? "+" : ""}${this.change.toFixed(2)}%`,
-          this.x,
-          this.y + 15
-        );
+        ctx.font = `${Math.max(12, this.radius / 3)}px Arial`;
+        ctx.fillText(this.ticker, this.x, this.y - 5);
+        ctx.fillText(`${this.change > 0 ? '+' : ''}${this.change.toFixed(2)}%`, this.x, this.y + 15);
       }
 
       update(bubbles) {
         this.x += this.vx;
         this.y += this.vy;
 
-        // Paredes
-        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
-          this.vx *= -1;
-        }
-        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
-          this.vy *= -1;
-        }
+        // colisão com bordas
+        if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) this.vx *= -1;
+        if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) this.vy *= -1;
 
-        // Colisões com outras bolhas
+        // evitar sobreposição
         for (let other of bubbles) {
           if (other === this) continue;
-          const dx = this.x - other.x;
-          const dy = this.y - other.y;
-          const dist = Math.hypot(dx, dy);
+          const dx = other.x - this.x;
+          const dy = other.y - this.y;
+          const distance = Math.hypot(dx, dy);
           const minDist = this.radius + other.radius;
-          if (dist < minDist) {
+          if (distance < minDist) {
             const angle = Math.atan2(dy, dx);
-            const tx = other.x + Math.cos(angle) * minDist;
-            const ty = other.y + Math.sin(angle) * minDist;
-            const ax = (tx - this.x) * 0.05;
-            const ay = (ty - this.y) * 0.05;
-            this.vx -= ax;
-            this.vy -= ay;
-            other.vx += ax;
-            other.vy += ay;
+            const move = (minDist - distance) / 2;
+            this.x -= Math.cos(angle) * move;
+            this.y -= Math.sin(angle) * move;
+            other.x += Math.cos(angle) * move;
+            other.y += Math.sin(angle) * move;
           }
         }
       }
     }
 
-    const bubbleObjects = bubbles.map(b => new Bubble(b));
+    const bubbles = stocks.map(stock => new Bubble(stock));
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let b of bubbleObjects) {
-        b.update(bubbleObjects);
-        b.draw(ctx);
-      }
+      bubbles.forEach(bubble => {
+        bubble.update(bubbles);
+        bubble.draw(ctx);
+      });
       requestAnimationFrame(animate);
     }
 
     animate();
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
   </script>
 </body>
 </html>
