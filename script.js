@@ -1,50 +1,36 @@
-const canvas = document.getElementById("bubbleCanvas");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const container = document.getElementById("bubbles");
 
-async function getStocks() {
-    const response = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD");
-    const data = await response.json();
-    return data.stocks || [];
-}
+fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD")
+  .then((res) => res.json())
+  .then((data) => {
+    const stocks = data.stocks;
 
-function drawBubbles(stocks) {
-    const bubbles = stocks.map(stock => {
-        const change = stock.change || 0;
-        const volume = stock.volume || 1;
-        const radius = Math.min(60, Math.max(10, Math.sqrt(volume) / 300));
-        const color = change >= 0 ? "limegreen" : "red";
-        return {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            radius,
-            color,
-            label: stock.stock
-        };
+    container.innerHTML = "";
+
+    stocks.forEach((stock) => {
+      const change = parseFloat(stock.changePercent);
+      const volume = parseFloat(stock.volume || 1);
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + (change >= 0 ? "positive" : "negative");
+
+      const size = Math.min(200, Math.max(50, Math.abs(change) * 10 + Math.log10(volume) * 5));
+      bubble.style.width = `${size}px`;
+      bubble.style.height = `${size}px`;
+
+      // Posição aleatória (limitada à tela)
+      const posX = Math.random() * (window.innerWidth - size);
+      const posY = Math.random() * (window.innerHeight - size);
+      bubble.style.left = `${posX}px`;
+      bubble.style.top = `${posY}px`;
+
+      const changeFormatted = `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
+
+      bubble.innerHTML = `<span>${stock.stock}<br>${changeFormatted}</span>`;
+
+      container.appendChild(bubble);
     });
-
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (const b of bubbles) {
-            ctx.beginPath();
-            ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-            ctx.fillStyle = b.color;
-            ctx.shadowColor = b.color;
-            ctx.shadowBlur = 20;
-            ctx.fill();
-            ctx.closePath();
-            ctx.font = "bold 12px Arial";
-            ctx.fillStyle = "white";
-            ctx.shadowBlur = 0;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(b.label, b.x, b.y);
-        }
-        requestAnimationFrame(animate);
-    }
-
-    animate();
-}
-
-getStocks().then(drawBubbles);
+  })
+  .catch((err) => {
+    console.error("Erro ao carregar dados da Brapi:", err);
+  });
