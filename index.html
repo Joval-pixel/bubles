@@ -1,14 +1,102 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — Ações ao Vivo</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      color: white;
+    }
+    h1 {
+      text-align: center;
+      padding: 20px;
+      color: white;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
   <canvas id="bubbleCanvas"></canvas>
-  <script src="script.js"></script>
+  <script>
+    const canvas = document.getElementById('bubbleCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let bubbles = [];
+
+    function createBubble(stock, change) {
+      const size = 30 + Math.abs(change) * 10;
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: size,
+        color: change >= 0 ? 'rgba(0,255,0,0.7)' : 'rgba(255,0,0,0.7)',
+        text: stock,
+        dx: (Math.random() - 0.5) * 2,
+        dy: (Math.random() - 0.5) * 2
+      };
+    }
+
+    function drawBubble(bubble) {
+      ctx.beginPath();
+      ctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
+      ctx.fillStyle = bubble.color;
+      ctx.fill();
+      ctx.closePath();
+
+      ctx.fillStyle = 'white';
+      ctx.font = `${Math.max(12, bubble.r / 2)}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillText(bubble.text, bubble.x, bubble.y + 4);
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      bubbles.forEach((b) => {
+        b.x += b.dx;
+        b.y += b.dy;
+
+        // Rebote nas bordas
+        if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
+        if (b.y + b.r > canvas.height || b.y - b.r < 0) b.dy *= -1;
+
+        drawBubble(b);
+      });
+      requestAnimationFrame(animate);
+    }
+
+    fetch('https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD')
+      .then(res => res.json())
+      .then(data => {
+        const ativos = data.stocks.slice(0, 30); // Pegamos 30 para teste
+        bubbles = ativos.map(stock => createBubble(stock.stock, stock.change || 0));
+        animate();
+      })
+      .catch(err => {
+        console.error("Erro ao buscar dados da API:", err);
+        // Dados mock para fallback
+        const mock = [
+          { stock: 'VALE3', change: 2.3 },
+          { stock: 'PETR4', change: -1.8 },
+          { stock: 'ITUB4', change: 0.7 }
+        ];
+        bubbles = mock.map(s => createBubble(s.stock, s.change));
+        animate();
+      });
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
 </body>
 </html>
