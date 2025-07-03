@@ -1,61 +1,83 @@
-const toggleBtn = document.getElementById("toggleBtn");
-const sidebar = document.getElementById("sidebar");
-const closeBtn = document.getElementById("closeBtn");
+const canvas = document.getElementById('bubbleCanvas');
+const ctx = canvas.getContext('2d');
+let bubbles = [];
 
-toggleBtn.addEventListener("click", () => {
-  sidebar.classList.add("show");
-});
+function resizeCanvas() {
+  canvas.width = window.innerWidth - 220;
+  canvas.height = window.innerHeight - 90;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
-closeBtn.addEventListener("click", () => {
-  sidebar.classList.remove("show");
-});
-
-// Dados mockados (pode substituir pela API da Brapi)
-const data = [
-  { ticker: "ARML3", change: 26.44, volume: 99999 },
-  { ticker: "SEQL3", change: 7.21, volume: 55555 },
-  { ticker: "EMET11", change: 6.67, volume: 44444 },
-  { ticker: "PDGR3", change: -6.69, volume: 22222 },
-  { ticker: "MRVE3", change: -3.96, volume: 88888 },
-  { ticker: "AZEV4", change: -1.82, volume: 11111 },
-  { ticker: "VALE3", change: 0.47, volume: 1000000 },
-  { ticker: "PETR4", change: 0.04, volume: 800000 },
-  { ticker: "ITUB4", change: 2.55, volume: 600000 },
-];
-
-// Função para preencher listas
-function preencherListas() {
-  const highs = data
-    .filter(d => d.change > 0)
-    .sort((a, b) => b.change - a.change)
-    .slice(0, 3);
-  const lows = data
-    .filter(d => d.change < 0)
-    .sort((a, b) => a.change - b.change)
-    .slice(0, 3);
-  const volumes = [...data].sort((a, b) => b.volume - a.volume).slice(0, 3);
-
-  const highsList = document.getElementById("highs");
-  const lowsList = document.getElementById("lows");
-  const volumesList = document.getElementById("volumes");
-
-  highs.forEach(d => {
-    const li = document.createElement("li");
-    li.innerHTML = `${d.ticker} <b>+${d.change.toFixed(2)}%</b>`;
-    highsList.appendChild(li);
-  });
-
-  lows.forEach(d => {
-    const li = document.createElement("li");
-    li.innerHTML = `${d.ticker} <b>${d.change.toFixed(2)}%</b>`;
-    lowsList.appendChild(li);
-  });
-
-  volumes.forEach(d => {
-    const li = document.createElement("li");
-    li.innerHTML = `${d.ticker} <b>${d.change > 0 ? "+" : ""}${d.change.toFixed(2)}%</b>`;
-    volumesList.appendChild(li);
-  });
+function createBubble(data, i) {
+  const radius = Math.max(20, Math.abs(data.change) * 8 + Math.log10(data.volume + 1));
+  const color = data.change >= 0 ? 'limegreen' : 'red';
+  return {
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.7,
+    vy: (Math.random() - 0.5) * 0.7,
+    r: radius,
+    color,
+    text: `${data.stock} ${data.change.toFixed(2)}%`
+  };
 }
 
-preencherListas();
+function drawBubble(b) {
+  ctx.beginPath();
+  const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.3, b.x, b.y, b.r);
+  gradient.addColorStop(0, b.color);
+  gradient.addColorStop(1, 'black');
+  ctx.fillStyle = gradient;
+  ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
+  ctx.fill();
+
+  ctx.fillStyle = 'white';
+  ctx.font = `${Math.min(14, b.r / 2)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.fillText(b.text, b.x, b.y + 4);
+}
+
+function updateBubbles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let b of bubbles) {
+    b.x += b.vx;
+    b.y += b.vy;
+    if (b.x < b.r || b.x > canvas.width - b.r) b.vx *= -1;
+    if (b.y < b.r || b.y > canvas.height - b.r) b.vy *= -1;
+    drawBubble(b);
+  }
+  requestAnimationFrame(updateBubbles);
+}
+
+function updateRanking(data) {
+  const sorted = [...data].sort((a, b) => b.change - a.change);
+  const highest = sorted.slice(0, 3);
+  const lowest = sorted.slice(-3).reverse();
+  const volumeTop = [...data].sort((a, b) => b.volume - a.volume).slice(0, 3);
+
+  document.getElementById('highest').innerHTML = highest.map(s => `<li>${s.stock} <span>+${s.change.toFixed(2)}%</span></li>`).join('');
+  document.getElementById('lowest').innerHTML = lowest.map(s => `<li>${s.stock} <span>${s.change.toFixed(2)}%</span></li>`).join('');
+  document.getElementById('volume').innerHTML = volumeTop.map(s => `<li>${s.stock} <span>+${s.change.toFixed(2)}%</span></li>`).join('');
+}
+
+async function fetchData() {
+  try {
+    const res = await fetch('https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&sortBy=volume&sortOrder=desc&limit=100');
+    const json = await res.json();
+    const data = json.stocks.map(s => ({
+      stock: s.stock,
+      change: parseFloat(s.change),
+      volume: s.volume || 0
+    })).filter(s => !isNaN(s.change));
+
+    bubbles = data.map(createBubble);
+    updateRanking(data);
+  } catch (e) {
+    console.error('Erro ao buscar dados:', e);
+  }
+}
+
+fetchData();
+updateBubbles();
+setInterval(fetchData, 60000);
