@@ -1,37 +1,13 @@
-.bubble {
-  position: absolute;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-weight: bold;
-  color: white;
-  border: 3px solid white;
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-  transition: transform 0.3s;
+body {
+  margin: 0;
+  background-color: #0b0b0f;
   overflow: hidden;
-  white-space: nowrap;
-  flex-direction: column;
+  font-family: 'Arial', sans-serif;
 }
 
-/* Verde com glow mais vivo */
-.bubble.positive {
-  background-color: #00cc00;
-  box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
-  filter: drop-shadow(0 0 5px #00ff00);
-}
-
-/* Vermelho com glow mais vivo */
-.bubble.negative {
-  background-color: #cc0000;
-  box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
-  filter: drop-shadow(0 0 5px #ff0000);
-}
-
-/* Tamanho dinâmico da fonte para texto não sair da bolha */
-.bubble span {
-  font-size: clamp(10px, 4vw, 18px);
-  text-align: center;
-  line-height: 1.1;
+canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
