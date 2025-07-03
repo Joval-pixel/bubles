@@ -7,22 +7,24 @@
   <style>
     body {
       margin: 0;
-      background: #0e0e11;
-      font-family: Arial, sans-serif;
+      background: #121217;
+      font-family: 'Arial', sans-serif;
       overflow: hidden;
     }
 
     h1 {
-      color: #00f5ff;
+      color: cyan;
       text-align: center;
-      margin-top: 20px;
       font-size: 26px;
+      margin-top: 20px;
     }
 
-    #bubble-container {
-      position: relative;
+    #canvas {
+      position: absolute;
+      top: 60px;
+      left: 0;
       width: 100%;
-      height: calc(100vh - 60px);
+      height: calc(100% - 60px);
       overflow: hidden;
     }
 
@@ -32,73 +34,77 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
+      flex-direction: column;
+      border: 3px solid white;
+      color: white;
       font-weight: bold;
       text-align: center;
-      border: 4px solid white;
-      animation: float 20s linear infinite;
+      user-select: none;
+      pointer-events: none;
     }
 
-    @keyframes float {
-      0% {
-        transform: translateY(0) rotate(0deg);
-      }
-      100% {
-        transform: translateY(-100vh) rotate(360deg);
-      }
+    .green {
+      background: radial-gradient(circle, #00ff88, #007f33);
+      box-shadow: 0 0 10px #00ff88;
+    }
+
+    .red {
+      background: radial-gradient(circle, #ff4c4c, #7f0000);
+      box-shadow: 0 0 10px #ff4c4c;
     }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
-  <div id="bubble-container"></div>
+  <div id="canvas"></div>
 
   <script>
-    const container = document.getElementById("bubble-container");
-    const apiKey = "5bTDfSmR2ieax6y7JUqDAD";
-    const symbols = [
-      "PETR4", "VALE3", "ITUB4", "BBAS3", "BBDC4", "ABEV3", "PRIO3",
-      "WEGE3", "RENT3", "MGLU3", "B3SA3", "LREN3", "HAPV3", "GGBR4",
-      "CSNA3", "RADL3", "HYPE3", "TAEE11", "CPLE6", "ENEV3"
-    ];
+    const canvas = document.getElementById("canvas");
+
+    const API_KEY = "5bTDfSmR2ieax6y7JUqDAD";
+    const tickers = ["VALE3", "PETR4", "ITUB4", "BBDC4", "BBAS3", "PRIO3", "CSNA3", "RENT3", "CPLE6", "WEGE3", "TAEE11", "GGBR4", "RADL3", "LREN3", "HAPV3", "MGLU3", "ENEV3", "SUZB3", "GGBR4", "BRFS3"];
 
     async function getData() {
-      const url = `https://brapi.dev/api/quote/${symbols.join(",")}?token=${apiKey}`;
+      const url = `https://brapi.dev/api/quote/${tickers.join(",")}?token=${API_KEY}`;
       const res = await fetch(url);
       const json = await res.json();
-      return json.results.filter(stock =>
-        stock.regularMarketChangePercent !== null &&
-        !isNaN(stock.regularMarketChangePercent) &&
-        stock.regularMarketChangePercent !== 0
-      );
+      return json.results;
     }
 
     function createBubble(stock) {
-      const perc = stock.regularMarketChangePercent.toFixed(2);
-      const symbol = stock.symbol;
-      const size = Math.min(Math.max(Math.abs(perc) * 10 + 40, 50), 180); // 50-180px
-      const color = perc > 0 ? "#00cc66" : "#e60000";
-      const sign = perc > 0 ? "+" : "";
+      if (!stock.regularMarketChangePercent || isNaN(stock.regularMarketChangePercent)) return;
 
       const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.style.background = color;
-      bubble.style.width = size + "px";
-      bubble.style.height = size + "px";
-      bubble.style.left = Math.random() * (window.innerWidth - size) + "px";
-      bubble.style.top = Math.random() * (window.innerHeight - size) + "px";
-      bubble.innerHTML = `${symbol}<br/>${sign}${perc}%`;
+      const pct = stock.regularMarketChangePercent.toFixed(2);
+      const isPositive = parseFloat(pct) >= 0;
+      const sign = isPositive ? "+" : "";
+      const size = Math.max(60, Math.min(200, Math.abs(pct) * 10 + 60));
 
-      container.appendChild(bubble);
+      bubble.className = `bubble ${isPositive ? "green" : "red"}`;
+      bubble.style.width = `${size}px`;
+      bubble.style.height = `${size}px`;
+      bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
+      bubble.style.top = `${Math.random() * (window.innerHeight - size - 80) + 60}px`;
+
+      const fontSize = size < 100 ? 10 : 14;
+      bubble.style.fontSize = `${fontSize}px`;
+
+      bubble.innerHTML = `
+        <div>${stock.symbol}</div>
+        <div>${sign}${pct}%</div>
+      `;
+
+      canvas.appendChild(bubble);
     }
 
-    getData().then(stocks => {
-      if (stocks.length === 0) {
-        container.innerHTML = "<p style='color: #00f5ff; text-align: center; font-size: 18px;'>Nenhuma ação válida no momento.</p>";
-        return;
-      }
-      stocks.forEach(createBubble);
-    });
+    async function render() {
+      canvas.innerHTML = "";
+      const data = await getData();
+      data.forEach(stock => createBubble(stock));
+    }
+
+    render();
+    setInterval(render, 10000); // atualiza a cada 10s
   </script>
 </body>
 </html>
