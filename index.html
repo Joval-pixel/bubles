@@ -1,87 +1,136 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bubles – A Bolsa que Respira</title>
   <style>
     body {
       margin: 0;
       background: black;
-      overflow: hidden;
       font-family: Arial, sans-serif;
       color: white;
+      overflow: hidden;
     }
 
     canvas {
       position: absolute;
       top: 0;
       left: 0;
+      z-index: 1;
     }
 
     .sidebar {
       position: fixed;
       top: 0;
       left: 0;
-      width: 220px;
+      width: 240px;
       height: 100%;
       background-color: #111;
-      padding: 10px;
+      padding: 15px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
       z-index: 10;
       overflow-y: auto;
-      border-right: 2px solid #444;
+      border-right: 1px solid #444;
     }
 
-    .sidebar h2 {
-      color: #0f0;
+    .section {
+      margin-bottom: 25px;
+    }
+
+    .section h2 {
       font-size: 16px;
-      margin-top: 20px;
-      border-bottom: 1px solid #333;
+      margin: 10px 0 8px;
       padding-bottom: 5px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
     }
 
-    .sidebar ul {
+    .section h2::before {
+      content: '';
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      margin-right: 6px;
+      background-size: cover;
+    }
+
+    .altas h2 {
+      color: lime;
+    }
+
+    .altas h2::before {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/1828/1828838.png');
+    }
+
+    .quedas h2 {
+      color: #00bfff;
+    }
+
+    .quedas h2::before {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/1828/1828884.png');
+    }
+
+    .volume h2 {
+      color: #ffcc00;
+    }
+
+    .volume h2::before {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/616/616408.png');
+    }
+
+    ul {
       list-style: none;
-      padding: 0;
-      margin: 5px 0;
+      padding-left: 0;
+      margin: 5px 0 0;
     }
 
-    .sidebar li {
+    li {
       font-size: 14px;
       padding: 2px 0;
+      display: flex;
+      justify-content: space-between;
       color: #ccc;
     }
 
-    .sidebar li span {
-      float: right;
+    .right {
       font-weight: bold;
     }
 
     .content {
-      margin-left: 240px;
+      margin-left: 250px;
     }
   </style>
 </head>
 <body>
   <div class="sidebar">
-    <h2>📈 Maiores Altas</h2>
-    <ul id="maiores-altas">
-      <li>ARML3 <span>+26.44%</span></li>
-      <li>SEQL3 <span>+7.21%</span></li>
-      <li>EMET11 <span>+6.67%</span></li>
-    </ul>
-    <h2>📉 Maiores Quedas</h2>
-    <ul id="maiores-quedas">
-      <li>PDGR3 <span>-6.69%</span></li>
-      <li>MRVE3 <span>-3.96%</span></li>
-      <li>AZEV4 <span>-1.82%</span></li>
-    </ul>
-    <h2>🔥 Maior Volume</h2>
-    <ul id="maior-volume">
-      <li>VALE3 <span>+0.47%</span></li>
-      <li>PETR4 <span>+0.04%</span></li>
-      <li>ITUB4 <span>+2.55%</span></li>
-    </ul>
+    <div class="section altas">
+      <h2>Maiores Altas</h2>
+      <ul>
+        <li><span>ARML3</span> <span class="right">+26.44%</span></li>
+        <li><span>SEQL3</span> <span class="right">+7.21%</span></li>
+        <li><span>EMET11</span> <span class="right">+6.67%</span></li>
+      </ul>
+    </div>
+
+    <div class="section quedas">
+      <h2>Maiores Quedas</h2>
+      <ul>
+        <li><span>PDGR3</span> <span class="right">-6.69%</span></li>
+        <li><span>MRVE3</span> <span class="right">-3.96%</span></li>
+        <li><span>AZEV4</span> <span class="right">-1.82%</span></li>
+      </ul>
+    </div>
+
+    <div class="section volume">
+      <h2>Maior Volume</h2>
+      <ul>
+        <li><span>VALE3</span> <span class="right">+0.47%</span></li>
+        <li><span>PETR4</span> <span class="right">+0.04%</span></li>
+        <li><span>ITUB4</span> <span class="right">+2.55%</span></li>
+      </ul>
+    </div>
   </div>
 
   <div class="content">
@@ -89,8 +138,8 @@
   </div>
 
   <script>
-    const canvas = document.getElementById('bubbles');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById("bubbles");
+    const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -126,7 +175,7 @@
         bubble.x += bubble.dx;
         bubble.y += bubble.dy;
 
-        if (bubble.x < 240 + 30 || bubble.x > canvas.width - 30) bubble.dx *= -1;
+        if (bubble.x < 270 + 30 || bubble.x > canvas.width - 30) bubble.dx *= -1;
         if (bubble.y < 30 || bubble.y > canvas.height - 30) bubble.dy *= -1;
 
         drawBubble(bubble);
