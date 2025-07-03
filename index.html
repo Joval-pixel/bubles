@@ -5,17 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles – A Bolsa que Respira</title>
   <style>
-    body {
-      margin: 0;
-      background: black;
-      overflow: hidden;
+    body { margin: 0; background: black; overflow: hidden; font-family: Arial, sans-serif; }
+    canvas { display: block; }
+    #setores {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #111;
+      color: white;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      z-index: 10;
     }
-    canvas {
-      display: block;
+    .botao-setor {
+      padding: 10px 15px;
+      margin: 5px;
+      background: #222;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .botao-setor.active {
+      background: #00ff00;
+      color: black;
     }
   </style>
 </head>
 <body>
+  <div id="setores">
+    <button class="botao-setor active" data-setor="Todos">Todos</button>
+    <button class="botao-setor" data-setor="Financeiro">Financeiro</button>
+    <button class="botao-setor" data-setor="Energia">Energia</button>
+    <button class="botao-setor" data-setor="Varejo">Varejo</button>
+    <button class="botao-setor" data-setor="Tecnologia">Tecnologia</button>
+    <button class="botao-setor" data-setor="Saúde">Saúde</button>
+    <button class="botao-setor" data-setor="Indústria">Indústria</button>
+  </div>
   <canvas id="canvas"></canvas>
 
   <script>
@@ -25,7 +53,7 @@
     canvas.height = window.innerHeight;
 
     class Bubble {
-      constructor(x, y, radius, color, text, vx, vy) {
+      constructor(x, y, radius, color, text, vx, vy, setor) {
         this.x = x;
         this.y = y;
         this.radius = radius;
@@ -33,6 +61,7 @@
         this.text = text;
         this.vx = vx;
         this.vy = vy;
+        this.setor = setor;
       }
 
       draw() {
@@ -44,7 +73,6 @@
         ctx.fill();
         ctx.closePath();
         ctx.shadowBlur = 0;
-
         ctx.fillStyle = "white";
         ctx.font = `${Math.max(this.radius / 3, 10)}px Arial`;
         ctx.textAlign = "center";
@@ -80,48 +108,59 @@
     }
 
     const bubbles = [];
+    let setorAtivo = "Todos";
 
     async function fetchData() {
-      const symbols = [
-        'VALE3', 'PETR4', 'ITUB4', 'B3SA3', 'MGLU3', 'BBAS3', 'WEGE3', 'ABEV3',
-        'EMBR3', 'RDOR3', 'RENT3', 'ASAI3', 'CSNA3', 'GGBR4', 'ARML3', 'OIBR3',
-        'PDGR3', 'CEAB3', 'INTB3', 'LREN3', 'EQTL3', 'VIVT3', 'BEEF3', 'ALPA4'
+      const ativos = [
+        { symbol: "VALE3", setor: "Indústria" },
+        { symbol: "PETR4", setor: "Energia" },
+        { symbol: "ITUB4", setor: "Financeiro" },
+        { symbol: "B3SA3", setor: "Financeiro" },
+        { symbol: "MGLU3", setor: "Varejo" },
+        { symbol: "BBAS3", setor: "Financeiro" },
+        { symbol: "WEGE3", setor: "Indústria" },
+        { symbol: "ABEV3", setor: "Consumo" },
+        { symbol: "RDOR3", setor: "Saúde" },
+        { symbol: "VIVT3", setor: "Tecnologia" }
       ];
 
-      const url = `https://brapi.dev/api/quote/${symbols.join(",")}?token=5bTDfSmR2ieax6y7JUqDAD`;
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
+      const url = "https://brapi.dev/api/quote/" + ativos.map(a => a.symbol).join(",") + "?token=5bTDfSmR2ieax6y7JUqDAD";
+      const res = await fetch(url);
+      const data = await res.json();
 
-        for (let item of data.results) {
-          const change = item.changePercent ?? 0;
-          const radius = Math.max(30, Math.abs(change) * 5 + 20);
-          const color = change >= 0 ? "#00ff00" : "#ff0000";
-          const x = Math.random() * (canvas.width - radius * 2) + radius;
-          const y = Math.random() * (canvas.height - radius * 2) + radius;
-          const vx = (Math.random() - 0.5) * 1.2;
-          const vy = (Math.random() - 0.5) * 1.2;
-          const label = `${item.symbol} ${change.toFixed(2)}%`;
-          bubbles.push(new Bubble(x, y, radius, color, label, vx, vy));
-        }
-
-        animate();
-      } catch (e) {
-        console.error("Erro ao buscar dados da API:", e);
-        ctx.fillStyle = "white";
-        ctx.font = "30px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("API ERRO", canvas.width / 2, canvas.height / 2);
+      for (let item of data.results) {
+        const change = item.changePercent ?? 0;
+        const radius = Math.max(30, Math.abs(change) * 5 + 20);
+        const color = change >= 0 ? "#00ff00" : "#ff0000";
+        const x = Math.random() * (canvas.width - radius * 2) + radius;
+        const y = Math.random() * (canvas.height - radius * 2) + radius;
+        const vx = (Math.random() - 0.5) * 1.2;
+        const vy = (Math.random() - 0.5) * 1.2;
+        const label = `${item.symbol} ${change.toFixed(2)}%`;
+        const setor = ativos.find(a => a.symbol === item.symbol)?.setor || "Outros";
+        bubbles.push(new Bubble(x, y, radius, color, label, vx, vy, setor));
       }
+
+      animate();
     }
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let bubble of bubbles) {
-        bubble.update(bubbles);
+        if (setorAtivo === "Todos" || bubble.setor === setorAtivo) {
+          bubble.update(bubbles.filter(b => setorAtivo === "Todos" || b.setor === setorAtivo));
+        }
       }
       requestAnimationFrame(animate);
     }
+
+    document.querySelectorAll(".botao-setor").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".botao-setor").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        setorAtivo = btn.dataset.setor;
+      });
+    });
 
     fetchData();
   </script>
