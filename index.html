@@ -9,6 +9,29 @@
       margin: 0;
       background: black;
       overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    #menu {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .tab {
+      padding: 15px 25px;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      border-bottom: 3px solid #0f0;
     }
 
     canvas {
@@ -17,48 +40,65 @@
   </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
+  <div id="menu">
+    <div class="tab active" data-tab="acoes">Ações</div>
+    <div class="tab" data-tab="cripto">Criptomoedas</div>
+    <div class="tab" data-tab="commodities">Commodities</div>
+  </div>
+  <canvas id="canvas"></canvas>
 
 <script>
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.height = window.innerHeight - 50;
 
 window.addEventListener("resize", () => {
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.height = window.innerHeight - 50;
 });
 
 let bubbles = [];
+let currentTab = "acoes";
 
-async function fetchStocks() {
+// APIs para cada aba
+const sources = {
+  acoes: "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=80&token=5bTDfSmR2ieax6y7JUqDAD",
+  cripto: "https://brapi.dev/api/crypto?coin=BTC,ETH,MATIC,SOL,DOGE,ADA,BNB,AVAX,XRP,DOT,LTC&token=5bTDfSmR2ieax6y7JUqDAD",
+  commodities: "https://brapi.dev/api/quote/B3SA3.PETR4.VALE3.GOLD.SI=F.CORN.SUGAR.PA=F&token=5bTDfSmR2ieax6y7JUqDAD"
+};
+
+async function fetchData(tab) {
   try {
-    const res = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD");
+    const res = await fetch(sources[tab]);
     const data = await res.json();
 
-    if (!data.stocks || !Array.isArray(data.stocks)) throw new Error("Formato inesperado");
+    let list = [];
+    if (tab === "acoes") list = data.stocks;
+    else if (tab === "cripto") list = data.coins;
+    else if (tab === "commodities") list = data.results;
 
-    bubbles = data.stocks.map((s, index) => {
-      const change = parseFloat(s.changePercent ?? 0);
-      const radius = Math.min(90, Math.max(30, Math.abs(change) * 5 + 25));
+    bubbles = list.map((item, index) => {
+      const change = parseFloat(item.changePercent || 0);
+      const symbol = item.stock || item.coin || item.symbol || "???";
+      const radius = Math.min(90, Math.max(30, Math.abs(change) * 4 + 25));
       const color = change >= 0 ? "#00ff00" : "#ff0000";
 
       return {
-        ticker: s.stock ?? "???",
+        ticker: symbol,
         change: change,
         x: (index % 10) * (canvas.width / 10) + 30 + Math.random() * 20,
-        y: Math.floor(index / 10) * (canvas.height / 10) + 30 + Math.random() * 20,
+        y: Math.floor(index / 10) * (canvas.height / 10) + 60 + Math.random() * 20,
         r: radius,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
         color
       };
     });
 
-  } catch (e) {
-    console.error("Erro ao buscar dados:", e);
+  } catch (err) {
+    console.error("Erro:", err);
     bubbles = [{
       ticker: "API ERRO",
       change: 0,
@@ -67,7 +107,7 @@ async function fetchStocks() {
       r: 80,
       vx: 0,
       vy: 0,
-      color: "#ffffff"
+      color: "#fff"
     }];
   }
 }
@@ -93,10 +133,8 @@ function drawBubble(b) {
 
 function animate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   for (let i = 0; i < bubbles.length; i++) {
     const b = bubbles[i];
-
     b.x += b.vx;
     b.y += b.vy;
 
@@ -130,9 +168,18 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
-fetchStocks().then(() => {
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentTab = tab.dataset.tab;
+    fetchData(currentTab);
+  });
+});
+
+fetchData("acoes").then(() => {
   animate();
-  setInterval(fetchStocks, 60000); // Atualiza a cada 60s
+  setInterval(() => fetchData(currentTab), 60000);
 });
 </script>
 </body>
