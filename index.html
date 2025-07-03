@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bubles — Ações ao Vivo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+      font-family: Arial, sans-serif;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      font-weight: bold;
+      color: white;
+      text-align: center;
+      border: 3px solid white;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+      transition: transform 0.3s ease;
+      animation: float 40s linear infinite;
+      white-space: nowrap;
+      padding: 8px;
+      max-width: 200px;
+      max-height: 200px;
+    }
+
+    .positive {
+      background-color: #00cc00;
+      box-shadow: 0 0 20px #00ff00, inset 0 0 10px #00ff00;
+      filter: drop-shadow(0 0 5px #00ff00);
+    }
+
+    .negative {
+      background-color: #cc0000;
+      box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
+      filter: drop-shadow(0 0 5px #ff0000);
+    }
+
+    .bubble span {
+      font-size: clamp(10px, 4vw, 18px);
+      line-height: 1.1;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0) rotate(0deg);
+      }
+      100% {
+        transform: translateY(-200vh) rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="bubbles"></div>
+
+  <script>
+    const token = "5bTDfSmR2ieax6y7JUqDAD";
+
+    fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=25&token=${token}`)
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("bubbles");
+        const stocks = data.stocks || [];
+
+        stocks.forEach(stock => {
+          const bubble = document.createElement("div");
+          const change = parseFloat(stock.changePercent);
+          const colorClass = change > 0 ? "positive" : "negative";
+
+          const percentage = (change > 0 ? "+" : "") + change.toFixed(2) + "%";
+
+          const size = Math.min(Math.max(Math.abs(change) * 10 + 50, 50), 200);
+
+          bubble.className = `bubble ${colorClass}`;
+          bubble.style.width = size + "px";
+          bubble.style.height = size + "px";
+
+          bubble.style.top = Math.random() * (window.innerHeight - size) + "px";
+          bubble.style.left = Math.random() * (window.innerWidth - size) + "px";
+
+          bubble.innerHTML = `<span>${stock.stock}</span><span>${percentage}</span>`;
+          container.appendChild(bubble);
+        });
+      })
+      .catch(err => {
+        console.error("Erro ao carregar dados da API:", err);
+      });
+  </script>
+</body>
+</html>
