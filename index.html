@@ -2,20 +2,20 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles — Ações ao Vivo</title>
   <style>
-    body {
+    html, body {
       margin: 0;
-      background-color: #000;
+      padding: 0;
       overflow: hidden;
+      background-color: #000;
       font-family: Arial, sans-serif;
     }
 
     h1 {
-      color: #fff;
+      color: white;
       text-align: center;
-      margin-top: 20px;
+      margin: 20px 0;
     }
 
     .bubble {
@@ -27,17 +27,19 @@
       text-align: center;
       font-weight: bold;
       color: white;
-      border: 2px solid white;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      border: 3px solid white;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
       overflow: hidden;
       white-space: nowrap;
       flex-direction: column;
-      animation: float 20s infinite linear;
+      cursor: pointer;
     }
 
     .bubble span {
-      font-size: clamp(10px, 4vw, 16px);
-      line-height: 1.2;
+      font-size: clamp(10px, 3vw, 18px);
+      line-height: 1.1;
+      padding: 4px;
     }
 
     .positive {
@@ -51,43 +53,61 @@
       box-shadow: 0 0 20px #ff0000, inset 0 0 10px #ff0000;
       filter: drop-shadow(0 0 5px #ff0000);
     }
-
-    @keyframes float {
-      0%   { transform: translate(0, 0); }
-      50%  { transform: translate(10px, -10px); }
-      100% { transform: translate(0, 0); }
-    }
   </style>
 </head>
 <body>
   <h1>Bubles — Ações ao Vivo</h1>
 
   <script>
-    const acoesFake = [
-      { stock: 'VALE3', change: 2.45 },
-      { stock: 'PETR4', change: -1.32 },
-      { stock: 'ITUB4', change: 0.87 },
-      { stock: 'BBDC4', change: -0.64 },
-      { stock: 'BBAS3', change: 3.12 },
-    ];
+    const API_KEY = "5bTDfSmR2ieax6y7JUqDAD"; // sua chave Brapi
+    const tickers = ["VALE3", "PETR4", "ITUB4", "BBDC4", "ABEV3", "MGLU3", "WEGE3", "RENT3", "JBSS3", "LREN3", "RADL3", "GGBR4", "SUZB3", "B3SA3", "BBAS3"];
 
-    acoesFake.forEach((acao) => {
-      const bubble = document.createElement("div");
-      const change = acao.change || 0;
-      const size = 60 + Math.abs(change) * 10;
+    async function carregarAcoes() {
+      try {
+        const url = `https://brapi.dev/api/quote/${tickers.join(",")}?token=${API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        exibirBolhas(data.stocks);
+      } catch (e) {
+        alert("Erro ao carregar dados da API.");
+        console.error(e);
+      }
+    }
 
-      bubble.className = "bubble " + (change >= 0 ? "positive" : "negative");
-      bubble.style.width = size + "px";
-      bubble.style.height = size + "px";
+    function exibirBolhas(stocks) {
+      const usadaCoords = [];
 
-      const maxLeft = window.innerWidth - size;
-      const maxTop = window.innerHeight - size - 50;
-      bubble.style.left = Math.random() * maxLeft + "px";
-      bubble.style.top = Math.random() * maxTop + 50 + "px";
+      stocks.forEach(stock => {
+        const div = document.createElement("div");
+        const variation = parseFloat(stock.change || 0);
+        const name = stock.stock || "AÇÃO";
+        const percent = variation.toFixed(2) + "%";
 
-      bubble.innerHTML = `<span>${acao.stock}<br>${change.toFixed(2)}%</span>`;
-      document.body.appendChild(bubble);
-    });
+        const radius = 60 + Math.min(Math.abs(variation) * 10, 80); // tamanho proporcional à variação
+        div.className = `bubble ${variation >= 0 ? "positive" : "negative"}`;
+        div.style.width = div.style.height = radius + "px";
+
+        // Evitar sobreposição grosseira
+        let x, y, maxTries = 50, tries = 0;
+        do {
+          x = Math.random() * (window.innerWidth - radius);
+          y = Math.random() * (window.innerHeight - radius - 60) + 60;
+          tries++;
+        } while (
+          usadaCoords.some(coord =>
+            Math.hypot(coord.x - x, coord.y - y) < radius * 1.2
+          ) && tries < maxTries
+        );
+        usadaCoords.push({ x, y });
+
+        div.style.left = x + "px";
+        div.style.top = y + "px";
+        div.innerHTML = `<span>${name}<br>${percent}</span>`;
+        document.body.appendChild(div);
+      });
+    }
+
+    carregarAcoes();
   </script>
 </body>
 </html>
