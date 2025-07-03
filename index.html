@@ -1,40 +1,22 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles — A Bolsa que Respira</title>
+  <title>Bubles – A Bolsa que Respira</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="menu">
-    <button class="tab active" onclick="showTab('stocks')">Ações</button>
-    <button class="tab" onclick="showTab('crypto')">Criptomoedas</button>
-    <button class="tab" onclick="showTab('commodities')">Commodities</button>
-  </div>
-
-  <div id="subMenu">
-    <button class="sector-button active" onclick="filterSector('Todos')">Todos</button>
-    <button class="sector-button" onclick="filterSector('Finance')">Financeiro</button>
-    <button class="sector-button" onclick="filterSector('Energy')">Energia</button>
-    <button class="sector-button" onclick="filterSector('Retail Trade')">Varejo</button>
-    <button class="sector-button" onclick="filterSector('Electronic Technology')">Tecnologia</button>
-    <button class="sector-button" onclick="filterSector('Health Services')">Saúde</button>
-    <button class="sector-button" onclick="filterSector('Industrial Services')">Indústria</button>
-  </div>
-
-  <div id="rankingPanel">
-    <div class="section">
+  <div class="sidebar">
+    <div class="ranking">
       <h3>📈 <span class="green">Maiores Altas</span></h3>
-      <ul id="highList"></ul>
-    </div>
-    <div class="section">
+      <ul id="highs"></ul>
+
       <h3>⭐ <span class="blue">Maiores Quedas</span></h3>
-      <ul id="lowList"></ul>
-    </div>
-    <div class="section">
+      <ul id="lows"></ul>
+
       <h3>🐻 <span class="yellow">Maior Volume</span></h3>
-      <ul id="volumeList"></ul>
+      <ul id="volume"></ul>
     </div>
   </div>
 
