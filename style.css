@@ -1,46 +1,33 @@
 body {
   margin: 0;
-  background-color: #000;
+  background: black;
   font-family: Arial, sans-serif;
-  color: white;
-  text-align: center;
   overflow: hidden;
 }
 
-h1 {
-  margin: 10px 0;
-  font-size: 24px;
-}
-
 .menu {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 10px;
-  background-color: #111;
+  position: absolute;
+  top: 10px;
+  width: 100%;
+  text-align: center;
+  z-index: 10;
 }
 
-.tab {
-  margin: 5px;
-  padding: 10px 15px;
-  background-color: #333;
-  border: none;
+.menu .tab {
+  background: #333;
   color: white;
-  font-size: 14px;
-  border-radius: 6px;
+  border: none;
+  padding: 10px 15px;
+  margin: 0 5px;
   cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
 }
 
-.tab.active,
-.tab:hover {
-  background-color: dodgerblue;
+.menu .tab.active {
+  background: #007bff;
 }
 
 canvas {
   display: block;
-  position: absolute;
-  top: 130px;
-  left: 0;
-  width: 100%;
-  height: calc(100% - 130px);
 }
