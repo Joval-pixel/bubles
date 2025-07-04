@@ -15,17 +15,17 @@ function createBubbles() {
     { name: 'BBDC3', change: -0.07 }
   ];
   for (const stock of stocks) {
-    const radius = Math.abs(stock.change) * 20 + 30;
-    const color = stock.change > 0 ? 'lime' : stock.change < 0 ? 'red' : 'gray';
+    const r = Math.abs(stock.change) * 18 + 30;
+    const glowColor = stock.change > 0 ? '#00ff00' : stock.change < 0 ? '#ff0000' : '#999999';
     bubbles.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      r: radius,
-      color: color,
+      r,
+      color: glowColor,
       name: stock.name,
-      change: stock.change.toFixed(2) + '%',
-      dx: (Math.random() - 0.5) * 1.5,
-      dy: (Math.random() - 0.5) * 1.5
+      change: `${stock.change.toFixed(2)}%`,
+      dx: (Math.random() - 0.5) * 1.2,
+      dy: (Math.random() - 0.5) * 1.2
     });
   }
 }
@@ -33,18 +33,22 @@ function createBubbles() {
 function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (const b of bubbles) {
+    // Glow de fundo
     ctx.beginPath();
     ctx.fillStyle = b.color;
     ctx.shadowColor = b.color;
-    ctx.shadowBlur = 30;
+    ctx.shadowBlur = 40;
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
+
+    // Texto centralizado
     ctx.shadowBlur = 0;
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.font = `${Math.max(b.r / 4, 12)}px sans-serif`;
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.font = `${Math.max(b.r / 3.5, 14)}px sans-serif`;
     ctx.fillText(b.name, b.x, b.y - 6);
-    ctx.fillText(b.change, b.x, b.y + 12);
+    ctx.font = `${Math.max(b.r / 4, 12)}px sans-serif`;
+    ctx.fillText(b.change, b.x, b.y + 14);
   }
 }
 
@@ -62,7 +66,7 @@ function animate() {
 function showTab(tab) {
   document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
   event.target.classList.add('active');
-  createBubbles(); // recarrega as bolhas
+  createBubbles(); // recarrega
 }
 
 createBubbles();
