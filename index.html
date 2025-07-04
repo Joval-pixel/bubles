@@ -1,4 +1,8 @@
+import zipfile
+from pathlib import Path
 
+# Novo HTML com lista fixa de ativos
+html_corrigido = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -52,10 +56,6 @@
       max-height: 90%;
       overflow-y: auto;
     }
-    #rankingPanel h3, #corretorasPanel h3 {
-      margin: 10px 0 5px;
-      font-size: 16px;
-    }
     #canvas {
       display: block;
     }
@@ -71,10 +71,6 @@
     #loginBox input {
       padding: 4px;
       margin-right: 5px;
-    }
-    @media (max-width: 768px) {
-      nav { flex-direction: column; align-items: center; }
-      #rankingPanel, #corretorasPanel { width: 100%; top: unset; bottom: 0; left: 0; right: 0; }
     }
   </style>
 </head>
@@ -158,16 +154,15 @@
     }
 
     async function fetchData() {
-      let endpoint = "";
-      if (activeTab === "stocks") endpoint = "quote/list";
-      if (activeTab === "crypto") endpoint = "quote/list?search=BTC,ETH,XRP";
-      if (activeTab === "commodities") endpoint = "quote/list?search=GOLD,WTI";
+      let tickers = "VALE3,PETR4,ITUB4,ABEV3,BBDC4,BBAS3,MGLU3,WEGE3,RENT3,JBSS3";
+      if (activeTab === "crypto") tickers = "BTC-USD,ETH-USD";
+      if (activeTab === "commodities") tickers = "GC=F,CL=F";
 
       try {
-        const res = await fetch(`https://brapi.dev/api/${endpoint}&token=5bTDfSmR2ieax6y7JUqDAD&limit=30`);
+        const res = await fetch(`https://brapi.dev/api/quote/${tickers}?token=5bTDfSmR2ieax6y7JUqDAD`);
         const data = await res.json();
-        bubbles = data.stocks.map(s => new Bubble(s.stock, s.price, s.change, s.volume));
-        renderRanking(data.stocks);
+        bubbles = data.results.map(s => new Bubble(s.symbol, s.regularMarketPrice, s.regularMarketChangePercent, s.regularMarketVolume));
+        renderRanking(data.results);
       } catch (err) {
         console.error("Erro ao buscar dados:", err);
       }
@@ -197,12 +192,12 @@
     }
 
     function renderRanking(stocks) {
-      const up = [...stocks].sort((a,b)=>b.change-a.change).slice(0,5);
-      const down = [...stocks].sort((a,b)=>a.change-b.change).slice(0,5);
-      const vol = [...stocks].sort((a,b)=>b.volume-a.volume).slice(0,5);
-      document.getElementById("rankingUp").innerHTML = up.map(s => `<li>${s.stock} ${s.change.toFixed(2)}%</li>`).join("");
-      document.getElementById("rankingDown").innerHTML = down.map(s => `<li>${s.stock} ${s.change.toFixed(2)}%</li>`).join("");
-      document.getElementById("rankingVolume").innerHTML = vol.map(s => `<li>${s.stock} ${Math.round(s.volume/1e6)}M</li>`).join("");
+      const up = [...stocks].sort((a,b)=>b.regularMarketChangePercent-a.regularMarketChangePercent).slice(0,5);
+      const down = [...stocks].sort((a,b)=>a.regularMarketChangePercent-b.regularMarketChangePercent).slice(0,5);
+      const vol = [...stocks].sort((a,b)=>b.regularMarketVolume-a.regularMarketVolume).slice(0,5);
+      document.getElementById("rankingUp").innerHTML = up.map(s => `<li>${s.symbol} ${s.regularMarketChangePercent.toFixed(2)}%</li>`).join("");
+      document.getElementById("rankingDown").innerHTML = down.map(s => `<li>${s.symbol} ${s.regularMarketChangePercent.toFixed(2)}%</li>`).join("");
+      document.getElementById("rankingVolume").innerHTML = vol.map(s => `<li>${s.symbol} ${Math.round(s.regularMarketVolume/1e6)}M</li>`).join("");
     }
 
     function saveLogin() {
@@ -241,3 +236,14 @@
   </script>
 </body>
 </html>
+"""
+
+# Salvar e empacotar como novo zip
+html_path = Path("/mnt/data/index.html")
+html_path.write_text(html_corrigido, encoding="utf-8")
+
+zip_path = Path("/mnt/data/bubles-com-bolhas.zip")
+with zipfile.ZipFile(zip_path, 'w') as zipf:
+    zipf.write(html_path, arcname="index.html")
+
+zip_path.name
