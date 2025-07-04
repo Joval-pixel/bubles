@@ -1,93 +1,79 @@
-const canvas = document.getElementById("canvas");
+const canvas = document.getElementById("bubbleCanvas");
 const ctx = canvas.getContext("2d");
+let width, height;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-});
-
-class Bubble {
-  constructor(stock) {
-    this.ticker = stock.stock;
-    this.change = parseFloat(stock.change).toFixed(2);
-    this.color = this.change >= 0 ? "#00ff00" : "#ff0000";
-    this.radius = Math.min(80, 20 + Math.abs(this.change) * 15);
-    this.x = Math.random() * (canvas.width - 2 * this.radius) + this.radius;
-    this.y = Math.random() * (canvas.height - 2 * this.radius) + this.radius;
-    this.dx = (Math.random() - 0.5) * 0.5;
-    this.dy = (Math.random() - 0.5) * 0.5;
-  }
-
-  draw() {
-    ctx.save();
-    ctx.beginPath();
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 15;
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "#fff";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `${Math.max(10, this.radius / 3)}px Arial`;
-    ctx.fillText(this.ticker, this.x, this.y - 10);
-    ctx.fillText(`${this.change}%`, this.x, this.y + 10);
-    ctx.restore();
-  }
-
-  update(bubbles) {
-    this.x += this.dx;
-    this.y += this.dy;
-
-    // bordas
-    if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) this.dx *= -1;
-    if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) this.dy *= -1;
-
-    // colisão
-    for (let other of bubbles) {
-      if (other === this) continue;
-      let dx = other.x - this.x;
-      let dy = other.y - this.y;
-      let dist = Math.sqrt(dx * dx + dy * dy);
-      let minDist = this.radius + other.radius;
-
-      if (dist < minDist) {
-        let angle = Math.atan2(dy, dx);
-        let targetX = this.x + Math.cos(angle) * minDist;
-        let targetY = this.y + Math.sin(angle) * minDist;
-        let ax = (targetX - other.x) * 0.05;
-        let ay = (targetY - other.y) * 0.05;
-
-        this.dx -= ax;
-        this.dy -= ay;
-        other.dx += ax;
-        other.dy += ay;
-      }
-    }
-
-    this.draw();
-  }
+function resize() {
+  width = window.innerWidth;
+  height = window.innerHeight;
+  canvas.width = width;
+  canvas.height = height;
 }
+resize();
+window.onresize = resize;
 
 let bubbles = [];
 
-fetch("https://brapi.dev/api/quote/list?sortBy=volume&limit=25&token=5bTDfSmR2ieax6y7JUqDAD")
-  .then(res => res.json())
-  .then(data => {
-    const stocks = data.stocks.filter(s => s.stock && s.change !== null);
-    bubbles = stocks.map(s => new Bubble(s));
-    animate();
-  });
+function fetchData() {
+  fetch("https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&token=5bTDfSmR2ieax6y7JUqDAD")
+    .then(res => res.json())
+    .then(data => {
+      const stocks = data.stocks.slice(0, 30);
+      bubbles = stocks.map(stock => {
+        const value = parseFloat(stock.change || 0);
+        const radius = Math.max(30, Math.abs(value) * 20 + 30);
+        return {
+          label: stock.stock,
+          value: value.toFixed(2) + "%",
+          radius: radius,
+          x: Math.random() * (width - radius * 2) + radius,
+          y: Math.random() * (height - radius * 2) + radius,
+          dx: (Math.random() - 0.5) * 0.5,
+          dy: (Math.random() - 0.5) * 0.5,
+          color: value >= 0 ? "#00ff00" : "#ff0000",
+          glow: value >= 0 ? "rgba(0,255,0,0.5)" : "rgba(255,0,0,0.5)"
+        };
+      });
+    });
+}
+
+function drawBubbles() {
+  ctx.clearRect(0, 0, width, height);
+  for (const b of bubbles) {
+    ctx.beginPath();
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = b.glow;
+    ctx.fillStyle = b.color;
+    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#fff";
+    ctx.font = `${Math.min(20, b.radius / 2)}px Arial`;
+    ctx.textAlign = "center";
+    ctx.fillText(b.label, b.x, b.y - 10);
+    ctx.fillText(b.value, b.x, b.y + 15);
+  }
+}
 
 function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let b of bubbles) {
-    b.update(bubbles);
+  for (const b of bubbles) {
+    b.x += b.dx;
+    b.y += b.dy;
+
+    if (b.x - b.radius < 0 || b.x + b.radius > width) b.dx *= -1;
+    if (b.y - b.radius < 0 || b.y + b.radius > height) b.dy *= -1;
   }
+
+  drawBubbles();
   requestAnimationFrame(animate);
 }
+
+function setTab(tab) {
+  document.querySelectorAll(".tab").forEach(btn => btn.classList.remove("active"));
+  document.querySelector(`.tab:contains(${tab.charAt(0).toUpperCase() + tab.slice(1)})`)?.classList.add("active");
+  fetchData();
+}
+
+fetchData();
+animate();
+setInterval(fetchData, 30000);
