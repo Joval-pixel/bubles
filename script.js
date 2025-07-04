@@ -20,16 +20,16 @@ function getGlow(change) {
 async function fetchData() {
   const res = await fetch('https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD');
   const data = await res.json();
-  bubbles = data.stocks.slice(0, 50).map((stock, i) => {
-    const size = Math.abs(stock.change || 0) * 100 + 30;
+  bubbles = data.stocks.slice(0, 50).map(stock => {
+    const size = Math.min(120, Math.abs(stock.change || 0) * 90 + 30); // tamanho máximo limitado
     return {
       symbol: stock.stock,
       price: stock.close,
       change: stock.change,
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 2,
-      dy: (Math.random() - 0.5) * 2,
+      x: Math.random() * (canvas.width - size * 2) + size,
+      y: Math.random() * (canvas.height - size * 2) + size,
+      dx: (Math.random() - 0.5) * 1.5,
+      dy: (Math.random() - 0.5) * 1.5,
       radius: size,
     };
   });
@@ -39,18 +39,22 @@ function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let b of bubbles) {
     ctx.beginPath();
-    ctx.shadowBlur = 30;
+    ctx.shadowBlur = 25;
     ctx.shadowColor = getGlow(b.change);
     ctx.fillStyle = getColor(b.change);
     ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
     ctx.fill();
 
+    // texto
     ctx.shadowBlur = 0;
     ctx.fillStyle = "white";
-    ctx.font = `${Math.max(12, b.radius / 5)}px Arial`;
     ctx.textAlign = "center";
-    ctx.fillText(`${b.symbol}`, b.x, b.y - 5);
-    ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 15);
+
+    const fontSize = Math.max(10, b.radius / 4);
+    ctx.font = `bold ${fontSize}px Arial`;
+
+    ctx.fillText(`${b.symbol}`, b.x, b.y - fontSize / 3);
+    ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + fontSize / 1.3);
   }
 }
 
@@ -59,6 +63,7 @@ function update() {
     b.x += b.dx;
     b.y += b.dy;
 
+    // rebote
     if (b.x - b.radius < 0 || b.x + b.radius > canvas.width) b.dx *= -1;
     if (b.y - b.radius < 0 || b.y + b.radius > canvas.height) b.dy *= -1;
   }
@@ -73,8 +78,10 @@ function animate() {
 function showCategory(cat) {
   const tabs = document.querySelectorAll('.tab');
   tabs.forEach(tab => tab.classList.remove('active'));
-  document.querySelector(`.tab:contains("${cat}")`)?.classList.add('active');
-  // você pode alternar os dados de cada aba aqui
+  // categoria ativa (marcar visualmente, sem mudar os dados ainda)
+  tabs.forEach(tab => {
+    if (tab.textContent.toLowerCase().includes(cat)) tab.classList.add('active');
+  });
 }
 
 fetchData().then(() => {
