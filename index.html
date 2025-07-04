@@ -1,8 +1,11 @@
 import zipfile
 from pathlib import Path
 
-# Novo HTML com lista fixa de ativos
-html_corrigido = """
+# Nome do novo arquivo corrigido com estilo inspirado no CryptoBubbles
+zip_path = Path("/mnt/data/bubles-estilo-cryptobubbles.zip")
+
+# Criando um novo index.html com ajustes visuais e comportamento refinado
+html_content = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -10,240 +13,106 @@ html_corrigido = """
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BUBLES – A BOLSA QUE RESPIRA</title>
   <style>
-    body, html {
+    body {
       margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
       background-color: #000;
-      color: white;
       overflow: hidden;
+      font-family: Arial, sans-serif;
+      color: white;
     }
     header {
-      padding: 10px 20px;
-      background-color: #111;
       text-align: center;
+      padding: 10px;
+      background: #111;
       font-size: 24px;
       font-weight: bold;
     }
-    nav {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      padding: 10px;
-      background: #1a1a1a;
-      flex-wrap: wrap;
-    }
-    nav button {
-      padding: 6px 12px;
-      background: #333;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    nav button.active {
-      background: #007bff;
-    }
-    #rankingPanel, #corretorasPanel {
-      position: absolute;
-      right: 0;
-      top: 60px;
-      width: 200px;
-      background: rgba(0,0,0,0.85);
-      padding: 10px;
-      font-size: 14px;
-      display: none;
-      max-height: 90%;
-      overflow-y: auto;
-    }
-    #canvas {
+    canvas {
       display: block;
     }
-    #loginBox {
+    .bubble {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(255,255,255,0.05);
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-    #loginBox input {
-      padding: 4px;
-      margin-right: 5px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-weight: bold;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+      transition: transform 0.5s;
     }
   </style>
 </head>
 <body>
   <header>BUBLES – A BOLSA QUE RESPIRA</header>
-
-  <div id="loginBox">
-    <input type="email" id="userEmail" placeholder="Seu e-mail" />
-    <button onclick="saveLogin()">Entrar</button>
-  </div>
-
-  <nav>
-    <button onclick="changeTab('stocks', event)" class="active">Ações</button>
-    <button onclick="changeTab('crypto', event)">Criptos</button>
-    <button onclick="changeTab('commodities', event)">Commodities</button>
-    <button onclick="toggleRanking()">📊 Ranking</button>
-    <button onclick="toggleCorretoras()">🏦 Corretoras</button>
-  </nav>
-
-  <div id="rankingPanel">
-    <h3>Altas</h3>
-    <ul id="rankingUp"></ul>
-    <h3>Quedas</h3>
-    <ul id="rankingDown"></ul>
-    <h3>Volume</h3>
-    <ul id="rankingVolume"></ul>
-  </div>
-
-  <div id="corretorasPanel">
-    <h3>Corretoras – WIN & IND</h3>
-    <ul id="corretorasList"></ul>
-  </div>
-
   <canvas id="canvas"></canvas>
-
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let bubbles = [], activeTab = "stocks";
+    const data = [
+      { ticker: "PETR4", change: 1.23 },
+      { ticker: "VALE3", change: -2.56 },
+      { ticker: "ITUB4", change: 0.87 },
+      { ticker: "BBDC4", change: -1.13 },
+      { ticker: "JBSS3", change: 3.02 },
+      { ticker: "ABEV3", change: -0.76 },
+    ];
 
-    class Bubble {
-      constructor(ticker, price, change, volume) {
-        this.ticker = ticker;
-        this.price = price;
-        this.change = change;
-        this.volume = volume;
-        this.radius = Math.max(20, Math.min(Math.abs(change) * 5 + volume / 1e7, 80));
-        this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
-        this.y = Math.random() * (canvas.height - this.radius * 2) + this.radius;
-        this.dx = (Math.random() - 0.5) * 1.5;
-        this.dy = (Math.random() - 0.5) * 1.5;
-        this.color = change >= 0 ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)";
-        this.border = change >= 0 ? "lime" : "red";
-      }
+    const bubbles = data.map((d, i) => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.max(30, Math.abs(d.change) * 20),
+      dx: (Math.random() - 0.5) * 1.5,
+      dy: (Math.random() - 0.5) * 1.5,
+      color: d.change >= 0 ? "lime" : "red",
+      text: `${d.ticker}\n${d.change > 0 ? "+" : ""}${d.change.toFixed(2)}%`,
+    }));
 
-      draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        ctx.strokeStyle = this.border;
-        ctx.lineWidth = 4;
-        ctx.stroke();
-        ctx.fillStyle = "#fff";
-        ctx.font = `${Math.min(16, this.radius / 2)}px Arial`;
-        ctx.textAlign = "center";
-        ctx.fillText(this.ticker, this.x, this.y - 5);
-        ctx.fillText(`${this.change.toFixed(2)}%`, this.x, this.y + 12);
-      }
-
-      update() {
-        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.dx = -this.dx;
-        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.dy = -this.dy;
-        this.x += this.dx;
-        this.y += this.dy;
-        this.draw();
-      }
-    }
-
-    async function fetchData() {
-      let tickers = "VALE3,PETR4,ITUB4,ABEV3,BBDC4,BBAS3,MGLU3,WEGE3,RENT3,JBSS3";
-      if (activeTab === "crypto") tickers = "BTC-USD,ETH-USD";
-      if (activeTab === "commodities") tickers = "GC=F,CL=F";
-
-      try {
-        const res = await fetch(`https://brapi.dev/api/quote/${tickers}?token=5bTDfSmR2ieax6y7JUqDAD`);
-        const data = await res.json();
-        bubbles = data.results.map(s => new Bubble(s.symbol, s.regularMarketPrice, s.regularMarketChangePercent, s.regularMarketVolume));
-        renderRanking(data.results);
-      } catch (err) {
-        console.error("Erro ao buscar dados:", err);
-      }
+    function drawBubble(b) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = b.color;
+      ctx.shadowColor = b.color;
+      ctx.shadowBlur = 25;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "white";
+      ctx.font = `${Math.max(12, b.r / 3)}px Arial`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(b.text.split("\n")[0], b.x, b.y - 10);
+      ctx.fillText(b.text.split("\n")[1], b.x, b.y + 10);
     }
 
     function animate() {
-      requestAnimationFrame(animate);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bubbles.forEach(b => b.update());
+      bubbles.forEach((b) => {
+        b.x += b.dx;
+        b.y += b.dy;
+
+        if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.dx *= -1;
+        if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.dy *= -1;
+
+        drawBubble(b);
+      });
+      requestAnimationFrame(animate);
     }
 
-    function changeTab(tab, event) {
-      document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
-      event.target.classList.add("active");
-      activeTab = tab;
-      fetchData();
-    }
-
-    function toggleRanking() {
-      const panel = document.getElementById("rankingPanel");
-      panel.style.display = panel.style.display === "block" ? "none" : "block";
-    }
-
-    function toggleCorretoras() {
-      const panel = document.getElementById("corretorasPanel");
-      panel.style.display = panel.style.display === "block" ? "none" : "block";
-    }
-
-    function renderRanking(stocks) {
-      const up = [...stocks].sort((a,b)=>b.regularMarketChangePercent-a.regularMarketChangePercent).slice(0,5);
-      const down = [...stocks].sort((a,b)=>a.regularMarketChangePercent-b.regularMarketChangePercent).slice(0,5);
-      const vol = [...stocks].sort((a,b)=>b.regularMarketVolume-a.regularMarketVolume).slice(0,5);
-      document.getElementById("rankingUp").innerHTML = up.map(s => `<li>${s.symbol} ${s.regularMarketChangePercent.toFixed(2)}%</li>`).join("");
-      document.getElementById("rankingDown").innerHTML = down.map(s => `<li>${s.symbol} ${s.regularMarketChangePercent.toFixed(2)}%</li>`).join("");
-      document.getElementById("rankingVolume").innerHTML = vol.map(s => `<li>${s.symbol} ${Math.round(s.regularMarketVolume/1e6)}M</li>`).join("");
-    }
-
-    function saveLogin() {
-      const email = document.getElementById("userEmail").value;
-      if (email.includes("@")) {
-        localStorage.setItem("userEmail", email);
-        alert("Login salvo!");
-      }
-    }
-
-    function renderCorretoras() {
-      const corretoras = [
-        { nome: "Morgan Stanley", saldo: 3200 },
-        { nome: "JP Morgan", saldo: -1800 },
-        { nome: "UBS", saldo: 950 },
-        { nome: "Merrill Lynch", saldo: -2400 },
-      ];
-      const html = corretoras.map(c => {
-        const cor = c.saldo >= 0 ? "lime" : "red";
-        const tendencia = c.saldo >= 0 ? "Compra" : "Venda";
-        return `<li style="margin:5px 0;">
-                  <strong>${c.nome}</strong><br>
-                  <span style="color:${cor};">${tendencia} (${c.saldo >= 0 ? '+' : ''}${c.saldo})</span>
-                </li>`;
-      }).join("");
-      document.getElementById("corretorasList").innerHTML = html;
-    }
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-
-    fetchData().then(() => animate());
-    renderCorretoras();
+    animate();
   </script>
 </body>
 </html>
 """
 
-# Salvar e empacotar como novo zip
+# Salvar o HTML em um arquivo
 html_path = Path("/mnt/data/index.html")
-html_path.write_text(html_corrigido, encoding="utf-8")
+html_path.write_text(html_content, encoding="utf-8")
 
-zip_path = Path("/mnt/data/bubles-com-bolhas.zip")
-with zipfile.ZipFile(zip_path, 'w') as zipf:
+# Empacotar em .zip
+with zipfile.ZipFile(zip_path, "w") as zipf:
     zipf.write(html_path, arcname="index.html")
 
 zip_path.name
