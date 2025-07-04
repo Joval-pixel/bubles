@@ -2,20 +2,22 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles — A Bolsa que Respira</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bubles – A Bolsa que Respira</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="menu">
-    <button class="tab active">Ações</button>
-    <button class="tab">Criptos</button>
-    <button class="tab">Commodities</button>
-    <button class="tab">📊 Ranking</button>
-    <button class="tab">🏛 Corretoras</button>
+    <button class="tab active" onclick="showCategory('acoes')">Ações</button>
+    <button class="tab" onclick="showCategory('criptos')">Criptos</button>
+    <button class="tab" onclick="showCategory('commodities')">Commodities</button>
+    <button class="tab" onclick="showCategory('ranking')">📊 Ranking</button>
+    <button class="tab" onclick="showCategory('corretoras')">🏛 Corretoras</button>
   </div>
+
   <h1>BUBLES – A BOLSA QUE RESPIRA</h1>
-  <canvas id="bubbleCanvas"></canvas>
+  <canvas id="canvas"></canvas>
+
   <script src="script.js"></script>
 </body>
 </html>
