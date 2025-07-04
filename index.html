@@ -1,7 +1,7 @@
 from pathlib import Path
 
-# Corrigir o erro de event.target e gerar novo arquivo HTML
-codigo_corrigido = """
+# Regerar corretamente o HTML funcional do projeto Bubles com tudo integrado
+html_funcional = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -246,7 +246,7 @@ codigo_corrigido = """
 </html>
 """
 
-# Salvar o arquivo corrigido
-file_path_corrigido = Path("/mnt/data/bubles-corrigido-final.html")
-file_path_corrigido.write_text(codigo_corrigido, encoding="utf-8")
-file_path_corrigido.name
+# Salvar o arquivo corrigido funcional
+arquivo_final = Path("/mnt/data/index.html")
+arquivo_final.write_text(html_funcional, encoding="utf-8")
+arquivo_final.name
