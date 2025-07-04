@@ -1,7 +1,7 @@
 body {
   margin: 0;
   overflow: hidden;
-  background-color: #000;
+  background: #000;
   font-family: Arial, sans-serif;
 }
 
@@ -19,13 +19,13 @@ body {
 
 .tab {
   padding: 10px 15px;
+  background: #333;
+  color: #fff;
   border: none;
-  border-radius: 8px;
-  background-color: #333;
-  color: white;
+  border-radius: 6px;
   font-weight: bold;
 }
 
 .tab.active {
-  background-color: #007bff;
+  background: #007bff;
 }
