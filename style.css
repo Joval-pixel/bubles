@@ -1,41 +1,82 @@
-body {
-  margin: 0;
-  overflow: hidden;
-  background-color: black;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let bolhas = [];
+let tipoAtual = "acoes";
+
+function gerarBolhas(dados) {
+  bolhas = dados.map((item, i) => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: 30 + Math.abs(item.changePercent) * 5,
+    dx: Math.random() * 2 - 1,
+    dy: Math.random() * 2 - 1,
+    cor: item.changePercent >= 0 ? "lime" : "red",
+    texto: `${item.symbol}\n${item.changePercent.toFixed(2)}%`
+  }));
 }
 
-h1 {
-  margin-top: 10px;
-  font-size: 24px;
+function desenharBolhas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  bolhas.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fillStyle = b.cor;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = b.cor;
+    ctx.fill();
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.font = "bold 16px Arial";
+    const linhas = b.texto.split("\n");
+    linhas.forEach((linha, i) => {
+      ctx.fillText(linha, b.x, b.y + (i * 18 - 10));
+    });
+    ctx.closePath();
+
+    b.x += b.dx;
+    b.y += b.dy;
+
+    if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
+    if (b.y + b.r > canvas.height || b.y - b.r < 0) b.dy *= -1;
+  });
+  requestAnimationFrame(desenharBolhas);
 }
 
-#menu {
-  margin: 10px auto;
+function carregarDados(tipo = "acoes") {
+  let url = "";
+  if (tipo === "acoes") url = "https://brapi.dev/api/quote/list?sortBy=volume&limit=30&token=5bTDfSmR2ieax6y7JUqDAD";
+  else if (tipo === "criptos") url = "https://brapi.dev/api/crypto?sortBy=volume&limit=30&token=5bTDfSmR2ieax6y7JUqDAD";
+  else if (tipo === "commodities") url = "https://brapi.dev/api/quote/commodities?token=5bTDfSmR2ieax6y7JUqDAD";
+  else return;
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      const ativos = data.stocks || data.coins || data.results || [];
+      const lista = ativos.map(a => ({
+        symbol: a.symbol || a.coin || "N/A",
+        changePercent: a.change_percent || a.changePercent || 0
+      }));
+      gerarBolhas(lista);
+    })
+    .catch(err => console.error("Erro ao carregar dados:", err));
 }
 
-#menu button {
-  background-color: #333;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  margin: 4px;
-  border-radius: 6px;
-  cursor: pointer;
+function filtrar(tipo) {
+  tipoAtual = tipo;
+  document.querySelectorAll("#menu button").forEach(btn => btn.classList.remove("ativo"));
+  const botao = Array.from(document.querySelectorAll("#menu button")).find(b => b.textContent.toLowerCase().includes(tipo));
+  if (botao) botao.classList.add("ativo");
+  carregarDados(tipo);
 }
 
-#menu button.ativo {
-  background-color: #007bff;
-}
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
 
-canvas {
-  display: block;
-  margin: 0 auto;
-  position: absolute;
-  top: 80px;
-  left: 0;
-  width: 100%;
-  height: calc(100% - 80px);
-}
+carregarDados();
+desenharBolhas();
