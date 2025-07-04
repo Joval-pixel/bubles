@@ -1,23 +1,120 @@
+from pathlib import Path
+
+# Código HTML, CSS e JS completos para o projeto Bubles com API da Brapi e bolhas interativas
+codigo_bubles = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles – A Bolsa que Respira</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BUBLES – A BOLSA QUE RESPIRA</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #000;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      background-color: #111;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
-  <h1 class="title">BUBLES – A BOLSA QUE RESPIRA</h1>
-  <div id="bubble-container"></div>
+  <header>BUBLES – A BOLSA QUE RESPIRA</header>
+  <canvas id="canvas"></canvas>
 
-  <!-- Modal do gráfico -->
-  <div id="modal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="fecharModal()">&times;</span>
-      <div id="grafico"></div>
-    </div>
-  </div>
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-  <script src="script.js"></script>
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    class Bubble {
+      constructor(ticker, price, change, volume) {
+        this.ticker = ticker;
+        this.price = price;
+        this.change = change;
+        this.volume = volume;
+        this.radius = Math.max(20, Math.min(Math.abs(change) * 5 + volume / 1e7, 80));
+        this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+        this.y = Math.random() * (canvas.height - this.radius * 2) + this.radius;
+        this.dx = (Math.random() - 0.5) * 1.5;
+        this.dy = (Math.random() - 0.5) * 1.5;
+        this.color = change >= 0 ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)";
+        this.border = change >= 0 ? "lime" : "red";
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.strokeStyle = this.border;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.fillStyle = "#fff";
+        ctx.font = `${Math.min(16, this.radius / 2)}px Arial`;
+        ctx.textAlign = "center";
+        ctx.fillText(this.ticker, this.x, this.y - 5);
+        ctx.fillText(`${this.change.toFixed(2)}%`, this.x, this.y + 12);
+      }
+
+      update() {
+        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+          this.dx = -this.dx;
+        }
+        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+          this.dy = -this.dy;
+        }
+        this.x += this.dx;
+        this.y += this.dy;
+        this.draw();
+      }
+    }
+
+    let bubbles = [];
+
+    async function fetchData() {
+      try {
+        const res = await fetch("https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&sortBy=change&sortOrder=desc&limit=30");
+        const data = await res.json();
+        bubbles = data.stocks.map(stock => new Bubble(stock.stock, stock.price, stock.change, stock.volume));
+      } catch (err) {
+        console.error("Erro ao buscar dados da API Brapi:", err);
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      bubbles.forEach(bubble => bubble.update());
+    }
+
+    fetchData().then(() => animate());
+  </script>
 </body>
 </html>
+"""
+
+# Salvar como arquivo HTML
+file_path = Path("/mnt/data/bubles-projeto-completo.html")
+file_path.write_text(codigo_bubles, encoding="utf-8")
+file_path.name
