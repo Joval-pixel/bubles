@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BUBLES.COM.BR - </title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BUBLES — A Bolsa que Respira</title>
   <style>
     body {
       margin: 0;
@@ -67,11 +67,11 @@
       bolhas = dados.map((item, i) => ({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        r: 30 + Math.abs(item.changePercent) * 5,
+        r: 30 + Math.abs(item.variacao) * 5,
         dx: Math.random() * 2 - 1,
         dy: Math.random() * 2 - 1,
-        cor: item.changePercent >= 0 ? "lime" : "red",
-        texto: `${item.symbol}\n${item.changePercent.toFixed(2)}%`
+        cor: item.variacao >= 0 ? "lime" : "red",
+        texto: `${item.simbolo || "N/A"}\n${item.variacao.toFixed(2)}%`
       }));
     }
 
@@ -81,7 +81,7 @@
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
         ctx.fillStyle = b.cor;
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 25;
         ctx.shadowColor = b.cor;
         ctx.fill();
         ctx.fillStyle = "white";
@@ -114,8 +114,8 @@
         .then(data => {
           const ativos = data.stocks || data.coins || data.results || [];
           const lista = ativos.map(a => ({
-            symbol: a.symbol || a.coin || "N/A",
-            changePercent: a.change_percent || a.changePercent || 0
+            simbolo: a.symbol || a.coin || a.name || "N/A",
+            variacao: parseFloat(a.change_percent || a.changePercent || a.change || 0)
           }));
           gerarBolhas(lista);
         })
