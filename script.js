@@ -1,51 +1,80 @@
-const container = document.getElementById('bubble-container');
-const modal = document.getElementById('modal');
-const chart = document.getElementById('chart');
+const canvas = document.getElementById('bubbleCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-const brapiKey = '5bTDfSmR2ieax6y7JUqDAD';
-const tickers = ['VALE3', 'PETR4', 'ITUB4', 'BBDC4', 'BBAS3', 'MGLU3', 'AZUL4', 'RAIZ4', 'COGN3', 'VVAR3'];
+let bubbles = [];
 
-async function carregarBrapi() {
-  try {
-    const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${brapiKey}`);
-    const data = await response.json();
-    criarBolhas(data.stocks);
-  } catch (e) {
-    console.error('Erro ao carregar dados da Brapi:', e);
-  }
+function randomColor(value) {
+  return value >= 0 ? 'green' : 'red';
 }
 
-function criarBolhas(stocks) {
-  container.innerHTML = '';
-  stocks.forEach(stock => {
-    const bubble = document.createElement('div');
-    const valor = stock.changePercent;
-    const variacao = parseFloat(valor);
-    const cor = variacao < 0 ? 'red' : 'green';
+function glowColor(value) {
+  return value >= 0 ? '0 0 25px #00ff00' : '0 0 25px #ff0000';
+}
 
-    bubble.className = `bubble ${cor}`;
-    bubble.style.width = `${50 + Math.abs(variacao) * 5}px`;
-    bubble.style.height = bubble.style.width;
-    bubble.style.top = `${Math.random() * 80}vh`;
-    bubble.style.left = `${Math.random() * 80}vw`;
-    bubble.style.fontSize = `${Math.max(10, 12 + Math.abs(variacao))}px`;
-    bubble.innerHTML = `${stock.stock}<br>${variacao.toFixed(2)}%`;
+function createBubble(symbol, value) {
+  return {
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    radius: 40 + Math.abs(value) * 100,
+    dx: (Math.random() - 0.5) * 1.5,
+    dy: (Math.random() - 0.5) * 1.5,
+    symbol: symbol,
+    value: value
+  };
+}
 
-    bubble.onclick = () => abrirGrafico(stock.stock);
-    container.appendChild(bubble);
+// Exemplo estático (você pode substituir por dados da API Brapi)
+const symbols = [
+  { symbol: 'VALE3', value: 0.29 },
+  { symbol: 'MGLU3', value: 0.65 },
+  { symbol: 'BBDC4', value: -0.48 },
+  { symbol: 'JBSS3', value: -100.0 },
+  { symbol: 'RAIZ4', value: 0.59 },
+  { symbol: 'PETR4', value: -0.12 }
+];
+
+symbols.forEach(s => bubbles.push(createBubble(s.symbol, s.value)));
+
+function drawBubbles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  bubbles.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.radius, 0, 2 * Math.PI);
+    ctx.fillStyle = b.value >= 0 ? '#00ff00' : '#ff0000';
+    ctx.shadowColor = b.value >= 0 ? '#00ff00' : '#ff0000';
+    ctx.shadowBlur = 30;
+    ctx.fill();
+    ctx.closePath();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.font = `${Math.max(12, b.radius / 3)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText(b.symbol, b.x, b.y - 10);
+    ctx.fillText(`${b.value.toFixed(2)}%`, b.x, b.y + 10);
   });
 }
 
-function abrirGrafico(ticker) {
-  modal.style.display = 'flex';
-  chart.innerHTML = `
-    <iframe src="https://s.tradingview.com/widgetembed/?symbol=BMFBOVESPA:${ticker}&theme=dark&style=1&locale=br" allowfullscreen></iframe>
-  `;
+function moveBubbles() {
+  bubbles.forEach(b => {
+    b.x += b.dx;
+    b.y += b.dy;
+    if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.dx *= -1;
+    if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.dy *= -1;
+  });
 }
 
-function fecharModal() {
-  modal.style.display = 'none';
-  chart.innerHTML = '';
+function animate() {
+  drawBubbles();
+  moveBubbles();
+  requestAnimationFrame(animate);
 }
 
-window.onload = carregarBrapi;
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`.tab:contains('${tab}')`)?.classList.add('active');
+}
+
+animate();
