@@ -1,60 +1,60 @@
-const canvas = document.getElementById("bubbleCanvas");
-const ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
 let bubbles = [];
 
-async function fetchData() {
-  const url = "https://brapi.dev/api/quote/list?sortBy=volume&limit=50&token=5bTDfSmR2ieax6y7JUqDAD";
-  const res = await fetch(url);
-  const data = await res.json();
-
-  bubbles = data.stocks.map((stock, i) => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    r: Math.max(30, Math.abs(stock.change) * 20 + 20),
-    color: stock.change >= 0 ? "lime" : "red",
-    glow: stock.change >= 0 ? "0 0 25px lime" : "0 0 25px red",
-    symbol: stock.stock || "N/A",
-    change: stock.change || 0,
-    dx: (Math.random() - 0.5) * 1.5,
-    dy: (Math.random() - 0.5) * 1.5,
-  }));
+function fetchData() {
+  fetch('https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD')
+    .then(res => res.json())
+    .then(data => {
+      bubbles = data.stocks.map(stock => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: (Math.random() - 0.5) * 1.5,
+        r: 20 + Math.abs(stock.change) * 50,
+        color: stock.change > 0 ? 'lime' : stock.change < 0 ? 'red' : 'gray',
+        symbol: stock.stock,
+        change: stock.change.toFixed(2)
+      }));
+    });
 }
 
-function drawBubble(b) {
-  ctx.beginPath();
-  ctx.fillStyle = b.color;
-  ctx.shadowColor = b.color;
-  ctx.shadowBlur = 20;
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  ctx.fillStyle = "white";
-  ctx.font = `${Math.max(12, b.r / 3)}px Arial`;
-  ctx.textAlign = "center";
-  ctx.fillText(b.symbol, b.x, b.y - 5);
-  ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 15);
-}
-
-function animate() {
+function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let b of bubbles) {
-    b.x += b.dx;
-    b.y += b.dy;
+    b.x += b.vx;
+    b.y += b.vy;
 
-    // Colisão com bordas
-    if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
-    if (b.y + b.r > canvas.height || b.y - b.r < 0) b.dy *= -1;
+    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
+    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
 
-    drawBubble(b);
+    const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.1, b.x, b.y, b.r);
+    gradient.addColorStop(0, 'white');
+    gradient.addColorStop(1, b.color);
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = `${Math.min(b.r * 0.5, 18)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText(b.symbol, b.x, b.y - 5);
+    ctx.fillText(`${b.change}%`, b.x, b.y + 12);
   }
-  requestAnimationFrame(animate);
+
+  requestAnimationFrame(draw);
 }
 
-fetchData().then(() => {
-  animate();
-});
+function showCategory(category) {
+  console.log('Categoria:', category);
+  // Implementar filtros no futuro
+}
+
+fetchData();
+draw();
+setInterval(fetchData, 15000);
