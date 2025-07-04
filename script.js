@@ -1,64 +1,52 @@
-const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
-const symbols = ['VALE3', 'PETR4', 'ITUB4', 'BBDC4', 'BBAS3', 'ABEV3', 'B3SA3', 'MGLU3', 'WEGE3', 'RENT3'];
-
-async function getStockData() {
-  const url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&token=${apiKey}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.stocks.slice(0, 100);
+async function getCryptoData() {
+  try {
+    // Usando proxy para evitar CORS (substitua por um proxy próprio se necessário)
+    const proxyUrl = 'https://corsproxy.io/?';
+    const apiUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20';
+    
+    const response = await fetch(proxyUrl + encodeURIComponent(apiUrl), {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
+    
+    if (!response.ok) throw new Error('Erro na API');
+    return await response.json();
+  } catch (error) {
+    console.error("Falha ao buscar dados:", error);
+    // Dados de fallback
+    return [
+      { symbol: "BTC", name: "Bitcoin", market_cap: 800000000000, current_price: 50000, price_change_percentage_24h: 2.5 },
+      { symbol: "ETH", name: "Ethereum", market_cap: 400000000000, current_price: 3000, price_change_percentage_24h: -1.2 },
+      { symbol: "SOL", name: "Solana", market_cap: 150000000000, current_price: 150, price_change_percentage_24h: 5.7 }
+    ];
+  }
 }
 
-function createBubble(stock) {
+function createBubble(crypto) {
   const bubble = document.createElement("div");
-  bubble.className = `bubble ${stock.changesPercentage >= 0 ? 'positive' : 'negative'}`;
+  bubble.className = `crypto-bubble ${crypto.price_change_percentage_24h >= 0 ? 'price-up' : 'price-down'}`;
   
-  const nome = stock.stock;
-  const variacao = stock.changesPercentage?.toFixed(2);
-  const preco = stock.price?.toFixed(2);
+  // Tamanho proporcional ao market cap (em bilhões)
+  const size = Math.sqrt(crypto.market_cap / 1000000000) * 20;
+  bubble.style.width = `${size}px`;
+  bubble.style.height = `${size}px`;
   
-  const texto = `
-    <span>${nome}</span>
-    <span>${variacao > 0 ? '+' : ''}${variacao}%</span>
-    <span>R$ ${preco}</span>
-  `;
+  // Posição aleatória inicial
+  bubble.style.left = `${Math.random() * 85}%`;
+  bubble.style.top = `${Math.random() * 85}%`;
   
-  bubble.innerHTML = texto;
-  const tamanho = Math.min(Math.max(Math.abs(variacao) * 10 + stock.volume / 10000000, 60), 150);
+  // Conteúdo
+  bubble.textContent = crypto.symbol.toUpperCase();
+  bubble.setAttribute("title", 
+    `${crypto.name}\nPreço: $${crypto.current_price.toLocaleString()}\n24h: ${crypto.price_change_percentage_24h?.toFixed(2) || 'N/A'}%`
+  );
   
-  bubble.style.width = `${tamanho}px`;
-  bubble.style.height = `${tamanho}px`;
-  bubble.style.left = `${Math.random() * (window.innerWidth - tamanho)}px`;
-  bubble.style.top = `${Math.random() * (window.innerHeight - tamanho)}px`;
-
-  bubble.onclick = () => abrirModal(stock.stock);
-
-  return bubble;
+  document.getElementById("crypto-container").appendChild(bubble);
 }
 
-async function renderBubbles() {
-  const container = document.getElementById("bubble-container");
-  const stocks = await getStockData();
-
-  stocks.forEach(stock => {
-    if (stock.stock && stock.changesPercentage != null) {
-      const bubble = createBubble(stock);
-      container.appendChild(bubble);
-    }
-  });
-}
-
-function abrirModal(symbol) {
-  const modal = document.getElementById("modal");
-  const grafico = document.getElementById("grafico");
-  modal.style.display = "block";
-  grafico.innerHTML = `
-    <iframe src="https://s.tradingview.com/embed-widget/symbol-overview/?locale=br#${symbol}"
-      width="100%" height="400" frameborder="0" allowfullscreen></iframe>`;
-}
-
-function fecharModal() {
-  document.getElementById("modal").style.display = "none";
-  document.getElementById("grafico").innerHTML = "";
-}
-
-renderBubbles();
+// Inicialização
+(async function init() {
+  const cryptos = await getCryptoData();
+  cryptos.forEach(createBubble);
+})();
