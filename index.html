@@ -3,49 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles – A Bolsa que Respira</title>
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      font-family: Arial, sans-serif;
-      color: white;
-      text-align: center;
-      overflow: hidden;
-    }
-    h1 {
-      font-size: 22px;
-      margin: 10px 0;
-    }
-    .menu {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 10px;
-      background: #111;
-    }
-    .tab {
-      margin: 5px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      background-color: #333;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .tab.active, .tab:hover {
-      background-color: dodgerblue;
-    }
-    canvas {
-      position: absolute;
-      top: 130px;
-      left: 0;
-      width: 100%;
-      height: calc(100% - 130px);
-      display: block;
-    }
-  </style>
+  <title>Bubles</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="menu">
@@ -55,70 +14,7 @@
     <button class="tab" onclick="showCategory('ranking')">📊 Ranking</button>
     <button class="tab" onclick="showCategory('corretoras')">🏛 Corretoras</button>
   </div>
-
-  <h1>BUBLES – A BOLSA QUE RESPIRA</h1>
-  <canvas id="canvas"></canvas>
-
-  <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let bubbles = [];
-
-    function fetchData() {
-      fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD")
-        .then((res) => res.json())
-        .then((data) => {
-          bubbles = data.stocks.map((stock) => ({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * 1.5,
-            vy: (Math.random() - 0.5) * 1.5,
-            r: 20 + Math.abs(stock.change) * 50,
-            color: stock.change > 0 ? "lime" : stock.change < 0 ? "red" : "gray",
-            symbol: stock.stock,
-            change: stock.change.toFixed(2)
-          }));
-        });
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let b of bubbles) {
-        b.x += b.vx;
-        b.y += b.vy;
-
-        if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
-        if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
-
-        const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.1, b.x, b.y, b.r);
-        gradient.addColorStop(0, "white");
-        gradient.addColorStop(1, b.color);
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "#fff";
-        ctx.font = `${Math.min(b.r * 0.45, 18)}px Arial`;
-        ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 4);
-        ctx.fillText(`${b.change}%`, b.x, b.y + 14);
-      }
-
-      requestAnimationFrame(draw);
-    }
-
-    function showCategory(category) {
-      alert("Categoria: " + category + " (em breve)");
-    }
-
-    fetchData();
-    draw();
-    setInterval(fetchData, 15000);
-  </script>
+  <canvas id="bubbleCanvas"></canvas>
+  <script src="script.js"></script>
 </body>
 </html>
