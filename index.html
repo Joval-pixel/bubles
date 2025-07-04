@@ -1,104 +1,122 @@
 from pathlib import Path
-from zipfile import ZipFile
 
-# HTML completo com bolhas estilizadas como no CryptoBubbles.net
-html_content = """
+# Código HTML, CSS e JS completos para o projeto Bubles com API da Brapi e bolhas interativas
+codigo_bubles = """
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BUBLES – A BOLSA QUE RESPIRA</title>
   <style>
-    body {
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
       background-color: #000;
-      font-family: Arial, sans-serif;
       overflow: hidden;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      background-color: #111;
     }
     canvas {
       display: block;
     }
-    .bubble {
-      stroke: white;
-      stroke-width: 2px;
-      filter: drop-shadow(0 0 6px white);
-    }
-    text {
-      fill: white;
-      font-weight: bold;
-      text-anchor: middle;
-      alignment-baseline: middle;
-      pointer-events: none;
-    }
   </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script>
-const canvas = document.getElementById("canvas");
-const context = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+  <header>BUBLES – A BOLSA QUE RESPIRA</header>
+  <canvas id="canvas"></canvas>
 
-let bubbles = [];
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-async function fetchData() {
-  const response = await fetch("https://brapi.dev/api/quote/list?limit=100&token=5bTDfSmR2ieax6y7JUqDAD");
-  const data = await response.json();
-  bubbles = data.stocks.map(stock => ({
-    symbol: stock.stock,
-    change: stock.changePercent,
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 2,
-    vy: (Math.random() - 0.5) * 2,
-    radius: 20 + Math.abs(stock.changePercent) * 2
-  }));
-  animate();
-}
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
 
-function animate() {
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  for (let b of bubbles) {
-    b.x += b.vx;
-    b.y += b.vy;
+    class Bubble {
+      constructor(ticker, price, change, volume) {
+        this.ticker = ticker;
+        this.price = price;
+        this.change = change;
+        this.volume = volume;
+        this.radius = Math.max(20, Math.min(Math.abs(change) * 5 + volume / 1e7, 80));
+        this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+        this.y = Math.random() * (canvas.height - this.radius * 2) + this.radius;
+        this.dx = (Math.random() - 0.5) * 1.5;
+        this.dy = (Math.random() - 0.5) * 1.5;
+        this.color = change >= 0 ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)";
+        this.border = change >= 0 ? "lime" : "red";
+      }
 
-    if (b.x - b.radius < 0 || b.x + b.radius > canvas.width) b.vx *= -1;
-    if (b.y - b.radius < 0 || b.y + b.radius > canvas.height) b.vy *= -1;
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.strokeStyle = this.border;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.fillStyle = "#fff";
+        ctx.font = `${Math.min(16, this.radius / 2)}px Arial`;
+        ctx.textAlign = "center";
+        ctx.fillText(this.ticker, this.x, this.y - 5);
+        ctx.fillText(`${this.change.toFixed(2)}%`, this.x, this.y + 12);
+      }
 
-    context.beginPath();
-    context.arc(b.x, b.y, b.radius, 0, 2 * Math.PI);
-    const color = b.change >= 0 ? "lime" : "red";
-    context.fillStyle = color;
-    context.shadowColor = color;
-    context.shadowBlur = 15;
-    context.fill();
-    context.shadowBlur = 0;
+      update() {
+        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+          this.dx = -this.dx;
+        }
+        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+          this.dy = -this.dy;
+        }
+        this.x += this.dx;
+        this.y += this.dy;
+        this.draw();
+      }
+    }
 
-    context.fillStyle = "#fff";
-    context.font = "bold " + Math.max(12, b.radius / 3) + "px Arial";
-    context.textAlign = "center";
-    context.fillText(b.symbol, b.x, b.y - 5);
-    context.fillText((b.change >= 0 ? "+" : "") + b.change.toFixed(2) + "%", b.x, b.y + 15);
-  }
-  requestAnimationFrame(animate);
-}
+    let bubbles = [];
 
-fetchData();
-</script>
+    async function fetchData() {
+      try {
+        const res = await fetch("https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&sortBy=change&sortOrder=desc&limit=30");
+        const data = await res.json();
+        bubbles = data.stocks.map(stock => new Bubble(stock.stock, stock.price, stock.change, stock.volume));
+      } catch (err) {
+        console.error("Erro ao buscar dados da API Brapi:", err);
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      bubbles.forEach(bubble => bubble.update());
+    }
+
+    fetchData().then(() => animate());
+  </script>
 </body>
 </html>
 """
 
-# Salvar HTML
-output_path = Path("/mnt/data/index-bubles-final.html")
-output_path.write_text(html_content, encoding="utf-8")
+# Salvar como arquivo HTML
+file_path = Path("/mnt/data/bubles-projeto-completo.html")
+file_path.write_text(codigo_bubles, encoding="utf-8")
+file_path.name
 
-# Compactar em .zip
-zip_path = Path("/mnt/data/bubles-final.zip")
-with ZipFile(zip_path, "w") as zipf:
-    zipf.write(output_path, arcname="index.html")
 
-zip_path.name
