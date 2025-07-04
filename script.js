@@ -1,56 +1,36 @@
-
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let bubbles = [];
+const container = document.getElementById("bubble-container");
+const apiKey = "5bTDfSmR2ieax6y7JUqDAD";
+const tickers = ["VALE3", "PETR4", "ITUB4", "BBDC4", "BBAS3", "MGLU3", "WEGE3", "RAIZ4", "AZUL4", "JBSS3"];
 
 async function fetchData() {
-  const res = await fetch("https://brapi.dev/api/quote/list?limit=30&token=5bTDfSmR2ieax6y7JUqDAD");
-  const data = await res.json();
-  bubbles = data.stocks.map(stock => {
-    const change = stock.regularMarketChangePercent || 0;
-    return {
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 2,
-      dy: (Math.random() - 0.5) * 2,
-      r: 30 + Math.abs(change) * 2,
-      color: change >= 0 ? "lime" : "red",
-      label: stock.stock + "\n" + (change > 0 ? "+" : "") + change.toFixed(2) + "%"
-    };
+  try {
+    const res = await fetch(`https://brapi.dev/api/quote/${tickers.join(",")}?token=${apiKey}`);
+    const data = await res.json();
+    renderBubbles(data.results);
+  } catch (err) {
+    console.error("Erro ao buscar dados da Brapi:", err);
+  }
+}
+
+function renderBubbles(stocks) {
+  container.innerHTML = "";
+
+  stocks.forEach(stock => {
+    const change = stock.regularMarketChangePercent ?? stock.change_percent ?? 0;
+    const color = change >= 0 ? "green" : "red";
+    const size = 50 + Math.min(Math.abs(change), 10) * 5;
+
+    const bubble = document.createElement("div");
+    bubble.className = `bubble ${color}`;
+    bubble.style.width = `${size}px`;
+    bubble.style.height = `${size}px`;
+    bubble.style.top = `${Math.random() * 80}vh`;
+    bubble.style.left = `${Math.random() * 90}vw`;
+    bubble.innerHTML = `${stock.symbol}<br>${change.toFixed(2)}%`;
+
+    container.appendChild(bubble);
   });
 }
 
-function drawBubble(b) {
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-  ctx.fillStyle = b.color;
-  ctx.shadowColor = b.color;
-  ctx.shadowBlur = 20;
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  ctx.fillStyle = "white";
-  ctx.font = `${Math.max(12, b.r / 3)}px Arial`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const [line1, line2] = b.label.split("\n");
-  ctx.fillText(line1, b.x, b.y - 10);
-  ctx.fillText(line2, b.x, b.y + 10);
-}
-
-function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  bubbles.forEach(b => {
-    b.x += b.dx;
-    b.y += b.dy;
-    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.dx *= -1;
-    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.dy *= -1;
-    drawBubble(b);
-  });
-  requestAnimationFrame(animate);
-}
-
-fetchData().then(animate);
+fetchData();
+setInterval(fetchData, 60000); // atualiza a cada 1 min
