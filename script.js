@@ -15,8 +15,8 @@ function createBubbles() {
     { name: 'BBDC3', change: -0.07 }
   ];
   for (const stock of stocks) {
-    const r = Math.abs(stock.change) * 18 + 30;
-    const glowColor = stock.change > 0 ? '#00ff00' : stock.change < 0 ? '#ff0000' : '#999999';
+    const r = Math.abs(stock.change) * 20 + 30;
+    const glowColor = stock.change > 0 ? '#00ff00' : stock.change < 0 ? '#ff0000' : '#aaaaaa';
     bubbles.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -24,8 +24,8 @@ function createBubbles() {
       color: glowColor,
       name: stock.name,
       change: `${stock.change.toFixed(2)}%`,
-      dx: (Math.random() - 0.5) * 1.2,
-      dy: (Math.random() - 0.5) * 1.2
+      dx: (Math.random() - 0.5) * 1.5,
+      dy: (Math.random() - 0.5) * 1.5
     });
   }
 }
@@ -41,7 +41,7 @@ function drawBubbles() {
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
 
-    // Texto centralizado
+    // Texto
     ctx.shadowBlur = 0;
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
@@ -66,7 +66,7 @@ function animate() {
 function showTab(tab) {
   document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
   event.target.classList.add('active');
-  createBubbles(); // recarrega
+  createBubbles(); // simula nova aba
 }
 
 createBubbles();
