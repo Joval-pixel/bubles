@@ -1,38 +1,46 @@
 body {
   margin: 0;
-  background-color: black;
-  color: white;
+  background-color: #000;
   font-family: Arial, sans-serif;
+  color: white;
+  text-align: center;
   overflow: hidden;
 }
 
+h1 {
+  margin: 10px 0;
+  font-size: 24px;
+}
+
 .menu {
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   padding: 10px;
   background-color: #111;
 }
 
-button.tab {
+.tab {
   margin: 5px;
   padding: 10px 15px;
-  background: #333;
-  color: white;
+  background-color: #333;
   border: none;
-  border-radius: 10px;
-  font-weight: bold;
+  color: white;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
-button.tab.active {
-  background: #007bff;
-}
-
-h1 {
-  text-align: center;
-  font-size: 24px;
-  margin: 0;
-  padding: 10px 0;
+.tab.active,
+.tab:hover {
+  background-color: dodgerblue;
 }
 
 canvas {
   display: block;
+  position: absolute;
+  top: 130px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 130px);
 }
