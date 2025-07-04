@@ -2,13 +2,30 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BUBLES – A BOLSA QUE RESPIRA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BUBLES – A Bolsa que Respira</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>BUBLES – A BOLSA QUE RESPIRA</h1>
-  <div id="bubble-container"></div>
+  <header>
+    <h1>BUBLES – A BOLSA QUE RESPIRA</h1>
+    <div class="menu">
+      <button data-tab="acoes" class="active">Ações</button>
+      <button data-tab="criptos">Criptos</button>
+      <button data-tab="commodities">Commodities</button>
+      <button data-tab="ranking">📊 Ranking</button>
+      <button data-tab="corretoras">🏦 Corretoras</button>
+    </div>
+  </header>
+
+  <main id="bubble-container"></main>
+
+  <!-- Modal com gráfico -->
+  <div id="modal">
+    <div id="chart"></div>
+    <button onclick="fecharModal()">Fechar</button>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
