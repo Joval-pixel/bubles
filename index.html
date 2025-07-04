@@ -1,4 +1,7 @@
+from pathlib import Path
 
+# Corrigir o erro de event.target e gerar novo arquivo HTML
+codigo_corrigido = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -87,9 +90,9 @@
   </div>
 
   <nav>
-    <button onclick="changeTab('stocks')" class="active">Ações</button>
-    <button onclick="changeTab('crypto')">Criptos</button>
-    <button onclick="changeTab('commodities')">Commodities</button>
+    <button onclick="changeTab('stocks', event)" class="active">Ações</button>
+    <button onclick="changeTab('crypto', event)">Criptos</button>
+    <button onclick="changeTab('commodities', event)">Commodities</button>
     <button onclick="toggleRanking()">📊 Ranking</button>
     <button onclick="toggleCorretoras()">🏦 Corretoras</button>
   </nav>
@@ -179,7 +182,7 @@
       bubbles.forEach(b => b.update());
     }
 
-    function changeTab(tab) {
+    function changeTab(tab, event) {
       document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
       event.target.classList.add("active");
       activeTab = tab;
@@ -241,3 +244,9 @@
   </script>
 </body>
 </html>
+"""
+
+# Salvar o arquivo corrigido
+file_path_corrigido = Path("/mnt/data/bubles-corrigido-final.html")
+file_path_corrigido.write_text(codigo_corrigido, encoding="utf-8")
+file_path_corrigido.name
