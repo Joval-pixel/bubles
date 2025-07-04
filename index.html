@@ -1,7 +1,9 @@
 from pathlib import Path
 
-# Código HTML, CSS e JS completos para o projeto Bubles com API da Brapi e bolhas interativas
-codigo_bubles = """
+# Adicionando funcionalidade de gráfico interativo com TradingView ao clicar nas bolhas
+# Novo arquivo incluirá o código do TradingView embutido em modal
+
+codigo_bubles_com_grafico = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -9,32 +11,130 @@ codigo_bubles = """
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BUBLES – A BOLSA QUE RESPIRA</title>
   <style>
-    * {
+    body, html {
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      background-color: #000;
-      overflow: hidden;
       font-family: Arial, sans-serif;
+      background-color: #000;
       color: white;
+      overflow: hidden;
     }
     header {
+      padding: 10px 20px;
+      background-color: #111;
       text-align: center;
-      padding: 20px;
       font-size: 24px;
       font-weight: bold;
-      background-color: #111;
     }
-    canvas {
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+      background: #1a1a1a;
+    }
+    nav button {
+      padding: 6px 12px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    nav button.active {
+      background: #007bff;
+    }
+    #rankingPanel {
+      position: absolute;
+      right: 0;
+      top: 60px;
+      width: 200px;
+      background: rgba(0,0,0,0.8);
+      padding: 10px;
+      font-size: 14px;
+      display: none;
+    }
+    #rankingPanel h3 {
+      margin: 10px 0 5px;
+      font-size: 16px;
+    }
+    #canvas {
       display: block;
+    }
+    #loginBox {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.05);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    #loginBox input {
+      padding: 4px;
+      margin-right: 5px;
+    }
+    #chartModal {
+      display: none;
+      position: fixed;
+      top: 5%;
+      left: 5%;
+      width: 90%;
+      height: 90%;
+      background-color: rgba(0, 0, 0, 0.95);
+      z-index: 1000;
+      border: 2px solid white;
+    }
+    #chartModal iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    #chartModalClose {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      color: white;
+      z-index: 1001;
+    }
+    @media (max-width: 768px) {
+      nav { flex-wrap: wrap; }
+      #rankingPanel { width: 100%; top: unset; bottom: 0; }
     }
   </style>
 </head>
 <body>
   <header>BUBLES – A BOLSA QUE RESPIRA</header>
+
+  <div id="loginBox">
+    <input type="email" id="userEmail" placeholder="Seu e-mail" />
+    <button onclick="saveLogin()">Entrar</button>
+  </div>
+
+  <nav>
+    <button onclick="changeTab('stocks')" class="active">Ações</button>
+    <button onclick="changeTab('crypto')">Criptos</button>
+    <button onclick="changeTab('commodities')">Commodities</button>
+    <button onclick="toggleRanking()">📊 Ranking</button>
+  </nav>
+
+  <div id="rankingPanel">
+    <h3>Altas</h3>
+    <ul id="rankingUp"></ul>
+    <h3>Quedas</h3>
+    <ul id="rankingDown"></ul>
+    <h3>Volume</h3>
+    <ul id="rankingVolume"></ul>
+  </div>
+
   <canvas id="canvas"></canvas>
+
+  <div id="chartModal">
+    <div id="chartModalClose" onclick="closeChart()">✖</div>
+    <iframe id="tradingViewFrame" src=""></iframe>
+  </div>
 
   <script>
     const canvas = document.getElementById("canvas");
@@ -42,10 +142,7 @@ codigo_bubles = """
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
+    let bubbles = [], activeTab = "stocks";
 
     class Bubble {
       constructor(ticker, price, change, volume) {
@@ -78,35 +175,99 @@ codigo_bubles = """
       }
 
       update() {
-        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
-          this.dx = -this.dx;
-        }
-        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
-          this.dy = -this.dy;
-        }
+        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.dx = -this.dx;
+        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.dy = -this.dy;
         this.x += this.dx;
         this.y += this.dy;
         this.draw();
       }
+
+      isClicked(mx, my) {
+        const dx = this.x - mx;
+        const dy = this.y - my;
+        return dx * dx + dy * dy <= this.radius * this.radius;
+      }
     }
 
-    let bubbles = [];
-
     async function fetchData() {
+      let endpoint = "";
+      if (activeTab === "stocks") endpoint = "quote/list";
+      if (activeTab === "crypto") endpoint = "quote/list?search=BTC,ETH,XRP";
+      if (activeTab === "commodities") endpoint = "quote/list?search=GOLD,WTI";
+
       try {
-        const res = await fetch("https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&sortBy=change&sortOrder=desc&limit=30");
+        const res = await fetch(\`https://brapi.dev/api/\${endpoint}&token=5bTDfSmR2ieax6y7JUqDAD&limit=30\`);
         const data = await res.json();
-        bubbles = data.stocks.map(stock => new Bubble(stock.stock, stock.price, stock.change, stock.volume));
+        bubbles = data.stocks.map(s => new Bubble(s.stock, s.price, s.change, s.volume));
+        renderRanking(data.stocks);
       } catch (err) {
-        console.error("Erro ao buscar dados da API Brapi:", err);
+        console.error("Erro ao buscar dados:", err);
       }
     }
 
     function animate() {
       requestAnimationFrame(animate);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bubbles.forEach(bubble => bubble.update());
+      bubbles.forEach(b => b.update());
     }
+
+    function changeTab(tab) {
+      document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+      event.target.classList.add("active");
+      activeTab = tab;
+      fetchData();
+    }
+
+    function toggleRanking() {
+      const panel = document.getElementById("rankingPanel");
+      panel.style.display = panel.style.display === "block" ? "none" : "block";
+    }
+
+    function renderRanking(stocks) {
+      const up = [...stocks].sort((a,b)=>b.change-a.change).slice(0,5);
+      const down = [...stocks].sort((a,b)=>a.change-b.change).slice(0,5);
+      const vol = [...stocks].sort((a,b)=>b.volume-a.volume).slice(0,5);
+      document.getElementById("rankingUp").innerHTML = up.map(s => `<li>${s.stock} ${s.change.toFixed(2)}%</li>`).join("");
+      document.getElementById("rankingDown").innerHTML = down.map(s => `<li>${s.stock} ${s.change.toFixed(2)}%</li>`).join("");
+      document.getElementById("rankingVolume").innerHTML = vol.map(s => `<li>${s.stock} ${Math.round(s.volume/1e6)}M</li>`).join("");
+    }
+
+    function saveLogin() {
+      const email = document.getElementById("userEmail").value;
+      if (email.includes("@")) {
+        localStorage.setItem("userEmail", email);
+        alert("Login salvo!");
+      }
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      for (let b of bubbles) {
+        if (b.isClicked(x, y)) {
+          openChart(b.ticker);
+          break;
+        }
+      }
+    });
+
+    function openChart(ticker) {
+      const modal = document.getElementById("chartModal");
+      const iframe = document.getElementById("tradingViewFrame");
+      iframe.src = `https://s.tradingview.com/widgetembed/?symbol=BMFBOVESPA:${ticker}&interval=15&theme=dark&style=1`;
+      modal.style.display = "block";
+    }
+
+    function closeChart() {
+      document.getElementById("chartModal").style.display = "none";
+      document.getElementById("tradingViewFrame").src = "";
+    }
+
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
 
     fetchData().then(() => animate());
   </script>
@@ -114,7 +275,7 @@ codigo_bubles = """
 </html>
 """
 
-# Salvar como arquivo HTML
-file_path = Path("/mnt/data/bubles-projeto-completo.html")
-file_path.write_text(codigo_bubles, encoding="utf-8")
-file_path.name
+# Salvar o arquivo final com gráfico interativo
+file_path_chart = Path("/mnt/data/bubles-completo-com-grafico.html")
+file_path_chart.write_text(codigo_bubles_com_grafico, encoding="utf-8")
+file_path_chart.name
