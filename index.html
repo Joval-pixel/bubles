@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bubles</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="tabs">
-    <button class="tab active" data-tab="acoes">Ações</button>
-    <button class="tab" data-tab="criptos">Criptos</button>
-    <button class="tab" data-tab="commodities">Commodities</button>
-    <button class="tab" data-tab="ranking">📊 Ranking</button>
-    <button class="tab" data-tab="corretoras">🏛️ Corretoras</button>
+  <div id="menu">
+    <button class="tab active" onclick="setTab('acoes')">Ações</button>
+    <button class="tab" onclick="setTab('criptos')">Criptos</button>
+    <button class="tab" onclick="setTab('commodities')">Commodities</button>
+    <button class="tab" onclick="setTab('ranking')">📊 Ranking</button>
+    <button class="tab" onclick="setTab('corretoras')">🏛️ Corretoras</button>
   </div>
-  <canvas id="canvas"></canvas>
+  <canvas id="bubbleCanvas"></canvas>
   <script src="script.js"></script>
 </body>
 </html>
