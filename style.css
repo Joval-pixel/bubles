@@ -1,36 +1,41 @@
 body {
   margin: 0;
   overflow: hidden;
-  background: #000;
-  font-family: sans-serif;
-  color: #fff;
+  background-color: black;
+  color: white;
+  font-family: Arial, sans-serif;
   text-align: center;
 }
 
-header {
-  background: #111;
-  padding: 10px;
-}
-
 h1 {
-  margin: 10px 0;
+  margin-top: 10px;
   font-size: 24px;
 }
 
-nav {
-  margin-top: 10px;
+#menu {
+  margin: 10px auto;
 }
 
-button.tab {
-  margin: 5px;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 5px;
-  background: #333;
+#menu button {
+  background-color: #333;
   color: white;
+  border: none;
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
-button.tab.active {
-  background: #007bff;
+#menu button.ativo {
+  background-color: #007bff;
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+  position: absolute;
+  top: 80px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 80px);
 }
