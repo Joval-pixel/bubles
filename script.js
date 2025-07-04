@@ -1,79 +1,57 @@
-const canvas = document.getElementById("bubbleCanvas");
-const ctx = canvas.getContext("2d");
-let width, height;
+const apiKey = '5bTDfSmR2ieax6y7JUqDAD'; // sua chave da Brapi
+const container = document.getElementById('bubble-container');
 
-function resize() {
-  width = window.innerWidth;
-  height = window.innerHeight;
-  canvas.width = width;
-  canvas.height = height;
-}
-resize();
-window.onresize = resize;
-
-let bubbles = [];
-
-function fetchData() {
-  fetch("https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&token=5bTDfSmR2ieax6y7JUqDAD")
-    .then(res => res.json())
-    .then(data => {
-      const stocks = data.stocks.slice(0, 30);
-      bubbles = stocks.map(stock => {
-        const value = parseFloat(stock.change || 0);
-        const radius = Math.max(30, Math.abs(value) * 20 + 30);
-        return {
-          label: stock.stock,
-          value: value.toFixed(2) + "%",
-          radius: radius,
-          x: Math.random() * (width - radius * 2) + radius,
-          y: Math.random() * (height - radius * 2) + radius,
-          dx: (Math.random() - 0.5) * 0.5,
-          dy: (Math.random() - 0.5) * 0.5,
-          color: value >= 0 ? "#00ff00" : "#ff0000",
-          glow: value >= 0 ? "rgba(0,255,0,0.5)" : "rgba(255,0,0,0.5)"
-        };
-      });
-    });
+async function getStocks() {
+  const res = await fetch(`https://brapi.dev/api/quote/list?token=${apiKey}&limit=40`);
+  const data = await res.json();
+  return data.stocks;
 }
 
-function drawBubbles() {
-  ctx.clearRect(0, 0, width, height);
-  for (const b of bubbles) {
-    ctx.beginPath();
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = b.glow;
-    ctx.fillStyle = b.color;
-    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+function createBubble(stock) {
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
 
-    ctx.fillStyle = "#fff";
-    ctx.font = `${Math.min(20, b.radius / 2)}px Arial`;
-    ctx.textAlign = "center";
-    ctx.fillText(b.label, b.x, b.y - 10);
-    ctx.fillText(b.value, b.x, b.y + 15);
-  }
+  const change = stock.change || 0;
+  const size = Math.min(160, 40 + Math.abs(change) * 10);
+  bubble.style.width = `${size}px`;
+  bubble.style.height = `${size}px`;
+
+  const color = change >= 0 ? '#00ff00' : '#ff0000';
+  const glow = change >= 0 ? '0 0 30px #00ff00' : '0 0 30px #ff0000';
+  bubble.style.backgroundColor = color;
+  bubble.style.boxShadow = glow;
+  bubble.innerHTML = `${stock.stock}<br>${change.toFixed(2)}%`;
+
+  bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
+  bubble.style.top = `${Math.random() * (window.innerHeight - size)}px`;
+
+  moveBubble(bubble);
+  container.appendChild(bubble);
 }
 
-function animate() {
-  for (const b of bubbles) {
-    b.x += b.dx;
-    b.y += b.dy;
-
-    if (b.x - b.radius < 0 || b.x + b.radius > width) b.dx *= -1;
-    if (b.y - b.radius < 0 || b.y + b.radius > height) b.dy *= -1;
-  }
-
-  drawBubbles();
-  requestAnimationFrame(animate);
+function moveBubble(bubble) {
+  setInterval(() => {
+    const x = Math.random() * (window.innerWidth - bubble.offsetWidth);
+    const y = Math.random() * (window.innerHeight - bubble.offsetHeight);
+    bubble.style.transform = `translate(${x}px, ${y}px)`;
+  }, 4000);
 }
 
-function setTab(tab) {
-  document.querySelectorAll(".tab").forEach(btn => btn.classList.remove("active"));
-  document.querySelector(`.tab:contains(${tab.charAt(0).toUpperCase() + tab.slice(1)})`)?.classList.add("active");
-  fetchData();
+async function start() {
+  const stocks = await getStocks();
+  stocks.forEach(createBubble);
 }
 
-fetchData();
-animate();
-setInterval(fetchData, 30000);
+start();
+
+function filterBubbles(type) {
+  alert(`Filtro ${type} ainda não implementado.`);
+}
+
+function toggleRanking() {
+  alert("Ranking em breve");
+}
+
+function toggleCorretoras() {
+  alert("Corretoras em breve");
+}
