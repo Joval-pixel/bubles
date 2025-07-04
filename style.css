@@ -1,33 +1,27 @@
 body {
   margin: 0;
   background: black;
-  font-family: Arial, sans-serif;
   overflow: hidden;
+  font-family: sans-serif;
 }
-
 .menu {
-  position: absolute;
-  top: 10px;
-  width: 100%;
-  text-align: center;
-  z-index: 10;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 20px;
 }
-
-.menu .tab {
-  background: #333;
+.tab-button {
+  background-color: #444;
   color: white;
   border: none;
-  padding: 10px 15px;
-  margin: 0 5px;
-  cursor: pointer;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 16px;
 }
-
-.menu .tab.active {
-  background: #007bff;
+.tab-button.active {
+  background-color: #007bff;
 }
-
 canvas {
   display: block;
 }
