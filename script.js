@@ -1,60 +1,82 @@
-const canvas = document.getElementById('canvas');
+const canvas = document.getElementById('bubbleCanvas');
 const ctx = canvas.getContext('2d');
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 let bubbles = [];
 
-function fetchData() {
-  fetch('https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD')
-    .then(res => res.json())
-    .then(data => {
-      bubbles = data.stocks.map(stock => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: (Math.random() - 0.5) * 1.5,
-        r: 20 + Math.abs(stock.change) * 50,
-        color: stock.change > 0 ? 'lime' : stock.change < 0 ? 'red' : 'gray',
-        symbol: stock.stock,
-        change: stock.change.toFixed(2)
-      }));
-    });
+function getColor(change) {
+  if (change > 0) return 'rgba(0,255,0,0.8)';
+  if (change < 0) return 'rgba(255,0,0,0.8)';
+  return 'gray';
 }
 
-function draw() {
+function getGlow(change) {
+  if (change > 0) return 'lime';
+  if (change < 0) return 'red';
+  return 'white';
+}
+
+async function fetchData() {
+  const res = await fetch('https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD');
+  const data = await res.json();
+  bubbles = data.stocks.slice(0, 50).map((stock, i) => {
+    const size = Math.abs(stock.change || 0) * 100 + 30;
+    return {
+      symbol: stock.stock,
+      price: stock.close,
+      change: stock.change,
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      dx: (Math.random() - 0.5) * 2,
+      dy: (Math.random() - 0.5) * 2,
+      radius: size,
+    };
+  });
+}
+
+function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let b of bubbles) {
-    b.x += b.vx;
-    b.y += b.vy;
-
-    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
-    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
-
-    const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.1, b.x, b.y, b.r);
-    gradient.addColorStop(0, 'white');
-    gradient.addColorStop(1, b.color);
-
-    ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = getGlow(b.change);
+    ctx.fillStyle = getColor(b.change);
+    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#fff';
-    ctx.font = `${Math.min(b.r * 0.5, 18)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText(b.symbol, b.x, b.y - 5);
-    ctx.fillText(`${b.change}%`, b.x, b.y + 12);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "white";
+    ctx.font = `${Math.max(12, b.radius / 5)}px Arial`;
+    ctx.textAlign = "center";
+    ctx.fillText(`${b.symbol}`, b.x, b.y - 5);
+    ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 15);
   }
-
-  requestAnimationFrame(draw);
 }
 
-function showCategory(category) {
-  console.log('Categoria:', category);
-  // Implementar filtros no futuro
+function update() {
+  for (let b of bubbles) {
+    b.x += b.dx;
+    b.y += b.dy;
+
+    if (b.x - b.radius < 0 || b.x + b.radius > canvas.width) b.dx *= -1;
+    if (b.y - b.radius < 0 || b.y + b.radius > canvas.height) b.dy *= -1;
+  }
 }
 
-fetchData();
-draw();
-setInterval(fetchData, 15000);
+function animate() {
+  update();
+  drawBubbles();
+  requestAnimationFrame(animate);
+}
+
+function showCategory(cat) {
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => tab.classList.remove('active'));
+  document.querySelector(`.tab:contains("${cat}")`)?.classList.add('active');
+  // você pode alternar os dados de cada aba aqui
+}
+
+fetchData().then(() => {
+  animate();
+});
