@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BUBLES – A Bolsa que Respira</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BUBLES – A Bolsa que Respira</title>
+    <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <div class="menu">
-    <button onclick="changeTab('acoes')" class="active">Ações</button>
-    <button onclick="changeTab('criptos')">Criptos</button>
-    <button onclick="changeTab('commodities')">Commodities</button>
-    <button onclick="changeTab('ranking')">📊 Ranking</button>
-    <button onclick="changeTab('corretoras')">🏛 Corretoras</button>
-  </div>
-  <h1>BUBLES – A BOLSA QUE RESPIRA</h1>
-  <canvas id="bubbleCanvas"></canvas>
-  <script src="script.js"></script>
+    <div class="menu">
+        <button class="tab active" onclick="showCategory('acoes')">Ações</button>
+        <button class="tab" onclick="showCategory('criptos')">Criptos</button>
+        <button class="tab" onclick="showCategory('commodities')">Commodities</button>
+        <button class="tab" onclick="showCategory('ranking')">📊 Ranking</button>
+        <button class="tab" onclick="showCategory('corretoras')">🏛 Corretoras</button>
+    </div>
+    <h1>BUBLES – A BOLSA QUE RESPIRA</h1>
+    <canvas id="bubbleCanvas"></canvas>
+    <script src="script.js"></script>
 </body>
 </html>
