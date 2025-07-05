@@ -8,65 +8,62 @@ function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 }
+window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
-window.onresize = resizeCanvas;
 
 function random(min, max) {
   return Math.random() * (max - min) + min;
 }
 
 function fetchData() {
-  fetch(`https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD`)
+  fetch("https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD")
     .then(res => res.json())
     .then(data => {
-      const stocks = data.stocks.slice(0, 40);
-      bubbles = stocks.map((stock, i) => {
-        const change = stock.change ?? 0;
-        const size = Math.max(30, Math.min(200, Math.abs(change) * 50));
+      const stocks = data.stocks.slice(0, 50);
+      bubbles = stocks.map(s => {
+        const change = parseFloat(s.change ?? 0);
+        const size = Math.min(140, Math.max(30, Math.abs(change) * 20));
         return {
-          symbol: stock.stock,
+          symbol: s.stock,
           change: change.toFixed(2),
           x: random(0, canvas.width),
           y: random(0, canvas.height),
-          vx: random(-0.3, 0.3),
-          vy: random(-0.3, 0.3),
+          vx: random(-0.2, 0.2),
+          vy: random(-0.2, 0.2),
           size: size,
-          color: change >= 0 ? "green" : "red",
+          color: change >= 0 ? "#00ff00" : "#ff0000"
         };
       });
       updateRanking();
     });
 }
 
-function drawBubbles() {
+function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  bubbles.forEach(b => {
-    // glow
-    ctx.shadowBlur = 40;
+  for (let b of bubbles) {
+    // Desenho da bolha
+    ctx.shadowBlur = 25;
     ctx.shadowColor = b.color;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, b.size, 0, 2 * Math.PI);
+    ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
     ctx.fillStyle = b.color;
     ctx.fill();
 
-    // text
+    // Texto
     ctx.shadowBlur = 0;
-    ctx.fillStyle = "white";
-    ctx.font = `${Math.max(12, b.size / 5)}px Arial`;
+    ctx.fillStyle = "#fff";
+    ctx.font = `${Math.max(10, b.size / 4)}px sans-serif`;
     ctx.textAlign = "center";
     ctx.fillText(b.symbol, b.x, b.y - 5);
     ctx.fillText(b.change + "%", b.x, b.y + 15);
 
-    // move
+    // Movimento
     b.x += b.vx;
     b.y += b.vy;
-
-    // bounce
     if (b.x - b.size < 0 || b.x + b.size > canvas.width) b.vx *= -1;
     if (b.y - b.size < 0 || b.y + b.size > canvas.height) b.vy *= -1;
-  });
-
-  requestAnimationFrame(drawBubbles);
+  }
+  requestAnimationFrame(draw);
 }
 
 function selectCategory(cat) {
@@ -84,11 +81,11 @@ function toggleRanking() {
 
 function updateRanking() {
   if (!rankingVisible) return;
-  const sorted = [...bubbles].sort((a, b) => b.change - a.change).slice(0, 10);
+  const top = [...bubbles].sort((a, b) => b.change - a.change).slice(0, 10);
   const panel = document.getElementById("rankingPanel");
-  panel.innerHTML = sorted.map(b => `${b.symbol}: ${b.change}%`).join("<br>");
+  panel.innerHTML = top.map(b => `${b.symbol}: ${b.change}%`).join("<br>");
 }
 
 // Inicialização
 fetchData();
-drawBubbles();
+draw();
