@@ -4,75 +4,69 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BUBLES – Ações ao Vivo</title>
+  <link rel="icon" href="logo.png" type="image/png" />
   <style>
     body {
       margin: 0;
       background-color: #000;
       font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
-
-    #header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      padding: 10px 0;
-    }
-
-    #header-top {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 5px;
-    }
-
-    #header-top img {
-      width: 30px;
-      height: 30px;
-    }
-
-    #header-top h1 {
       color: white;
-      font-size: 16px;
+      text-align: center;
+    }
+
+    .header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 10px;
+    }
+
+    .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .logo-title img {
+      height: 40px;
+    }
+
+    .logo-title h1 {
+      font-size: 18px;
       margin: 0;
     }
 
-    .menu-buttons {
+    .nav-buttons {
       display: flex;
-      justify-content: center;
       flex-wrap: wrap;
-      gap: 4px;
-      flex-shrink: 0;
+      justify-content: center;
+      gap: 8px;
     }
 
-    .menu-buttons button {
+    .nav-buttons button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
       background-color: #222;
       color: white;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 5px;
-      font-size: 11px;
+      font-size: 14px;
+      font-weight: bold;
       cursor: pointer;
     }
 
-    .menu-buttons button.active {
+    .nav-buttons button.active {
       background-color: #007bff;
-    }
-
-    canvas {
-      display: block;
     }
   </style>
 </head>
 <body>
-
-  <div id="header">
-    <div id="header-top">
+  <div class="header">
+    <div class="logo-title">
       <img src="logo.png" alt="Logo BUBLES" />
       <h1>BUBLES – Ações ao Vivo</h1>
     </div>
-    <div class="menu-buttons">
+    <div class="nav-buttons">
       <button class="active">Ações</button>
       <button>Criptos</button>
       <button>Commodities</button>
@@ -81,77 +75,9 @@
     </div>
   </div>
 
-  <canvas id="bubbleCanvas"></canvas>
+  <!-- Suas bolhas aparecerão aqui -->
+  <canvas id="bubbleCanvas" width="100%" height="100%"></canvas>
 
-  <script>
-    const canvas = document.getElementById('bubbleCanvas');
-    const ctx = canvas.getContext('2d');
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-
-    const bubbles = [];
-    const colors = ['rgba(0,200,0,0.8)', 'rgba(255,0,0,0.8)'];
-    const labels = ['PETR4', 'VALE3', 'BBAS3', 'ITUB4', 'MGLU3', 'AZUL4', 'GGBR4', 'WEGE3'];
-
-    function createBubble() {
-      const size = Math.random() * 60 + 30;
-      return {
-        x: Math.random() * width,
-        y: Math.random() * height,
-        r: size,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        dx: (Math.random() - 0.5) * 1.5,
-        dy: (Math.random() - 0.5) * 1.5,
-        label: labels[Math.floor(Math.random() * labels.length)],
-        change: (Math.random() * 5 - 2.5).toFixed(2) + '%'
-      };
-    }
-
-    for (let i = 0; i < 30; i++) {
-      bubbles.push(createBubble());
-    }
-
-    function drawBubbles() {
-      ctx.clearRect(0, 0, width, height);
-      for (let b of bubbles) {
-        ctx.shadowBlur = 30;
-        ctx.shadowColor = b.color;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
-        ctx.fillStyle = b.color;
-        ctx.fill();
-
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'white';
-        ctx.font = `${b.r / 3}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.fillText(b.label, b.x, b.y - 5);
-        ctx.font = `${b.r / 4}px Arial`;
-        ctx.fillText(b.change, b.x, b.y + 15);
-
-        b.x += b.dx;
-        b.y += b.dy;
-
-        if (b.x + b.r > width || b.x - b.r < 0) b.dx *= -1;
-        if (b.y + b.r > height || b.y - b.r < 0) b.dy *= -1;
-      }
-    }
-
-    function animate() {
-      drawBubbles();
-      requestAnimationFrame(animate);
-    }
-
-    animate();
-
-    window.addEventListener('resize', () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
