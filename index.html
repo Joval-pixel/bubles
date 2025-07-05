@@ -1,21 +1,24 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bubles</title>
+  <title>Bubles — A Bolsa que Respira</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="menu">
-    <button onclick="selectCategory('stocks')" class="active">Ações</button>
-    <button onclick="selectCategory('cryptos')">Criptos</button>
-    <button onclick="selectCategory('commodities')">Commodities</button>
+    <button onclick="changeTab('acoes')" class="active">Ações</button>
+    <button onclick="changeTab('criptos')">Criptos</button>
+    <button onclick="changeTab('commodities')">Commodities</button>
     <button onclick="toggleRanking()">📊 Ranking</button>
-    <button onclick="selectCategory('brokers')">🏛️ Corretoras</button>
+    <button onclick="changeTab('corretoras')">🏛 Corretoras</button>
   </div>
-  <div id="rankingPanel" class="ranking-panel hidden"></div>
+
+  <div id="rankingPanel" class="ranking-panel"></div>
+
   <canvas id="bubbleCanvas"></canvas>
+
   <script src="script.js"></script>
 </body>
 </html>
