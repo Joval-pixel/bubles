@@ -7,13 +7,12 @@ function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 }
-
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
 function createBubbles() {
   bubbles = [];
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 70; i++) {
     const radius = Math.random() * 40 + 20;
     const isUp = Math.random() > 0.5;
     bubbles.push({
@@ -25,18 +24,48 @@ function createBubbles() {
       alpha: 0.9,
       text: ["PETR4", "VALE3", "ITUB4", "BBAS3", "BBDC4"][i % 5],
       change: (Math.random() * 5 - 2.5).toFixed(2) + "%",
-      dx: Math.random() * 0.6 - 0.3,
-      dy: Math.random() * 0.6 - 0.3,
+      dx: Math.random() * 0.5 - 0.25,
+      dy: Math.random() * 0.5 - 0.25,
     });
   }
 }
-
 createBubbles();
+
+function update() {
+  for (let i = 0; i < bubbles.length; i++) {
+    let b1 = bubbles[i];
+    b1.x += b1.dx;
+    b1.y += b1.dy;
+
+    // colisão com bordas
+    if (b1.x - b1.r < 0 || b1.x + b1.r > canvas.width) b1.dx *= -1;
+    if (b1.y - b1.r < 0 || b1.y + b1.r > canvas.height) b1.dy *= -1;
+
+    // colisão entre bolhas
+    for (let j = i + 1; j < bubbles.length; j++) {
+      let b2 = bubbles[j];
+      const dx = b2.x - b1.x;
+      const dy = b2.y - b1.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = b1.r + b2.r;
+
+      if (dist < minDist) {
+        // ajuste de posição
+        const angle = Math.atan2(dy, dx);
+        const overlap = 0.5 * (minDist - dist);
+        b1.x -= overlap * Math.cos(angle);
+        b1.y -= overlap * Math.sin(angle);
+        b2.x += overlap * Math.cos(angle);
+        b2.y += overlap * Math.sin(angle);
+      }
+    }
+  }
+}
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let b of bubbles) {
-    // sombra e bolha
+    // bolha com sombra
     ctx.beginPath();
     ctx.shadowBlur = 30;
     ctx.shadowColor = b.shadowColor || b.color;
@@ -46,7 +75,7 @@ function draw() {
     ctx.fill();
     ctx.closePath();
 
-    // texto central
+    // texto
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
     ctx.fillStyle = "white";
@@ -57,17 +86,6 @@ function draw() {
   }
   update();
   requestAnimationFrame(draw);
-}
-
-function update() {
-  for (let b of bubbles) {
-    b.x += b.dx;
-    b.y += b.dy;
-
-    // colisão com bordas
-    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.dx *= -1;
-    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.dy *= -1;
-  }
 }
 
 draw();
