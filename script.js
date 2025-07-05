@@ -2,7 +2,6 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 let bubbles = [];
-let logos = {}; // opcional para logos
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -16,11 +15,13 @@ function createBubbles() {
   bubbles = [];
   for (let i = 0; i < 80; i++) {
     const radius = Math.random() * 40 + 20;
+    const isUp = Math.random() > 0.5;
     bubbles.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       r: radius,
-      color: Math.random() > 0.5 ? "#00ff00" : "#ff0000",
+      color: isUp ? "#00aa00" : "#cc0000",
+      shadowColor: isUp ? "#00ff00" : "#ff4444",
       alpha: 0.9,
       text: ["PETR4", "VALE3", "ITUB4", "BBAS3", "BBDC4"][i % 5],
       change: (Math.random() * 5 - 2.5).toFixed(2) + "%",
@@ -35,17 +36,17 @@ createBubbles();
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let b of bubbles) {
-    // sombra/glow
+    // sombra e bolha
     ctx.beginPath();
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = b.shadowColor || b.color;
     ctx.fillStyle = b.color;
     ctx.globalAlpha = b.alpha;
     ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
     ctx.fill();
     ctx.closePath();
 
-    // texto
+    // texto central
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
     ctx.fillStyle = "white";
