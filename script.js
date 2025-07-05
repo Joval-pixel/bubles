@@ -1,113 +1,85 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-let bolhas = [];
+let width, height;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+function resize() {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
 
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-});
+let tab = "acoes";
+let bubbles = [];
 
-function gerarBolhas() {
-  bolhas = [];
-  for (let i = 0; i < 40; i++) {
-    const variacao = (Math.random() * 8 - 4).toFixed(2);
-    const volume = Math.random() * 1000000;
-    const raio = 30 + Math.min(Math.abs(variacao) * 15 + volume / 500000, 100);
-    const simbolo = gerarTicker();
-    const cor = variacao >= 0 ? "green" : "red";
-    const brilho = variacao >= 0 ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)";
-    bolhas.push({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.7,
-      vy: (Math.random() - 0.5) * 0.7,
-      raio,
-      simbolo,
-      variacao,
-      cor,
-      brilho
+function setTab(t) {
+  tab = t;
+  document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  loadData();
+}
+
+function toggleRanking() {
+  const panel = document.getElementById("rankingPanel");
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
+}
+
+function loadData() {
+  fetch(`https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&token=5bTDfSmR2ieax6y7JUqDAD`)
+    .then(res => res.json())
+    .then(data => {
+      let ativos = data.stocks.slice(0, 50); // 50 bolhas
+      bubbles = ativos.map((a, i) => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: 20 + Math.abs(a.change) * 10,
+        dx: (Math.random() - 0.5) * 0.8,
+        dy: (Math.random() - 0.5) * 0.8,
+        symbol: a.symbol,
+        change: a.change
+      }));
+
+      let rank = ativos.slice(0, 10).map(a => `${a.symbol}: ${a.change.toFixed(2)}%`).join('<br>');
+      document.getElementById("rankingPanel").innerHTML = rank;
     });
-  }
 }
+loadData();
 
-function gerarTicker() {
-  const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const tamanho = Math.random() > 0.7 ? 5 : 4;
-  let ticker = "";
-  for (let i = 0; i < tamanho; i++) {
-    ticker += letras.charAt(Math.floor(Math.random() * letras.length));
-  }
-  return ticker;
-}
+function draw() {
+  ctx.clearRect(0, 0, width, height);
 
-function desenharBolhas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < bubbles.length; i++) {
+    let b = bubbles[i];
 
-  for (let b of bolhas) {
-    // brilho forte nas bordas
+    // Colisão básica com bordas
+    if (b.x - b.r < 0 || b.x + b.r > width) b.dx *= -1;
+    if (b.y - b.r < 0 || b.y + b.r > height) b.dy *= -1;
+
+    // Movimento
+    b.x += b.dx;
+    b.y += b.dy;
+
+    // Cor com brilho suave
+    let color = b.change > 0 ? [0, 255, 0] : [255, 0, 0];
+    let gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.3, b.x, b.y, b.r);
+    gradient.addColorStop(0, `rgba(${color[0]},${color[1]},${color[2]},1)`);
+    gradient.addColorStop(1, `rgba(${color[0]},${color[1]},${color[2]},0.2)`);
+
     ctx.beginPath();
-    ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
-    ctx.shadowBlur = 30;
-    ctx.shadowColor = b.brilho;
-    ctx.fillStyle = b.cor;
+    ctx.fillStyle = gradient;
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
 
-    // texto centralizado
-    ctx.shadowBlur = 0;
+    // Texto centralizado e proporcional
     ctx.fillStyle = "#fff";
-    ctx.font = `${Math.max(b.raio / 4, 12)}px Arial`;
+    ctx.font = `bold ${Math.max(10, b.r / 3)}px sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(b.simbolo, b.x, b.y - 5);
-    ctx.fillText(`${b.variacao}%`, b.x, b.y + 15);
+    ctx.textBaseline = "middle";
+    ctx.fillText(b.symbol, b.x, b.y - 10);
+    ctx.font = `bold ${Math.max(8, b.r / 3.5)}px sans-serif`;
+    ctx.fillText(b.change.toFixed(2) + "%", b.x, b.y + 10);
   }
+
+  requestAnimationFrame(draw);
 }
-
-function atualizarBolhas() {
-  for (let b of bolhas) {
-    b.x += b.vx;
-    b.y += b.vy;
-
-    // colisão com borda
-    if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-    if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-
-    // colisão entre bolhas
-    for (let outro of bolhas) {
-      if (b === outro) continue;
-      const dx = b.x - outro.x;
-      const dy = b.y - outro.y;
-      const dist = Math.hypot(dx, dy);
-      const minDist = b.raio + outro.raio;
-
-      if (dist < minDist) {
-        const ang = Math.atan2(dy, dx);
-        const mov = (minDist - dist) / 2;
-        b.x += Math.cos(ang) * mov;
-        b.y += Math.sin(ang) * mov;
-        outro.x -= Math.cos(ang) * mov;
-        outro.y -= Math.sin(ang) * mov;
-
-        [b.vx, outro.vx] = [outro.vx, b.vx];
-        [b.vy, outro.vy] = [outro.vy, b.vy];
-      }
-    }
-  }
-}
-
-function animar() {
-  atualizarBolhas();
-  desenharBolhas();
-  requestAnimationFrame(animar);
-}
-
-function trocarAba(aba) {
-  document.querySelectorAll("#menu button").forEach(btn => btn.classList.remove("ativo"));
-  event.target.classList.add("ativo");
-  gerarBolhas();
-}
-
-gerarBolhas();
-animar();
+draw();
