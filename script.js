@@ -1,51 +1,112 @@
-const canvas = document.getElementById('bubbleCanvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("bubbleCanvas");
+const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 const bubbles = [];
-const tickers = [
-  'PETR4', 'VALE3', 'ITUB4', 'BBDC4', 'BBAS3', 'ABEV3', 'MGLU3', 'RENT3',
-  'LREN3', 'WEGE3', 'B3SA3', 'EGIE3', 'SUZB3', 'HAPV3', 'NTCO3', 'RAIZ4'
-];
+const totalBubbles = 80;
+const stockNames = new Set();
 
-function random(min, max) {
-  return Math.random() * (max - min) + min;
-}
-
-tickers.forEach((ticker, index) => {
-  const x = random(100, canvas.width - 100);
-  const y = random(150, canvas.height - 100);
-  const size = random(40, 100);
-  bubbles.push({ x, y, r: size, color: 'green', text: ticker });
-});
-
-function drawBubbles() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let b of bubbles) {
-    const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r);
-    gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(0.3, '#00ff00');       // verde claro
-    gradient.addColorStop(1, '#006400');         // verde escuro
-
-    ctx.beginPath();
-    ctx.fillStyle = gradient;
-    ctx.shadowColor = '#00ff00';
-    ctx.shadowBlur = 20;
-    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.closePath();
-
-    ctx.fillStyle = 'white';
-    ctx.font = `${b.r * 0.3}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText(b.text, b.x, b.y + 5);
+function getRandomSymbol() {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let symbol = "";
+  for (let i = 0; i < 4; i++) {
+    symbol += letters[Math.floor(Math.random() * letters.length)];
   }
+  return symbol;
 }
 
-setInterval(drawBubbles, 1000 / 30);
+function createBubble() {
+  let symbol;
+  do {
+    symbol = getRandomSymbol();
+  } while (stockNames.has(symbol));
+  stockNames.add(symbol);
 
-window.addEventListener('resize', () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-});
+  const value = (Math.random() * 6 - 3).toFixed(2);
+  const radius = Math.max(20, Math.abs(value) * 20 + 20);
+  const color = value >= 0 ? "green" : "red";
+
+  return {
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: radius,
+    vx: (Math.random() - 0.5) * 0.5,
+    vy: (Math.random() - 0.5) * 0.5,
+    value,
+    symbol,
+    color
+  };
+}
+
+function drawBubble(b) {
+  const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.3, b.x, b.y, b.r);
+  gradient.addColorStop(0, "#fff");
+  gradient.addColorStop(1, b.color === "green" ? "#00ff00" : "#ff0000");
+
+  ctx.beginPath();
+  ctx.fillStyle = gradient;
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = b.color;
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#fff";
+  ctx.font = `${b.r / 3}px Arial`;
+  ctx.textAlign = "center";
+  ctx.fillText(b.symbol, b.x, b.y);
+  ctx.font = `${b.r / 4}px Arial`;
+  ctx.fillText(`${b.value}%`, b.x, b.y + b.r / 3);
+}
+
+function updateBubbles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  bubbles.forEach(b => {
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // colisão com bordas
+    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
+    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
+  });
+
+  // evitar sobreposição
+  for (let i = 0; i < bubbles.length; i++) {
+    for (let j = i + 1; j < bubbles.length; j++) {
+      const dx = bubbles[j].x - bubbles[i].x;
+      const dy = bubbles[j].y - bubbles[i].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = bubbles[i].r + bubbles[j].r;
+
+      if (dist < minDist) {
+        const angle = Math.atan2(dy, dx);
+        const overlap = minDist - dist;
+        const moveX = (overlap / 2) * Math.cos(angle);
+        const moveY = (overlap / 2) * Math.sin(angle);
+
+        bubbles[i].x -= moveX;
+        bubbles[i].y -= moveY;
+        bubbles[j].x += moveX;
+        bubbles[j].y += moveY;
+      }
+    }
+  }
+
+  bubbles.forEach(drawBubble);
+  requestAnimationFrame(updateBubbles);
+}
+
+// Início
+for (let i = 0; i < totalBubbles; i++) {
+  bubbles.push(createBubble());
+}
+
+updateBubbles();
+
+function showTab(tab) {
+  document.querySelectorAll(".tab-button").forEach(btn => btn.classList.remove("active"));
+  event.target.classList.add("active");
+  // placeholder de troca de conteúdo (pode ser melhorado)
+}
