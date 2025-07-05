@@ -1,64 +1,61 @@
 body {
   margin: 0;
-  padding: 0;
-  background-color: #1c1c1c;
-  color: white;
   font-family: 'Segoe UI', sans-serif;
+  background-color: #000;
   overflow: hidden;
 }
 
 header {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.header-container {
   display: flex;
   align-items: center;
-  background-color: #111;
-  padding: 10px 20px;
-  border-bottom: 1px solid #333;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .logo {
   height: 40px;
-  margin-right: 15px;
 }
 
-.title-area {
+.site-title {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.menu-buttons {
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }
 
-h1 {
-  font-size: 20px;
-  margin: 0;
-}
-
-.tabs {
-  margin-top: 5px;
-}
-
-.tab {
-  background-color: #333;
+.menu-btn {
+  padding: 8px 12px;
+  background: #222;
   color: white;
-  border: none;
-  padding: 5px 10px;
-  margin-right: 5px;
-  border-radius: 5px;
-  cursor: pointer;
   font-size: 14px;
-  transition: background 0.2s;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-.tab:hover {
-  background-color: #555;
-}
-
-.tab.active {
-  background-color: #00aa00;
+.menu-btn.active {
+  background: #007bff;
+  color: white;
 }
 
 canvas {
+  width: 100vw;
+  height: 100vh;
   display: block;
-  position: absolute;
-  top: 70px;
-  left: 0;
-  width: 100%;
-  height: calc(100vh - 70px);
 }
