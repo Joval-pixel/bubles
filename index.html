@@ -2,24 +2,154 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bubles – Ações ao Vivo</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BUBLES – Ações ao Vivo</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #header {
+      text-align: center;
+      padding: 10px;
+      background: #000;
+      z-index: 10;
+    }
+
+    #header img {
+      width: 100px;
+      margin-bottom: 8px;
+    }
+
+    #header h1 {
+      margin: 0;
+      color: white;
+      font-size: 22px;
+    }
+
+    .menu-buttons {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .menu-buttons button {
+      background-color: #222;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .menu-buttons button.active {
+      background-color: #007bff;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
-  <header>
-    <img src="logo.png" alt="Logo Bubles" class="logo" />
-    <div class="title-area">
-      <h1>Bubles – Ações ao Vivo</h1>
-      <div class="tabs">
-        <button class="tab active" onclick="setTab('acoes')">Ações</button>
-        <button class="tab" onclick="setTab('cripto')">Cripto</button>
-      </div>
+
+  <!-- Cabeçalho com logo, título e botões -->
+  <div id="header">
+    <img src="logo.png" alt="Logo BUBLES" />
+    <h1>BUBLES – Ações ao Vivo</h1>
+    <div class="menu-buttons">
+      <button class="active">Ações</button>
+      <button>Criptos</button>
+      <button>Commodities</button>
+      <button>Ranking</button>
+      <button>Corretoras</button>
     </div>
-  </header>
+  </div>
 
-  <canvas id="canvas"></canvas>
+  <!-- Canvas onde as bolhas são desenhadas -->
+  <canvas id="bubbleCanvas"></canvas>
 
-  <script src="script.js"></script>
+  <script>
+    const canvas = document.getElementById('bubbleCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    const bubbles = [];
+    const colors = ['rgba(0,255,0,0.8)', 'rgba(255,0,0,0.8)'];
+    const labels = ['PETR4', 'VALE3', 'BBAS3', 'ITUB4', 'MGLU3', 'AZUL4', 'GGBR4', 'WEGE3'];
+
+    function createBubble() {
+      const size = Math.random() * 60 + 30;
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: size,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        dx: (Math.random() - 0.5) * 1.5,
+        dy: (Math.random() - 0.5) * 1.5,
+        label: labels[Math.floor(Math.random() * labels.length)],
+        change: (Math.random() * 5 - 2.5).toFixed(2) + '%'
+      };
+    }
+
+    for (let i = 0; i < 30; i++) {
+      bubbles.push(createBubble());
+    }
+
+    function drawBubbles() {
+      ctx.clearRect(0, 0, width, height);
+      for (let b of bubbles) {
+        // Sombra glow
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = b.color;
+
+        // Bolha
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
+        ctx.fillStyle = b.color;
+        ctx.fill();
+
+        // Texto
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'white';
+        ctx.font = `${b.r / 3}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(b.label, b.x, b.y - 5);
+        ctx.font = `${b.r / 4}px Arial`;
+        ctx.fillText(b.change, b.x, b.y + 15);
+
+        // Movimento
+        b.x += b.dx;
+        b.y += b.dy;
+
+        // Rebote
+        if (b.x + b.r > width || b.x - b.r < 0) b.dx *= -1;
+        if (b.y + b.r > height || b.y - b.r < 0) b.dy *= -1;
+      }
+    }
+
+    function animate() {
+      drawBubbles();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    });
+  </script>
 </body>
-</html> 
+</html>
