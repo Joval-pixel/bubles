@@ -18,12 +18,12 @@ async function loadData() {
 
   bubbles = stocks.map(stock => {
     const change = parseFloat(stock.change.toFixed(2));
-    const radius = Math.min(120, Math.max(30, Math.abs(change * 6)));
+    const radius = Math.min(80, Math.max(25, Math.abs(change) * 6));
     return {
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
       radius,
       change,
       color: change >= 0 ? 'lime' : 'red',
@@ -34,24 +34,24 @@ async function loadData() {
 
 function drawBubble(b) {
   const gradient = ctx.createRadialGradient(b.x, b.y, b.radius * 0.2, b.x, b.y, b.radius);
-  gradient.addColorStop(0, 'white');
+  gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
   gradient.addColorStop(1, b.color);
 
   ctx.beginPath();
   ctx.fillStyle = gradient;
   ctx.shadowColor = b.color;
-  ctx.shadowBlur = 35;
+  ctx.shadowBlur = 20;
   ctx.arc(b.x, b.y, b.radius, 0, 2 * Math.PI);
   ctx.fill();
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = "#fff";
-  ctx.font = `${Math.max(10, b.radius / 3)}px sans-serif`;
+  ctx.font = `${Math.max(10, b.radius / 2.8)}px sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   const lines = b.label.split('\n');
   lines.forEach((line, i) => {
-    ctx.fillText(line, b.x, b.y + (i - 0.5) * 16);
+    ctx.fillText(line, b.x, b.y + (i - 0.5) * 14);
   });
 }
 
@@ -62,12 +62,11 @@ function update() {
     b.x += b.vx;
     b.y += b.vy;
 
-    // Rebote nas bordas
     if (b.x - b.radius < 0 || b.x + b.radius > canvas.width) b.vx *= -1;
     if (b.y - b.radius < 0 || b.y + b.radius > canvas.height) b.vy *= -1;
   }
 
-  // Colisão realista
+  // Prevenir sobreposição exagerada
   for (let i = 0; i < bubbles.length; i++) {
     for (let j = i + 1; j < bubbles.length; j++) {
       const a = bubbles[i];
@@ -75,7 +74,7 @@ function update() {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const minDist = a.radius + b.radius;
+      const minDist = a.radius + b.radius + 5;
       if (dist < minDist) {
         const angle = Math.atan2(dy, dx);
         const move = (minDist - dist) / 2;
