@@ -1,4 +1,4 @@
-const canvas = document.getElementById("bubbleCanvas");
+const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 let width = window.innerWidth;
@@ -6,125 +6,98 @@ let height = window.innerHeight;
 canvas.width = width;
 canvas.height = height;
 
-let bubbles = [];
-let currentTab = "acoes";
-let showRanking = false;
+let bolhas = [];
 
-function getRandomColor(value) {
-  return value >= 0
-    ? "rgba(0,255,0,0.5)" // verde com brilho
-    : "rgba(255,0,0,0.5)"; // vermelho com brilho
-}
-
-function generateData() {
+function gerarBolhas() {
   const ativos = [
-    { symbol: "AZTE3", change: 18.18 },
-    { symbol: "BRFS3", change: 3.44 },
-    { symbol: "SIMH3", change: -3.02 },
-    { symbol: "VBBR3", change: 2.68 },
-    { symbol: "USIM5", change: 1.36 },
-    { symbol: "BBDC4", change: -0.48 },
-    { symbol: "CMIG4", change: 1.18 },
-    { symbol: "PETR4", change: 0.18 },
-    { symbol: "COGN3", change: -0.34 },
-    { symbol: "MGLU3", change: 0.65 },
-    { symbol: "SANB11", change: -0.31 },
-    { symbol: "ITUB4", change: 0.05 },
-    { symbol: "CVCB3", change: 0.00 },
+    { symbol: "AZUL4", change: 8.12 },
+    { symbol: "PETR4", change: -2.14 },
+    { symbol: "VALE3", change: 1.34 },
+    { symbol: "MGLU3", change: -0.85 },
+    { symbol: "BBDC4", change: 0.56 },
+    { symbol: "ITUB4", change: -0.12 },
+    { symbol: "LREN3", change: 2.5 },
+    { symbol: "ABEV3", change: -1.3 },
+    { symbol: "GGBR4", change: 0.8 },
+    { symbol: "BBAS3", change: 1.95 }
   ];
 
-  return ativos.map(item => {
-    const size = 40 + Math.abs(item.change) * 10;
+  return ativos.map((a) => {
+    const raio = Math.min(120, 40 + Math.abs(a.change) * 10); // limite de tamanho
     return {
-      ...item,
+      ...a,
       x: Math.random() * width,
       y: Math.random() * height,
-      radius: size,
-      dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5,
-      color: getRandomColor(item.change),
+      dx: (Math.random() - 0.5) * 0.4,
+      dy: (Math.random() - 0.5) * 0.4,
+      r: raio,
+      cor: a.change >= 0 ? "rgba(0,255,0,0.35)" : "rgba(255,0,0,0.35)"
     };
   });
 }
 
-function drawBubble(bubble) {
-  const gradient = ctx.createRadialGradient(
-    bubble.x,
-    bubble.y,
-    bubble.radius * 0.3,
-    bubble.x,
-    bubble.y,
-    bubble.radius
-  );
-  gradient.addColorStop(0, "#fff");
-  gradient.addColorStop(1, bubble.color);
+function desenharBolha(b) {
+  const grad = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r);
+  grad.addColorStop(0, "rgba(255,255,255,0.2)");
+  grad.addColorStop(1, b.cor);
 
-  ctx.fillStyle = gradient;
   ctx.beginPath();
-  ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
   ctx.fill();
 
-  // texto
   ctx.fillStyle = "#fff";
-  ctx.font = `${Math.max(bubble.radius * 0.3, 12)}px Arial`;
   ctx.textAlign = "center";
-  ctx.fillText(bubble.symbol, bubble.x, bubble.y - 5);
-  ctx.font = `${Math.max(bubble.radius * 0.25, 10)}px Arial`;
-  ctx.fillText(`${bubble.change.toFixed(2)}%`, bubble.x, bubble.y + 15);
+  ctx.font = `${Math.max(b.r * 0.3, 12)}px Arial`;
+  ctx.fillText(b.symbol, b.x, b.y - 4);
+  ctx.font = `${Math.max(b.r * 0.25, 10)}px Arial`;
+  ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 14);
 }
 
-function animate() {
+function animar() {
   ctx.clearRect(0, 0, width, height);
-  bubbles.forEach(b => {
+
+  for (let i = 0; i < bolhas.length; i++) {
+    const b = bolhas[i];
     b.x += b.dx;
     b.y += b.dy;
 
-    // colisão com bordas
-    if (b.x - b.radius < 0 || b.x + b.radius > width) b.dx *= -1;
-    if (b.y - b.radius < 0 || b.y + b.radius > height) b.dy *= -1;
+    if (b.x - b.r < 0 || b.x + b.r > width) b.dx *= -1;
+    if (b.y - b.r < 0 || b.y + b.r > height) b.dy *= -1;
 
     // colisão com outras bolhas
-    bubbles.forEach(other => {
-      if (b === other) return;
-      const dx = b.x - other.x;
-      const dy = b.y - other.y;
+    for (let j = i + 1; j < bolhas.length; j++) {
+      const b2 = bolhas[j];
+      const dx = b2.x - b.x;
+      const dy = b2.y - b.y;
       const dist = Math.hypot(dx, dy);
-      if (dist < b.radius + other.radius) {
+      const minDist = b.r + b2.r;
+
+      if (dist < minDist) {
         const angle = Math.atan2(dy, dx);
-        const tx = other.x + Math.cos(angle) * (b.radius + other.radius);
-        const ty = other.y + Math.sin(angle) * (b.radius + other.radius);
-        b.x = tx;
-        b.y = ty;
-        b.dx *= -0.5;
-        b.dy *= -0.5;
+        const targetX = b.x + Math.cos(angle) * minDist;
+        const targetY = b.y + Math.sin(angle) * minDist;
+        const ax = (targetX - b2.x) * 0.05;
+        const ay = (targetY - b2.y) * 0.05;
+
+        b.dx -= ax;
+        b.dy -= ay;
+        b2.dx += ax;
+        b2.dy += ay;
       }
-    });
+    }
 
-    drawBubble(b);
-  });
-  requestAnimationFrame(animate);
-}
-
-function changeTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll(".menu button").forEach(btn => {
-    btn.classList.remove("active");
-  });
-  event.target.classList.add("active");
-  document.getElementById("rankingPanel").style.display = "none";
-  bubbles = generateData(); // carrega novos dados simulados
-}
-
-function toggleRanking() {
-  showRanking = !showRanking;
-  const panel = document.getElementById("rankingPanel");
-  if (showRanking) {
-    const sorted = [...bubbles].sort((a, b) => b.change - a.change).slice(0, 10);
-    panel.innerHTML = sorted.map(b => `${b.symbol}: ${b.change.toFixed(2)}%`).join("<br>");
-    panel.style.display = "block";
-  } else {
-    panel.style.display = "none";
+    desenharBolha(b);
   }
+
+  requestAnimationFrame(animar);
+}
+
+function filtrar(categoria) {
+  document.querySelectorAll("#menu button").forEach(btn => btn.classList.remove("ativo"));
+  event.target.classList.add("ativo");
+
+  bolhas = gerarBolhas(); // Aqui você pode carregar diferentes dados por aba futuramente
 }
 
 window.addEventListener("resize", () => {
@@ -132,8 +105,7 @@ window.addEventListener("resize", () => {
   height = window.innerHeight;
   canvas.width = width;
   canvas.height = height;
-  bubbles = generateData();
 });
 
-bubbles = generateData();
-animate();
+bolhas = gerarBolhas();
+animar();
