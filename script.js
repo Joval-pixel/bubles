@@ -1,96 +1,139 @@
 const canvas = document.getElementById("bubbleCanvas");
 const ctx = canvas.getContext("2d");
+
+let width = window.innerWidth;
+let height = window.innerHeight;
+canvas.width = width;
+canvas.height = height;
+
 let bubbles = [];
-let category = "stocks";
-let rankingVisible = false;
+let currentTab = "acoes";
+let showRanking = false;
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
-
-function random(min, max) {
-  return Math.random() * (max - min) + min;
+function getRandomColor(value) {
+  return value >= 0
+    ? "rgba(0,255,0,0.5)" // verde com brilho
+    : "rgba(255,0,0,0.5)"; // vermelho com brilho
 }
 
-function fetchData() {
-  fetch("https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD")
-    .then(res => res.json())
-    .then(data => {
-      const stocks = data.stocks.slice(0, 50);
-      bubbles = stocks.map(s => {
-        const change = parseFloat(s.change ?? 0);
-        const baseSize = Math.max(25, Math.min(100, Math.abs(change) * 12));
-        return {
-          symbol: s.stock,
-          change: change.toFixed(2),
-          x: random(0, canvas.width),
-          y: random(0, canvas.height),
-          vx: random(-0.3, 0.3),
-          vy: random(-0.3, 0.3),
-          size: baseSize,
-          color: change >= 0 ? "#00ff00" : "#ff0000"
-        };
-      });
-      updateRanking();
+function generateData() {
+  const ativos = [
+    { symbol: "AZTE3", change: 18.18 },
+    { symbol: "BRFS3", change: 3.44 },
+    { symbol: "SIMH3", change: -3.02 },
+    { symbol: "VBBR3", change: 2.68 },
+    { symbol: "USIM5", change: 1.36 },
+    { symbol: "BBDC4", change: -0.48 },
+    { symbol: "CMIG4", change: 1.18 },
+    { symbol: "PETR4", change: 0.18 },
+    { symbol: "COGN3", change: -0.34 },
+    { symbol: "MGLU3", change: 0.65 },
+    { symbol: "SANB11", change: -0.31 },
+    { symbol: "ITUB4", change: 0.05 },
+    { symbol: "CVCB3", change: 0.00 },
+  ];
+
+  return ativos.map(item => {
+    const size = 40 + Math.abs(item.change) * 10;
+    return {
+      ...item,
+      x: Math.random() * width,
+      y: Math.random() * height,
+      radius: size,
+      dx: (Math.random() - 0.5) * 0.5,
+      dy: (Math.random() - 0.5) * 0.5,
+      color: getRandomColor(item.change),
+    };
+  });
+}
+
+function drawBubble(bubble) {
+  const gradient = ctx.createRadialGradient(
+    bubble.x,
+    bubble.y,
+    bubble.radius * 0.3,
+    bubble.x,
+    bubble.y,
+    bubble.radius
+  );
+  gradient.addColorStop(0, "#fff");
+  gradient.addColorStop(1, bubble.color);
+
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // texto
+  ctx.fillStyle = "#fff";
+  ctx.font = `${Math.max(bubble.radius * 0.3, 12)}px Arial`;
+  ctx.textAlign = "center";
+  ctx.fillText(bubble.symbol, bubble.x, bubble.y - 5);
+  ctx.font = `${Math.max(bubble.radius * 0.25, 10)}px Arial`;
+  ctx.fillText(`${bubble.change.toFixed(2)}%`, bubble.x, bubble.y + 15);
+}
+
+function animate() {
+  ctx.clearRect(0, 0, width, height);
+  bubbles.forEach(b => {
+    b.x += b.dx;
+    b.y += b.dy;
+
+    // colisão com bordas
+    if (b.x - b.radius < 0 || b.x + b.radius > width) b.dx *= -1;
+    if (b.y - b.radius < 0 || b.y + b.radius > height) b.dy *= -1;
+
+    // colisão com outras bolhas
+    bubbles.forEach(other => {
+      if (b === other) return;
+      const dx = b.x - other.x;
+      const dy = b.y - other.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < b.radius + other.radius) {
+        const angle = Math.atan2(dy, dx);
+        const tx = other.x + Math.cos(angle) * (b.radius + other.radius);
+        const ty = other.y + Math.sin(angle) * (b.radius + other.radius);
+        b.x = tx;
+        b.y = ty;
+        b.dx *= -0.5;
+        b.dy *= -0.5;
+      }
     });
+
+    drawBubble(b);
+  });
+  requestAnimationFrame(animate);
 }
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let b of bubbles) {
-    // Bolha com glow
-    ctx.beginPath();
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = b.color;
-    ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
-    ctx.fillStyle = b.color;
-    ctx.fill();
-
-    // Texto
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "#fff";
-    ctx.font = `${Math.max(12, b.size / 4)}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 2;
-    ctx.strokeText(b.symbol, b.x, b.y - 5);
-    ctx.strokeText(b.change + "%", b.x, b.y + 15);
-    ctx.fillText(b.symbol, b.x, b.y - 5);
-    ctx.fillText(b.change + "%", b.x, b.y + 15);
-
-    // Movimento com rebote
-    b.x += b.vx;
-    b.y += b.vy;
-    if (b.x - b.size < 0 || b.x + b.size > canvas.width) b.vx *= -1;
-    if (b.y - b.size < 0 || b.y + b.size > canvas.height) b.vy *= -1;
-  }
-
-  requestAnimationFrame(draw);
-}
-
-function selectCategory(cat) {
-  category = cat;
-  document.querySelectorAll(".menu button").forEach(btn => btn.classList.remove("active"));
-  document.querySelector(`.menu button[onclick*="${cat}"]`).classList.add("active");
-  fetchData();
+function changeTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".menu button").forEach(btn => {
+    btn.classList.remove("active");
+  });
+  event.target.classList.add("active");
+  document.getElementById("rankingPanel").style.display = "none";
+  bubbles = generateData(); // carrega novos dados simulados
 }
 
 function toggleRanking() {
-  rankingVisible = !rankingVisible;
-  document.getElementById("rankingPanel").classList.toggle("hidden", !rankingVisible);
-  updateRanking();
-}
-
-function updateRanking() {
-  if (!rankingVisible) return;
-  const top = [...bubbles].sort((a, b) => b.change - a.change).slice(0, 10);
+  showRanking = !showRanking;
   const panel = document.getElementById("rankingPanel");
-  panel.innerHTML = top.map(b => `${b.symbol}: ${b.change}%`).join("<br>");
+  if (showRanking) {
+    const sorted = [...bubbles].sort((a, b) => b.change - a.change).slice(0, 10);
+    panel.innerHTML = sorted.map(b => `${b.symbol}: ${b.change.toFixed(2)}%`).join("<br>");
+    panel.style.display = "block";
+  } else {
+    panel.style.display = "none";
+  }
 }
 
-// Iniciar
-fetchData();
-draw();
+window.addEventListener("resize", () => {
+  width = window.innerWidth;
+  height = window.innerHeight;
+  canvas.width = width;
+  canvas.height = height;
+  bubbles = generateData();
+});
+
+bubbles = generateData();
+animate();
