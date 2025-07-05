@@ -1,120 +1,72 @@
-const canvas = document.getElementById('bubbleCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-let tab = 'acoes';
-let rankingVisible = false;
+let bubbles = [];
+let logos = {}; // opcional para logos
 
-function switchTab(newTab) {
-  tab = newTab;
-  document.querySelectorAll("#menu button").forEach(btn => btn.classList.remove("active"));
-  document.getElementById(`btn-${tab}`).classList.add("active");
-  loadBubbles();
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 }
 
-function toggleRanking() {
-  rankingVisible = !rankingVisible;
-  document.getElementById("rankingBox").classList.toggle("hidden", !rankingVisible);
-}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
 
-function loadBubbles() {
-  bubbles.length = 0;
-  for (let i = 0; i < 25; i++) {
-    const value = (Math.random() * 10 - 5).toFixed(2);
-    const radius = Math.max(20, Math.abs(value) * 10 + 30);
-    const color = value >= 0 ? 'green' : 'red';
-    const label = `${['PETR4','VALE3','ITUB4','MGLU3','BBAS3'][i%5]} ${value}%`;
-    bubbles.push(new Bubble(
-      Math.random() * canvas.width,
-      Math.random() * canvas.height,
-      (Math.random() - 0.5) * 0.5,
-      (Math.random() - 0.5) * 0.5,
-      radius,
-      color,
-      label
-    ));
-  }
-  draw();
-}
-
-class Bubble {
-  constructor(x, y, dx, dy, r, color, text) {
-    this.x = x;
-    this.y = y;
-    this.dx = dx;
-    this.dy = dy;
-    this.r = r;
-    this.color = color;
-    this.text = text;
-  }
-
-  draw() {
-    ctx.beginPath();
-    const gradient = ctx.createRadialGradient(this.x, this.y, this.r * 0.2, this.x, this.y, this.r);
-    if (this.color === 'green') {
-      gradient.addColorStop(0, '#66ff66');
-      gradient.addColorStop(0.7, '#00cc00');
-      gradient.addColorStop(1, '#007700');
-    } else {
-      gradient.addColorStop(0, '#ff6666');
-      gradient.addColorStop(0.7, '#cc0000');
-      gradient.addColorStop(1, '#770000');
-    }
-    ctx.fillStyle = gradient;
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 30;
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff';
-    ctx.font = `${Math.max(10, this.r / 4)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText(this.text, this.x, this.y + 4);
-  }
-
-  update() {
-    this.x += this.dx;
-    this.y += this.dy;
-
-    if (this.x + this.r > canvas.width || this.x - this.r < 0) this.dx = -this.dx;
-    if (this.y + this.r > canvas.height || this.y - this.r < 0) this.dy = -this.dy;
-
-    for (let other of bubbles) {
-      if (other !== this) {
-        const dx = this.x - other.x;
-        const dy = this.y - other.y;
-        const dist = Math.hypot(dx, dy);
-        const minDist = this.r + other.r;
-        if (dist < minDist) {
-          const angle = Math.atan2(dy, dx);
-          const overlap = (minDist - dist) / 2;
-          this.x += Math.cos(angle) * overlap;
-          this.y += Math.sin(angle) * overlap;
-          other.x -= Math.cos(angle) * overlap;
-          other.y -= Math.sin(angle) * overlap;
-        }
-      }
-    }
-
-    this.draw();
+function createBubbles() {
+  bubbles = [];
+  for (let i = 0; i < 80; i++) {
+    const radius = Math.random() * 40 + 20;
+    bubbles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: radius,
+      color: Math.random() > 0.5 ? "#00ff00" : "#ff0000",
+      alpha: 0.9,
+      text: ["PETR4", "VALE3", "ITUB4", "BBAS3", "BBDC4"][i % 5],
+      change: (Math.random() * 5 - 2.5).toFixed(2) + "%",
+      dx: Math.random() * 0.6 - 0.3,
+      dy: Math.random() * 0.6 - 0.3,
+    });
   }
 }
 
-const bubbles = [];
-loadBubbles();
+createBubbles();
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let b of bubbles) {
-    b.update();
+    // sombra/glow
+    ctx.beginPath();
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = b.color;
+    ctx.fillStyle = b.color;
+    ctx.globalAlpha = b.alpha;
+    ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.closePath();
+
+    // texto
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "white";
+    ctx.font = `bold ${Math.max(12, b.r / 3)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(b.text, b.x, b.y - 5);
+    ctx.fillText(b.change, b.x, b.y + 15);
   }
+  update();
   requestAnimationFrame(draw);
 }
 
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  loadBubbles();
-});
+function update() {
+  for (let b of bubbles) {
+    b.x += b.dx;
+    b.y += b.dy;
+
+    // colisão com bordas
+    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.dx *= -1;
+    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.dy *= -1;
+  }
+}
+
+draw();
