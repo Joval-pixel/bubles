@@ -28,18 +28,18 @@ function gerarBolhas() {
       ...a,
       x: Math.random() * width,
       y: Math.random() * height,
-      dx: (Math.random() - 0.5) * 0.4,
-      dy: (Math.random() - 0.5) * 0.4,
+      dx: (Math.random() - 0.5) * 0.25,
+      dy: (Math.random() - 0.5) * 0.25,
       r: raio,
-      cor: a.change >= 0 ? "rgba(0,255,0,0.35)" : "rgba(255,0,0,0.35)"
+      cor: a.change >= 0 ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)"
     };
   });
 }
 
 function desenharBolha(b) {
-  const grad = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r);
-  grad.addColorStop(0, "rgba(255,255,255,0.1)");
-  grad.addColorStop(1, b.cor);
+  const grad = ctx.createRadialGradient(b.x, b.y, b.r * 0.6, b.x, b.y, b.r);
+  grad.addColorStop(0, b.cor);
+  grad.addColorStop(1, "rgba(0,0,0,0.7)");
 
   ctx.beginPath();
   ctx.fillStyle = grad;
