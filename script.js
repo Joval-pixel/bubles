@@ -23,7 +23,7 @@ function gerarBolhas() {
   ];
 
   return ativos.map((a) => {
-    const raio = Math.min(120, 40 + Math.abs(a.change) * 10); // limite de tamanho
+    const raio = Math.min(120, 40 + Math.abs(a.change) * 10);
     return {
       ...a,
       x: Math.random() * width,
@@ -38,7 +38,7 @@ function gerarBolhas() {
 
 function desenharBolha(b) {
   const grad = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r);
-  grad.addColorStop(0, "rgba(255,255,255,0.2)");
+  grad.addColorStop(0, "rgba(255,255,255,0.1)");
   grad.addColorStop(1, b.cor);
 
   ctx.beginPath();
@@ -65,7 +65,6 @@ function animar() {
     if (b.x - b.r < 0 || b.x + b.r > width) b.dx *= -1;
     if (b.y - b.r < 0 || b.y + b.r > height) b.dy *= -1;
 
-    // colisão com outras bolhas
     for (let j = i + 1; j < bolhas.length; j++) {
       const b2 = bolhas[j];
       const dx = b2.x - b.x;
@@ -96,8 +95,7 @@ function animar() {
 function filtrar(categoria) {
   document.querySelectorAll("#menu button").forEach(btn => btn.classList.remove("ativo"));
   event.target.classList.add("ativo");
-
-  bolhas = gerarBolhas(); // Aqui você pode carregar diferentes dados por aba futuramente
+  bolhas = gerarBolhas();
 }
 
 window.addEventListener("resize", () => {
