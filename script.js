@@ -22,15 +22,15 @@ function fetchData() {
       const stocks = data.stocks.slice(0, 50);
       bubbles = stocks.map(s => {
         const change = parseFloat(s.change ?? 0);
-        const size = Math.min(140, Math.max(30, Math.abs(change) * 20));
+        const baseSize = Math.max(25, Math.min(100, Math.abs(change) * 12));
         return {
           symbol: s.stock,
           change: change.toFixed(2),
           x: random(0, canvas.width),
           y: random(0, canvas.height),
-          vx: random(-0.2, 0.2),
-          vy: random(-0.2, 0.2),
-          size: size,
+          vx: random(-0.3, 0.3),
+          vy: random(-0.3, 0.3),
+          size: baseSize,
           color: change >= 0 ? "#00ff00" : "#ff0000"
         };
       });
@@ -41,10 +41,10 @@ function fetchData() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let b of bubbles) {
-    // Desenho da bolha
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = b.color;
+    // Bolha com glow
     ctx.beginPath();
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = b.color;
     ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
     ctx.fillStyle = b.color;
     ctx.fill();
@@ -52,17 +52,22 @@ function draw() {
     // Texto
     ctx.shadowBlur = 0;
     ctx.fillStyle = "#fff";
-    ctx.font = `${Math.max(10, b.size / 4)}px sans-serif`;
+    ctx.font = `${Math.max(12, b.size / 4)}px sans-serif`;
     ctx.textAlign = "center";
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.strokeText(b.symbol, b.x, b.y - 5);
+    ctx.strokeText(b.change + "%", b.x, b.y + 15);
     ctx.fillText(b.symbol, b.x, b.y - 5);
     ctx.fillText(b.change + "%", b.x, b.y + 15);
 
-    // Movimento
+    // Movimento com rebote
     b.x += b.vx;
     b.y += b.vy;
     if (b.x - b.size < 0 || b.x + b.size > canvas.width) b.vx *= -1;
     if (b.y - b.size < 0 || b.y + b.size > canvas.height) b.vy *= -1;
   }
+
   requestAnimationFrame(draw);
 }
 
@@ -86,6 +91,6 @@ function updateRanking() {
   panel.innerHTML = top.map(b => `${b.symbol}: ${b.change}%`).join("<br>");
 }
 
-// Inicialização
+// Iniciar
 fetchData();
 draw();
