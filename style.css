@@ -1,45 +1,35 @@
 body {
   margin: 0;
+  padding: 0;
+  background-color: #1c1c1c;
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
   overflow: hidden;
-  background: #111;
-  font-family: sans-serif;
 }
 
-#menu {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 10;
+header {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  background-color: #111;
+  padding: 10px 20px;
+  border-bottom: 1px solid #333;
 }
 
-.tab {
-  background: #222;
-  border: none;
-  color: white;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
-  transition: 0.2s;
+.logo {
+  height: 40px;
+  margin-right: 15px;
 }
 
-.tab:hover {
-  background: #333;
-}
-
-.tab.active {
-  background: #007aff;
-  color: white;
+h1 {
+  font-size: 20px;
+  margin: 0;
 }
 
 canvas {
   display: block;
   position: absolute;
-  top: 0;
+  top: 60px;
   left: 0;
+  width: 100%;
+  height: calc(100vh - 60px);
 }
