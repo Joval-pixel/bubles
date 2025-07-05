@@ -1,10 +1,10 @@
-const apiKey = '5bTDfSmR2ieax6y7JUqDAD'; // sua chave da Brapi
+const apiKey = '5bTDfSmR2ieax6y7JUqDAD'; // chave da Brapi
 const container = document.getElementById('bubble-container');
 
 async function getStocks() {
-  const res = await fetch(`https://brapi.dev/api/quote/list?token=${apiKey}&limit=40`);
+  const res = await fetch(`https://brapi.dev/api/quote/list?token=${apiKey}&limit=30`);
   const data = await res.json();
-  return data.stocks;
+  return data.stocks || [];
 }
 
 function createBubble(stock) {
@@ -16,11 +16,18 @@ function createBubble(stock) {
   bubble.style.width = `${size}px`;
   bubble.style.height = `${size}px`;
 
-  const color = change >= 0 ? '#00ff00' : '#ff0000';
-  const glow = change >= 0 ? '0 0 30px #00ff00' : '0 0 30px #ff0000';
-  bubble.style.backgroundColor = color;
-  bubble.style.boxShadow = glow;
-  bubble.innerHTML = `${stock.stock}<br>${change.toFixed(2)}%`;
+  const gradient = change >= 0
+    ? 'radial-gradient(circle at center, #00ff00, #007700)'
+    : 'radial-gradient(circle at center, #ff0000, #770000)';
+  bubble.style.background = gradient;
+  bubble.style.boxShadow = change >= 0
+    ? '0 0 12px #00ff00, 0 0 24px #00ff00'
+    : '0 0 12px #ff0000, 0 0 24px #ff0000';
+
+  bubble.innerHTML = `
+    <div style="font-size:${Math.max(size * 0.22, 12)}px">${stock.stock}</div>
+    <div style="font-size:${Math.max(size * 0.18, 10)}px">${change.toFixed(2)}%</div>
+  `;
 
   bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
   bubble.style.top = `${Math.random() * (window.innerHeight - size)}px`;
@@ -34,7 +41,7 @@ function moveBubble(bubble) {
     const x = Math.random() * (window.innerWidth - bubble.offsetWidth);
     const y = Math.random() * (window.innerHeight - bubble.offsetHeight);
     bubble.style.transform = `translate(${x}px, ${y}px)`;
-  }, 4000);
+  }, 8000); // movimento lento
 }
 
 async function start() {
@@ -45,13 +52,13 @@ async function start() {
 start();
 
 function filterBubbles(type) {
-  alert(`Filtro ${type} ainda não implementado.`);
+  alert(`Filtro '${type}' ainda será implementado.`);
 }
 
 function toggleRanking() {
-  alert("Ranking em breve");
+  alert("Ranking ainda não implementado.");
 }
 
 function toggleCorretoras() {
-  alert("Corretoras em breve");
+  alert("Corretoras ainda não implementado.");
 }
