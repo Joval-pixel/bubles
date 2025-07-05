@@ -107,4 +107,4 @@ function setTab(tabName) {
   } else {
     alert("Aba Cripto ainda em desenvolvimento");
   }
-}
+} 
