@@ -7,60 +7,72 @@
   <style>
     body {
       margin: 0;
-      overflow: hidden;
-      background-color: #111;
+      background-color: #000;
       font-family: Arial, sans-serif;
-      text-align: center;
+      overflow: hidden;
     }
 
-    .header {
-      padding: 15px 0 5px;
-    }
-
-    .header img {
-      height: 35px;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-
-    .header-title {
-      display: inline-flex;
+    #header {
+      display: flex;
       align-items: center;
-      color: white;
-      font-size: 20px;
-      font-weight: bold;
+      justify-content: center;
+      flex-direction: column;
+      padding: 10px 0;
     }
 
-    .nav-buttons {
-      margin-top: 6px;
+    #header-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    #header-top img {
+      width: 30px;
+      height: 30px;
+    }
+
+    #header-top h1 {
+      color: white;
+      font-size: 16px;
+      margin: 0;
+    }
+
+    .menu-buttons {
       display: flex;
       justify-content: center;
-      gap: 6px;
       flex-wrap: wrap;
+      gap: 4px;
+      flex-shrink: 0;
     }
 
-    .nav-buttons button {
-      font-size: 12px;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 4px;
-      background-color: #333;
+    .menu-buttons button {
+      background-color: #222;
       color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 11px;
       cursor: pointer;
     }
 
-    .nav-buttons button.active {
+    .menu-buttons button.active {
       background-color: #007bff;
+    }
+
+    canvas {
+      display: block;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="header-title">
-      <img src="logo.png" alt="Logo" />
-      BUBLES – Ações ao Vivo
+
+  <div id="header">
+    <div id="header-top">
+      <img src="logo.png" alt="Logo BUBLES" />
+      <h1>BUBLES – Ações ao Vivo</h1>
     </div>
-    <div class="nav-buttons">
+    <div class="menu-buttons">
       <button class="active">Ações</button>
       <button>Criptos</button>
       <button>Commodities</button>
@@ -71,6 +83,75 @@
 
   <canvas id="bubbleCanvas"></canvas>
 
-  <script src="script.js"></script>
+  <script>
+    const canvas = document.getElementById('bubbleCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    const bubbles = [];
+    const colors = ['rgba(0,200,0,0.8)', 'rgba(255,0,0,0.8)'];
+    const labels = ['PETR4', 'VALE3', 'BBAS3', 'ITUB4', 'MGLU3', 'AZUL4', 'GGBR4', 'WEGE3'];
+
+    function createBubble() {
+      const size = Math.random() * 60 + 30;
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: size,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        dx: (Math.random() - 0.5) * 1.5,
+        dy: (Math.random() - 0.5) * 1.5,
+        label: labels[Math.floor(Math.random() * labels.length)],
+        change: (Math.random() * 5 - 2.5).toFixed(2) + '%'
+      };
+    }
+
+    for (let i = 0; i < 30; i++) {
+      bubbles.push(createBubble());
+    }
+
+    function drawBubbles() {
+      ctx.clearRect(0, 0, width, height);
+      for (let b of bubbles) {
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = b.color;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
+        ctx.fillStyle = b.color;
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'white';
+        ctx.font = `${b.r / 3}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(b.label, b.x, b.y - 5);
+        ctx.font = `${b.r / 4}px Arial`;
+        ctx.fillText(b.change, b.x, b.y + 15);
+
+        b.x += b.dx;
+        b.y += b.dy;
+
+        if (b.x + b.r > width || b.x - b.r < 0) b.dx *= -1;
+        if (b.y + b.r > height || b.y - b.r < 0) b.dy *= -1;
+      }
+    }
+
+    function animate() {
+      drawBubbles();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    });
+  </script>
 </body>
 </html>
