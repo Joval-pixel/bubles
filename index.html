@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,17 +7,15 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="menu">
-    <button onclick="setTab('acoes')" class="tab active">Ações</button>
-    <button onclick="setTab('criptos')" class="tab">Criptos</button>
-    <button onclick="setTab('commodities')" class="tab">Commodities</button>
-    <button onclick="toggleRanking()" class="tab">📊 Ranking</button>
-    <button onclick="setTab('corretoras')" class="tab">🏛️ Corretoras</button>
+  <div id="menu">
+    <button onclick="switchTab('acoes')" id="btn-acoes" class="active">Ações</button>
+    <button onclick="switchTab('criptos')" id="btn-criptos">Criptos</button>
+    <button onclick="switchTab('commodities')" id="btn-commodities">Commodities</button>
+    <button onclick="toggleRanking()">📊 Ranking</button>
+    <button onclick="switchTab('corretoras')" id="btn-corretoras">🏛️ Corretoras</button>
+    <div id="rankingBox" class="hidden"></div>
   </div>
-
-  <div id="rankingPanel" class="ranking-panel" style="display:none;"></div>
-  <canvas id="canvas"></canvas>
-  
+  <canvas id="bubbleCanvas"></canvas>
   <script src="script.js"></script>
 </body>
 </html>
