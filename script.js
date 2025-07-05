@@ -115,4 +115,4 @@ function showTab(name) {
   document.querySelectorAll('button.tab').forEach(btn => btn.classList.remove('active'));
   document.querySelector(`button.tab[onclick*="${name}"]`).classList.add('active');
   // Aqui você pode trocar os dados das bolhas dependendo da aba clicada
-}
+} 
