@@ -1,49 +1,50 @@
 body {
   margin: 0;
-  background: black;
+  background-color: black;
   overflow: hidden;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
 }
 
 .menu {
   position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 1000;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .menu button {
-  background: #333;
-  color: white;
-  padding: 8px 12px;
+  padding: 10px 16px;
   border: none;
   border-radius: 8px;
-  font-weight: bold;
+  background-color: #222;
+  color: white;
+  font-size: 16px;
   cursor: pointer;
+  opacity: 0.9;
 }
 
 .menu button.active {
-  background-color: #008cff;
+  background-color: #007bff;
 }
 
 .ranking-panel {
   position: fixed;
-  top: 180px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.85);
+  top: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9;
+  background-color: rgba(0, 0, 0, 0.85);
+  padding: 10px 15px;
+  border-radius: 10px;
   color: white;
-  padding: 10px;
-  border-radius: 8px;
+  display: none;
+  font-size: 14px;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
-}
-
-.hidden {
-  display: none;
 }
 
 canvas {
