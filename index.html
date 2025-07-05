@@ -2,24 +2,23 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bubles – Ações ao Vivo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BUBLES — Ações ao Vivo</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
-    <img src="logo.png" alt="Logo Bubles" class="logo" />
-    <div class="title-area">
-      <h1>Bubles – Ações ao Vivo</h1>
-      <div class="tabs">
-        <button class="tab active" onclick="setTab('acoes')">Ações</button>
-        <button class="tab" onclick="setTab('cripto')">Cripto</button>
-      </div>
-    </div>
+    <img src="logo.png" alt="BUBLES Logo" class="logo"/>
+    <h1>BUBLES — Ações ao Vivo</h1>
+    <nav class="menu">
+      <button class="menu-btn active">Ações</button>
+      <button class="menu-btn">Criptos</button>
+      <button class="menu-btn">Commodities</button>
+      <button class="menu-btn">📊 Ranking</button>
+      <button class="menu-btn">🏛 Corretoras</button>
+    </nav>
   </header>
-
-  <canvas id="canvas"></canvas>
-
+  <canvas id="bubbleCanvas"></canvas>
   <script src="script.js"></script>
 </body>
-</html> 
+</html>
