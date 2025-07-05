@@ -1,109 +1,113 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-
-let width = window.innerWidth;
-let height = window.innerHeight;
-canvas.width = width;
-canvas.height = height;
-
 let bolhas = [];
 
-function gerarBolhas() {
-  const ativos = [
-    { symbol: "AZUL4", change: 8.12 },
-    { symbol: "PETR4", change: -2.14 },
-    { symbol: "VALE3", change: 1.34 },
-    { symbol: "MGLU3", change: -0.85 },
-    { symbol: "BBDC4", change: 0.56 },
-    { symbol: "ITUB4", change: -0.12 },
-    { symbol: "LREN3", change: 2.5 },
-    { symbol: "ABEV3", change: -1.3 },
-    { symbol: "GGBR4", change: 0.8 },
-    { symbol: "BBAS3", change: 1.95 }
-  ];
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-  return ativos.map((a) => {
-    const raio = Math.min(120, 40 + Math.abs(a.change) * 10);
-    return {
-      ...a,
-      x: Math.random() * width,
-      y: Math.random() * height,
-      dx: (Math.random() - 0.5) * 0.25,
-      dy: (Math.random() - 0.5) * 0.25,
-      r: raio,
-      cor: a.change >= 0 ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)"
-    };
-  });
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+function gerarBolhas() {
+  bolhas = [];
+  for (let i = 0; i < 40; i++) {
+    const variacao = (Math.random() * 8 - 4).toFixed(2);
+    const volume = Math.random() * 1000000;
+    const raio = 30 + Math.min(Math.abs(variacao) * 15 + volume / 500000, 100);
+    const simbolo = gerarTicker();
+    const cor = variacao >= 0 ? "green" : "red";
+    const brilho = variacao >= 0 ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)";
+    bolhas.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.7,
+      vy: (Math.random() - 0.5) * 0.7,
+      raio,
+      simbolo,
+      variacao,
+      cor,
+      brilho
+    });
+  }
 }
 
-function desenharBolha(b) {
-  const grad = ctx.createRadialGradient(b.x, b.y, b.r * 0.6, b.x, b.y, b.r);
-  grad.addColorStop(0, b.cor);
-  grad.addColorStop(1, "rgba(0,0,0,0.7)");
+function gerarTicker() {
+  const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const tamanho = Math.random() > 0.7 ? 5 : 4;
+  let ticker = "";
+  for (let i = 0; i < tamanho; i++) {
+    ticker += letras.charAt(Math.floor(Math.random() * letras.length));
+  }
+  return ticker;
+}
 
-  ctx.beginPath();
-  ctx.fillStyle = grad;
-  ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
-  ctx.fill();
+function desenharBolhas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "#fff";
-  ctx.textAlign = "center";
-  ctx.font = `${Math.max(b.r * 0.3, 12)}px Arial`;
-  ctx.fillText(b.symbol, b.x, b.y - 4);
-  ctx.font = `${Math.max(b.r * 0.25, 10)}px Arial`;
-  ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 14);
+  for (let b of bolhas) {
+    // brilho forte nas bordas
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = b.brilho;
+    ctx.fillStyle = b.cor;
+    ctx.fill();
+
+    // texto centralizado
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#fff";
+    ctx.font = `${Math.max(b.raio / 4, 12)}px Arial`;
+    ctx.textAlign = "center";
+    ctx.fillText(b.simbolo, b.x, b.y - 5);
+    ctx.fillText(`${b.variacao}%`, b.x, b.y + 15);
+  }
+}
+
+function atualizarBolhas() {
+  for (let b of bolhas) {
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // colisão com borda
+    if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
+    if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+
+    // colisão entre bolhas
+    for (let outro of bolhas) {
+      if (b === outro) continue;
+      const dx = b.x - outro.x;
+      const dy = b.y - outro.y;
+      const dist = Math.hypot(dx, dy);
+      const minDist = b.raio + outro.raio;
+
+      if (dist < minDist) {
+        const ang = Math.atan2(dy, dx);
+        const mov = (minDist - dist) / 2;
+        b.x += Math.cos(ang) * mov;
+        b.y += Math.sin(ang) * mov;
+        outro.x -= Math.cos(ang) * mov;
+        outro.y -= Math.sin(ang) * mov;
+
+        [b.vx, outro.vx] = [outro.vx, b.vx];
+        [b.vy, outro.vy] = [outro.vy, b.vy];
+      }
+    }
+  }
 }
 
 function animar() {
-  ctx.clearRect(0, 0, width, height);
-
-  for (let i = 0; i < bolhas.length; i++) {
-    const b = bolhas[i];
-    b.x += b.dx;
-    b.y += b.dy;
-
-    if (b.x - b.r < 0 || b.x + b.r > width) b.dx *= -1;
-    if (b.y - b.r < 0 || b.y + b.r > height) b.dy *= -1;
-
-    for (let j = i + 1; j < bolhas.length; j++) {
-      const b2 = bolhas[j];
-      const dx = b2.x - b.x;
-      const dy = b2.y - b.y;
-      const dist = Math.hypot(dx, dy);
-      const minDist = b.r + b2.r;
-
-      if (dist < minDist) {
-        const angle = Math.atan2(dy, dx);
-        const targetX = b.x + Math.cos(angle) * minDist;
-        const targetY = b.y + Math.sin(angle) * minDist;
-        const ax = (targetX - b2.x) * 0.05;
-        const ay = (targetY - b2.y) * 0.05;
-
-        b.dx -= ax;
-        b.dy -= ay;
-        b2.dx += ax;
-        b2.dy += ay;
-      }
-    }
-
-    desenharBolha(b);
-  }
-
+  atualizarBolhas();
+  desenharBolhas();
   requestAnimationFrame(animar);
 }
 
-function filtrar(categoria) {
+function trocarAba(aba) {
   document.querySelectorAll("#menu button").forEach(btn => btn.classList.remove("ativo"));
   event.target.classList.add("ativo");
-  bolhas = gerarBolhas();
+  gerarBolhas();
 }
 
-window.addEventListener("resize", () => {
-  width = window.innerWidth;
-  height = window.innerHeight;
-  canvas.width = width;
-  canvas.height = height;
-});
-
-bolhas = gerarBolhas();
+gerarBolhas();
 animar();
