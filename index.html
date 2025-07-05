@@ -8,37 +8,42 @@
     body {
       margin: 0;
       background-color: #000;
-      overflow: hidden;
       font-family: Arial, sans-serif;
+      overflow: hidden;
     }
 
     #header {
-      text-align: center;
-      padding: 10px;
-      background: #000;
-      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 10px 0;
+      background-color: #000;
     }
 
-    #header img {
-      width: 60px;
-      vertical-align: middle;
-      margin-right: 10px;
+    #header-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 5px;
     }
 
-    #header h1 {
-      display: inline-block;
+    #header-top img {
+      width: 35px;
+      height: 35px;
+    }
+
+    #header-top h1 {
       color: white;
-      font-size: 20px;
-      vertical-align: middle;
+      font-size: 18px;
       margin: 0;
     }
 
     .menu-buttons {
-      margin-top: 10px;
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 5px;
     }
 
     .menu-buttons button {
@@ -47,7 +52,7 @@
       border: none;
       padding: 5px 10px;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
     }
 
@@ -62,10 +67,11 @@
 </head>
 <body>
 
-  <!-- Cabeçalho com logo, título e botões -->
   <div id="header">
-    <img src="logo.png" alt="Logo BUBLES" />
-    <h1>BUBLES – Ações ao Vivo</h1>
+    <div id="header-top">
+      <img src="logo.png" alt="Logo BUBLES" />
+      <h1>BUBLES – Ações ao Vivo</h1>
+    </div>
     <div class="menu-buttons">
       <button class="active">Ações</button>
       <button>Criptos</button>
