@@ -2,46 +2,54 @@ body {
   margin: 0;
   overflow: hidden;
   background-color: #000;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
 }
 
-.menu {
+#menu {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  top: 10px;
+  left: 10px;
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.tab {
-  padding: 8px 16px;
+#menu button {
   background: #222;
   color: white;
   border: none;
+  padding: 8px 12px;
   border-radius: 8px;
   font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
 }
 
-.tab.active {
-  background: dodgerblue;
+#menu button.active {
+  background: #007bff;
 }
 
-.ranking-panel {
-  position: fixed;
-  top: 100px;
-  left: 20px;
-  background: rgba(0, 0, 0, 0.8);
+#rankingBox {
+  position: absolute;
+  top: 130px;
+  left: 10px;
+  background: rgba(0,0,0,0.85);
   color: white;
-  padding: 12px;
+  padding: 10px;
   border-radius: 10px;
-  max-height: 80%;
-  overflow-y: auto;
+  max-width: 260px;
   font-size: 14px;
-  z-index: 20;
+}
+
+#rankingBox.hidden {
+  display: none;
 }
 
 canvas {
   display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
