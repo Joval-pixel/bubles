@@ -1,29 +1,21 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BUBLES – Ações ao Vivo</title>
+  <title>Bubles – Ações ao Vivo</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <div class="header-container">
-      <img src="logo.png" alt="Logo Bubles" class="logo" />
-      <div class="site-title">BUBLES – Ações ao Vivo</div>
-    </div>
-    <div class="menu-buttons">
-      <button class="menu-btn active" onclick="showTab('acoes')">Ações</button>
-      <button class="menu-btn" onclick="showTab('criptos')">Criptos</button>
-      <button class="menu-btn" onclick="showTab('commodities')">Commodities</button>
-      <button class="menu-btn" onclick="showTab('ranking')">📊 Ranking</button>
-      <button class="menu-btn" onclick="showTab('corretoras')">🏛️ Corretoras</button>
-    </div>
-  </header>
+  <div id="menu">
+    <button class="tab-button active" onclick="showTab('acoes')">Ações</button>
+    <button class="tab-button" onclick="showTab('criptos')">Criptos</button>
+    <button class="tab-button" onclick="showTab('commodities')">Commodities</button>
+    <button class="tab-button" onclick="showTab('ranking')">📊 Ranking</button>
+    <button class="tab-button" onclick="showTab('corretoras')">🏛 Corretoras</button>
+  </div>
 
-  <main>
-    <canvas id="bubbleCanvas"></canvas>
-  </main>
+  <canvas id="bubbleCanvas"></canvas>
 
   <script src="script.js"></script>
 </body>
