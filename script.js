@@ -1,80 +1,83 @@
-const canvas = document.getElementById("bubbleCanvas");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById('bubbleCanvas');
+const ctx = canvas.getContext('2d');
+
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let bubbles = [];
 
-function createBubble(text, value, color) {
-  const radius = 40 + Math.abs(value) * 10;
+const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
+fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=${apiKey}`)
+  .then(res => res.json())
+  .then(data => {
+    const stocks = data.stocks || [];
+    bubbles = stocks.map((stock, i) => createBubble(stock, i));
+    animate();
+  });
+
+function createBubble(stock, index) {
+  const radius = Math.max(20, Math.min(80, Math.abs(stock.changePercent) * 3));
+  const color = stock.changePercent >= 0 ? 'rgba(0,180,0,0.8)' : 'rgba(220,0,0,0.8)';
+  const borderColor = 'white';
+
   return {
-    x: Math.random() * (canvas.width - radius * 2) + radius,
-    y: Math.random() * (canvas.height - radius * 2) + radius,
-    r: radius,
-    dx: (Math.random() - 0.5) * 1.5,
-    dy: (Math.random() - 0.5) * 1.5,
-    text,
-    value,
-    color
+    x: Math.random() * (canvas.width - 2 * radius) + radius,
+    y: Math.random() * (canvas.height - 2 * radius) + radius,
+    vx: (Math.random() - 0.5) * 0.5,
+    vy: (Math.random() - 0.5) * 0.5,
+    radius,
+    color,
+    borderColor,
+    symbol: stock.stock,
+    price: stock.price.toFixed(2),
+    change: stock.changePercent.toFixed(2)
   };
 }
 
 function drawBubble(b) {
   ctx.beginPath();
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
   ctx.fillStyle = b.color;
   ctx.fill();
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "white";
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = b.borderColor;
   ctx.stroke();
   ctx.closePath();
 
-  ctx.fillStyle = "white";
-  ctx.font = `${b.r / 3}px Arial`;
-  ctx.textAlign = "center";
-  ctx.fillText(b.text, b.x, b.y - 5);
-  ctx.fillText(`${b.value.toFixed(2)}%`, b.x, b.y + b.r / 4);
+  ctx.fillStyle = 'white';
+  ctx.font = `${Math.max(10, b.radius / 3)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.fillText(b.symbol, b.x, b.y - 5);
+  ctx.fillText(`${b.price} | ${b.change}%`, b.x, b.y + 15);
 }
 
 function animate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  bubbles.forEach(b => {
-    b.x += b.dx;
-    b.y += b.dy;
 
-    // bounce
-    if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
-    if (b.y + b.r > canvas.height || b.y - b.r < 0) b.dy *= -1;
+  for (let i = 0; i < bubbles.length; i++) {
+    let b = bubbles[i];
+    b.x += b.vx;
+    b.y += b.vy;
+
+    if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.vx *= -1;
+    if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.vy *= -1;
+
+    for (let j = i + 1; j < bubbles.length; j++) {
+      const b2 = bubbles[j];
+      const dx = b.x - b2.x;
+      const dy = b.y - b2.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < b.radius + b2.radius) {
+        // Simples colisão de rebote
+        b.vx *= -1;
+        b.vy *= -1;
+        b2.vx *= -1;
+        b2.vy *= -1;
+      }
+    }
 
     drawBubble(b);
-  });
+  }
 
   requestAnimationFrame(animate);
 }
-
-function initBubbles() {
-  bubbles = [];
-  const tickers = [
-    { name: "PETR4", value: 1.24 },
-    { name: "VALE3", value: -0.75 },
-    { name: "ITUB4", value: 2.15 },
-    { name: "BBDC4", value: -1.02 },
-    { name: "BBAS3", value: 0.58 },
-    { name: "MGLU3", value: -2.37 }
-  ];
-
-  tickers.forEach(t => {
-    const color = t.value >= 0 ? "#009933" : "#cc0000"; // verde escuro ou vermelho vivo
-    bubbles.push(createBubble(t.name, t.value, color));
-  });
-}
-
-function changeCategory(cat) {
-  document.querySelectorAll("button").forEach(btn => btn.classList.remove("active"));
-  const btn = [...document.querySelectorAll("button")].find(b => b.textContent.toLowerCase().includes(cat));
-  if (btn) btn.classList.add("active");
-  initBubbles(); // Simula troca de dados
-}
-
-initBubbles();
-animate();
