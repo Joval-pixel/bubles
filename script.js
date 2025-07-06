@@ -1,49 +1,59 @@
-function selectTab(tabName) {
-  const tabs = document.querySelectorAll('.tab');
-  tabs.forEach(tab => tab.classList.remove('active'));
-  const selected = Array.from(tabs).find(btn => btn.textContent.toLowerCase().includes(tabName));
-  if (selected) selected.classList.add('active');
+const canvas = document.getElementById("bubbleCanvas");
+const ctx = canvas.getContext("2d");
+let width, height;
+let bubbles = [];
 
-  // Troca de conteúdo futura pode ser feita aqui
-  console.log("Selecionado:", tabName);
+function resizeCanvas() {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight - 130;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+function random(min, max) {
+  return Math.random() * (max - min) + min;
 }
 
-// Inicialização das bolhas simuladas
-const canvas = document.getElementById('bubbleCanvas');
-const ctx = canvas.getContext('2d');
-resizeCanvas();
-
-let bubbles = Array.from({ length: 30 }, () => ({
-  x: Math.random() * canvas.width,
-  y: Math.random() * canvas.height,
-  r: 20 + Math.random() * 40,
-  color: Math.random() > 0.5 ? 'red' : 'green',
-  dx: (Math.random() - 0.5) * 2,
-  dy: (Math.random() - 0.5) * 2
-}));
+function createBubbles() {
+  bubbles = [];
+  for (let i = 0; i < 30; i++) {
+    const size = random(30, 80);
+    bubbles.push({
+      x: random(size, width - size),
+      y: random(size, height - size),
+      vx: random(-0.7, 0.7),
+      vy: random(-0.7, 0.7),
+      r: size,
+      color: Math.random() > 0.5 ? 'rgba(0,255,0,0.6)' : 'rgba(255,0,0,0.6)',
+    });
+  }
+}
+createBubbles();
 
 function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, width, height);
   for (let b of bubbles) {
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
-    ctx.fillStyle = b.color;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = b.color;
-    ctx.fill();
-    b.x += b.dx;
-    b.y += b.dy;
+    b.x += b.vx;
+    b.y += b.vy;
 
-    // Rebote nas bordas
-    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.dx *= -1;
-    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.dy *= -1;
+    if (b.x - b.r < 0 || b.x + b.r > width) b.vx *= -1;
+    if (b.y - b.r < 0 || b.y + b.r > height) b.vy *= -1;
+
+    ctx.beginPath();
+    const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.1, b.x, b.y, b.r);
+    gradient.addColorStop(0, "#ffffff");
+    gradient.addColorStop(1, b.color);
+    ctx.fillStyle = gradient;
+    ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
+    ctx.fill();
   }
   requestAnimationFrame(animate);
 }
-
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight - 150;
-}
-window.addEventListener('resize', resizeCanvas);
 animate();
+
+function changeTab(tab) {
+  document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  // Troca de dados simulada
+  createBubbles();
+}
