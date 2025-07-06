@@ -4,72 +4,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BUBLES – Ações ao Vivo</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background-color: #111;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-
-    .header {
-      padding: 15px 0 5px;
-    }
-
-    .header img {
-      height: 40px;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-
-    .header-title {
-      display: inline-flex;
-      align-items: center;
-      color: white;
-      font-size: 20px;
-      font-weight: bold;
-    }
-
-    .nav-buttons {
-      margin-top: 6px;
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .nav-buttons button {
-      font-size: 12px;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 4px;
-      background-color: #333;
-      color: white;
-      cursor: pointer;
-    }
-
-    .nav-buttons button.active {
-      background-color: #007bff;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body>
-  <div class="header">
-    <div class="header-title">
-      <img src="logo.png" alt="Logo BUBLES" />
-      BUBLES – Ações ao Vivo
+  <header>
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo BUBLES" class="logo" />
+      <h1>BUBLES – Ações ao Vivo</h1>
     </div>
-    <div class="nav-buttons">
+    <nav class="menu">
       <button class="active">Ações</button>
       <button>Criptos</button>
       <button>Commodities</button>
       <button>Ranking</button>
       <button>Corretoras</button>
-    </div>
-  </div>
+    </nav>
+  </header>
 
-  <canvas id="bubbleCanvas"></canvas>
+  <main>
+    <canvas id="bubbleCanvas"></canvas>
+  </main>
 
   <script src="script.js"></script>
 </body>
