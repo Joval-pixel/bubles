@@ -2,170 +2,27 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BUBLES – Ações ao Vivo</title>
-  <style>
-    body {
-      margin: 0;
-      background-color: #111;
-      color: white;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
-
-    .header {
-      text-align: center;
-      padding: 20px 10px 10px;
-    }
-
-    .logo {
-      width: 80px;
-      margin: 0 auto 10px;
-      display: block;
-    }
-
-    h1 {
-      margin: 5px 0;
-      font-size: 20px;
-    }
-
-    .buttons {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 6px;
-      margin: 10px 0;
-    }
-
-    .buttons button {
-      padding: 6px 12px;
-      background-color: #333;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .buttons button.active {
-      background-color: #007bff;
-    }
-
-    canvas {
-      position: absolute;
-      top: 120px;
-      left: 0;
-      width: 100%;
-      height: calc(100% - 120px);
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="logo.png" />
 </head>
 <body>
   <div class="header">
-    <img src="logo_bubles_site.png" alt="BUBLES" class="logo" />
+    <img src="logo.png" alt="BUBLES Logo" class="logo">
     <h1>BUBLES – Ações ao Vivo</h1>
-    <div class="buttons">
-      <button class="active">Ações</button>
-      <button>Criptos</button>
-      <button>Commodities</button>
-      <button>Ranking</button>
-      <button>Corretoras</button>
-    </div>
+  </div>
+
+  <div class="menu">
+    <button class="tab active" onclick="showTab('acoes')">Ações</button>
+    <button class="tab" onclick="showTab('criptos')">Criptos</button>
+    <button class="tab" onclick="showTab('commodities')">Commodities</button>
+    <button class="tab" onclick="showTab('ranking')">Ranking</button>
+    <button class="tab" onclick="showTab('corretoras')">Corretoras</button>
   </div>
 
   <canvas id="bubbleCanvas"></canvas>
 
-  <script>
-    const canvas = document.getElementById("bubbleCanvas");
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const bubbles = [];
-    const totalBubbles = 60;
-
-    function random(min, max) {
-      return Math.random() * (max - min) + min;
-    }
-
-    class Bubble {
-      constructor() {
-        this.radius = random(20, 50);
-        this.x = random(this.radius, canvas.width - this.radius);
-        this.y = random(this.radius, canvas.height - this.radius);
-        this.dx = random(-0.7, 0.7);
-        this.dy = random(-0.7, 0.7);
-        this.variation = random(-5, 5);
-        this.price = (random(10, 100)).toFixed(2);
-        this.color = this.variation >= 0 ? '#008000' : '#ff0000'; // verde escuro ou vermelho
-      }
-
-      draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.shadowColor = "#fff";
-        ctx.shadowBlur = 15;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.fillStyle = "#fff";
-        ctx.font = `${Math.max(this.radius / 2.5, 10)}px Arial`;
-        ctx.textAlign = "center";
-        ctx.fillText(`${this.variation.toFixed(2)}%`, this.x, this.y);
-      }
-
-      update() {
-        this.x += this.dx;
-        this.y += this.dy;
-
-        // colisão com bordas
-        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.dx *= -1;
-        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.dy *= -1;
-
-        for (let other of bubbles) {
-          if (other === this) continue;
-          let dx = this.x - other.x;
-          let dy = this.y - other.y;
-          let distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance < this.radius + other.radius) {
-            this.dx *= -1;
-            this.dy *= -1;
-            other.dx *= -1;
-            other.dy *= -1;
-          }
-        }
-
-        this.draw();
-      }
-    }
-
-    function init() {
-      for (let i = 0; i < totalBubbles; i++) {
-        bubbles.push(new Bubble());
-      }
-    }
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let bubble of bubbles) {
-        bubble.update();
-      }
-      requestAnimationFrame(animate);
-    }
-
-    init();
-    animate();
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
