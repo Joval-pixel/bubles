@@ -1,83 +1,85 @@
-const canvas = document.getElementById('bubbleCanvas');
-const ctx = canvas.getContext('2d');
-
+const canvas = document.getElementById("bubbleCanvas");
+const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let bubbles = [];
 
-const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
-fetch(`https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=${apiKey}`)
-  .then(res => res.json())
-  .then(data => {
-    const stocks = data.stocks || [];
-    bubbles = stocks.map((stock, i) => createBubble(stock, i));
-    animate();
-  });
+function createBubbles() {
+  bubbles = [];
+  for (let i = 0; i < 60; i++) {
+    const value = (Math.random() * 10 - 5).toFixed(2);
+    const isPositive = value >= 0;
+    const size = 20 + Math.abs(value) * 6;
 
-function createBubble(stock, index) {
-  const radius = Math.max(20, Math.min(80, Math.abs(stock.changePercent) * 3));
-  const color = stock.changePercent >= 0 ? 'rgba(0,180,0,0.8)' : 'rgba(220,0,0,0.8)';
-  const borderColor = 'white';
-
-  return {
-    x: Math.random() * (canvas.width - 2 * radius) + radius,
-    y: Math.random() * (canvas.height - 2 * radius) + radius,
-    vx: (Math.random() - 0.5) * 0.5,
-    vy: (Math.random() - 0.5) * 0.5,
-    radius,
-    color,
-    borderColor,
-    symbol: stock.stock,
-    price: stock.price.toFixed(2),
-    change: stock.changePercent.toFixed(2)
-  };
+    bubbles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: size,
+      dx: Math.random() * 1.5 - 0.75,
+      dy: Math.random() * 1.5 - 0.75,
+      value,
+      color: isPositive ? "#006400" : "#cc0000", // verde escuro ou vermelho vivo
+      border: "#ffffff"
+    });
+  }
 }
 
-function drawBubble(b) {
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-  ctx.fillStyle = b.color;
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = b.borderColor;
-  ctx.stroke();
-  ctx.closePath();
+function drawBubbles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let b of bubbles) {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fillStyle = b.color;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = b.color;
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = b.border;
+    ctx.stroke();
 
-  ctx.fillStyle = 'white';
-  ctx.font = `${Math.max(10, b.radius / 3)}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.fillText(b.symbol, b.x, b.y - 5);
-  ctx.fillText(`${b.price} | ${b.change}%`, b.x, b.y + 15);
+    ctx.font = `${Math.max(b.r / 3, 10)}px Arial`;
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowBlur = 0;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${b.value}%`, b.x, b.y);
+  }
+}
+
+function moveBubbles() {
+  for (let b of bubbles) {
+    b.x += b.dx;
+    b.y += b.dy;
+
+    if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
+    if (b.y + b.r > canvas.height || b.y - b.r < 0) b.dy *= -1;
+
+    // colisão simples
+    for (let other of bubbles) {
+      if (b === other) continue;
+      const dx = b.x - other.x;
+      const dy = b.y - other.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < b.r + other.r) {
+        b.dx *= -1;
+        b.dy *= -1;
+      }
+    }
+  }
 }
 
 function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  for (let i = 0; i < bubbles.length; i++) {
-    let b = bubbles[i];
-    b.x += b.vx;
-    b.y += b.vy;
-
-    if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.vx *= -1;
-    if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.vy *= -1;
-
-    for (let j = i + 1; j < bubbles.length; j++) {
-      const b2 = bubbles[j];
-      const dx = b.x - b2.x;
-      const dy = b.y - b2.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist < b.radius + b2.radius) {
-        // Simples colisão de rebote
-        b.vx *= -1;
-        b.vy *= -1;
-        b2.vx *= -1;
-        b2.vy *= -1;
-      }
-    }
-
-    drawBubble(b);
-  }
-
+  drawBubbles();
+  moveBubbles();
   requestAnimationFrame(animate);
+}
+
+createBubbles();
+animate();
+
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach((btn) => btn.classList.remove("active"));
+  event.target.classList.add("active");
+  // por enquanto mantém as bolhas fixas
 }
