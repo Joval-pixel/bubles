@@ -1,52 +1,54 @@
 body {
   margin: 0;
-  background: #111;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
+  background-color: #111;
   color: white;
   overflow: hidden;
 }
 
-.topo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px;
+header {
+  text-align: center;
+  padding: 10px 0;
+  background-color: #000;
 }
 
 .logo {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 5px;
+  width: 60px;
+  height: auto;
+  display: block;
+  margin: 0 auto 5px auto;
 }
 
 h1 {
-  font-size: 18px;
-  margin: 4px 0;
+  margin: 5px 0 10px;
+  font-size: 20px;
 }
 
-.botoes {
+.tabs {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 6px;
-  margin-top: 5px;
+  margin-bottom: 10px;
 }
 
-.botoes button {
-  background: #222;
+.tabs button {
+  background-color: #222;
   color: white;
   border: none;
-  padding: 5px 10px;
   border-radius: 6px;
+  padding: 6px 12px;
   font-size: 14px;
+  cursor: pointer;
 }
 
-.botoes button.ativo {
-  background: #007bff;
+.tabs button.active {
+  background-color: #007bff;
 }
 
-canvas {
-  width: 100vw;
-  height: calc(100vh - 130px);
-  display: block;
+#bubble-container {
+  width: 100%;
+  height: calc(100vh - 150px);
+  position: relative;
+  overflow: hidden;
 }
