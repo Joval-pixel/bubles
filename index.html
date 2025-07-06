@@ -8,21 +8,19 @@
 </head>
 <body>
   <header>
-    <img src="logo-bubles.png" alt="Logo Bubles" class="logo"/>
+    <img src="logo-bubles.png" alt="Logo Bubles" class="logo" />
     <h1>BUBLES – Ações ao Vivo</h1>
-    <nav class="tabs">
-      <button onclick="showTab('acoes')" class="active">Ações</button>
-      <button onclick="showTab('criptos')">Criptos</button>
-      <button onclick="showTab('commodities')">Commodities</button>
-      <button onclick="showTab('ranking')">Ranking</button>
-      <button onclick="showTab('corretoras')">Corretoras</button>
-    </nav>
+    <div class="tabs">
+      <button class="tab active" onclick="showCategory('acoes')">Ações</button>
+      <button class="tab" onclick="showCategory('criptos')">Criptos</button>
+      <button class="tab" onclick="showCategory('commodities')">Commodities</button>
+      <button class="tab" onclick="showCategory('ranking')">Ranking</button>
+      <button class="tab" onclick="showCategory('corretoras')">Corretoras</button>
+    </div>
   </header>
-
-  <main id="bubble-container">
-    <!-- As bolhas serão carregadas aqui via JavaScript -->
+  <main>
+    <canvas id="bubbleCanvas"></canvas>
   </main>
-
   <script src="script.js"></script>
 </body>
 </html>
