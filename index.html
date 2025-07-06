@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,18 +7,22 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="header">
+  <header>
     <img src="logo-bubles.png" alt="Logo BUBLES" class="logo" />
     <h1>BUBLES – Ações ao Vivo</h1>
-    <nav class="menu">
-      <button class="tab active" onclick="changeTab('acoes')">Ações</button>
-      <button class="tab" onclick="changeTab('criptos')">Criptos</button>
-      <button class="tab" onclick="changeTab('commodities')">Commodities</button>
-      <button class="tab" onclick="changeTab('ranking')">Ranking</button>
-      <button class="tab" onclick="changeTab('corretoras')">Corretoras</button>
-    </nav>
+    <div class="menu">
+      <button class="tab-button active" onclick="showTab('acoes')">Ações</button>
+      <button class="tab-button" onclick="showTab('criptos')">Criptos</button>
+      <button class="tab-button" onclick="showTab('commodities')">Commodities</button>
+      <button class="tab-button" onclick="showTab('ranking')">Ranking</button>
+      <button class="tab-button" onclick="showTab('corretoras')">Corretoras</button>
+    </div>
   </header>
-  <canvas id="bubbleCanvas"></canvas>
+
+  <main>
+    <canvas id="bubbleCanvas"></canvas>
+  </main>
+
   <script src="script.js"></script>
 </body>
 </html>
