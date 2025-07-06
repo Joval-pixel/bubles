@@ -5,20 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BUBLES – Ações ao Vivo</title>
   <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
 </head>
 <body>
   <header>
-    <img src="logo_bubles_site.png" alt="Logo BUBLES" class="logo" />
+    <img src="logo_bubles_site.png" alt="Logo BUBLES" class="logo">
     <h1>BUBLES – Ações ao Vivo</h1>
-    <div class="buttons">
-      <button onclick="changeCategory('acoes')" class="active">Ações</button>
-      <button onclick="changeCategory('criptos')">Criptos</button>
-      <button onclick="changeCategory('commodities')">Commodities</button>
-      <button onclick="changeCategory('ranking')">Ranking</button>
-      <button onclick="changeCategory('corretoras')">Corretoras</button>
+    <div class="menu">
+      <button>Ações</button>
+      <button>Criptos</button>
+      <button>Commodities</button>
+      <button>Ranking</button>
+      <button>Corretoras</button>
     </div>
   </header>
-  <canvas id="bubbleCanvas"></canvas>
-  <script src="script.js"></script>
+  <main>
+    <canvas id="bubbleCanvas"></canvas>
+  </main>
 </body>
 </html>
