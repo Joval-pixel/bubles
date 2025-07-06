@@ -2,50 +2,54 @@ body {
   margin: 0;
   background-color: #111;
   font-family: Arial, sans-serif;
-  color: white;
-  text-align: center;
   overflow: hidden;
+  color: #fff;
 }
 
-header {
-  padding: 10px;
+.header {
+  text-align: center;
+  padding: 10px 0;
   background-color: #000;
 }
 
 .logo {
-  width: 60px;
-  height: auto;
-  margin: 10px auto;
-  display: block;
+  height: 40px;
+  margin-bottom: 5px;
 }
 
 h1 {
   font-size: 20px;
-  margin: 5px 0;
+  margin: 5px 0 10px;
 }
 
-.tabs {
+.menu {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 5px;
-  margin-top: 10px;
 }
 
 .tab {
   background-color: #333;
-  color: white;
-  border: none;
+  color: #fff;
   padding: 6px 10px;
-  font-size: 14px;
+  font-size: 12px;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
 }
 
-.tab.active {
+.tab.active,
+.tab:hover {
   background-color: #007bff;
 }
 
 canvas {
   display: block;
+  position: absolute;
+  top: 130px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 130px);
+  z-index: -1;
 }
