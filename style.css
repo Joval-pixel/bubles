@@ -1,64 +1,52 @@
 body {
   margin: 0;
-  background-color: #0f0f0f;
-  font-family: Arial, sans-serif;
+  background: #111;
+  font-family: sans-serif;
   color: white;
   overflow: hidden;
 }
 
-header {
-  background-color: #000;
-  padding: 10px;
-  text-align: center;
-}
-
-.logo-container {
+.topo {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  padding: 10px;
 }
 
 .logo {
+  width: 40px;
   height: 40px;
-  width: auto;
+  margin-bottom: 5px;
 }
 
 h1 {
-  font-size: 20px;
-  margin: 0;
+  font-size: 18px;
+  margin: 4px 0;
 }
 
-.menu {
+.botoes {
   display: flex;
-  justify-content: center;
   flex-wrap: wrap;
-  gap: 5px;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 5px;
 }
 
-.menu button {
-  padding: 5px 10px;
-  font-size: 14px;
+.botoes button {
+  background: #222;
+  color: white;
   border: none;
+  padding: 5px 10px;
   border-radius: 6px;
-  background-color: #222;
-  color: #fff;
-  font-weight: bold;
-  cursor: pointer;
+  font-size: 14px;
 }
 
-.menu button.active,
-.menu button:hover {
-  background-color: #007bff;
-}
-
-main {
-  width: 100vw;
-  height: calc(100vh - 120px);
-  position: relative;
+.botoes button.ativo {
+  background: #007bff;
 }
 
 canvas {
+  width: 100vw;
+  height: calc(100vh - 130px);
   display: block;
 }
