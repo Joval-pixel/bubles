@@ -11,19 +11,8 @@ resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
 function createBubbles() {
-  const tickers = [
-    "PETR4", "VALE3", "ITUB4", "BBAS3", "BBDC4", "WEGE3", "SUZB3", "RENT3", 
-    "LREN3", "EGIE3", "CMIG4", "BRKM5", "MGLU3", "HAPV3", "GGBR4", "ABEV3",
-    "RAIL3", "PRIO3", "ELET3", "JBSS3", "CSNA3", "BRFS3", "TAEE11", "CPLE6",
-    "COGN3", "NTCO3", "YDUQ3", "AMER3", "AZUL4", "GOLL4", "B3SA3",
-    "TIMS3", "TOTS3", "PETZ3", "MOVI3", "ENBR3", "BRAP4", "ALPA4", "CRFB3",
-    "MRVE3", "CYRE3", "BEEF3", "RRRP3", "SMTO3", "VVAR3", "USIM5", "BIDI11",
-    "SANB11", "HYPE3", "EMBR3", "LWSA3", "DXCO3", "BPAC11", "ASAI3", "CVCB3"
-  ];
-  const usedTickers = [...tickers].sort(() => Math.random() - 0.5).slice(0, 60);
-
   bubbles = [];
-  for (let i = 0; i < usedTickers.length; i++) {
+  for (let i = 0; i < 70; i++) {
     const radius = Math.random() * 40 + 20;
     const isUp = Math.random() > 0.5;
     bubbles.push({
@@ -33,7 +22,7 @@ function createBubbles() {
       color: isUp ? "#00aa00" : "#cc0000",
       shadowColor: isUp ? "#00ff00" : "#ff4444",
       alpha: 0.9,
-      text: usedTickers[i],
+      text: ["PETR4", "VALE3", "ITUB4", "BBAS3", "BBDC4"][i % 5],
       change: (Math.random() * 5 - 2.5).toFixed(2) + "%",
       dx: Math.random() * 0.5 - 0.25,
       dy: Math.random() * 0.5 - 0.25,
@@ -48,9 +37,11 @@ function update() {
     b1.x += b1.dx;
     b1.y += b1.dy;
 
+    // colisão com bordas
     if (b1.x - b1.r < 0 || b1.x + b1.r > canvas.width) b1.dx *= -1;
     if (b1.y - b1.r < 0 || b1.y + b1.r > canvas.height) b1.dy *= -1;
 
+    // colisão entre bolhas
     for (let j = i + 1; j < bubbles.length; j++) {
       let b2 = bubbles[j];
       const dx = b2.x - b1.x;
@@ -59,6 +50,7 @@ function update() {
       const minDist = b1.r + b2.r;
 
       if (dist < minDist) {
+        // ajuste de posição
         const angle = Math.atan2(dy, dx);
         const overlap = 0.5 * (minDist - dist);
         b1.x -= overlap * Math.cos(angle);
@@ -73,6 +65,7 @@ function update() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let b of bubbles) {
+    // bolha com sombra
     ctx.beginPath();
     ctx.shadowBlur = 30;
     ctx.shadowColor = b.shadowColor || b.color;
@@ -82,6 +75,7 @@ function draw() {
     ctx.fill();
     ctx.closePath();
 
+    // texto
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
     ctx.fillStyle = "white";
@@ -95,16 +89,3 @@ function draw() {
 }
 
 draw();
-
-function setTab(tabName) {
-  const tabs = document.querySelectorAll(".tab");
-  tabs.forEach(t => t.classList.remove("active"));
-  const btn = Array.from(tabs).find(t => t.textContent === (tabName === "acoes" ? "Ações" : "Cripto"));
-  if (btn) btn.classList.add("active");
-
-  if (tabName === "acoes") {
-    createBubbles();
-  } else {
-    alert("Aba Cripto ainda em desenvolvimento");
-  }
-} 
