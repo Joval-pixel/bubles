@@ -1,35 +1,52 @@
 body {
   margin: 0;
-  background: #111;
+  background-color: #111;
   font-family: Arial, sans-serif;
   color: white;
   overflow: hidden;
 }
 
-header {
-  text-align: center;
+.header {
+  display: flex;
+  align-items: center;
   padding: 10px;
+  background-color: #000;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .logo {
-  width: 50px;
-  vertical-align: middle;
+  width: 35px;
+  height: 35px;
+  margin-right: 10px;
 }
 
 h1 {
   font-size: 20px;
-  margin: 5px 0;
+  margin: 0;
 }
 
-.menu button {
-  margin: 3px;
-  font-size: 12px;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 5px;
-  background-color: #222;
+.menu {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px;
+  background-color: #111;
+}
+
+.tab {
+  background-color: #333;
   color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
   cursor: pointer;
+}
+
+.tab.active {
+  background-color: #007bff;
 }
 
 canvas {
