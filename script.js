@@ -1,59 +1,80 @@
 const canvas = document.getElementById("bubbleCanvas");
 const ctx = canvas.getContext("2d");
-let width, height;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
 let bubbles = [];
 
-function resizeCanvas() {
-  width = canvas.width = window.innerWidth;
-  height = canvas.height = window.innerHeight - 130;
+function createBubble(text, value, color) {
+  const radius = 40 + Math.abs(value) * 10;
+  return {
+    x: Math.random() * (canvas.width - radius * 2) + radius,
+    y: Math.random() * (canvas.height - radius * 2) + radius,
+    r: radius,
+    dx: (Math.random() - 0.5) * 1.5,
+    dy: (Math.random() - 0.5) * 1.5,
+    text,
+    value,
+    color
+  };
 }
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
 
-function random(min, max) {
-  return Math.random() * (max - min) + min;
-}
+function drawBubble(b) {
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.fillStyle = b.color;
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "white";
+  ctx.stroke();
+  ctx.closePath();
 
-function createBubbles() {
-  bubbles = [];
-  for (let i = 0; i < 30; i++) {
-    const size = random(30, 80);
-    bubbles.push({
-      x: random(size, width - size),
-      y: random(size, height - size),
-      vx: random(-0.7, 0.7),
-      vy: random(-0.7, 0.7),
-      r: size,
-      color: Math.random() > 0.5 ? 'rgba(0,255,0,0.6)' : 'rgba(255,0,0,0.6)',
-    });
-  }
+  ctx.fillStyle = "white";
+  ctx.font = `${b.r / 3}px Arial`;
+  ctx.textAlign = "center";
+  ctx.fillText(b.text, b.x, b.y - 5);
+  ctx.fillText(`${b.value.toFixed(2)}%`, b.x, b.y + b.r / 4);
 }
-createBubbles();
 
 function animate() {
-  ctx.clearRect(0, 0, width, height);
-  for (let b of bubbles) {
-    b.x += b.vx;
-    b.y += b.vy;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  bubbles.forEach(b => {
+    b.x += b.dx;
+    b.y += b.dy;
 
-    if (b.x - b.r < 0 || b.x + b.r > width) b.vx *= -1;
-    if (b.y - b.r < 0 || b.y + b.r > height) b.vy *= -1;
+    // bounce
+    if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
+    if (b.y + b.r > canvas.height || b.y - b.r < 0) b.dy *= -1;
 
-    ctx.beginPath();
-    const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.1, b.x, b.y, b.r);
-    gradient.addColorStop(0, "#ffffff");
-    gradient.addColorStop(1, b.color);
-    ctx.fillStyle = gradient;
-    ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
-    ctx.fill();
-  }
+    drawBubble(b);
+  });
+
   requestAnimationFrame(animate);
 }
-animate();
 
-function changeTab(tab) {
-  document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
-  // Troca de dados simulada
-  createBubbles();
+function initBubbles() {
+  bubbles = [];
+  const tickers = [
+    { name: "PETR4", value: 1.24 },
+    { name: "VALE3", value: -0.75 },
+    { name: "ITUB4", value: 2.15 },
+    { name: "BBDC4", value: -1.02 },
+    { name: "BBAS3", value: 0.58 },
+    { name: "MGLU3", value: -2.37 }
+  ];
+
+  tickers.forEach(t => {
+    const color = t.value >= 0 ? "#009933" : "#cc0000"; // verde escuro ou vermelho vivo
+    bubbles.push(createBubble(t.name, t.value, color));
+  });
 }
+
+function changeCategory(cat) {
+  document.querySelectorAll("button").forEach(btn => btn.classList.remove("active"));
+  const btn = [...document.querySelectorAll("button")].find(b => b.textContent.toLowerCase().includes(cat));
+  if (btn) btn.classList.add("active");
+  initBubbles(); // Simula troca de dados
+}
+
+initBubbles();
+animate();
