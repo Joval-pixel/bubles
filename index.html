@@ -5,36 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BUBLES – Ações ao Vivo</title>
   <style>
-    * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: #0d0d0d;
+      background: #111;
+      color: white;
       font-family: Arial, sans-serif;
       overflow: hidden;
     }
+
     #topo {
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 10px;
-      background-color: #111;
     }
+
     .logo {
       height: 40px;
       margin-right: 10px;
     }
+
     .titulo-site {
       font-size: 18px;
       font-weight: bold;
-      color: white;
     }
+
     #botoes {
       display: flex;
       justify-content: center;
-      flex-wrap: wrap;
       gap: 8px;
       margin: 10px 0;
+      flex-wrap: wrap;
     }
+
     .botao {
       font-size: 12px;
       padding: 6px 10px;
@@ -44,6 +47,7 @@
       border-radius: 4px;
       cursor: pointer;
     }
+
     canvas {
       display: block;
     }
@@ -54,12 +58,15 @@
     <img src="logo.png" alt="BUBLES" class="logo">
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
+
   <div id="botoes">
     <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
     <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
     <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
+
   <canvas id="canvas"></canvas>
+
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -67,34 +74,36 @@
     canvas.height = window.innerHeight;
 
     let bolhas = [];
-    let logos = {};
+    const logos = {};
+
+    function carregarLogo(codigo) {
+      const img = new Image();
+      img.src = `https://assets.brapi.dev/logos/${codigo}.png`;
+      logos[codigo] = img;
+    }
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map((dado) => {
-        const raio = 30 + Math.abs(dado.changePercent * 1.5);
+      bolhas = dados.slice(0, 60).map((dado, i) => {
+        const raio = 30 + Math.abs(dado.changePercent * 2);
         const x = Math.random() * (canvas.width - raio * 2) + raio;
         const y = Math.random() * (canvas.height - raio * 2) + raio;
-        const cor = dado.changePercent >= 0 ? "#00ff00" : "#ff0000";
-        const glow = dado.changePercent >= 0 ? "0 0 20px #00ff00" : "0 0 20px #ff0000";
-        const symbol = dado.symbol.toUpperCase();
-        const logoUrl = `https://raw.githubusercontent.com/arthurspk/guiadeinvestimentos/master/src/assets/stocks/${symbol}.png`;
+        const positivo = dado.changePercent >= 0;
+        const cor = positivo ? "#00cc00" : "#ff3333";
+        const glow = positivo ? "#00ff00" : "#ff0000";
+        const codigo = dado.symbol;
 
-        if (!logos[symbol]) {
-          const img = new Image();
-          img.src = logoUrl;
-          logos[symbol] = img;
-        }
+        if (!logos[codigo]) carregarLogo(codigo);
 
         return {
           ...dado,
           x,
           y,
-          vx: Math.random() * 0.5 - 0.25,
-          vy: Math.random() * 0.5 - 0.25,
+          vx: Math.random() * 0.8 - 0.4,
+          vy: Math.random() * 0.8 - 0.4,
           raio,
           cor,
           glow,
-          logo: logos[symbol]
+          codigo
         };
       });
     }
@@ -105,53 +114,54 @@
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
-        ctx.shadowColor = b.cor;
+        ctx.shadowColor = b.glow;
         ctx.shadowBlur = 20;
         ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
-        ctx.stroke();
 
         // Logo
-        if (b.logo && b.logo.complete) {
-          const size = b.raio * 0.6;
-          ctx.drawImage(b.logo, b.x - size / 2, b.y - size / 1.5, size, size);
+        const img = logos[b.codigo];
+        if (img && img.complete) {
+          const size = b.raio * 0.8;
+          ctx.drawImage(img, b.x - size / 2, b.y - size / 2, size, size);
         }
 
-        // Texto
+        // Código
         ctx.fillStyle = "white";
-        ctx.font = `bold ${Math.max(10, b.raio / 3)}px Arial`;
+        ctx.font = `bold ${b.raio * 0.4}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + b.raio * 0.5);
+        ctx.fillText(b.codigo, b.x, b.y + b.raio * 0.6);
 
-        ctx.fillStyle = "white";
-        ctx.font = `bold ${Math.max(10, b.raio / 3.2)}px Arial`;
-        const pct = (b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(1) + "%";
-        ctx.fillText(pct, b.x, b.y + b.raio * 0.8);
+        // Porcentagem
+        ctx.font = `bold ${b.raio * 0.35}px Arial`;
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(1) + "%", b.x, b.y + b.raio * 0.95);
       }
     }
 
     function atualizar() {
-      for (const b of bolhas) {
+      for (let i = 0; i < bolhas.length; i++) {
+        const b = bolhas[i];
         b.x += b.vx;
         b.y += b.vy;
 
         if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
         if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
 
-        for (const other of bolhas) {
-          if (b === other) continue;
-          const dx = b.x - other.x;
-          const dy = b.y - other.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < b.raio + other.raio) {
+        for (let j = i + 1; j < bolhas.length; j++) {
+          const b2 = bolhas[j];
+          const dx = b.x - b2.x;
+          const dy = b.y - b2.y;
+          const dist = Math.hypot(dx, dy);
+          const minDist = b.raio + b2.raio;
+          if (dist < minDist) {
             const angle = Math.atan2(dy, dx);
-            const move = (b.raio + other.raio - dist) / 2;
-            b.x += Math.cos(angle) * move;
-            b.y += Math.sin(angle) * move;
-            other.x -= Math.cos(angle) * move;
-            other.y -= Math.sin(angle) * move;
+            const overlap = (minDist - dist) / 2;
+            const ax = Math.cos(angle) * overlap;
+            const ay = Math.sin(angle) * overlap;
+            b.x += ax;
+            b.y += ay;
+            b2.x -= ax;
+            b2.y -= ay;
           }
         }
       }
@@ -172,6 +182,7 @@
       } else if (tipo === "opcoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
       }
+
       try {
         const res = await fetch(url);
         const data = await res.json();
