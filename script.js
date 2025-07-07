@@ -11,7 +11,6 @@ async function fetchStocks() {
     return data.stocks.map(s => ({
       ticker: s.stock,
       change: s.changePercent,
-      price: s.price,
     }));
   } catch (err) {
     console.error("Erro ao buscar ações:", err);
@@ -35,10 +34,9 @@ function drawBubble(b) {
   ctx.beginPath();
   ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
 
-  const color = b.change >= 0 ? "#008000" : "#FF0000";
-  ctx.fillStyle = color;
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 3;
+  ctx.fillStyle = b.change >= 0 ? "#008000" : "#ff0000";
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
   ctx.fill();
   ctx.stroke();
 
