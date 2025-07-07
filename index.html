@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -9,17 +9,17 @@
 <body>
   <header>
     <div class="logo-container">
-      <img src="logo.png" alt="Logo Bubles" class="logo" />
-      <h1 class="site-title">BUBLES – Ações ao Vivo</h1>
+      <img src="logo.png" alt="BUBLES Logo" class="logo" />
+      <h1>BUBLES – Ações ao Vivo</h1>
     </div>
-    <div class="button-container">
-      <button onclick="loadBubbles('acoes')">Ações</button>
-      <button onclick="loadBubbles('criptos')">Criptos</button>
+    <div class="buttons">
+      <button onclick="carregarBolhas('acoes')">Ações</button>
+      <button onclick="carregarBolhas('cripto')">Criptos</button>
     </div>
   </header>
-
-  <canvas id="bubbleCanvas"></canvas>
-
+  <main>
+    <canvas id="bolhasCanvas"></canvas>
+  </main>
   <script src="script.js"></script>
 </body>
 </html>
