@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BUBLES – Ações ao Vivo</title>
   <style>
     body {
       margin: 0;
       background: #111;
-      color: white;
       font-family: Arial, sans-serif;
       overflow: hidden;
     }
@@ -17,15 +16,16 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 10px;
       padding: 10px;
     }
 
     .logo {
-      height: 30px;
-      margin-right: 10px;
+      height: 32px;
     }
 
     .titulo-site {
+      color: white;
       font-size: 18px;
       font-weight: bold;
     }
@@ -33,55 +33,36 @@
     #botoes {
       display: flex;
       justify-content: center;
-      gap: 8px;
-      margin: 10px 0;
       flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
     }
 
     .botao {
-      font-size: 12px;
-      padding: 6px 10px;
       background: #222;
-      border: 1px solid #444;
       color: white;
+      border: 1px solid #444;
       border-radius: 4px;
+      padding: 5px 12px;
+      font-size: 12px;
       cursor: pointer;
     }
 
-    .bolha {
-      position: absolute;
-      border-radius: 50%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 10px;
-      font-weight: bold;
-      text-align: center;
-      padding: 4px;
-      box-shadow: 0 0 10px white;
-      transition: transform 0.2s;
-    }
-
-    .bolha:hover {
-      transform: scale(1.1);
-      z-index: 2;
+    canvas {
+      display: block;
     }
   </style>
 </head>
 <body>
   <div id="topo">
-    <img src="logo.png" alt="BUBLES" class="logo">
+    <img src="logo.png" alt="BUBLES" class="logo" />
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
-
   <div id="botoes">
-    <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
-    <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
-    <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
+    <button class="botao" onclick="carregar('acoes')">Ações</button>
+    <button class="botao" onclick="carregar('criptos')">Criptos</button>
+    <button class="botao" onclick="carregar('opcoes')">Opções</button>
   </div>
-
   <canvas id="canvas"></canvas>
 
   <script>
@@ -93,63 +74,76 @@
     let bolhas = [];
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map((dado, i) => {
-        const raio = 30 + Math.abs(dado.changePercent * 2);
-        const x = Math.random() * (canvas.width - raio * 2) + raio;
-        const y = Math.random() * (canvas.height - raio * 2) + raio;
-        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
-        const borda = "#ffffff";
-
+      bolhas = dados.map((dado, i) => {
+        const raio = 25 + Math.min(60, Math.abs(dado.variacao) * 1.5);
+        const x = Math.random() * (canvas.width - 2 * raio) + raio;
+        const y = Math.random() * (canvas.height - 2 * raio) + raio;
         return {
           ...dado,
-          x,
-          y,
-          vx: Math.random() * 0.5 - 0.25,
-          vy: Math.random() * 0.5 - 0.25,
-          raio,
-          cor,
-          borda
+          x, y,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          raio
         };
       });
     }
 
     function desenharBolhas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const b of bolhas) {
+
+      bolhas.forEach(b => {
+        const grad = ctx.createRadialGradient(b.x, b.y, b.raio * 0.2, b.x, b.y, b.raio);
+        if (b.variacao >= 0) {
+          grad.addColorStop(0, "#00ff00");
+          grad.addColorStop(1, "#004400");
+        } else {
+          grad.addColorStop(0, "#ff3333");
+          grad.addColorStop(1, "#660000");
+        }
+
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
-        ctx.fillStyle = b.cor;
+        ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
         ctx.fill();
+        ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 2;
-        ctx.strokeStyle = b.borda;
         ctx.stroke();
+
+        // Logotipo
+        const img = new Image();
+        img.src = `https://assets.brandfetch.io/${b.simbolo}.png`;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.raio * 0.5, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, b.x - b.raio * 0.5, b.y - b.raio * 0.5, b.raio, b.raio);
+        ctx.restore();
+
+        // Código e variação
         ctx.fillStyle = "white";
-        ctx.font = "bold 12px Arial";
+        ctx.font = "bold 10px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 5);
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
-      }
+        ctx.fillText(b.simbolo, b.x, b.y + b.raio * 0.6);
+        ctx.fillText((b.variacao > 0 ? "+" : "") + b.variacao.toFixed(2) + "%", b.x, b.y + b.raio * 0.6 + 12);
+      });
     }
 
-    function atualizar() {
-      for (const b of bolhas) {
+    function animar() {
+      bolhas.forEach(b => {
         b.x += b.vx;
         b.y += b.vy;
 
         if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
         if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-      }
-    }
+      });
 
-    function animar() {
-      atualizar();
       desenharBolhas();
       requestAnimationFrame(animar);
     }
 
-    async function carregarBolas(tipo) {
+    async function carregar(tipo) {
       let url = "";
-
       if (tipo === "acoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "criptos") {
@@ -162,17 +156,17 @@
         const res = await fetch(url);
         const data = await res.json();
         const ativos = data.stocks || data.coins || [];
-        const filtrados = ativos.map(a => ({
-          symbol: a.symbol || a.coin || a.name,
-          changePercent: a.change || a.changePercent || 0
+        const formatados = ativos.map(a => ({
+          simbolo: a.symbol || a.coin || "",
+          variacao: a.changePercent || a.change || 0
         }));
-        criarBolhas(filtrados);
+        criarBolhas(formatados);
       } catch (e) {
         console.error("Erro ao carregar dados:", e);
       }
     }
 
-    carregarBolas("acoes");
+    carregar("acoes");
     animar();
   </script>
 </body>
