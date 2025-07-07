@@ -55,13 +55,11 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      color: white;
-      font-size: 10px;
-      font-weight: bold;
       text-align: center;
       padding: 4px;
-      box-shadow: 0 0 15px rgba(255,255,255,0.4);
+      box-shadow: 0 0 10px white;
       transition: transform 0.2s;
+      overflow: hidden;
     }
 
     .bolha:hover {
@@ -69,10 +67,22 @@
       z-index: 2;
     }
 
-    .logo-acao {
+    .bolha img {
       width: 20px;
       height: 20px;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
+    }
+
+    .codigo {
+      font-size: 10px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .variacao {
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
     }
   </style>
 </head>
@@ -88,70 +98,51 @@
     <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
 
-  <canvas id="canvas"></canvas>
+  <div id="container"></div>
 
   <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
+    const container = document.getElementById("container");
     let bolhas = [];
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map((dado, i) => {
-        const raio = 25 + Math.abs(dado.changePercent * 2);
-        const x = Math.random() * (canvas.width - raio * 2) + raio;
-        const y = Math.random() * (canvas.height - raio * 2) + raio;
-        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
+      container.innerHTML = "";
+      bolhas = [];
+
+      dados.slice(0, 60).forEach((dado, i) => {
+        const bolha = document.createElement("div");
+        bolha.className = "bolha";
+
+        const variacao = parseFloat(dado.changePercent || 0);
+        const raio = 30 + Math.min(40, Math.abs(variacao * 2));
+        const cor = variacao >= 0 ? "#008000" : "#ff0000";
         const borda = "#ffffff";
 
-        return {
-          ...dado,
-          x,
-          y,
-          vx: Math.random() * 0.5 - 0.25,
-          vy: Math.random() * 0.5 - 0.25,
-          raio,
-          cor,
-          borda
-        };
+        bolha.style.width = raio * 2 + "px";
+        bolha.style.height = raio * 2 + "px";
+        bolha.style.backgroundColor = cor;
+        bolha.style.border = "2px solid " + borda;
+        bolha.style.left = Math.random() * (window.innerWidth - raio * 2) + "px";
+        bolha.style.top = Math.random() * (window.innerHeight - raio * 2 - 60) + 60 + "px";
+
+        const img = document.createElement("img");
+        img.src = `https://raw.githubusercontent.com/wilsonfreitas/assets/main/logos/${dado.symbol}.png`;
+        img.onerror = () => img.remove();
+
+        const codigo = document.createElement("div");
+        codigo.className = "codigo";
+        codigo.textContent = dado.symbol;
+
+        const variacaoDiv = document.createElement("div");
+        variacaoDiv.className = "variacao";
+        variacaoDiv.textContent = (variacao > 0 ? "+" : "") + variacao.toFixed(2) + "%";
+
+        bolha.appendChild(img);
+        bolha.appendChild(codigo);
+        bolha.appendChild(variacaoDiv);
+
+        container.appendChild(bolha);
+        bolhas.push(bolha);
       });
-    }
-
-    function desenharBolhas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const b of bolhas) {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
-        ctx.fillStyle = b.cor;
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = b.borda;
-        ctx.stroke();
-        ctx.fillStyle = "white";
-        ctx.font = "bold 12px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 6);
-        ctx.font = "bold 14px Arial";
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
-      }
-    }
-
-    function atualizar() {
-      for (const b of bolhas) {
-        b.x += b.vx;
-        b.y += b.vy;
-
-        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-      }
-    }
-
-    function animar() {
-      atualizar();
-      desenharBolhas();
-      requestAnimationFrame(animar);
     }
 
     async function carregarBolas(tipo) {
@@ -180,7 +171,6 @@
     }
 
     carregarBolas("acoes");
-    animar();
   </script>
 </body>
 </html>
