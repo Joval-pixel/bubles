@@ -1,130 +1,90 @@
-const canvas = document.createElement('canvas');
-document.body.appendChild(canvas);
+const canvas = document.getElementById('bubbleCanvas');
 const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight - 60;
 
 let bubbles = [];
-let currentType = 'stocks';
 
-const API_KEY = '5bTDfSmR2ieax6y7JUqDAD';
-
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-function createBubble(item) {
-  const variation = parseFloat(item.changePercent || item.change || 0);
-  const size = Math.min(Math.max(Math.abs(variation) * 8 + 40, 40), 120);
-  const isPositive = variation >= 0;
-  const colorClass = isPositive ? 'positive' : 'negative';
-
-  const bubble = {
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 0.5,
-    vy: (Math.random() - 0.5) * 0.5,
-    size,
-    label: item.stock || item.symbol,
-    price: item.price || item.regularMarketPrice,
-    change: variation.toFixed(2),
-    isPositive,
-    colorClass
-  };
-
-  return bubble;
-}
-
-function drawBubble(b) {
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, b.size / 2, 0, Math.PI * 2);
-  ctx.fillStyle = b.isPositive ? '#006622' : '#800000';
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = '#ffffff';
-  ctx.stroke();
-
-  // Text
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${Math.max(b.size / 6, 10)}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.fillText(b.label, b.x, b.y - 5);
-  ctx.font = `bold ${Math.max(b.size / 7, 9)}px Arial`;
-  ctx.fillText(`${b.change}%`, b.x, b.y + 12);
-}
-
-function updateBubbles() {
-  for (let i = 0; i < bubbles.length; i++) {
-    let b = bubbles[i];
-    b.x += b.vx;
-    b.y += b.vy;
-
-    // Bounce off edges
-    if (b.x < b.size / 2 || b.x > canvas.width - b.size / 2) b.vx *= -1;
-    if (b.y < b.size / 2 || b.y > canvas.height - b.size / 2) b.vy *= -1;
-
-    // Collision with others
-    for (let j = 0; j < bubbles.length; j++) {
-      if (i === j) continue;
-      let b2 = bubbles[j];
-      let dx = b.x - b2.x;
-      let dy = b.y - b2.y;
-      let dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < (b.size + b2.size) / 2) {
-        let angle = Math.atan2(dy, dx);
-        let targetX = b2.x + Math.cos(angle) * (b.size + b2.size) / 2;
-        let targetY = b2.y + Math.sin(angle) * (b.size + b2.size) / 2;
-        let ax = (targetX - b.x) * 0.05;
-        let ay = (targetY - b.y) * 0.05;
-        b.vx -= ax;
-        b.vy -= ay;
-        b2.vx += ax;
-        b2.vy += ay;
-      }
-    }
+function randomColor(percent) {
+  if (percent >= 0) {
+    return "rgba(0, 180, 0, 0.8)";
+  } else {
+    return "rgba(220, 0, 0, 0.8)";
   }
 }
 
-function animate() {
+function createBubbles(data) {
+  bubbles = data.slice(0, 60).map((item, i) => {
+    const radius = Math.max(20, Math.abs(item.changePercent * 5));
+    const color = randomColor(item.changePercent);
+    return {
+      ...item,
+      x: Math.random() * (canvas.width - 2 * radius) + radius,
+      y: Math.random() * (canvas.height - 2 * radius) + radius,
+      dx: (Math.random() - 0.5) * 1.5,
+      dy: (Math.random() - 0.5) * 1.5,
+      radius,
+      color
+    };
+  });
+}
+
+function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  bubbles.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    ctx.fillStyle = b.color;
+    ctx.shadowColor = b.changePercent >= 0 ? "#00ff00" : "#ff0000";
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "white";
+    ctx.font = `${Math.min(14, b.radius / 2)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(b.symbol, b.x, b.y);
+  });
+}
+
+function updateBubbles() {
+  bubbles.forEach(b => {
+    b.x += b.dx;
+    b.y += b.dy;
+    if (b.x - b.radius < 0 || b.x + b.radius > canvas.width) b.dx *= -1;
+    if (b.y - b.radius < 0 || b.y + b.radius > canvas.height) b.dy *= -1;
+  });
+}
+
+function animate() {
+  drawBubbles();
   updateBubbles();
-  bubbles.forEach(drawBubble);
   requestAnimationFrame(animate);
 }
 
-function loadData(type) {
-  let url = type === 'crypto'
-    ? `https://brapi.dev/api/crypto?sortBy=volume_desc&limit=60&token=${API_KEY}`
-    : `https://brapi.dev/api/quote/list?sortBy=volume_desc&limit=60&token=${API_KEY}`;
+function loadData(type = 'stocks') {
+  let url;
+  if (type === 'crypto') {
+    url = `https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&type=crypto`;
+  } else {
+    url = `https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&type=stocks`;
+  }
 
   fetch(url)
     .then(res => res.json())
-    .then(data => {
-      const results = data.stocks || data.coins || [];
-      const unique = new Set();
-      bubbles = results
-        .filter(item => {
-          const id = item.stock || item.symbol;
-          if (!id || unique.has(id)) return false;
-          unique.add(id);
-          return true;
-        })
-        .map(createBubble);
+    .then(json => {
+      const results = json.stocks || json.results || [];
+      const bubbleData = results.map(item => ({
+        symbol: item.stock || item.symbol,
+        changePercent: item.change_percent || item.change || 0
+      }));
+      createBubbles(bubbleData);
     });
 }
 
-// Setup UI
-document.getElementById('btnAcoes').addEventListener('click', () => {
-  currentType = 'stocks';
-  loadData('stocks');
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight - 60;
 });
 
-document.getElementById('btnCriptos').addEventListener('click', () => {
-  currentType = 'crypto';
-  loadData('crypto');
-});
-
-// Start
-loadData('stocks');
+loadData();
 animate();
