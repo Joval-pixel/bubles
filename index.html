@@ -1,31 +1,35 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BUBLES – Ações ao Vivo</title>
   <style>
     body {
       margin: 0;
       background: #111;
+      color: white;
       font-family: Arial, sans-serif;
       overflow: hidden;
-      color: white;
     }
+
     #topo {
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 10px;
     }
+
     .logo {
       height: 30px;
       margin-right: 10px;
     }
+
     .titulo-site {
       font-size: 18px;
       font-weight: bold;
     }
+
     #botoes {
       display: flex;
       justify-content: center;
@@ -33,6 +37,7 @@
       margin: 10px 0;
       flex-wrap: wrap;
     }
+
     .botao {
       font-size: 12px;
       padding: 6px 10px;
@@ -42,8 +47,32 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    canvas {
-      display: block;
+
+    .bolha {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      text-align: center;
+      padding: 4px;
+      box-shadow: 0 0 15px rgba(255,255,255,0.4);
+      transition: transform 0.2s;
+    }
+
+    .bolha:hover {
+      transform: scale(1.1);
+      z-index: 2;
+    }
+
+    .logo-acao {
+      width: 20px;
+      height: 20px;
+      margin-bottom: 4px;
     }
   </style>
 </head>
@@ -52,117 +81,82 @@
     <img src="logo.png" alt="BUBLES" class="logo">
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
+
   <div id="botoes">
-    <button class="botao" onclick="carregarBolhas('acoes')">Ações</button>
-    <button class="botao" onclick="carregarBolhas('criptos')">Criptos</button>
-    <button class="botao" onclick="carregarBolhas('opcoes')">Opções</button>
+    <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
+    <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
+    <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
+
   <canvas id="canvas"></canvas>
 
   <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
     let bolhas = [];
 
-    function carregarImagem(url) {
-      return new Promise(resolve => {
-        const img = new Image();
-        img.src = url;
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-      });
-    }
+    function criarBolhas(dados) {
+      bolhas = dados.slice(0, 60).map((dado, i) => {
+        const raio = 25 + Math.abs(dado.changePercent * 2);
+        const x = Math.random() * (canvas.width - raio * 2) + raio;
+        const y = Math.random() * (canvas.height - raio * 2) + raio;
+        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
+        const borda = "#ffffff";
 
-    async function criarBolhas(dados) {
-      bolhas = [];
-
-      for (let i = 0; i < dados.length && bolhas.length < 60; i++) {
-        const dado = dados[i];
-        const raio = 30 + Math.min(Math.abs(dado.changePercent) * 2, 40);
-        const x = Math.random() * (canvas.width - 2 * raio) + raio;
-        const y = Math.random() * (canvas.height - 2 * raio) + raio;
-        const cor = dado.changePercent >= 0 ? '#008000' : '#ff0000';
-        const borda = "#fff";
-
-        const logo = await carregarImagem(`https://brapi.dev/logo/${dado.symbol}.png`);
-
-        bolhas.push({
+        return {
           ...dado,
           x,
           y,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
+          vx: Math.random() * 0.5 - 0.25,
+          vy: Math.random() * 0.5 - 0.25,
           raio,
           cor,
-          borda,
-          logo
-        });
-      }
+          borda
+        };
+      });
     }
 
     function desenharBolhas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (const b of bolhas) {
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
         ctx.fill();
         ctx.lineWidth = 2;
         ctx.strokeStyle = b.borda;
         ctx.stroke();
-
-        if (b.logo) {
-          const imgSize = b.raio * 0.8;
-          ctx.drawImage(b.logo, b.x - imgSize / 2, b.y - imgSize / 2 - 10, imgSize, imgSize);
-        }
-
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = "white";
         ctx.font = "bold 12px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + b.raio * 0.3);
+        ctx.fillText(b.symbol, b.x, b.y - 6);
         ctx.font = "bold 14px Arial";
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + b.raio * 0.6);
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
       }
     }
 
-    function atualizarBolhas() {
-      for (let i = 0; i < bolhas.length; i++) {
-        const b = bolhas[i];
+    function atualizar() {
+      for (const b of bolhas) {
         b.x += b.vx;
         b.y += b.vy;
 
         if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
         if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-
-        for (let j = i + 1; j < bolhas.length; j++) {
-          const b2 = bolhas[j];
-          const dx = b.x - b2.x;
-          const dy = b.y - b2.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const minDist = b.raio + b2.raio;
-          if (dist < minDist) {
-            const angle = Math.atan2(dy, dx);
-            const overlap = 0.5 * (minDist - dist);
-            b.x += Math.cos(angle) * overlap;
-            b.y += Math.sin(angle) * overlap;
-            b2.x -= Math.cos(angle) * overlap;
-            b2.y -= Math.sin(angle) * overlap;
-          }
-        }
       }
     }
 
     function animar() {
-      atualizarBolhas();
+      atualizar();
       desenharBolhas();
       requestAnimationFrame(animar);
     }
 
-    async function carregarBolhas(tipo) {
+    async function carregarBolas(tipo) {
       let url = "";
+
       if (tipo === "acoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "criptos") {
@@ -175,19 +169,17 @@
         const res = await fetch(url);
         const data = await res.json();
         const ativos = data.stocks || data.coins || [];
-
         const filtrados = ativos.map(a => ({
           symbol: a.symbol || a.coin || a.name,
-          changePercent: a.changePercent || a.change || 0
+          changePercent: a.change || a.changePercent || 0
         }));
-
-        await criarBolhas(filtrados);
+        criarBolhas(filtrados);
       } catch (e) {
         console.error("Erro ao carregar dados:", e);
       }
     }
 
-    carregarBolhas("acoes");
+    carregarBolas("acoes");
     animar();
   </script>
 </body>
