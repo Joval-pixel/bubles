@@ -8,36 +8,31 @@
     body {
       margin: 0;
       background: #111;
-      overflow: hidden;
       font-family: Arial, sans-serif;
+      overflow: hidden;
       color: white;
     }
-
     #topo {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
       padding: 10px;
     }
-
     .logo {
       height: 30px;
+      margin-right: 10px;
     }
-
     .titulo-site {
       font-size: 18px;
       font-weight: bold;
     }
-
     #botoes {
       display: flex;
       justify-content: center;
+      gap: 8px;
+      margin: 10px 0;
       flex-wrap: wrap;
-      gap: 6px;
-      margin: 5px;
     }
-
     .botao {
       font-size: 12px;
       padding: 6px 10px;
@@ -47,7 +42,6 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
     canvas {
       display: block;
     }
@@ -58,41 +52,55 @@
     <img src="logo.png" alt="BUBLES" class="logo">
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
-
   <div id="botoes">
     <button class="botao" onclick="carregarBolhas('acoes')">Ações</button>
     <button class="botao" onclick="carregarBolhas('criptos')">Criptos</button>
     <button class="botao" onclick="carregarBolhas('opcoes')">Opções</button>
   </div>
-
   <canvas id="canvas"></canvas>
 
   <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
     let bolhas = [];
 
-    function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map(dado => {
-        const raio = 30 + Math.min(Math.abs(dado.changePercent) * 2, 60);
+    function carregarImagem(url) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.src = url;
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+      });
+    }
+
+    async function criarBolhas(dados) {
+      bolhas = [];
+
+      for (let i = 0; i < dados.length && bolhas.length < 60; i++) {
+        const dado = dados[i];
+        const raio = 30 + Math.min(Math.abs(dado.changePercent) * 2, 40);
         const x = Math.random() * (canvas.width - 2 * raio) + raio;
         const y = Math.random() * (canvas.height - 2 * raio) + raio;
-        const cor = dado.changePercent >= 0 ? '#008000' : '#ff1a1a';
-        const logo = `https://cdn.brapi.dev/logos/${dado.symbol}.png`;
-        return {
+        const cor = dado.changePercent >= 0 ? '#008000' : '#ff0000';
+        const borda = "#fff";
+
+        const logo = await carregarImagem(`https://brapi.dev/logo/${dado.symbol}.png`);
+
+        bolhas.push({
           ...dado,
           x,
           y,
-          vx: Math.random() * 0.8 - 0.4,
-          vy: Math.random() * 0.8 - 0.4,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
           raio,
           cor,
+          borda,
           logo
-        };
-      });
+        });
+      }
     }
 
     function desenharBolhas() {
@@ -103,23 +111,24 @@
         ctx.fillStyle = b.cor;
         ctx.fill();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = b.borda;
         ctx.stroke();
 
-        const img = new Image();
-        img.src = b.logo;
-        img.onload = () => {
-          ctx.drawImage(img, b.x - 12, b.y - 12, 24, 24);
+        if (b.logo) {
+          const imgSize = b.raio * 0.8;
+          ctx.drawImage(b.logo, b.x - imgSize / 2, b.y - imgSize / 2 - 10, imgSize, imgSize);
         }
 
         ctx.fillStyle = "#fff";
-        ctx.font = `bold ${Math.max(12, b.raio / 5)}px Arial`;
+        ctx.font = "bold 12px Arial";
         ctx.textAlign = "center";
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + b.raio / 2 + 10);
+        ctx.fillText(b.symbol, b.x, b.y + b.raio * 0.3);
+        ctx.font = "bold 14px Arial";
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + b.raio * 0.6);
       }
     }
 
-    function atualizar() {
+    function atualizarBolhas() {
       for (let i = 0; i < bolhas.length; i++) {
         const b = bolhas[i];
         b.x += b.vx;
@@ -129,24 +138,27 @@
         if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
 
         for (let j = i + 1; j < bolhas.length; j++) {
-          const o = bolhas[j];
-          const dx = o.x - b.x;
-          const dy = o.y - b.y;
-          const dist = Math.hypot(dx, dy);
-          const minDist = b.raio + o.raio;
+          const b2 = bolhas[j];
+          const dx = b.x - b2.x;
+          const dy = b.y - b2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const minDist = b.raio + b2.raio;
           if (dist < minDist) {
             const angle = Math.atan2(dy, dx);
-            const tx = b.x + Math.cos(angle) * minDist;
-            const ty = b.y + Math.sin(angle) * minDist;
-            const ax = (tx - o.x) * 0.05;
-            const ay = (ty - o.y) * 0.05;
-            b.vx -= ax;
-            b.vy -= ay;
-            o.vx += ax;
-            o.vy += ay;
+            const overlap = 0.5 * (minDist - dist);
+            b.x += Math.cos(angle) * overlap;
+            b.y += Math.sin(angle) * overlap;
+            b2.x -= Math.cos(angle) * overlap;
+            b2.y -= Math.sin(angle) * overlap;
           }
         }
       }
+    }
+
+    function animar() {
+      atualizarBolhas();
+      desenharBolhas();
+      requestAnimationFrame(animar);
     }
 
     async function carregarBolhas(tipo) {
@@ -162,23 +174,17 @@
       try {
         const res = await fetch(url);
         const data = await res.json();
-        const lista = data.stocks || data.coins || [];
+        const ativos = data.stocks || data.coins || [];
 
-        const dados = lista.map(ativo => ({
-          symbol: ativo.symbol || ativo.coin || "??",
-          changePercent: ativo.changePercent || ativo.change || 0
+        const filtrados = ativos.map(a => ({
+          symbol: a.symbol || a.coin || a.name,
+          changePercent: a.changePercent || a.change || 0
         }));
 
-        criarBolhas(dados);
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
+        await criarBolhas(filtrados);
+      } catch (e) {
+        console.error("Erro ao carregar dados:", e);
       }
-    }
-
-    function animar() {
-      atualizar();
-      desenharBolhas();
-      requestAnimationFrame(animar);
     }
 
     carregarBolhas("acoes");
