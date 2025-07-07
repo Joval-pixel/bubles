@@ -5,39 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BUBLES – Ações ao Vivo</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: #111;
-      color: white;
+      background: #0d0d0d;
       font-family: Arial, sans-serif;
       overflow: hidden;
     }
-
     #topo {
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 10px;
+      background-color: #111;
     }
-
     .logo {
-      height: 30px;
+      height: 40px;
       margin-right: 10px;
     }
-
     .titulo-site {
       font-size: 18px;
       font-weight: bold;
+      color: white;
     }
-
     #botoes {
       display: flex;
       justify-content: center;
+      flex-wrap: wrap;
       gap: 8px;
       margin: 10px 0;
-      flex-wrap: wrap;
     }
-
     .botao {
       font-size: 12px;
       padding: 6px 10px;
@@ -47,6 +44,9 @@
       border-radius: 4px;
       cursor: pointer;
     }
+    canvas {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -54,15 +54,12 @@
     <img src="logo.png" alt="BUBLES" class="logo">
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
-
   <div id="botoes">
     <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
     <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
     <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
-
   <canvas id="canvas"></canvas>
-
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -70,15 +67,23 @@
     canvas.height = window.innerHeight;
 
     let bolhas = [];
-    let imagensCarregadas = {};
+    let logos = {};
 
     function criarBolhas(dados) {
       bolhas = dados.slice(0, 60).map((dado) => {
-        const raio = 40;
+        const raio = 30 + Math.abs(dado.changePercent * 1.5);
         const x = Math.random() * (canvas.width - raio * 2) + raio;
         const y = Math.random() * (canvas.height - raio * 2) + raio;
-        const cor = dado.changePercent >= 0 ? "#004400" : "#880000";
-        const borda = "#ffffff";
+        const cor = dado.changePercent >= 0 ? "#00ff00" : "#ff0000";
+        const glow = dado.changePercent >= 0 ? "0 0 20px #00ff00" : "0 0 20px #ff0000";
+        const symbol = dado.symbol.toUpperCase();
+        const logoUrl = `https://raw.githubusercontent.com/arthurspk/guiadeinvestimentos/master/src/assets/stocks/${symbol}.png`;
+
+        if (!logos[symbol]) {
+          const img = new Image();
+          img.src = logoUrl;
+          logos[symbol] = img;
+        }
 
         return {
           ...dado,
@@ -88,7 +93,8 @@
           vy: Math.random() * 0.5 - 0.25,
           raio,
           cor,
-          borda
+          glow,
+          logo: logos[symbol]
         };
       });
     }
@@ -99,33 +105,30 @@
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
+        ctx.shadowColor = b.cor;
+        ctx.shadowBlur = 20;
         ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "white";
         ctx.lineWidth = 2;
-        ctx.strokeStyle = b.borda;
         ctx.stroke();
 
-        if (b.logo) {
-          if (!imagensCarregadas[b.logo]) {
-            const img = new Image();
-            img.src = b.logo;
-            img.onload = () => {
-              imagensCarregadas[b.logo] = img;
-            };
-          } else {
-            const img = imagensCarregadas[b.logo];
-            const size = b.raio * 0.9;
-            ctx.drawImage(img, b.x - size / 2, b.y - size / 1.6, size, size);
-          }
+        // Logo
+        if (b.logo && b.logo.complete) {
+          const size = b.raio * 0.6;
+          ctx.drawImage(b.logo, b.x - size / 2, b.y - size / 1.5, size, size);
         }
 
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 12px Arial";
+        // Texto
+        ctx.fillStyle = "white";
+        ctx.font = `bold ${Math.max(10, b.raio / 3)}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + b.raio - 18);
+        ctx.fillText(b.symbol, b.x, b.y + b.raio * 0.5);
 
-        ctx.font = "bold 16px Arial";
-        ctx.fillStyle = b.changePercent >= 0 ? "#00ff00" : "#ff3333";
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + b.raio - 2);
+        ctx.fillStyle = "white";
+        ctx.font = `bold ${Math.max(10, b.raio / 3.2)}px Arial`;
+        const pct = (b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(1) + "%";
+        ctx.fillText(pct, b.x, b.y + b.raio * 0.8);
       }
     }
 
@@ -136,6 +139,21 @@
 
         if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
         if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+
+        for (const other of bolhas) {
+          if (b === other) continue;
+          const dx = b.x - other.x;
+          const dy = b.y - other.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < b.raio + other.raio) {
+            const angle = Math.atan2(dy, dx);
+            const move = (b.raio + other.raio - dist) / 2;
+            b.x += Math.cos(angle) * move;
+            b.y += Math.sin(angle) * move;
+            other.x -= Math.cos(angle) * move;
+            other.y -= Math.sin(angle) * move;
+          }
+        }
       }
     }
 
@@ -154,15 +172,13 @@
       } else if (tipo === "opcoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
       }
-
       try {
         const res = await fetch(url);
         const data = await res.json();
         const ativos = data.stocks || data.coins || [];
         const filtrados = ativos.map(a => ({
           symbol: a.symbol || a.coin || a.name,
-          changePercent: a.change || a.changePercent || 0,
-          logo: a.logo || a.logoUrl || ""
+          changePercent: a.change || a.changePercent || 0
         }));
         criarBolhas(filtrados);
       } catch (e) {
