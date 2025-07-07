@@ -21,105 +21,124 @@
     }
 
     .logo {
-      height: 40px;
+      height: 30px;
       margin-right: 10px;
     }
 
     .titulo-site {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: bold;
     }
 
     #botoes {
       display: flex;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
+      margin: 10px 0;
       flex-wrap: wrap;
-      margin-bottom: 10px;
     }
 
     .botao {
       font-size: 12px;
-      padding: 5px 10px;
-      background: #333;
-      border: 1px solid #666;
+      padding: 6px 10px;
+      background: #222;
+      border: 1px solid #444;
       color: white;
       border-radius: 4px;
       cursor: pointer;
     }
 
-    canvas {
-      display: block;
+    .bolha {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 0 10px white;
+      transition: transform 0.2s;
+      overflow: hidden;
+    }
+
+    .bolha:hover {
+      transform: scale(1.1);
+      z-index: 2;
+    }
+
+    .bolha img {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 4px;
+    }
+
+    .codigo {
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .percentual {
+      font-size: 14px;
+      font-weight: bold;
+      color: white;
     }
   </style>
 </head>
 <body>
   <div id="topo">
-    <img src="logo.png" alt="Logo" class="logo">
+    <img src="logo.png" alt="BUBLES" class="logo">
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
+
   <div id="botoes">
     <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
     <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
     <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
-  <canvas id="canvas"></canvas>
+
+  <div id="bolhas-container"></div>
 
   <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    let bolhas = [];
+    const container = document.getElementById("bolhas-container");
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map((item) => {
-        const raio = 30 + Math.abs(item.changePercent) * 2;
-        return {
-          x: Math.random() * (canvas.width - raio * 2) + raio,
-          y: Math.random() * (canvas.height - raio * 2) + raio,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
-          raio,
-          cor: item.changePercent >= 0 ? "#008f39" : "#e60000",
-          borda: "#ffffff",
-          symbol: item.symbol,
-          changePercent: item.changePercent
-        };
-      });
-    }
+      container.innerHTML = "";
+      dados.slice(0, 60).forEach(dado => {
+        const bolha = document.createElement("div");
+        bolha.className = "bolha";
+        const cor = dado.changePercent >= 0 ? "#006400" : "#ff0000"; // verde escuro ou vermelho vivo
+        bolha.style.background = cor;
+        bolha.style.border = "2px solid white";
+        const size = 40 + Math.abs(dado.changePercent) * 2;
+        bolha.style.width = size + "px";
+        bolha.style.height = size + "px";
+        bolha.style.left = Math.random() * (window.innerWidth - size) + "px";
+        bolha.style.top = Math.random() * (window.innerHeight - size - 50) + 50 + "px";
+        bolha.style.position = "absolute";
 
-    function desenharBolhas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bolhas.forEach((b) => {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
-        ctx.fillStyle = b.cor;
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = b.borda;
-        ctx.stroke();
+        const logo = document.createElement("img");
+        logo.src = `https://raw.githubusercontent.com/raphaeldelgado/assets/main/logos/${dado.symbol}.png`;
+        logo.onerror = () => logo.style.display = 'none';
 
-        ctx.fillStyle = "white";
-        ctx.font = "bold 12px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 4);
-        ctx.font = "bold 14px Arial";
-        ctx.fillText((b.changePercent >= 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 12);
-      });
-    }
+        const cod = document.createElement("div");
+        cod.className = "codigo";
+        cod.textContent = dado.symbol;
 
-    function atualizar() {
-      bolhas.forEach((b) => {
-        b.x += b.vx;
-        b.y += b.vy;
-        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+        const perc = document.createElement("div");
+        perc.className = "percentual";
+        perc.textContent = (dado.changePercent > 0 ? "+" : "") + dado.changePercent.toFixed(2) + "%";
+
+        bolha.appendChild(logo);
+        bolha.appendChild(cod);
+        bolha.appendChild(perc);
+        container.appendChild(bolha);
       });
     }
 
     async function carregarBolas(tipo) {
       let url = "";
+
       if (tipo === "acoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "criptos") {
@@ -127,28 +146,22 @@
       } else if (tipo === "opcoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
       }
+
       try {
         const res = await fetch(url);
-        const json = await res.json();
-        const ativos = json.stocks || json.coins || [];
-        const lista = ativos.map(item => ({
-          symbol: item.symbol || item.coin || item.name,
-          changePercent: item.change || item.changePercent || 0
+        const data = await res.json();
+        const ativos = data.stocks || data.coins || [];
+        const filtrados = ativos.map(a => ({
+          symbol: a.symbol || a.coin || a.name,
+          changePercent: a.change || a.changePercent || 0
         }));
-        criarBolhas(lista);
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
+        criarBolhas(filtrados);
+      } catch (e) {
+        console.error("Erro ao carregar dados:", e);
       }
     }
 
-    function animar() {
-      atualizar();
-      desenharBolhas();
-      requestAnimationFrame(animar);
-    }
-
     carregarBolas("acoes");
-    animar();
   </script>
 </body>
 </html>
