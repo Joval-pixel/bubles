@@ -1,90 +1,95 @@
-const canvas = document.getElementById('bolhasCanvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("bubble-canvas");
+const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
-canvas.height = window.innerHeight - 90;
+canvas.height = window.innerHeight;
 
-let bolhas = [];
-let tipoAtual = 'acoes';
-const apiKey = '5bTDfSmR2ieax6y7JUqDAD';
+async function getStockData() {
+  const response = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD");
+  const data = await response.json();
+  return data.stocks.map(stock => ({
+    ticker: stock.stock,
+    change: stock.changePercent,
+    price: stock.price,
+  }));
+}
 
-async function carregarBolhas(tipo) {
-  tipoAtual = tipo;
-  bolhas = [];
+function createBubble(stock) {
+  const radius = Math.max(30, Math.min(90, Math.abs(stock.change) * 10));
+  return {
+    ...stock,
+    x: Math.random() * (canvas.width - radius * 2) + radius,
+    y: Math.random() * (canvas.height - radius * 2) + radius,
+    r: radius,
+    vx: (Math.random() - 0.5) * 0.5,
+    vy: (Math.random() - 0.5) * 0.5,
+  };
+}
 
-  const tickers = tipo === 'acoes'
-    ? ['PETR4','VALE3','ITUB4','BBDC4','ABEV3','BBAS3','WEGE3','PETR3','MGLU3','B3SA3','GGBR4','ELET3','CSNA3','RAIL3','PRIO3','RENT3','HAPV3','JBSS3','ASAI3','CPLE6','BRKM5','CMIG4','EMBR3','VBBR3','UGPA3','ENEV3','TIMS3','SANB11','CRFB3','ALPA4','MRVE3','LREN3','COGN3','ELET6','MULT3','BEEF3','TOTS3','CVCB3','YDUQ3','AZUL4','RRRP3','ECOR3','DXCO3','CSAN3','IGTI11','SOMA3','AMER3','POSI3','SUZB3','RAIZ4','PETZ3','SMTO3','CYRE3','HYPE3','BIDI11','BRFS3','QUAL3','VIVT3','BRAP4','MOVI3']
-    : ['BTC','ETH','ADA','XRP','SOL','DOGE','MATIC','DOT','AVAX','SHIB','LINK','LTC','BCH','ATOM','XLM','XMR','APT','SAND','AXS','FTM'];
+function drawBubble(bubble) {
+  ctx.beginPath();
+  ctx.arc(bubble.x, bubble.y, bubble.r, 0, 2 * Math.PI);
 
-  const promises = tickers.map(ticker => {
-    const prefix = tipo === 'acoes' ? '' : 'CRYPTO:';
-    return fetch(`https://brapi.dev/api/quote/${prefix}${ticker}?token=${apiKey}`)
-      .then(r => r.json())
-      .then(d => {
-        const info = d.results[0];
-        if (!info) return null;
+  const color = bubble.change >= 0 ? "#006400" : "#ff0000"; // Verde escuro ou vermelho vivo
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 3;
+  ctx.fill();
+  ctx.stroke();
 
-        const variacao = info.change_percent;
-        const cor = variacao >= 0 ? 'rgba(0,200,0,0.8)' : 'rgba(255,0,0,0.8)';
-        const borda = 'white';
-        const raio = 20 + Math.min(Math.abs(variacao) * 3, 60);
-        const nome = info.stock || info.symbol;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `${Math.max(12, bubble.r / 4)}px Arial`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
 
-        return {
-          nome,
-          variacao: variacao.toFixed(2) + '%',
-          raio,
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          dx: (Math.random() - 0.5) * 1,
-          dy: (Math.random() - 0.5) * 1,
-          cor,
-          borda
-        };
-      });
+  const label = `${bubble.ticker}\n${bubble.change.toFixed(2)}%`;
+  const lines = label.split("\n");
+  lines.forEach((line, index) => {
+    ctx.fillText(line, bubble.x, bubble.y - (lines.length - 1) * 8 + index * 16);
   });
-
-  const resultados = await Promise.all(promises);
-  bolhas = resultados.filter(b => b);
 }
 
-function desenharBolhas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let b of bolhas) {
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
-    ctx.fillStyle = b.cor;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = b.cor;
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = b.borda;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
+function updateBubble(bubble) {
+  bubble.x += bubble.vx;
+  bubble.y += bubble.vy;
 
-    // texto
-    ctx.fillStyle = 'white';
-    ctx.font = `${Math.max(b.raio / 3, 10)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText(b.nome, b.x, b.y - 5);
-    ctx.fillText(b.variacao, b.x, b.y + 12);
+  if (bubble.x - bubble.r < 0 || bubble.x + bubble.r > canvas.width) bubble.vx *= -1;
+  if (bubble.y - bubble.r < 0 || bubble.y + bubble.r > canvas.height) bubble.vy *= -1;
+}
+
+function avoidOverlap(bubbles) {
+  for (let i = 0; i < bubbles.length; i++) {
+    for (let j = i + 1; j < bubbles.length; j++) {
+      const dx = bubbles[j].x - bubbles[i].x;
+      const dy = bubbles[j].y - bubbles[i].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = bubbles[i].r + bubbles[j].r + 4;
+      if (dist < minDist) {
+        const angle = Math.atan2(dy, dx);
+        const move = (minDist - dist) / 2;
+        bubbles[i].x -= move * Math.cos(angle);
+        bubbles[i].y -= move * Math.sin(angle);
+        bubbles[j].x += move * Math.cos(angle);
+        bubbles[j].y += move * Math.sin(angle);
+      }
+    }
   }
 }
 
-function atualizarBolhas() {
-  for (let b of bolhas) {
-    b.x += b.dx;
-    b.y += b.dy;
+async function init() {
+  const stocks = await getStockData();
+  const bubbles = stocks.map(createBubble);
 
-    if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.dx *= -1;
-    if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.dy *= -1;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    avoidOverlap(bubbles);
+    bubbles.forEach(b => {
+      updateBubble(b);
+      drawBubble(b);
+    });
+    requestAnimationFrame(animate);
   }
+
+  animate();
 }
 
-function animar() {
-  requestAnimationFrame(animar);
-  atualizarBolhas();
-  desenharBolhas();
-}
-
-carregarBolhas('acoes');
-animar();
+init();
