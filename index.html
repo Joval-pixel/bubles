@@ -55,34 +55,18 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
       text-align: center;
       padding: 4px;
       box-shadow: 0 0 10px white;
       transition: transform 0.2s;
-      overflow: hidden;
     }
 
     .bolha:hover {
       transform: scale(1.1);
       z-index: 2;
-    }
-
-    .bolha img {
-      width: 20px;
-      height: 20px;
-      margin-bottom: 2px;
-    }
-
-    .codigo {
-      font-size: 10px;
-      font-weight: bold;
-      color: white;
-    }
-
-    .variacao {
-      font-size: 12px;
-      font-weight: bold;
-      color: white;
     }
   </style>
 </head>
@@ -98,56 +82,103 @@
     <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
 
-  <div id="container"></div>
+  <canvas id="canvas"></canvas>
 
   <script>
-    const container = document.getElementById("container");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
     let bolhas = [];
 
+    function detectarColisao(b1, b2) {
+      const dx = b1.x - b2.x;
+      const dy = b1.y - b2.y;
+      const distancia = Math.sqrt(dx * dx + dy * dy);
+      return distancia < b1.raio + b2.raio;
+    }
+
     function criarBolhas(dados) {
-      container.innerHTML = "";
       bolhas = [];
+      const tentativasMax = 5000;
+      let tentativas = 0;
 
-      dados.slice(0, 60).forEach((dado, i) => {
-        const bolha = document.createElement("div");
-        bolha.className = "bolha";
+      for (const dado of dados.slice(0, 60)) {
+        let raio = 30 + Math.abs(dado.changePercent * 2);
+        let x, y, colisao;
+        do {
+          x = Math.random() * (canvas.width - 2 * raio) + raio;
+          y = Math.random() * (canvas.height - 2 * raio) + raio;
+          colisao = false;
+          for (let outra of bolhas) {
+            if (detectarColisao({ x, y, raio }, outra)) {
+              colisao = true;
+              break;
+            }
+          }
+          tentativas++;
+        } while (colisao && tentativas < tentativasMax);
 
-        const variacao = parseFloat(dado.changePercent || 0);
-        const raio = 30 + Math.min(40, Math.abs(variacao * 2));
-        const cor = variacao >= 0 ? "#008000" : "#ff0000";
-        const borda = "#ffffff";
+        bolhas.push({
+          symbol: dado.symbol,
+          changePercent: dado.changePercent,
+          logo: dado.logo || "",
+          x,
+          y,
+          raio,
+          vx: Math.random() * 0.5 - 0.25,
+          vy: Math.random() * 0.5 - 0.25,
+          cor: dado.changePercent >= 0 ? "#007d00" : "#cc0000",
+          borda: "#ffffff"
+        });
+      }
+    }
 
-        bolha.style.width = raio * 2 + "px";
-        bolha.style.height = raio * 2 + "px";
-        bolha.style.backgroundColor = cor;
-        bolha.style.border = "2px solid " + borda;
-        bolha.style.left = Math.random() * (window.innerWidth - raio * 2) + "px";
-        bolha.style.top = Math.random() * (window.innerHeight - raio * 2 - 60) + 60 + "px";
+    function desenharBolhas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const b of bolhas) {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
+        ctx.fillStyle = b.cor;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = b.borda;
+        ctx.stroke();
 
-        const img = document.createElement("img");
-        img.src = `https://raw.githubusercontent.com/wilsonfreitas/assets/main/logos/${dado.symbol}.png`;
-        img.onerror = () => img.remove();
+        if (b.logo) {
+          const img = new Image();
+          img.src = b.logo;
+          img.onload = () => ctx.drawImage(img, b.x - 10, b.y - 10, 20, 20);
+        }
 
-        const codigo = document.createElement("div");
-        codigo.className = "codigo";
-        codigo.textContent = dado.symbol;
+        ctx.fillStyle = "white";
+        ctx.font = "bold 10px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(b.symbol, b.x, b.y + 4);
 
-        const variacaoDiv = document.createElement("div");
-        variacaoDiv.className = "variacao";
-        variacaoDiv.textContent = (variacao > 0 ? "+" : "") + variacao.toFixed(2) + "%";
+        ctx.font = "bold 14px Arial";
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 20);
+      }
+    }
 
-        bolha.appendChild(img);
-        bolha.appendChild(codigo);
-        bolha.appendChild(variacaoDiv);
+    function atualizar() {
+      for (const b of bolhas) {
+        b.x += b.vx;
+        b.y += b.vy;
+        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
+        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+      }
+    }
 
-        container.appendChild(bolha);
-        bolhas.push(bolha);
-      });
+    function animar() {
+      atualizar();
+      desenharBolhas();
+      requestAnimationFrame(animar);
     }
 
     async function carregarBolas(tipo) {
       let url = "";
-
       if (tipo === "acoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "criptos") {
@@ -162,7 +193,8 @@
         const ativos = data.stocks || data.coins || [];
         const filtrados = ativos.map(a => ({
           symbol: a.symbol || a.coin || a.name,
-          changePercent: a.change || a.changePercent || 0
+          changePercent: a.change || a.changePercent || 0,
+          logo: a.logo || ""
         }));
         criarBolhas(filtrados);
       } catch (e) {
@@ -171,6 +203,7 @@
     }
 
     carregarBolas("acoes");
+    animar();
   </script>
 </body>
 </html>
