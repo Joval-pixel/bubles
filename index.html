@@ -1,88 +1,21 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BUBLES – Ações ao Vivo</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background-color: #111;
-    }
-
-    canvas {
-      display: block;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <canvas id="bolhasCanvas"></canvas>
-
-  <script>
-    const canvas = document.getElementById('bolhasCanvas');
-    const ctx = canvas.getContext('2d');
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let bolhas = [];
-
-    async function buscarAcoes() {
-      const resposta = await fetch('https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD');
-      const json = await resposta.json();
-      return json.stocks || [];
-    }
-
-    function criarBolhas(dados) {
-      bolhas = dados.map(acao => {
-        const variacao = parseFloat(acao.changePercent);
-        const cor = variacao >= 0 ? 'rgba(0,100,0,0.9)' : 'rgba(180,0,0,0.9)';
-        const borda = 'white';
-        const tamanho = Math.max(40, Math.min(120, Math.abs(variacao) * 8 + 40));
-
-        return {
-          x: Math.random() * (canvas.width - 100),
-          y: Math.random() * (canvas.height - 100),
-          dx: (Math.random() - 0.5) * 0.6,
-          dy: (Math.random() - 0.5) * 0.6,
-          r: tamanho,
-          cor,
-          borda,
-          texto: acao.stock,
-          variacao: `${variacao.toFixed(2)}%`
-        };
-      });
-    }
-
-    function desenharBolhas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bolhas.forEach(b => {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
-        ctx.fillStyle = b.cor;
-        ctx.fill();
-        ctx.strokeStyle = b.borda;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.fillStyle = 'white';
-        ctx.font = `${Math.max(12, b.r / 4)}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.fillText(b.texto, b.x, b.y - 5);
-        ctx.fillText(b.variacao, b.x, b.y + 15);
-      });
-    }
-
-    function atualizarBolhas() {
-      bolhas.forEach(b => {
-        b.x += b.dx;
-        b.y += b.dy;
-
-        if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
-        if (b.y + b.r > canvas.height || b.y - b.r < 0) b.dy *= -1;
-      });
-    }
-
-    async function iniciar() {
-      const
+  <header>
+    <img src="logo.png" alt="Logo" class="logo">
+    <h1>BUBLES – Ações ao Vivo</h1>
+    <div class="menu">
+      <button onclick="loadData('stocks')">Ações</button>
+      <button onclick="loadData('crypto')">Criptos</button>
+    </div>
+  </header>
+  <canvas id="bubbleCanvas"></canvas>
+  <script src="script.js"></script>
+</body>
+</html>
