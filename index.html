@@ -21,6 +21,21 @@
       font-size: 18px;
       font-weight: bold;
     }
+    #botoes {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 10px;
+    }
+    .botao {
+      font-size: 12px;
+      padding: 6px 10px;
+      background: #222;
+      border: 1px solid #444;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
     canvas {
       display: block;
     }
@@ -28,6 +43,11 @@
 </head>
 <body>
   <div id="topo">BUBLES – Ações ao Vivo</div>
+  <div id="botoes">
+    <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
+    <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
+    <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
+  </div>
   <canvas id="canvas"></canvas>
 
   <script>
@@ -46,7 +66,7 @@
         const cor = item.changePercent >= 0 ? "#00cc00" : "#ff3333";
         const borda = "#ffffff";
         const logo = new Image();
-        logo.src = `https://logo.clearbit.com/${item.logoUrl || "b3.com.br"}`;
+        logo.src = `https://brapi.dev/static/logos/${item.symbol}.png`;
 
         return {
           ...item,
@@ -108,25 +128,31 @@
       requestAnimationFrame(animar);
     }
 
-    async function carregarAcoes() {
+    async function carregarBolas(tipo) {
+      let url = "";
+      if (tipo === "acoes") {
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "criptos") {
+        url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "opcoes") {
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
+      }
+
       try {
-        const res = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD");
+        const res = await fetch(url);
         const data = await res.json();
-        const ativos = data.stocks || [];
-
+        const ativos = data.stocks || data.coins || [];
         const lista = ativos.map((a) => ({
-          symbol: a.symbol,
-          changePercent: a.change || a.changePercent || 0,
-          logoUrl: a.logo || `https://brapi.dev/static/logos/${a.symbol}.png`,
+          symbol: a.symbol || a.coin || a.name,
+          changePercent: a.change || a.changePercent || 0
         }));
-
         criarBolhas(lista);
       } catch (e) {
-        console.error("Erro ao carregar ações:", e);
+        console.error("Erro ao carregar dados:", e);
       }
     }
 
-    carregarAcoes();
+    carregarBolas("acoes");
     animar();
   </script>
 </body>
