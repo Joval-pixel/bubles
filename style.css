@@ -1,47 +1,33 @@
-body {
-  margin: 0;
-  background-color: #1b1b1b;
-  font-family: Arial, sans-serif;
-  overflow: hidden;
-}
-
-header {
-  color: white;
-  text-align: center;
-  padding: 10px;
-}
-
-.logo-container {
+#topo {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  padding: 10px;
+  background-color: #111;
 }
 
 .logo {
-  width: 40px;
-  height: auto;
+  height: 32px;
+  width: auto;
 }
 
-.buttons {
-  margin-top: 5px;
+.titulo-site {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
 }
 
-button {
-  margin: 3px;
-  padding: 6px 10px;
+#botoes button {
+  margin: 4px;
+  padding: 6px 12px;
   font-size: 14px;
+  border-radius: 12px;
+  border: none;
   background-color: #333;
   color: white;
-  border: 1px solid #555;
-  border-radius: 5px;
   cursor: pointer;
 }
-
-canvas {
-  position: absolute;
-  top: 90px;
-  left: 0;
-  width: 100%;
-  height: calc(100% - 90px);
+#botoes button:hover {
+  background-color: #555;
 }
