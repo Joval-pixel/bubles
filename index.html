@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BUBLES – Ações ao Vivo</title>
   <style>
     body {
       margin: 0;
       background: #111;
+      color: white;
       font-family: Arial, sans-serif;
       overflow: hidden;
-      color: white;
     }
 
     #topo {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
       padding: 10px;
     }
 
     .logo {
       height: 30px;
+      margin-right: 10px;
     }
 
     .titulo-site {
@@ -33,36 +33,63 @@
     #botoes {
       display: flex;
       justify-content: center;
-      flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
     }
 
     .botao {
       font-size: 12px;
-      padding: 5px 10px;
+      padding: 6px 10px;
       background: #222;
-      color: white;
       border: 1px solid #444;
+      color: white;
       border-radius: 4px;
       cursor: pointer;
     }
 
-    canvas {
-      display: block;
+    .bolha {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 4px;
+      box-shadow: 0 0 15px white;
+      transition: transform 0.2s;
+      overflow: hidden;
+    }
+
+    .bolha img {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 2px;
+    }
+
+    .bolha span {
+      font-size: 10px;
+      color: white;
+      font-weight: bold;
+    }
+
+    .bolha:hover {
+      transform: scale(1.1);
+      z-index: 2;
     }
   </style>
 </head>
 <body>
   <div id="topo">
-    <img src="logo.png" alt="Logo" class="logo">
+    <img src="logo.png" alt="BUBLES" class="logo">
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
 
   <div id="botoes">
-    <button class="botao" onclick="carregar('acoes')">Ações</button>
-    <button class="botao" onclick="carregar('criptos')">Criptos</button>
-    <button class="botao" onclick="carregar('opcoes')">Opções</button>
+    <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
+    <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
+    <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
 
   <canvas id="canvas"></canvas>
@@ -74,84 +101,87 @@
     canvas.height = window.innerHeight;
 
     let bolhas = [];
-    const logos = {};
 
-    async function carregar(tipo) {
-      let url = "";
-      const token = "5bTDfSmR2ieax6y7JUqDAD";
-
-      if (tipo === "acoes") {
-        url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=${token}`;
-      } else if (tipo === "criptos") {
-        url = `https://brapi.dev/api/crypto?limit=60&token=${token}`;
-      } else if (tipo === "opcoes") {
-        url = `https://brapi.dev/api/quote/list?search=CALL&sortBy=volume&sortOrder=desc&limit=60&token=${token}`;
-      }
-
-      const res = await fetch(url);
-      const json = await res.json();
-      const dados = json.stocks || json.coins || [];
-
-      bolhas = dados.map((d, i) => {
-        const code = d.symbol || d.coin || d.name;
-        const pct = d.changePercent || d.change || 0;
-        const raio = 35 + Math.abs(pct) * 1.5;
-        const cor = pct >= 0 ? "#009933" : "#cc0000";
-
-        if (d.logo) {
-          const img = new Image();
-          img.src = d.logo;
-          logos[code] = img;
-        }
-
+    function criarBolhas(dados) {
+      bolhas = dados.slice(0, 60).map((dado, i) => {
+        const raio = 30 + Math.abs(dado.changePercent * 2);
+        const x = Math.random() * (canvas.width - raio * 2) + raio;
+        const y = Math.random() * (canvas.height - raio * 2) + raio;
+        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
+        const borda = "#ffffff";
         return {
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
+          ...dado,
+          x,
+          y,
+          vx: Math.random() * 0.4 - 0.2,
+          vy: Math.random() * 0.4 - 0.2,
           raio,
-          codigo: code,
-          variacao: pct,
           cor,
+          borda
         };
       });
     }
 
-    function animar() {
+    function desenharBolhas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (let b of bolhas) {
-        b.x += b.vx;
-        b.y += b.vy;
-
-        if (b.x < b.raio || b.x > canvas.width - b.raio) b.vx *= -1;
-        if (b.y < b.raio || b.y > canvas.height - b.raio) b.vy *= -1;
-
+      for (const b of bolhas) {
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
         ctx.fill();
-        ctx.strokeStyle = "#fff";
         ctx.lineWidth = 2;
+        ctx.strokeStyle = b.borda;
         ctx.stroke();
-
-        const logo = logos[b.codigo];
-        if (logo && logo.complete) {
-          ctx.drawImage(logo, b.x - 12, b.y - 12, 24, 24);
-        }
-
         ctx.fillStyle = "white";
         ctx.font = "bold 10px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.codigo, b.x, b.y + b.raio - 20);
-        ctx.font = "bold 14px Arial";
-        ctx.fillText((b.variacao > 0 ? "+" : "") + b.variacao.toFixed(2) + "%", b.x, b.y + b.raio - 5);
+        ctx.fillText(b.symbol, b.x, b.y - 6);
+        ctx.font = "bold 12px Arial";
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
       }
+    }
 
+    function atualizar() {
+      for (const b of bolhas) {
+        b.x += b.vx;
+        b.y += b.vy;
+
+        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
+        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+      }
+    }
+
+    function animar() {
+      atualizar();
+      desenharBolhas();
       requestAnimationFrame(animar);
     }
 
-    carregar("acoes");
+    async function carregarBolas(tipo) {
+      let url = "";
+      if (tipo === "acoes") {
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "criptos") {
+        url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "opcoes") {
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
+      }
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const ativos = data.stocks || data.coins || [];
+        const filtrados = ativos.map(a => ({
+          symbol: a.symbol || a.coin || a.name,
+          changePercent: a.change || a.changePercent || 0
+        }));
+        criarBolhas(filtrados);
+      } catch (e) {
+        console.error("Erro ao carregar dados:", e);
+      }
+    }
+
+    carregarBolas("acoes");
     animar();
   </script>
 </body>
