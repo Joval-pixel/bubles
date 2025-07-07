@@ -1,33 +1,54 @@
+body {
+  margin: 0;
+  background: #111;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
 #topo {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: 15px;
   gap: 10px;
-  padding: 10px;
-  background-color: #111;
+  flex-wrap: wrap;
 }
 
 .logo {
   height: 32px;
-  width: auto;
 }
 
 .titulo-site {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
   color: white;
 }
 
-#botoes button {
-  margin: 4px;
-  padding: 6px 12px;
-  font-size: 14px;
-  border-radius: 12px;
-  border: none;
-  background-color: #333;
+.botoes {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.btn {
+  background: #333;
   color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
-#botoes button:hover {
-  background-color: #555;
+
+.btn.ativo {
+  background: #007bff;
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
