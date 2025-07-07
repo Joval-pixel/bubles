@@ -8,6 +8,7 @@
     body {
       margin: 0;
       background: #111;
+      color: white;
       font-family: Arial, sans-serif;
       overflow: hidden;
     }
@@ -27,7 +28,6 @@
     .titulo-site {
       font-size: 18px;
       font-weight: bold;
-      color: white;
     }
 
     #botoes {
@@ -55,20 +55,24 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      text-align: center;
-      padding: 4px;
-      overflow: hidden;
-    }
-
-    .bolha img {
-      width: 30%;
-      margin-bottom: 3px;
-    }
-
-    .bolha span {
       color: white;
       font-size: 10px;
       font-weight: bold;
+      text-align: center;
+      padding: 4px;
+      box-shadow: 0 0 10px white;
+      transition: transform 0.2s;
+    }
+
+    .bolha img {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 2px;
+    }
+
+    .bolha:hover {
+      transform: scale(1.1);
+      z-index: 2;
     }
   </style>
 </head>
@@ -95,35 +99,26 @@
     let bolhas = [];
 
     function criarBolhas(dados) {
-      bolhas = [];
-      for (let i = 0; i < dados.length && bolhas.length < 60; i++) {
-        const dado = dados[i];
-        const raio = 40;
-        let x = Math.random() * (canvas.width - 2 * raio) + raio;
-        let y = Math.random() * (canvas.height - 2 * raio) + raio;
-
-        // Evita sobreposição
-        let tentativas = 0;
-        while (tentativas < 100 && bolhas.some(b => Math.hypot(b.x - x, b.y - y) < b.raio + raio + 2)) {
-          x = Math.random() * (canvas.width - 2 * raio) + raio;
-          y = Math.random() * (canvas.height - 2 * raio) + raio;
-          tentativas++;
-        }
-
-        const cor = dado.changePercent >= 0 ? "#009900" : "#cc0000";
+      bolhas = dados.slice(0, 60).map((dado, i) => {
+        const raio = 30 + Math.abs(dado.changePercent * 2);
+        const x = Math.random() * (canvas.width - raio * 2) + raio;
+        const y = Math.random() * (canvas.height - raio * 2) + raio;
+        const cor = dado.changePercent >= 0 ? "#008000" : "#ff0000";
         const borda = "#ffffff";
+        const logoUrl = `https://brapi.dev/logos/${dado.symbol}.png`;
 
-        bolhas.push({
+        return {
           ...dado,
           x,
           y,
-          vx: Math.random() * 0.4 - 0.2,
-          vy: Math.random() * 0.4 - 0.2,
+          vx: Math.random() * 0.5 - 0.25,
+          vy: Math.random() * 0.5 - 0.25,
           raio,
           cor,
-          borda
-        });
-      }
+          borda,
+          logoUrl
+        };
+      });
     }
 
     function desenharBolhas() {
@@ -137,12 +132,16 @@
         ctx.strokeStyle = b.borda;
         ctx.stroke();
 
-        // Desenhar ícone (substitua com imagem real se quiser via HTML overlay)
+        const img = new Image();
+        img.src = b.logoUrl;
+        ctx.drawImage(img, b.x - 12, b.y - 20, 24, 24);
+
         ctx.fillStyle = "white";
-        ctx.font = "bold 10px Arial";
+        ctx.font = "10px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 6);
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 8);
+        ctx.fillText(b.symbol, b.x, b.y + 10);
+        ctx.font = "bold 12px Arial";
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 24);
       }
     }
 
