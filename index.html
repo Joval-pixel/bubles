@@ -124,7 +124,6 @@
     function desenhar() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (const b of bolhas) {
-        // Bolha
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.size, 0, 2 * Math.PI);
         ctx.fillStyle = b.color;
@@ -133,17 +132,39 @@
         ctx.strokeStyle = b.border;
         ctx.stroke();
 
-        // Logotipo
         if (logos[b.symbol]?.complete) {
           ctx.drawImage(logos[b.symbol], b.x - 10, b.y - 14, 20, 20);
         }
 
-        // Texto (símbolo + %)
         ctx.fillStyle = "#fff";
         ctx.font = "9px Arial";
         ctx.textAlign = "center";
         ctx.fillText(b.symbol, b.x, b.y + 16);
         ctx.fillText((b.change > 0 ? "+" : "") + b.change.toFixed(2) + "%", b.x, b.y + 28);
+      }
+    }
+
+    function evitarSobreposicao() {
+      for (let i = 0; i < bolhas.length; i++) {
+        for (let j = i + 1; j < bolhas.length; j++) {
+          const a = bolhas[i];
+          const b = bolhas[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const minDist = a.size + b.size;
+
+          if (dist < minDist) {
+            const angle = Math.atan2(dy, dx);
+            const move = (minDist - dist) / 2;
+            const moveX = Math.cos(angle) * move;
+            const moveY = Math.sin(angle) * move;
+            a.x -= moveX;
+            a.y -= moveY;
+            b.x += moveX;
+            b.y += moveY;
+          }
+        }
       }
     }
 
@@ -155,6 +176,7 @@
         if (b.x - b.size < 0 || b.x + b.size > canvas.width) b.vx *= -1;
         if (b.y - b.size < 0 || b.y + b.size > canvas.height) b.vy *= -1;
       }
+      evitarSobreposicao();
     }
 
     function animar() {
