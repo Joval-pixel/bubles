@@ -1,0 +1,62 @@
+body {
+  margin: 0;
+  background-color: #121212;
+  font-family: sans-serif;
+  overflow: hidden;
+}
+
+#topo {
+  text-align: center;
+  padding: 10px;
+}
+
+.logo {
+  height: 30px;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+
+.titulo-site {
+  color: white;
+  font-size: 18px;
+  vertical-align: middle;
+}
+
+#botoes {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+button {
+  padding: 6px 12px;
+  font-size: 12px;
+  margin: 0 3px;
+}
+
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.2;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 2px solid white;
+}
+
+.bubble.up {
+  background: radial-gradient(circle at center, #006400, #004d00);
+  box-shadow: 0 0 10px 5px rgba(0, 255, 0, 0.6);
+}
+
+.bubble.down {
+  background: radial-gradient(circle at center, #8B0000, #5c0000);
+  box-shadow: 0 0 10px 5px rgba(255, 0, 0, 0.6);
+}
