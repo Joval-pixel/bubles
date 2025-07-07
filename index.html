@@ -48,10 +48,25 @@
       cursor: pointer;
     }
 
-    canvas {
+    .bolha {
       position: absolute;
-      top: 0;
-      left: 0;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      text-align: center;
+      padding: 4px;
+      box-shadow: 0 0 10px white;
+      transition: transform 0.2s;
+    }
+
+    .bolha:hover {
+      transform: scale(1.1);
+      z-index: 2;
     }
   </style>
 </head>
@@ -78,19 +93,19 @@
     let bolhas = [];
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map((dado) => {
-        const raio = 15 + Math.min(40, Math.abs(dado.changePercent * 1.5));
+      bolhas = dados.slice(0, 60).map((dado, i) => {
+        const raio = 20 + Math.abs(dado.changePercent * 2);
         const x = Math.random() * (canvas.width - raio * 2) + raio;
         const y = Math.random() * (canvas.height - raio * 2) + raio;
-        const cor = dado.changePercent >= 0 ? "#006400" : "#cc0000"; // Verde escuro vivo ou vermelho vivo
+        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
         const borda = "#ffffff";
 
         return {
           ...dado,
           x,
           y,
-          vx: Math.random() * 0.4 - 0.2,
-          vy: Math.random() * 0.4 - 0.2,
+          vx: Math.random() * 0.5 - 0.25,
+          vy: Math.random() * 0.5 - 0.25,
           raio,
           cor,
           borda
@@ -110,10 +125,11 @@
         ctx.stroke();
 
         ctx.fillStyle = "white";
-        ctx.font = "10px Arial";
+        const fontSize = Math.max(10, b.raio / 2.5);
+        ctx.font = `${fontSize}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 4);
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
+        ctx.fillText(b.symbol.slice(0, 6), b.x, b.y - 4);
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + fontSize / 1.2);
       }
     }
 
@@ -135,14 +151,14 @@
 
     async function carregarBolas(tipo) {
       let url = "";
-      const token = "5bTDfSmR2ieax6y7JUqDAD";
+      const headers = { headers: { Authorization: "5bTDfSmR2ieax6y7JUqDAD" } };
 
       if (tipo === "acoes") {
-        url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=${token}`;
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "criptos") {
-        url = `https://brapi.dev/api/crypto?limit=60&token=${token}`;
+        url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "opcoes") {
-        url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=${token}`;
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
       }
 
       try {
@@ -151,7 +167,7 @@
         const ativos = data.stocks || data.coins || [];
         const filtrados = ativos.map(a => ({
           symbol: a.symbol || a.coin || a.name,
-          changePercent: a.changePercent || a.change || 0
+          changePercent: a.change || a.changePercent || 0
         }));
         criarBolhas(filtrados);
       } catch (e) {
