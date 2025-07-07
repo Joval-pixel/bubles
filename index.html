@@ -107,7 +107,12 @@
           raio,
           cor: dado.changePercent >= 0 ? "#00cc00" : "#ff3333",
           borda: "#ffffff",
+          img: new Image()
         };
+      });
+
+      bolhas.forEach(b => {
+        b.img.src = `https://brapi.dev/logos/${b.symbol}.png`;
       });
     }
 
@@ -124,18 +129,19 @@
         ctx.stroke();
 
         // imagem
-        const img = new Image();
-        img.src = `https://brapi.dev/logos/${b.symbol}.png`;
-        img.onload = () => {
-          ctx.drawImage(img, b.x - 12, b.y - 16, 24, 24);
-        };
+        if (b.img.complete) {
+          ctx.drawImage(b.img, b.x - 12, b.y - 12, 24, 24);
+        }
 
-        // texto
+        // texto código
         ctx.fillStyle = "white";
         ctx.font = "bold 10px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + b.raio - 10);
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + b.raio);
+        ctx.fillText(b.symbol, b.x, b.y + b.raio - 20);
+
+        // texto variação
+        ctx.font = "bold 14px Arial";
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + b.raio - 5);
       }
     }
 
