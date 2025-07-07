@@ -3,71 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ações ao Vivo</title>
+  <title>Ações ao Vivo – BUBLES</title>
   <style>
     body {
       margin: 0;
       background: #111;
-      color: white;
-      font-family: Arial, sans-serif;
       overflow: hidden;
+      font-family: Arial, sans-serif;
     }
-
     #topo {
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 10px;
-    }
-
-    .logo {
-      height: 24px;
-      margin-right: 10px;
-    }
-
-    .titulo-site {
-      font-size: 16px;
+      background: #000;
+      color: white;
+      font-size: 18px;
       font-weight: bold;
     }
-
-    #botoes {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .botao {
-      font-size: 12px;
-      padding: 6px 10px;
-      background: #222;
-      border: 1px solid #555;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
     canvas {
-      position: absolute;
-      top: 80px;
-      left: 0;
-      z-index: 0;
+      display: block;
     }
   </style>
 </head>
 <body>
-  <div id="topo">
-    <img src="logo.png" alt="Logo" class="logo" />
-    <span class="titulo-site">Ações ao Vivo</span>
-  </div>
-
-  <div id="botoes">
-    <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
-    <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
-    <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
-  </div>
-
+  <div id="topo">BUBLES – Ações ao Vivo</div>
   <canvas id="canvas"></canvas>
 
   <script>
@@ -79,47 +39,33 @@
     let bolhas = [];
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map((dado) => {
-        const raio = 30 + Math.min(Math.abs(dado.changePercent) * 1.5, 50);
-        let x, y, colisao;
-
-        do {
-          colisao = false;
-          x = Math.random() * (canvas.width - raio * 2) + raio;
-          y = Math.random() * (canvas.height - raio * 2) + raio;
-          for (const b of bolhas) {
-            const dx = b.x - x;
-            const dy = b.y - y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < b.raio + raio + 4) {
-              colisao = true;
-              break;
-            }
-          }
-        } while (colisao);
+      bolhas = dados.slice(0, 60).map((item) => {
+        const raio = 40 + Math.abs(item.changePercent) * 2;
+        const x = Math.random() * (canvas.width - raio * 2) + raio;
+        const y = Math.random() * (canvas.height - raio * 2) + raio;
+        const cor = item.changePercent >= 0 ? "#00cc00" : "#ff3333";
+        const borda = "#ffffff";
+        const logo = new Image();
+        logo.src = `https://logo.clearbit.com/${item.logoUrl || "b3.com.br"}`;
 
         return {
-          ...dado,
+          ...item,
           x,
           y,
-          vx: Math.random() * 0.6 - 0.3,
-          vy: Math.random() * 0.6 - 0.3,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
           raio,
-          cor: dado.changePercent >= 0 ? "#00cc00" : "#ff3333",
-          borda: "#ffffff",
-          img: new Image()
+          cor,
+          borda,
+          logo,
         };
-      });
-
-      bolhas.forEach(b => {
-        b.img.src = `https://brapi.dev/logos/${b.symbol}.png`;
       });
     }
 
     function desenharBolhas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       for (const b of bolhas) {
-        // bolha
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
         ctx.fillStyle = b.cor;
@@ -128,30 +74,31 @@
         ctx.strokeStyle = b.borda;
         ctx.stroke();
 
-        // imagem
-        if (b.img.complete) {
-          ctx.drawImage(b.img, b.x - 12, b.y - 12, 24, 24);
+        if (b.logo.complete) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(b.x, b.y - 10, 15, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(b.logo, b.x - 15, b.y - 25, 30, 30);
+          ctx.restore();
         }
 
-        // texto código
-        ctx.fillStyle = "white";
-        ctx.font = "bold 10px Arial";
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 12px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + b.raio - 20);
-
-        // texto variação
+        ctx.fillText(b.symbol, b.x, b.y + 10);
         ctx.font = "bold 14px Arial";
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + b.raio - 5);
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 28);
       }
     }
 
     function atualizar() {
-      for (const b of bolhas) {
+      for (let b of bolhas) {
         b.x += b.vx;
         b.y += b.vy;
 
         if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-        if (b.y - b.raio < 80 || b.y + b.raio > canvas.height) b.vy *= -1;
+        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
       }
     }
 
@@ -161,31 +108,25 @@
       requestAnimationFrame(animar);
     }
 
-    async function carregarBolas(tipo) {
-      let url = "";
-      if (tipo === "acoes") {
-        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-      } else if (tipo === "criptos") {
-        url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-      } else if (tipo === "opcoes") {
-        url = "https://brapi.dev/api/quote/list?search=CALL&sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-      }
-
+    async function carregarAcoes() {
       try {
-        const res = await fetch(url);
+        const res = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD");
         const data = await res.json();
-        const lista = data.stocks || data.coins || [];
-        const filtrados = lista.map(a => ({
-          symbol: a.symbol || a.coin || a.name,
-          changePercent: a.change || a.changePercent || 0
+        const ativos = data.stocks || [];
+
+        const lista = ativos.map((a) => ({
+          symbol: a.symbol,
+          changePercent: a.change || a.changePercent || 0,
+          logoUrl: a.logo || `https://brapi.dev/static/logos/${a.symbol}.png`,
         }));
-        criarBolhas(filtrados);
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
+
+        criarBolhas(lista);
+      } catch (e) {
+        console.error("Erro ao carregar ações:", e);
       }
     }
 
-    carregarBolas("acoes");
+    carregarAcoes();
     animar();
   </script>
 </body>
