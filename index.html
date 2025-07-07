@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BUBLES – Ações ao Vivo</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      color: white;
+    }
+
+    #topo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .logo {
+      height: 30px;
+    }
+
+    .titulo-site {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #botoes {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .botao {
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #222;
+      color: white;
+      border: 1px solid #444;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="topo">
+    <img src="logo.png" alt="Logo" class="logo">
+    <span class="titulo-site">BUBLES – Ações ao Vivo</span>
+  </div>
+
+  <div id="botoes">
+    <button class="botao" onclick="carregar('acoes')">Ações</button>
+    <button class="botao" onclick="carregar('criptos')">Criptos</button>
+    <button class="botao" onclick="carregar('opcoes')">Opções</button>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let bolhas = [];
+    const logos = {};
+
+    async function carregar(tipo) {
+      let url = "";
+      const token = "5bTDfSmR2ieax6y7JUqDAD";
+
+      if (tipo === "acoes") {
+        url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=${token}`;
+      } else if (tipo === "criptos") {
+        url = `https://brapi.dev/api/crypto?limit=60&token=${token}`;
+      } else if (tipo === "opcoes") {
+        url = `https://brapi.dev/api/quote/list?search=CALL&sortBy=volume&sortOrder=desc&limit=60&token=${token}`;
+      }
+
+      const res = await fetch(url);
+      const json = await res.json();
+      const dados = json.stocks || json.coins || [];
+
+      bolhas = dados.map((d, i) => {
+        const code = d.symbol || d.coin || d.name;
+        const pct = d.changePercent || d.change || 0;
+        const raio = 35 + Math.abs(pct) * 1.5;
+        const cor = pct >= 0 ? "#009933" : "#cc0000";
+
+        if (d.logo) {
+          const img = new Image();
+          img.src = d.logo;
+          logos[code] = img;
+        }
+
+        return {
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          raio,
+          codigo: code,
+          variacao: pct,
+          cor,
+        };
+      });
+    }
+
+    function animar() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let b of bolhas) {
+        b.x += b.vx;
+        b.y += b.vy;
+
+        if (b.x < b.raio || b.x > canvas.width - b.raio) b.vx *= -1;
+        if (b.y < b.raio || b.y > canvas.height - b.raio) b.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
+        ctx.fillStyle = b.cor;
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const logo = logos[b.codigo];
+        if (logo && logo.complete) {
+          ctx.drawImage(logo, b.x - 12, b.y - 12, 24, 24);
+        }
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 10px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(b.codigo, b.x, b.y + b.raio - 20);
+        ctx.font = "bold 14px Arial";
+        ctx.fillText((b.variacao > 0 ? "+" : "") + b.variacao.toFixed(2) + "%", b.x, b.y + b.raio - 5);
+      }
+
+      requestAnimationFrame(animar);
+    }
+
+    carregar("acoes");
+    animar();
+  </script>
+</body>
+</html>
