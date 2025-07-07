@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ações ao Vivo</title>
   <style>
     body {
       margin: 0;
       background: #111;
-      overflow: hidden;
       font-family: Arial, sans-serif;
+      overflow: hidden;
     }
 
     #topo {
@@ -19,17 +19,22 @@
       padding: 10px;
     }
 
+    .logo {
+      height: 30px;
+      margin-right: 10px;
+    }
+
     .titulo-site {
-      color: white;
       font-size: 18px;
       font-weight: bold;
+      color: white;
     }
 
     #botoes {
       display: flex;
       justify-content: center;
       gap: 8px;
-      margin-bottom: 10px;
+      margin: 10px 0;
       flex-wrap: wrap;
     }
 
@@ -43,22 +48,40 @@
       cursor: pointer;
     }
 
-    canvas {
+    .bolha {
       position: absolute;
-      top: 80px;
-      left: 0;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 4px;
+      overflow: hidden;
+    }
+
+    .bolha img {
+      width: 30%;
+      margin-bottom: 3px;
+    }
+
+    .bolha span {
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <div id="topo">
+    <img src="logo.png" alt="BUBLES" class="logo">
     <span class="titulo-site">Ações ao Vivo</span>
   </div>
 
   <div id="botoes">
-    <button class="botao" onclick="carregar('acoes')">Ações</button>
-    <button class="botao" onclick="carregar('criptos')">Criptos</button>
-    <button class="botao" onclick="carregar('opcoes')">Opções</button>
+    <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
+    <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
+    <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
 
   <canvas id="canvas"></canvas>
@@ -70,101 +93,56 @@
     canvas.height = window.innerHeight;
 
     let bolhas = [];
-    let logos = {};
 
-    async function carregar(tipo) {
-      let url = "";
-      const token = "5bTDfSmR2ieax6y7JUqDAD";
+    function criarBolhas(dados) {
+      bolhas = [];
+      for (let i = 0; i < dados.length && bolhas.length < 60; i++) {
+        const dado = dados[i];
+        const raio = 40;
+        let x = Math.random() * (canvas.width - 2 * raio) + raio;
+        let y = Math.random() * (canvas.height - 2 * raio) + raio;
 
-      if (tipo === "acoes") {
-        url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=${token}`;
-      } else if (tipo === "criptos") {
-        url = `https://brapi.dev/api/crypto?limit=60&token=${token}`;
-      } else if (tipo === "opcoes") {
-        url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=${token}`;
-      }
+        // Evita sobreposição
+        let tentativas = 0;
+        while (tentativas < 100 && bolhas.some(b => Math.hypot(b.x - x, b.y - y) < b.raio + raio + 2)) {
+          x = Math.random() * (canvas.width - 2 * raio) + raio;
+          y = Math.random() * (canvas.height - 2 * raio) + raio;
+          tentativas++;
+        }
 
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        const ativos = data.stocks || data.coins || [];
+        const cor = dado.changePercent >= 0 ? "#009900" : "#cc0000";
+        const borda = "#ffffff";
 
-        bolhas = ativos.map((item, i) => {
-          const symbol = item.symbol || item.coin || item.name;
-          const change = item.change || item.changePercent || 0;
-          const logo = item.logo || item.logo_url || "";
-
-          return {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            vx: Math.random() * 0.5 - 0.25,
-            vy: Math.random() * 0.5 - 0.25,
-            symbol,
-            change,
-            color: change >= 0 ? "#006400" : "#ff0000",
-            border: "#fff",
-            logo,
-            size: 25 + Math.min(60, Math.abs(change) * 2)
-          };
+        bolhas.push({
+          ...dado,
+          x,
+          y,
+          vx: Math.random() * 0.4 - 0.2,
+          vy: Math.random() * 0.4 - 0.2,
+          raio,
+          cor,
+          borda
         });
-
-        bolhas.forEach(b => {
-          if (b.logo && !logos[b.symbol]) {
-            const img = new Image();
-            img.src = b.logo;
-            logos[b.symbol] = img;
-          }
-        });
-
-      } catch (err) {
-        console.error("Erro ao carregar:", err);
       }
     }
 
-    function desenhar() {
+    function desenharBolhas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (const b of bolhas) {
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.size, 0, 2 * Math.PI);
-        ctx.fillStyle = b.color;
+        ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
+        ctx.fillStyle = b.cor;
         ctx.fill();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = b.border;
+        ctx.strokeStyle = b.borda;
         ctx.stroke();
 
-        if (logos[b.symbol]?.complete) {
-          ctx.drawImage(logos[b.symbol], b.x - 10, b.y - 14, 20, 20);
-        }
-
-        ctx.fillStyle = "#fff";
-        ctx.font = "9px Arial";
+        // Desenhar ícone (substitua com imagem real se quiser via HTML overlay)
+        ctx.fillStyle = "white";
+        ctx.font = "bold 10px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + 16);
-        ctx.fillText((b.change > 0 ? "+" : "") + b.change.toFixed(2) + "%", b.x, b.y + 28);
-      }
-    }
-
-    function evitarSobreposicao() {
-      for (let i = 0; i < bolhas.length; i++) {
-        for (let j = i + 1; j < bolhas.length; j++) {
-          const a = bolhas[i];
-          const b = bolhas[j];
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const minDist = a.size + b.size;
-
-          if (dist < minDist) {
-            const angle = Math.atan2(dy, dx);
-            const move = (minDist - dist) / 2;
-            const moveX = Math.cos(angle) * move;
-            const moveY = Math.sin(angle) * move;
-            a.x -= moveX;
-            a.y -= moveY;
-            b.x += moveX;
-            b.y += moveY;
-          }
-        }
+        ctx.fillText(b.symbol, b.x, b.y - 6);
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 8);
       }
     }
 
@@ -173,19 +151,43 @@
         b.x += b.vx;
         b.y += b.vy;
 
-        if (b.x - b.size < 0 || b.x + b.size > canvas.width) b.vx *= -1;
-        if (b.y - b.size < 0 || b.y + b.size > canvas.height) b.vy *= -1;
+        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
+        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
       }
-      evitarSobreposicao();
     }
 
     function animar() {
       atualizar();
-      desenhar();
+      desenharBolhas();
       requestAnimationFrame(animar);
     }
 
-    carregar("acoes");
+    async function carregarBolas(tipo) {
+      let url = "";
+
+      if (tipo === "acoes") {
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "criptos") {
+        url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "opcoes") {
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
+      }
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const ativos = data.stocks || data.coins || [];
+        const filtrados = ativos.map(a => ({
+          symbol: a.symbol || a.coin || a.name,
+          changePercent: a.change || a.changePercent || 0
+        }));
+        criarBolhas(filtrados);
+      } catch (e) {
+        console.error("Erro ao carregar dados:", e);
+      }
+    }
+
+    carregarBolas("acoes");
     animar();
   </script>
 </body>
