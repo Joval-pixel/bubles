@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BUBLES – Ações ao Vivo</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="logo.png" type="image/png" />
 </head>
 <body>
   <div id="topo">
@@ -13,15 +12,15 @@
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
 
-  <div id="botoes">
-    <button onclick="mostrarBolas('acoes')">Ações</button>
-    <button onclick="mostrarBolas('criptos')">Criptos</button>
-    <button onclick="mostrarBolas('commodities')">Commodities</button>
-    <button onclick="mostrarBolas('ranking')">Ranking</button>
-    <button onclick="mostrarBolas('corretoras')">Corretoras</button>
+  <div class="botoes">
+    <button class="btn ativo">Ações</button>
+    <button class="btn">Criptos</button>
+    <button class="btn">Commodities</button>
+    <button class="btn">Ranking</button>
+    <button class="btn">Corretoras</button>
   </div>
 
-  <canvas id="canvas"></canvas>
+  <canvas id="bubble-canvas"></canvas>
 
   <script src="script.js"></script>
 </body>
