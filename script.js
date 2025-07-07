@@ -1,6 +1,5 @@
 const canvas = document.getElementById("bubble-canvas");
 const ctx = canvas.getContext("2d");
-
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
@@ -33,8 +32,7 @@ function createBubble(stock) {
 function drawBubble(b) {
   ctx.beginPath();
   ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-
-  ctx.fillStyle = b.change >= 0 ? "#006400" : "#FF0000";
+  ctx.fillStyle = b.change >= 0 ? "#006400" : "#B22222";
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 2;
   ctx.fill();
@@ -51,7 +49,6 @@ function drawBubble(b) {
 function updateBubble(b) {
   b.x += b.vx;
   b.y += b.vy;
-
   if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
   if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
 }
