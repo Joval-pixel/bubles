@@ -1,8 +1,7 @@
 body {
   margin: 0;
-  padding: 0;
-  background-color: #1c1c1c;
-  font-family: Arial, sans-serif;
+  background-color: #121212;
+  font-family: sans-serif;
   overflow: hidden;
 }
 
@@ -10,71 +9,43 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  background-color: #111;
+  flex-wrap: wrap;
   padding: 10px;
-  color: white;
-  font-size: 18px;
+  background-color: #1e1e1e;
 }
 
 .logo {
   height: 30px;
+  margin-right: 10px;
 }
 
-nav {
-  display: flex;
-  justify-content: center;
-  background-color: #222;
-  padding: 5px;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-nav button {
-  background-color: #444;
+h1 {
   color: white;
-  border: none;
-  padding: 6px 12px;
-  font-size: 13px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  font-size: 18px;
+  margin: 0 10px 5px 0;
 }
 
-nav button:hover {
-  background-color: #666;
+.menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+button {
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  background-color: #333;
+  color: white;
+  border-radius: 5px;
 }
 
 canvas {
   display: block;
-}
-
-.bubble {
   position: absolute;
-  border-radius: 50%;
-  text-align: center;
-  color: white;
-  font-weight: bold;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 10px rgba(255,255,255,0.2);
-}
-
-.bubble.positive {
-  background: radial-gradient(circle at top left, #00cc44, #006622);
-  border: 2px solid white;
-  box-shadow: 0 0 15px #00ff66;
-}
-
-.bubble.negative {
-  background: radial-gradient(circle at top left, #ff0033, #800000);
-  border: 2px solid white;
-  box-shadow: 0 0 15px #ff3333;
-}
-
-.bubble span {
-  font-size: 12px;
-  text-shadow: 0 0 3px black;
+  top: 60px;
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - 60px);
 }
