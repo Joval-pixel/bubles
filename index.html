@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BUBLES – Ações ao Vivo</title>
   <style>
     body {
       margin: 0;
       background: #111;
-      color: white;
       font-family: Arial, sans-serif;
       overflow: hidden;
     }
@@ -17,43 +16,40 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 10px;
+      padding: 10px 5px 0;
     }
 
     .logo {
-      height: 30px;
-      margin-right: 10px;
+      height: 24px;
+      margin-right: 8px;
     }
 
     .titulo-site {
       font-size: 18px;
+      color: white;
       font-weight: bold;
     }
 
     #botoes {
       display: flex;
       justify-content: center;
-      gap: 8px;
-      margin: 10px 0;
+      gap: 6px;
       flex-wrap: wrap;
+      margin-bottom: 10px;
     }
 
     .botao {
-      font-size: 12px;
-      padding: 6px 10px;
+      font-size: 11px;
+      padding: 5px 10px;
       background: #222;
-      border: 1px solid #444;
       color: white;
+      border: 1px solid #444;
       border-radius: 4px;
       cursor: pointer;
     }
 
     canvas {
       display: block;
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 0;
     }
   </style>
 </head>
@@ -62,15 +58,12 @@
     <img src="logo.png" alt="BUBLES" class="logo">
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
-
   <div id="botoes">
     <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
     <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
     <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
-
   <canvas id="canvas"></canvas>
-
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -78,32 +71,25 @@
     canvas.height = window.innerHeight;
 
     let bolhas = [];
-    const logos = {};
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map(dado => {
-        const raio = 35 + Math.abs(dado.changePercent * 2);
+      bolhas = dados.slice(0, 60).map((dado) => {
+        const raio = 40;
         const x = Math.random() * (canvas.width - raio * 2) + raio;
         const y = Math.random() * (canvas.height - raio * 2) + raio;
-        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
-        const borda = "#ffffff";
-
-        const simbolo = dado.symbol.toUpperCase();
-        const logoUrl = `https://raw.githubusercontent.com/brazilian-stocks/logos/main/logos/${simbolo}.png`;
-        const img = new Image();
-        img.src = logoUrl;
-        logos[simbolo] = img;
+        const cor = dado.changePercent >= 0 ? "#00ff00" : "#ff0000";
+        const brilho = dado.changePercent >= 0 ? "0 0 10px #00ff00" : "0 0 10px #ff0000";
 
         return {
-          ...dado,
-          symbol: simbolo,
-          x,
-          y,
-          vx: Math.random() * 0.6 - 0.3,
-          vy: Math.random() * 0.6 - 0.3,
+          symbol: dado.symbol,
+          changePercent: dado.changePercent,
+          logo: dado.logo || "",
+          x, y,
+          vx: Math.random() * 1 - 0.5,
+          vy: Math.random() * 1 - 0.5,
           raio,
           cor,
-          borda
+          brilho
         };
       });
     }
@@ -114,28 +100,51 @@
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
+        ctx.shadowColor = b.cor;
+        ctx.shadowBlur = 15;
         ctx.fill();
+        ctx.shadowBlur = 0;
         ctx.lineWidth = 2;
-        ctx.strokeStyle = b.borda;
+        ctx.strokeStyle = "#fff";
         ctx.stroke();
 
-        const img = logos[b.symbol];
-        if (img?.complete) ctx.drawImage(img, b.x - 12, b.y - 12, 24, 24);
-
-        ctx.fillStyle = "white";
-        ctx.font = "bold 10px Arial";
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 11px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + 18);
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 30);
+        ctx.fillText(b.symbol, b.x, b.y + 4);
+
+        ctx.font = "bold 13px Arial";
+        const pct = (b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%";
+        ctx.fillText(pct, b.x, b.y + 20);
       }
     }
 
     function atualizar() {
-      for (const b of bolhas) {
+      for (let i = 0; i < bolhas.length; i++) {
+        const b = bolhas[i];
         b.x += b.vx;
         b.y += b.vy;
+
         if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
         if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+
+        for (let j = i + 1; j < bolhas.length; j++) {
+          const o = bolhas[j];
+          const dx = b.x - o.x;
+          const dy = b.y - o.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < b.raio + o.raio) {
+            const angle = Math.atan2(dy, dx);
+            const tx = o.x + Math.cos(angle) * (b.raio + o.raio);
+            const ty = o.y + Math.sin(angle) * (b.raio + o.raio);
+            const ax = (tx - b.x) * 0.02;
+            const ay = (ty - b.y) * 0.02;
+            b.vx -= ax;
+            b.vy -= ay;
+            o.vx += ax;
+            o.vy += ay;
+          }
+        }
       }
     }
 
@@ -152,20 +161,23 @@
       } else if (tipo === "criptos") {
         url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "opcoes") {
-        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
+        url = "https://brapi.dev/api/quote/list?search=CALL&sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       }
 
       try {
         const res = await fetch(url);
         const data = await res.json();
         const ativos = data.stocks || data.coins || [];
-        const filtrados = ativos.map(a => ({
+
+        const filtrados = ativos.map((a) => ({
           symbol: a.symbol || a.coin || a.name,
-          changePercent: a.change || a.changePercent || 0
+          changePercent: a.changePercent || a.change || 0,
+          logo: a.logo || ""
         }));
+
         criarBolhas(filtrados);
-      } catch (e) {
-        console.error("Erro ao carregar dados:", e);
+      } catch (err) {
+        console.error("Erro ao carregar dados:", err);
       }
     }
 
