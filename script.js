@@ -34,8 +34,8 @@ function drawBubble(b) {
   ctx.beginPath();
   ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
 
-  ctx.fillStyle = b.change >= 0 ? "#008000" : "#ff0000";
-  ctx.strokeStyle = "#fff";
+  ctx.fillStyle = b.change >= 0 ? "#006400" : "#FF0000";
+  ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 2;
   ctx.fill();
   ctx.stroke();
