@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BUBLES – Ações ao Vivo</title>
+  <title>Ações ao Vivo – BUBLES</title>
   <style>
     body {
       margin: 0;
       background: #111;
+      color: white;
       font-family: Arial, sans-serif;
       overflow: hidden;
-      color: white;
     }
 
     #topo {
@@ -21,12 +21,12 @@
     }
 
     .logo {
-      height: 30px;
+      height: 40px;
       margin-right: 10px;
     }
 
     .titulo-site {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: bold;
     }
 
@@ -34,8 +34,8 @@
       display: flex;
       justify-content: center;
       gap: 8px;
+      margin: 10px 0;
       flex-wrap: wrap;
-      margin-bottom: 10px;
     }
 
     .botao {
@@ -49,9 +49,7 @@
     }
 
     canvas {
-      position: absolute;
-      top: 80px;
-      left: 0;
+      display: block;
     }
   </style>
 </head>
@@ -78,55 +76,46 @@
     let bolhas = [];
     let logos = {};
 
-    async function carregarLogo(ticker) {
-      if (logos[ticker]) return logos[ticker];
+    function loadLogo(symbol) {
+      if (logos[symbol]) return logos[symbol];
       const img = new Image();
-      img.src = `https://assets.brandfetch.io/${ticker.toLowerCase()}.png`;
-      return new Promise(resolve => {
-        img.onload = () => {
-          logos[ticker] = img;
-          resolve(img);
-        };
-        img.onerror = () => {
-          logos[ticker] = null;
-          resolve(null);
-        };
-      });
+      img.src = `https://raw.githubusercontent.com/brapidata/logos/main/logos/${symbol}.png`;
+      logos[symbol] = img;
+      return img;
     }
 
-    async function criarBolhas(dados) {
-      bolhas = [];
-
-      for (let i = 0; i < dados.length && bolhas.length < 60; i++) {
-        const dado = dados[i];
-        const change = dado.changePercent || 0;
-        const raio = 30 + Math.abs(change) * 2;
-        const cor = change >= 0 ? '#007f00' : '#ff0000';
-        const borda = '#fff';
-
-        let x, y;
+    function criarBolhas(dados) {
+      bolhas = dados.slice(0, 60).map(dado => {
+        const raio = 25 + Math.abs(dado.changePercent) * 2;
+        let x, y, colide;
         let tentativas = 0;
+
         do {
-          x = Math.random() * (canvas.width - 2 * raio) + raio;
-          y = Math.random() * (canvas.height - 2 * raio - 100) + raio + 100;
+          colide = false;
+          x = Math.random() * (canvas.width - raio * 2) + raio;
+          y = Math.random() * (canvas.height - raio * 2) + raio;
+          for (const outra of bolhas) {
+            const dist = Math.hypot(x - outra.x, y - outra.y);
+            if (dist < raio + outra.raio + 5) {
+              colide = true;
+              break;
+            }
+          }
           tentativas++;
-        } while (bolhas.some(b => Math.hypot(b.x - x, b.y - y) < b.raio + raio + 4) && tentativas < 100);
+        } while (colide && tentativas < 100);
 
-        const logo = await carregarLogo(dado.symbol);
-
-        bolhas.push({
+        return {
           symbol: dado.symbol,
-          change,
+          changePercent: dado.changePercent,
           x,
           y,
           vx: Math.random() * 0.5 - 0.25,
           vy: Math.random() * 0.5 - 0.25,
           raio,
-          cor,
-          borda,
-          logo
-        });
-      }
+          cor: dado.changePercent >= 0 ? "#006400" : "#cc0000",
+          borda: "#ffffff"
+        };
+      });
     }
 
     function desenharBolhas() {
@@ -136,20 +125,19 @@
         ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
         ctx.fill();
-        ctx.strokeStyle = b.borda;
         ctx.lineWidth = 2;
+        ctx.strokeStyle = b.borda;
         ctx.stroke();
 
-        if (b.logo) {
-          const imgSize = b.raio * 1.2;
-          ctx.drawImage(b.logo, b.x - imgSize/2, b.y - imgSize/2 - 8, imgSize, imgSize);
-        }
+        const logo = loadLogo(b.symbol);
+        const tamanhoLogo = b.raio * 0.8;
+        ctx.drawImage(logo, b.x - tamanhoLogo / 2, b.y - tamanhoLogo / 1.5, tamanhoLogo, tamanhoLogo);
 
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 12px Arial";
+        ctx.fillStyle = "white";
+        ctx.font = `bold ${Math.max(10, b.raio * 0.25)}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + b.raio * 0.4);
-        ctx.fillText((b.change >= 0 ? "+" : "") + b.change.toFixed(2) + "%", b.x, b.y + b.raio * 0.65);
+        ctx.fillText(b.symbol, b.x, b.y + b.raio * 0.3);
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + b.raio * 0.6);
       }
     }
 
@@ -157,8 +145,9 @@
       for (const b of bolhas) {
         b.x += b.vx;
         b.y += b.vy;
+
         if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-        if (b.y - b.raio < 100 || b.y + b.raio > canvas.height) b.vy *= -1;
+        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
       }
     }
 
@@ -170,7 +159,6 @@
 
     async function carregarBolas(tipo) {
       let url = "";
-
       if (tipo === "acoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "criptos") {
@@ -182,12 +170,12 @@
       try {
         const res = await fetch(url);
         const data = await res.json();
-        const lista = data.stocks || data.coins || [];
-        const ativos = lista.map(a => ({
+        const ativos = data.stocks || data.coins || [];
+        const filtrados = ativos.map(a => ({
           symbol: a.symbol || a.coin || a.name,
           changePercent: a.change || a.changePercent || 0
         }));
-        await criarBolhas(ativos);
+        criarBolhas(filtrados);
       } catch (e) {
         console.error("Erro ao carregar dados:", e);
       }
