@@ -1,59 +1,61 @@
 const canvas = document.getElementById("bubble-canvas");
 const ctx = canvas.getContext("2d");
+
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-async function getStockData() {
-  const response = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD");
-  const data = await response.json();
-  return data.stocks.map(stock => ({
-    ticker: stock.stock,
-    change: stock.changePercent,
-    price: stock.price,
-  }));
+async function fetchStocks() {
+  try {
+    const res = await fetch("https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD");
+    const data = await res.json();
+    return data.stocks.map(s => ({
+      ticker: s.stock,
+      change: s.changePercent,
+      price: s.price,
+    }));
+  } catch (err) {
+    console.error("Erro ao buscar ações:", err);
+    return [];
+  }
 }
 
 function createBubble(stock) {
-  const radius = Math.max(30, Math.min(90, Math.abs(stock.change) * 10));
+  const radius = Math.max(25, Math.min(80, Math.abs(stock.change) * 10));
   return {
     ...stock,
-    x: Math.random() * (canvas.width - radius * 2) + radius,
-    y: Math.random() * (canvas.height - radius * 2) + radius,
+    x: Math.random() * (canvas.width - 100) + 50,
+    y: Math.random() * (canvas.height - 100) + 50,
     r: radius,
-    vx: (Math.random() - 0.5) * 0.5,
-    vy: (Math.random() - 0.5) * 0.5,
+    vx: (Math.random() - 0.5) * 0.6,
+    vy: (Math.random() - 0.5) * 0.6,
   };
 }
 
-function drawBubble(bubble) {
+function drawBubble(b) {
   ctx.beginPath();
-  ctx.arc(bubble.x, bubble.y, bubble.r, 0, 2 * Math.PI);
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
 
-  const color = bubble.change >= 0 ? "#006400" : "#ff0000"; // Verde escuro ou vermelho vivo
+  const color = b.change >= 0 ? "#008000" : "#FF0000";
   ctx.fillStyle = color;
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 3;
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `${Math.max(12, bubble.r / 4)}px Arial`;
+  ctx.fillStyle = "white";
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  const label = `${bubble.ticker}\n${bubble.change.toFixed(2)}%`;
-  const lines = label.split("\n");
-  lines.forEach((line, index) => {
-    ctx.fillText(line, bubble.x, bubble.y - (lines.length - 1) * 8 + index * 16);
-  });
+  ctx.font = `${Math.max(10, b.r / 3)}px Arial`;
+  ctx.fillText(b.ticker, b.x, b.y - 10);
+  ctx.font = `${Math.max(10, b.r / 4)}px Arial`;
+  ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 12);
 }
 
-function updateBubble(bubble) {
-  bubble.x += bubble.vx;
-  bubble.y += bubble.vy;
+function updateBubble(b) {
+  b.x += b.vx;
+  b.y += b.vy;
 
-  if (bubble.x - bubble.r < 0 || bubble.x + bubble.r > canvas.width) bubble.vx *= -1;
-  if (bubble.y - bubble.r < 0 || bubble.y + bubble.r > canvas.height) bubble.vy *= -1;
+  if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
+  if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
 }
 
 function avoidOverlap(bubbles) {
@@ -62,21 +64,21 @@ function avoidOverlap(bubbles) {
       const dx = bubbles[j].x - bubbles[i].x;
       const dy = bubbles[j].y - bubbles[i].y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const minDist = bubbles[i].r + bubbles[j].r + 4;
+      const minDist = bubbles[i].r + bubbles[j].r + 2;
       if (dist < minDist) {
         const angle = Math.atan2(dy, dx);
-        const move = (minDist - dist) / 2;
-        bubbles[i].x -= move * Math.cos(angle);
-        bubbles[i].y -= move * Math.sin(angle);
-        bubbles[j].x += move * Math.cos(angle);
-        bubbles[j].y += move * Math.sin(angle);
+        const overlap = (minDist - dist) / 2;
+        bubbles[i].x -= overlap * Math.cos(angle);
+        bubbles[i].y -= overlap * Math.sin(angle);
+        bubbles[j].x += overlap * Math.cos(angle);
+        bubbles[j].y += overlap * Math.sin(angle);
       }
     }
   }
 }
 
 async function init() {
-  const stocks = await getStockData();
+  const stocks = await fetchStocks();
   const bubbles = stocks.map(createBubble);
 
   function animate() {
