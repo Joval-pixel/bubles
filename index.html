@@ -4,21 +4,182 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BUBLES – Ações ao Vivo</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      overflow: hidden;
+      color: white;
+    }
+
+    #topo {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px;
+    }
+
+    .logo {
+      height: 28px;
+      margin-right: 10px;
+    }
+
+    .titulo-site {
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    #botoes {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .botao {
+      font-size: 12px;
+      padding: 5px 10px;
+      background-color: #222;
+      color: white;
+      border: 1px solid #444;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
   <div id="topo">
-    <img src="logo.png" alt="BUBLES" class="logo" />
+    <img src="logo.png" alt="Logo" class="logo" />
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
 
   <div id="botoes">
-    <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
-    <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
-    <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
+    <button class="botao" onclick="carregar('acoes')">Ações</button>
+    <button class="botao" onclick="carregar('criptos')">Criptos</button>
+    <button class="botao" onclick="carregar('opcoes')">Opções</button>
   </div>
 
   <canvas id="canvas"></canvas>
-  <script src="script.js"></script>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let bolhas = [];
+    let logos = {};
+
+    async function carregar(tipo) {
+      let url = '';
+      const token = '5bTDfSmR2ieax6y7JUqDAD';
+
+      if (tipo === 'acoes') {
+        url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=${token}`;
+      } else if (tipo === 'criptos') {
+        url = `https://brapi.dev/api/crypto?limit=60&token=${token}`;
+      } else if (tipo === 'opcoes') {
+        url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=${token}`;
+      }
+
+      const res = await fetch(url);
+      const data = await res.json();
+      const lista = data.stocks || data.coins || [];
+
+      bolhas = lista.map((item, i) => {
+        const symbol = item.symbol || item.coin || item.name;
+        const percent = item.changePercent || item.change || 0;
+        const raio = 25 + Math.abs(percent) * 2;
+        const cor = percent >= 0 ? '#00cc00' : '#ff1c1c';
+        const x = Math.random() * (canvas.width - 2 * raio) + raio;
+        const y = Math.random() * (canvas.height - 2 * raio) + raio;
+        const img = new Image();
+        img.src = `https://assets.torob.com/stock_logos/${symbol}.png`;
+        logos[symbol] = img;
+
+        return {
+          symbol,
+          percent,
+          x, y,
+          vx: Math.random() * 0.5 - 0.25,
+          vy: Math.random() * 0.5 - 0.25,
+          raio,
+          cor,
+          logo: img
+        };
+      });
+    }
+
+    function desenhar() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const b of bolhas) {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
+        ctx.fillStyle = b.cor;
+        ctx.shadowColor = "#fff";
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if (b.logo.complete) {
+          ctx.drawImage(b.logo, b.x - b.raio / 2, b.y - b.raio / 2 - 10, b.raio, b.raio);
+        }
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 10px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(b.symbol, b.x, b.y + 8);
+        ctx.fillText((b.percent > 0 ? '+' : '') + b.percent.toFixed(2) + '%', b.x, b.y + 20);
+      }
+    }
+
+    function atualizar() {
+      for (let i = 0; i < bolhas.length; i++) {
+        let b = bolhas[i];
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // rebote
+        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
+        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+
+        // colisão simples
+        for (let j = i + 1; j < bolhas.length; j++) {
+          let o = bolhas[j];
+          const dx = o.x - b.x;
+          const dy = o.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < b.raio + o.raio) {
+            let angle = Math.atan2(dy, dx);
+            let tx = b.x + Math.cos(angle) * (b.raio + o.raio);
+            let ty = b.y + Math.sin(angle) * (b.raio + o.raio);
+            let ax = (tx - o.x) * 0.05;
+            let ay = (ty - o.y) * 0.05;
+            b.vx -= ax;
+            b.vy -= ay;
+            o.vx += ax;
+            o.vy += ay;
+          }
+        }
+      }
+    }
+
+    function loop() {
+      atualizar();
+      desenhar();
+      requestAnimationFrame(loop);
+    }
+
+    carregar("acoes");
+    loop();
+  </script>
 </body>
 </html>
