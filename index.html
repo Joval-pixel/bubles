@@ -8,6 +8,7 @@
     body {
       margin: 0;
       background: #111;
+      color: white;
       font-family: Arial, sans-serif;
       overflow: hidden;
     }
@@ -16,41 +17,42 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 8px;
-      background-color: #000;
+      padding: 10px;
     }
 
     .logo {
-      height: 24px;
+      height: 30px;
       margin-right: 10px;
     }
 
     .titulo-site {
       font-size: 18px;
       font-weight: bold;
-      color: white;
     }
 
     #botoes {
       display: flex;
       justify-content: center;
       gap: 8px;
-      margin: 8px 0;
+      margin: 10px 0;
       flex-wrap: wrap;
     }
 
     .botao {
       font-size: 12px;
-      padding: 5px 10px;
-      background: #333;
-      border: 1px solid #666;
+      padding: 6px 10px;
+      background: #222;
+      border: 1px solid #444;
       color: white;
-      border-radius: 3px;
+      border-radius: 4px;
       cursor: pointer;
     }
 
     canvas {
-      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: -1;
     }
   </style>
 </head>
@@ -61,9 +63,9 @@
   </div>
 
   <div id="botoes">
-    <button class="botao" onclick="carregar('acoes')">Ações</button>
-    <button class="botao" onclick="carregar('criptos')">Crypto</button>
-    <button class="botao" onclick="carregar('opcoes')">Opções</button>
+    <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
+    <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
+    <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
 
   <canvas id="canvas"></canvas>
@@ -75,74 +77,37 @@
     canvas.height = window.innerHeight;
 
     let bolhas = [];
-    const logos = {};
 
-    async function carregar(tipo) {
-      let url = "";
-      if (tipo === "acoes") url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-      else if (tipo === "criptos") url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-      else if (tipo === "opcoes") url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
+    function criarBolhas(dados) {
+      bolhas = dados.slice(0, 60).map((dado, i) => {
+        const raio = 30 + Math.abs(dado.changePercent * 2);
+        let x, y;
+        let tentativa = 0;
+        do {
+          x = Math.random() * (canvas.width - raio * 2) + raio;
+          y = Math.random() * (canvas.height - raio * 2) + raio;
+          tentativa++;
+        } while (bolhas.some(b => Math.hypot(x - b.x, y - b.y) < raio + b.raio + 4) && tentativa < 100);
 
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        const ativos = data.stocks || data.coins || [];
+        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
+        const borda = "#ffffff";
 
-        bolhas = ativos.slice(0, 60).map((a, i) => {
-          const change = a.changePercent || a.change || 0;
-          const raio = 30 + Math.min(Math.abs(change * 2), 40);
-          const cor = change >= 0 ? "#008000" : "#cc0000";
-          const borda = "#fff";
-          const symbol = a.symbol || a.coin || a.name;
-          const logoUrl = a.logo || a.logoUrl || "https://logo.clearbit.com/bradesco.com.br"; // exemplo
-
-          if (!logos[symbol]) {
-            const img = new Image();
-            img.src = logoUrl;
-            logos[symbol] = img;
-          }
-
-          return {
-            x: Math.random() * (canvas.width - raio * 2) + raio,
-            y: Math.random() * (canvas.height - raio * 2) + raio,
-            vx: Math.random() * 1 - 0.5,
-            vy: Math.random() * 1 - 0.5,
-            raio,
-            symbol,
-            change,
-            cor,
-            borda
-          };
-        });
-      } catch (e) {
-        console.log("Erro ao carregar dados", e);
-      }
+        return {
+          ...dado,
+          x,
+          y,
+          vx: Math.random() * 0.5 - 0.25,
+          vy: Math.random() * 0.5 - 0.25,
+          raio,
+          cor,
+          borda
+        };
+      });
     }
 
-    function animar() {
+    function desenharBolhas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < bolhas.length; i++) {
-        let b = bolhas[i];
-
-        // colisão simples
-        for (let j = 0; j < bolhas.length; j++) {
-          if (i !== j) {
-            let o = bolhas[j];
-            let dx = b.x - o.x;
-            let dy = b.y - o.y;
-            let dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < b.raio + o.raio) {
-              b.vx *= -1;
-              b.vy *= -1;
-            }
-          }
-        }
-
-        b.x += b.vx;
-        b.y += b.vy;
-        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-
+      for (const b of bolhas) {
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
@@ -151,25 +116,61 @@
         ctx.strokeStyle = b.borda;
         ctx.stroke();
 
-        // imagem
-        const img = logos[b.symbol];
-        if (img && img.complete) {
-          ctx.drawImage(img, b.x - 12, b.y - 12, 24, 24);
-        }
+        const logo = new Image();
+        logo.src = `https://raw.githubusercontent.com/raphaelaz/b3-icons/main/logos/${b.symbol}.png`;
+        logo.onload = () => {
+          ctx.drawImage(logo, b.x - 12, b.y - 18, 24, 24);
+        };
 
-        // texto
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 10px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + b.raio - 14);
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = "white";
         ctx.font = "bold 12px Arial";
-        ctx.fillText((b.change >= 0 ? "+" : "") + b.change.toFixed(2) + "%", b.x, b.y + b.raio - 2);
+        ctx.textAlign = "center";
+        ctx.fillText(b.symbol, b.x, b.y + 18);
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 30);
       }
+    }
+
+    function atualizar() {
+      for (const b of bolhas) {
+        b.x += b.vx;
+        b.y += b.vy;
+
+        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
+        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+      }
+    }
+
+    function animar() {
+      atualizar();
+      desenharBolhas();
       requestAnimationFrame(animar);
     }
 
-    carregar("acoes");
+    async function carregarBolas(tipo) {
+      let url = "";
+      if (tipo === "acoes") {
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "criptos") {
+        url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "opcoes") {
+        url = "https://brapi.dev/api/options?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      }
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const ativos = data.stocks || data.coins || data.results || [];
+        const filtrados = ativos.map(a => ({
+          symbol: a.symbol || a.coin || a.name || a.stock,
+          changePercent: a.change || a.changePercent || 0
+        }));
+        criarBolhas(filtrados);
+      } catch (e) {
+        console.error("Erro ao carregar dados:", e);
+      }
+    }
+
+    carregarBolas("acoes");
     animar();
   </script>
 </body>
