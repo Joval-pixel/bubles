@@ -1,63 +1,11 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
 let bolhas = [];
 
-function criarBolhas(dados) {
-  bolhas = dados.slice(0, 60).map(dado => {
-    const raio = 20 + Math.abs(dado.changePercent * 2);
-    const x = Math.random() * (canvas.width - raio * 2) + raio;
-    const y = Math.random() * (canvas.height - raio * 2) + raio;
-    const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
-    return {
-      ...dado,
-      x,
-      y,
-      vx: Math.random() * 0.5 - 0.25,
-      vy: Math.random() * 0.5 - 0.25,
-      raio,
-      cor
-    };
-  });
-}
-
-function desenharBolhas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (const b of bolhas) {
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
-    ctx.fillStyle = b.cor;
-    ctx.fill();
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = "white";
-    ctx.font = "bold 12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(b.symbol, b.x, b.y - 6);
-    ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
-  }
-}
-
-function atualizar() {
-  for (const b of bolhas) {
-    b.x += b.vx;
-    b.y += b.vy;
-    if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-    if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-  }
-}
-
-function animar() {
-  atualizar();
-  desenharBolhas();
-  requestAnimationFrame(animar);
-}
-
-async function carregarBolas(tipo) {
+function carregar(tipo) {
   let url = "";
   if (tipo === "acoes") {
     url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
@@ -67,19 +15,75 @@ async function carregarBolas(tipo) {
     url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
   }
 
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    const ativos = data.stocks || data.coins || [];
-    const filtrados = ativos.map(a => ({
-      symbol: a.symbol || a.coin || a.name,
-      changePercent: a.change || a.changePercent || 0
-    }));
-    criarBolhas(filtrados);
-  } catch (e) {
-    console.error("Erro ao carregar dados:", e);
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      const ativos = data.stocks || data.coins || [];
+      bolhas = ativos.map(a => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 1.2,
+        vy: (Math.random() - 0.5) * 1.2,
+        r: 40,
+        code: a.symbol || a.coin || "",
+        pct: a.changePercent?.toFixed(2) || a.change?.toFixed(2) || "0",
+        logo: a.logo || a.image || "",
+        up: (a.changePercent || a.change || 0) >= 0
+      }));
+    });
+}
+
+function desenharBolhas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const b of bolhas) {
+    // movimento
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // colisão com bordas
+    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
+    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
+
+    // desenhar bolha
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
+    ctx.fillStyle = b.up ? "#00cc00" : "#ff3333";
+    ctx.shadowColor = "white";
+    ctx.shadowBlur = 5;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "white";
+    ctx.stroke();
+
+    // desenhar logo
+    if (b.logo) {
+      const img = new Image();
+      img.src = b.logo;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(b.x, b.y - 10, 12, 0, Math.PI * 2, true);
+      ctx.clip();
+      ctx.drawImage(img, b.x - 12, b.y - 22, 24, 24);
+      ctx.restore();
+    }
+
+    // texto: código
+    ctx.fillStyle = "white";
+    ctx.font = "bold 10px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(b.code, b.x, b.y + 5);
+
+    // texto: variação
+    ctx.fillStyle = "white";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText((b.pct > 0 ? "+" : "") + b.pct + "%", b.x, b.y + 22);
   }
 }
 
-carregarBolas("acoes");
+function animar() {
+  desenharBolhas();
+  requestAnimationFrame(animar);
+}
+
+carregar("acoes");
 animar();
