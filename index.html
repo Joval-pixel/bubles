@@ -1,185 +1,116 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BUBLES – Ações ao Vivo</title>
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      color: white;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
-    #topo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-    }
+let bolhas = [];
 
-    .logo {
-      height: 30px;
-      margin-right: 10px;
-    }
+function carregar(tipo) {
+  let url = "";
+  if (tipo === "acoes") {
+    url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+  } else if (tipo === "criptos") {
+    url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+  } else if (tipo === "opcoes") {
+    url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
+  }
 
-    .titulo-site {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    #botoes {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin: 10px 0;
-      flex-wrap: wrap;
-    }
-
-    .botao {
-      font-size: 12px;
-      padding: 6px 10px;
-      background: #222;
-      border: 1px solid #444;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .bolha {
-      position: absolute;
-      border-radius: 50%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 10px;
-      font-weight: bold;
-      text-align: center;
-      padding: 4px;
-      box-shadow: 0 0 10px white;
-      transition: transform 0.2s;
-    }
-
-    .bolha:hover {
-      transform: scale(1.1);
-      z-index: 2;
-    }
-  </style>
-</head>
-<body>
-  <div id="topo">
-    <img src="logo.png" alt="BUBLES" class="logo">
-    <span class="titulo-site">BUBLES – Ações ao Vivo</span>
-  </div>
-
-  <div id="botoes">
-    <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
-    <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
-    <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
-  </div>
-
-  <canvas id="canvas"></canvas>
-
-  <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      const ativos = data.stocks || data.coins || [];
+      bolhas = ativos.map(a => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8,
+        r: 40,
+        code: a.symbol || a.coin || "",
+        pct: a.changePercent?.toFixed(2) || a.change?.toFixed(2) || "0",
+        logo: a.logo || a.image || "",
+        up: (a.changePercent || a.change || 0) >= 0
+      }));
     });
+}
 
-    let bolhas = [];
+function evitarColisao() {
+  for (let i = 0; i < bolhas.length; i++) {
+    for (let j = i + 1; j < bolhas.length; j++) {
+      const a = bolhas[i];
+      const b = bolhas[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy);
+      const minDist = a.r + b.r;
 
-    function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map((dado, i) => {
-        const raio = 30 + Math.abs(dado.changePercent * 2);
-        const x = Math.random() * (canvas.width - raio * 2) + raio;
-        const y = Math.random() * (canvas.height - raio * 2) + raio;
-        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
-        const borda = "#ffffff";
+      if (dist < minDist) {
+        const angle = Math.atan2(dy, dx);
+        const overlap = minDist - dist;
+        const moveX = Math.cos(angle) * (overlap / 2);
+        const moveY = Math.sin(angle) * (overlap / 2);
 
-        return {
-          ...dado,
-          x,
-          y,
-          vx: Math.random() * 0.5 - 0.25,
-          vy: Math.random() * 0.5 - 0.25,
-          raio,
-          cor,
-          borda
-        };
-      });
-    }
-
-    function desenharBolhas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const b of bolhas) {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
-        ctx.fillStyle = b.cor;
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = b.borda;
-        ctx.stroke();
-        ctx.fillStyle = "white";
-        ctx.font = "bold 12px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 6);
-        ctx.font = "bold 14px Arial";
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
+        a.x -= moveX;
+        a.y -= moveY;
+        b.x += moveX;
+        b.y += moveY;
       }
     }
+  }
+}
 
-    function atualizar() {
-      for (const b of bolhas) {
-        b.x += b.vx;
-        b.y += b.vy;
+function desenharBolhas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  evitarColisao();
 
-        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-      }
+  for (const b of bolhas) {
+    // movimento
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // colisão com bordas
+    if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
+    if (b.y - b.r < 0 || b.y + b.r > canvas.height) b.vy *= -1;
+
+    // bolha
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
+    ctx.fillStyle = b.up ? "#008000" : "#cc0000"; // verde escuro e vermelho vivo
+    ctx.shadowColor = "white";
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "white";
+    ctx.stroke();
+
+    // logo
+    if (b.logo) {
+      const img = new Image();
+      img.src = b.logo;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(b.x, b.y - 10, 12, 0, Math.PI * 2, true);
+      ctx.clip();
+      ctx.drawImage(img, b.x - 12, b.y - 22, 24, 24);
+      ctx.restore();
     }
 
-    function animar() {
-      atualizar();
-      desenharBolhas();
-      requestAnimationFrame(animar);
-    }
+    // código da ação
+    ctx.fillStyle = "white";
+    ctx.font = "bold 11px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(b.code, b.x, b.y + 5);
 
-    async function carregarBolas(tipo) {
-      let url = "";
+    // variação
+    ctx.fillStyle = "white";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText((b.pct > 0 ? "+" : "") + b.pct + "%", b.x, b.y + 22);
+  }
+}
 
-      if (tipo === "acoes") {
-        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-      } else if (tipo === "criptos") {
-        url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-      } else if (tipo === "opcoes") {
-        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
-      }
+function animar() {
+  desenharBolhas();
+  requestAnimationFrame(animar);
+}
 
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        const ativos = data.stocks || data.coins || [];
-        const filtrados = ativos.map(a => ({
-          symbol: a.symbol || a.coin || a.name,
-          changePercent: a.change || a.changePercent || 0
-        }));
-        criarBolhas(filtrados);
-      } catch (e) {
-        console.error("Erro ao carregar dados:", e);
-      }
-    }
-
-    carregarBolas("acoes");
-    animar();
-  </script>
-</body>
-</html>
+carregar("acoes");
+animar();
