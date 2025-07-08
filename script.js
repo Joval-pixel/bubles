@@ -55,7 +55,7 @@ function animar() {
   requestAnimationFrame(animar);
 }
 
-async function carregarBolas(tipo) {
+async function carregarBolas(*ações*);
   let url = "";
   if (tipo === "acoes") {
     url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
