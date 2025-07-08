@@ -1,0 +1,1 @@
+console.log('BUBLES script ativo');
