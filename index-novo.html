@@ -1,1 +1,181 @@
-corrigido
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BUBLES – Ações ao Vivo</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #topo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      color: white;
+    }
+
+    .logo {
+      height: 30px;
+      margin-right: 10px;
+    }
+
+    .titulo-site {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #botoes {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .botao {
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #333;
+      border: 1px solid #666;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    canvas {
+      position: absolute;
+      top: 70px;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="topo">
+    <img src="logo.png" class="logo" alt="BUBLES" />
+    <span class="titulo-site">BUBLES – Ações ao Vivo</span>
+  </div>
+
+  <div id="botoes">
+    <button class="botao" onclick="carregar('acoes')">Ações</button>
+    <button class="botao" onclick="carregar('criptos')">Criptos</button>
+    <button class="botao" onclick="carregar('opcoes')">Opções</button>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let bolhas = [];
+
+    function carregar(tipo) {
+      let url = "";
+      if (tipo === "acoes") {
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "criptos") {
+        url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      } else if (tipo === "opcoes") {
+        url = "https://brapi.dev/api/quote/list?search=CALL&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+      }
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const lista = data.stocks || data.coins || [];
+          bolhas = lista.map(item => {
+            const symbol = item.symbol || item.coin || item.name || "";
+            const change = item.changePercent || item.change || 0;
+            const raio = 30 + Math.abs(change * 1.5);
+            return {
+              x: Math.random() * (canvas.width - raio * 2) + raio,
+              y: Math.random() * (canvas.height - raio * 2) + raio + 80,
+              vx: Math.random() * 0.8 - 0.4,
+              vy: Math.random() * 0.8 - 0.4,
+              r: raio,
+              cor: change >= 0 ? "#008000" : "#ff0000",
+              texto: symbol,
+              porcentagem: change.toFixed(2),
+              logo: `https://brapi.dev/logo/${symbol}.png`
+            };
+          });
+        });
+    }
+
+    function desenhar() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let b of bolhas) {
+        // Desenha bolha
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = b.cor;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#fff";
+        ctx.stroke();
+
+        // Logo
+        const img = new Image();
+        img.src = b.logo;
+        img.onload = () => {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(b.x, b.y - 8, 14, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(img, b.x - 14, b.y - 22, 28, 28);
+          ctx.restore();
+        };
+
+        // Código da ação
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(b.texto, b.x, b.y + 5);
+
+        // Porcentagem
+        ctx.font = "bold 14px Arial";
+        ctx.fillText((b.porcentagem > 0 ? "+" : "") + b.porcentagem + "%", b.x, b.y + 22);
+      }
+    }
+
+    function atualizar() {
+      for (let b of bolhas) {
+        b.x += b.vx;
+        b.y += b.vy;
+
+        if (b.x - b.r < 0 || b.x + b.r > canvas.width) b.vx *= -1;
+        if (b.y - b.r < 70 || b.y + b.r > canvas.height) b.vy *= -1;
+
+        // Simples detecção de sobreposição (poderá ser melhorada)
+        for (let outra of bolhas) {
+          if (b === outra) continue;
+          const dx = b.x - outra.x;
+          const dy = b.y - outra.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < b.r + outra.r) {
+            b.vx *= -1;
+            b.vy *= -1;
+          }
+        }
+      }
+    }
+
+    function loop() {
+      atualizar();
+      desenhar();
+      requestAnimationFrame(loop);
+    }
+
+    carregar("acoes");
+    loop();
+  </script>
+</body>
+</html>
