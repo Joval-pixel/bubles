@@ -8,9 +8,8 @@
     body {
       margin: 0;
       background: #111;
-      color: white;
-      font-family: Arial, sans-serif;
       overflow: hidden;
+      font-family: Arial, sans-serif;
     }
     #topo {
       display: flex;
@@ -19,18 +18,19 @@
       padding: 10px;
     }
     .logo {
-      height: 32px;
+      height: 30px;
       margin-right: 10px;
     }
     .titulo-site {
       font-size: 18px;
+      color: white;
       font-weight: bold;
     }
     #botoes {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 8px;
       margin: 10px 0;
     }
     .botao {
@@ -42,30 +42,8 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    .bolha {
-      position: absolute;
-      border-radius: 50%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      text-align: center;
-      overflow: hidden;
-      box-shadow: 0 0 12px white;
-    }
-    .bolha img {
-      width: 24px;
-      height: 24px;
-      margin-bottom: 2px;
-    }
-    .symbol {
-      font-size: 10px;
-      font-weight: bold;
-    }
-    .percent {
-      font-size: 11px;
-      font-weight: bold;
+    canvas {
+      display: block;
     }
   </style>
 </head>
@@ -96,9 +74,10 @@
         return {
           ...dado,
           x, y,
-          vx: Math.random() * 0.8 - 0.4,
-          vy: Math.random() * 0.8 - 0.4,
-          raio
+          vx: Math.random() * 0.6 - 0.3,
+          vy: Math.random() * 0.6 - 0.3,
+          raio,
+          logo: `https://raw.githubusercontent.com/henriquepgomide/acoes-logo/main/logos/${dado.symbol}.png`
         };
       });
     }
@@ -106,9 +85,8 @@
     function desenharBolhas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (const b of bolhas) {
-        // Cores
-        const cor = b.change >= 0 ? "#00cc00" : "#ff3333";
-        const borda = "#ffffff";
+        const cor = b.change >= 0 ? "#00e676" : "#ff1744";
+        const borda = "#fff";
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = cor;
@@ -117,18 +95,17 @@
         ctx.strokeStyle = borda;
         ctx.stroke();
 
-        // Logotipo
+        // Logo
         const img = new Image();
-        img.src = `https://assets.website-files.com/5f6b36f8b5116506703b9f12/stock-logos/${b.symbol}.png`;
+        img.src = b.logo;
         img.onload = () => ctx.drawImage(img, b.x - 12, b.y - 20, 24, 24);
 
-        // Texto
         ctx.fillStyle = "white";
         ctx.font = "bold 10px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y + 10);
-        ctx.font = "bold 11px Arial";
-        ctx.fillText((b.change > 0 ? "+" : "") + b.change.toFixed(2) + "%", b.x, b.y + 24);
+        ctx.fillText(b.symbol, b.x, b.y + 8);
+        ctx.font = "bold 12px Arial";
+        ctx.fillText((b.change > 0 ? "+" : "") + b.change.toFixed(2) + "%", b.x, b.y + 22);
       }
     }
 
@@ -138,11 +115,9 @@
         b.x += b.vx;
         b.y += b.vy;
 
-        // Rebate nas bordas
         if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
         if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
 
-        // Evitar sobreposição
         for (let j = i + 1; j < bolhas.length; j++) {
           const o = bolhas[j];
           const dx = b.x - o.x;
@@ -191,7 +166,7 @@
         }));
         criarBolhas(dados);
       } catch (e) {
-        console.log("Erro ao carregar:", e);
+        console.log("Erro:", e);
       }
     }
 
