@@ -1,86 +1,91 @@
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+document.addEventListener('DOMContentLoaded', () => {
+    const bubbleContainer = document.getElementById('bubble-container');
+    const sortBySelect = document.getElementById('sortBy');
 
-let bolhas = [];
+    // Dados de exemplo (em um projeto real, isso viria de uma API)
+    let cryptoData = [
+        { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', marketCap: 1200000000000, priceChange24h: 2.5, price: 65000, volume: 30000000000 },
+        { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', marketCap: 400000000000, priceChange24h: -1.2, price: 3500, volume: 15000000000 },
+        { id: 'ripple', name: 'Ripple', symbol: 'XRP', marketCap: 30000000000, priceChange24h: 0.8, price: 0.5, volume: 2000000000 },
+        { id: 'solana', name: 'Solana', symbol: 'SOL', marketCap: 60000000000, priceChange24h: 5.1, price: 150, volume: 3500000000 },
+        { id: 'cardano', name: 'Cardano', symbol: 'ADA', marketCap: 18000000000, priceChange24h: -0.5, price: 0.4, volume: 800000000 },
+        { id: 'dogecoin', name: 'Dogecoin', symbol: 'DOGE', marketCap: 15000000000, priceChange24h: 1.0, price: 0.12, volume: 1000000000 },
+        { id: 'shibainu', name: 'Shiba Inu', symbol: 'SHIB', marketCap: 8000000000, priceChange24h: -2.0, price: 0.00002, volume: 500000000 },
+        { id: 'polkadot', name: 'Polkadot', symbol: 'DOT', marketCap: 10000000000, priceChange24h: 3.2, price: 7, volume: 700000000 },
+        { id: 'litecoin', name: 'Litecoin', symbol: 'LTC', marketCap: 7000000000, priceChange24h: 0.1, price: 70, volume: 400000000 },
+        { id: 'chainlink', name: 'Chainlink', symbol: 'LINK', marketCap: 9000000000, priceChange24h: 4.0, price: 18, volume: 600000000 },
+        { id: 'tron', name: 'TRON', symbol: 'TRX', marketCap: 10000000000, priceChange24h: -0.7, price: 0.1, volume: 900000000 },
+        { id: 'avalanche', name: 'AVAX', symbol: 'AVAX', marketCap: 15000000000, priceChange24h: 6.5, price: 40, volume: 1200000000 },
+        { id: 'cosmos', name: 'Cosmos', symbol: 'ATOM', marketCap: 5000000000, priceChange24h: -3.0, price: 9, volume: 300000000 },
+        { id: 'near-protocol', name: 'NEAR Protocol', symbol: 'NEAR', marketCap: 7000000000, priceChange24h: 7.0, price: 8, volume: 500000000 },
+        { id: 'internet-computer', name: 'Internet Computer', symbol: 'ICP', marketCap: 6000000000, priceChange24h: 0.0, price: 12, volume: 400000000 },
+    ];
 
-function criarBolhas(dados) {
-  bolhas = dados.slice(0, 60).map(dado => {
-    const raio = 30 + Math.abs(dado.changePercent) * 1.5;
-    const x = Math.random() * (canvas.width - raio * 2) + raio;
-    const y = Math.random() * (canvas.height - raio * 2) + raio;
-    const cor = dado.changePercent >= 0 ? "#00ff00" : "#ff0000";
-    const borda = "#fff";
+    function createBubbles(data, sortBy) {
+        bubbleContainer.innerHTML = ''; // Limpa as bolhas existentes
 
-    return {
-      ...dado,
-      x, y, raio,
-      vx: Math.random() * 0.6 - 0.3,
-      vy: Math.random() * 0.6 - 0.3,
-      cor, borda
-    };
-  });
-}
+        // Sort data based on the selected criteria
+        data.sort((a, b) => {
+            if (sortBy === 'marketCap') {
+                return b.marketCap - a.marketCap;
+            } else if (sortBy === 'priceChange24h') {
+                return b.priceChange24h - a.priceChange24h;
+            }
+            return 0;
+        });
 
-function desenharBolhas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  bolhas.forEach(b => {
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
-    ctx.fillStyle = b.cor;
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = b.borda;
-    ctx.stroke();
+        // Determine min/max market cap for dynamic sizing
+        const marketCaps = data.map(d => d.marketCap);
+        const minMarketCap = Math.min(...marketCaps);
+        const maxMarketCap = Math.max(...marketCaps);
 
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(b.symbol, b.x, b.y - 6);
-    ctx.font = "bold 14px Arial";
-    ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
-  });
-}
+        data.forEach(crypto => {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
 
-function atualizar() {
-  bolhas.forEach(b => {
-    b.x += b.vx;
-    b.y += b.vy;
+            // Calculate bubble size based on market cap (logarithmic scale for better visual distinction)
+            const minSize = 60; // Minimum bubble size in pixels
+            const maxSize = 200; // Maximum bubble size in pixels
+            const size = minSize + (maxSize - minSize) * ((Math.log(crypto.marketCap) - Math.log(minMarketCap)) / (Math.log(maxMarketCap) - Math.log(minMarketCap)));
 
-    if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-    if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-  });
-}
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
 
-function animar() {
-  atualizar();
-  desenharBolhas();
-  requestAnimationFrame(animar);
-}
+            // Assign color based on price change
+            if (crypto.priceChange24h > 0) {
+                bubble.classList.add('positive');
+            } else if (crypto.priceChange24h < 0) {
+                bubble.classList.add('negative');
+            } else {
+                bubble.classList.add('neutral');
+            }
 
-async function carregar(tipo) {
-  let url = "";
-  if (tipo === "acoes")
-    url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-  else if (tipo === "criptos")
-    url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-  else if (tipo === "opcoes")
-    url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&search=CALL&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+            bubble.innerHTML = `
+                <div class="bubble-name">${crypto.symbol}</div>
+                <div class="bubble-value">${crypto.priceChange24h.toFixed(2)}%</div>
+                <div class="tooltip">
+                    <strong>${crypto.name} (${crypto.symbol})</strong><br>
+                    Preço: $${crypto.price.toFixed(2)}<br>
+                    Market Cap: $${(crypto.marketCap / 1e9).toFixed(2)}B<br>
+                    Variação 24h: ${crypto.priceChange24h.toFixed(2)}%<br>
+                    Volume 24h: $${(crypto.volume / 1e9).toFixed(2)}B
+                </div>
+            `;
 
-  try {
-    const res = await fetch(url);
-    const json = await res.json();
-    const lista = json.stocks || json.coins || [];
-    const dados = lista.map(a => ({
-      symbol: a.symbol || a.coin || "??",
-      changePercent: a.changePercent || a.change || 0
-    }));
-    criarBolhas(dados);
-  } catch (e) {
-    console.error("Erro ao buscar dados", e);
-  }
-}
+            // Add click event for more details (you can expand this)
+            bubble.addEventListener('click', () => {
+                alert(`Detalhes de ${crypto.name}:\nPreço: $${crypto.price.toFixed(2)}\nMarket Cap: $${(crypto.marketCap / 1e9).toFixed(2)}B\nVariação 24h: ${crypto.priceChange24h.toFixed(2)}%`);
+            });
 
-carregar("acoes");
-animar();
+            bubbleContainer.appendChild(bubble);
+        });
+    }
+
+    // Initial render
+    createBubbles(cryptoData, sortBySelect.value);
+
+    // Event listener for sorting change
+    sortBySelect.addEventListener('change', () => {
+        createBubbles(cryptoData, sortBySelect.value);
+    });
+});
