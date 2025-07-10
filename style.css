@@ -1,41 +1,120 @@
 body {
-  margin: 0;
-  background: #111;
-  font-family: Arial, sans-serif;
-  overflow: hidden;
-  color: white;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #1a1a2e; /* Fundo escuro */
+    color: #e0e0e0; /* Cor do texto claro */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
-#topo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
+header {
+    background-color: #0f3460;
+    padding: 20px;
+    text-align: center;
+    border-bottom: 2px solid #e94560;
 }
 
-.logo {
-  height: 30px;
-  margin-right: 10px;
+header h1 {
+    margin: 0;
+    color: #e0e0e0;
 }
 
-.titulo-site {
-  font-size: 18px;
-  font-weight: bold;
+nav {
+    margin-top: 10px;
 }
 
-#botoes {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 10px;
+nav select {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #e94560;
+    background-color: #0f3460;
+    color: #e0e0e0;
 }
 
-button {
-  background: #222;
-  color: white;
-  border: 1px solid #444;
-  padding: 6px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  border-radius: 4px;
+#bubble-container {
+    flex-grow: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    gap: 15px; /* Espaçamento entre as bolhas */
+    overflow: auto; /* Para rolagem se houver muitas bolhas */
+}
+
+.bubble {
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, background-color 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    position: relative; /* Para a tooltip */
+}
+
+.bubble:hover {
+    transform: scale(1.05);
+}
+
+.bubble.positive {
+    background-color: #388e3c; /* Verde para variação positiva */
+}
+
+.bubble.negative {
+    background-color: #d32f2f; /* Vermelho para variação negativa */
+}
+
+.bubble.neutral {
+    background-color: #555; /* Cinza para variação neutra/sem dados */
+}
+
+.bubble-name {
+    font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80%; /* Para evitar que o nome seja muito longo */
+}
+
+.bubble-value {
+    font-size: 0.8em;
+}
+
+/* Tooltip */
+.bubble .tooltip {
+    visibility: hidden;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 10px;
+    position: absolute;
+    z-index: 1;
+    bottom: 100%; /* Acima da bolha */
+    left: 50%;
+    margin-left: -60px; /* Metade da largura */
+    opacity: 0;
+    transition: opacity 0.3s;
+    width: 120px; /* Largura da tooltip */
+}
+
+.bubble:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+
+footer {
+    background-color: #0f3460;
+    padding: 15px;
+    text-align: center;
+    font-size: 0.8em;
+    color: #e0e0e0;
+    margin-top: auto; /* Empurra o footer para baixo */
 }
