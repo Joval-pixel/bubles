@@ -12,35 +12,78 @@
       font-family: Arial, sans-serif;
       overflow: hidden;
     }
-    #botoes {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 2;
+
+    #topo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
     }
+
+    .logo {
+      height: 30px;
+      margin-right: 10px;
+    }
+
+    .titulo-site {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #botoes {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+
     .botao {
       font-size: 12px;
       padding: 6px 10px;
-      margin: 2px;
       background: #222;
       border: 1px solid #444;
       color: white;
       border-radius: 4px;
       cursor: pointer;
     }
-    canvas {
-      display: block;
+
+    .bolha {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      text-align: center;
+      padding: 4px;
+      box-shadow: 0 0 10px white;
+      transition: transform 0.2s;
+    }
+
+    .bolha:hover {
+      transform: scale(1.1);
+      z-index: 2;
     }
   </style>
 </head>
 <body>
+  <div id="topo">
+    <img src="logo.png" alt="BUBLES" class="logo">
+    <span class="titulo-site">BUBLES – Ações ao Vivo</span>
+  </div>
+
   <div id="botoes">
     <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
     <button class="botao" onclick="carregarBolas('criptos')">Criptos</button>
     <button class="botao" onclick="carregarBolas('opcoes')">Opções</button>
   </div>
+
   <canvas id="canvas"></canvas>
+
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -49,46 +92,23 @@
 
     let bolhas = [];
 
-    function detectarColisao(b1, b2) {
-      const dx = b1.x - b2.x;
-      const dy = b1.y - b2.y;
-      const distancia = Math.sqrt(dx * dx + dy * dy);
-      return distancia < b1.raio + b2.raio;
-    }
-
-    function ajustarColisoes() {
-      for (let i = 0; i < bolhas.length; i++) {
-        for (let j = i + 1; j < bolhas.length; j++) {
-          if (detectarColisao(bolhas[i], bolhas[j])) {
-            const dx = bolhas[i].x - bolhas[j].x;
-            const dy = bolhas[i].y - bolhas[j].y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const overlap = (bolhas[i].raio + bolhas[j].raio - dist) / 2;
-            const offsetX = dx / dist * overlap;
-            const offsetY = dy / dist * overlap;
-            bolhas[i].x += offsetX;
-            bolhas[i].y += offsetY;
-            bolhas[j].x -= offsetX;
-            bolhas[j].y -= offsetY;
-          }
-        }
-      }
-    }
-
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map(d => {
-        const raio = 20 + Math.abs(d.changePercent * 2);
-        const x = Math.random() * (canvas.width - 2 * raio) + raio;
-        const y = Math.random() * (canvas.height - 2 * raio) + raio;
-        const cor = d.changePercent >= 0 ? "#00cc00" : "#ff3333";
+      bolhas = dados.slice(0, 60).map((dado, i) => {
+        const raio = 20 + Math.abs(dado.changePercent * 2);
+        const x = Math.random() * (canvas.width - raio * 2) + raio;
+        const y = Math.random() * (canvas.height - raio * 2) + raio;
+        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
+        const borda = "#ffffff";
+
         return {
-          ...d,
+          ...dado,
           x,
           y,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
+          vx: Math.random() * 0.5 - 0.25,
+          vy: Math.random() * 0.5 - 0.25,
           raio,
-          cor
+          cor,
+          borda
         };
       });
     }
@@ -100,26 +120,66 @@
         ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
         ctx.fill();
-        ctx.strokeStyle = "#fff";
         ctx.lineWidth = 2;
+        ctx.strokeStyle = b.borda;
         ctx.stroke();
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 10px Arial";
+        ctx.fillStyle = "white";
+        ctx.font = "10px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 5);
+        ctx.fillText(b.symbol, b.x, b.y - 4);
         ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
       }
     }
 
     function atualizar() {
-      for (const b of bolhas) {
+      for (let i = 0; i < bolhas.length; i++) {
+        const b = bolhas[i];
+
         b.x += b.vx;
         b.y += b.vy;
 
-        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+        if (b.x - b.raio < 0) {
+          b.x = b.raio;
+          b.vx *= -1;
+        }
+        if (b.x + b.raio > canvas.width) {
+          b.x = canvas.width - b.raio;
+          b.vx *= -1;
+        }
+        if (b.y - b.raio < 0) {
+          b.y = b.raio;
+          b.vy *= -1;
+        }
+        if (b.y + b.raio > canvas.height) {
+          b.y = canvas.height - b.raio;
+          b.vy *= -1;
+        }
+
+        for (let j = i + 1; j < bolhas.length; j++) {
+          const o = bolhas[j];
+          const dx = o.x - b.x;
+          const dy = o.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const minDist = b.raio + o.raio;
+
+          if (dist < minDist) {
+            const angle = Math.atan2(dy, dx);
+            const move = (minDist - dist) / 2;
+
+            b.x -= Math.cos(angle) * move;
+            b.y -= Math.sin(angle) * move;
+            o.x += Math.cos(angle) * move;
+            o.y += Math.sin(angle) * move;
+
+            const tempVx = b.vx;
+            const tempVy = b.vy;
+            b.vx = o.vx;
+            b.vy = o.vy;
+            o.vx = tempVx;
+            o.vy = tempVy;
+          }
+        }
       }
-      ajustarColisoes();
     }
 
     function animar() {
@@ -130,6 +190,8 @@
 
     async function carregarBolas(tipo) {
       let url = "";
+      const headers = { headers: { Authorization: "5bTDfSmR2ieax6y7JUqDAD" } };
+
       if (tipo === "acoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "criptos") {
@@ -137,17 +199,18 @@
       } else if (tipo === "opcoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
       }
+
       try {
         const res = await fetch(url);
         const data = await res.json();
-        const lista = data.stocks || data.coins || [];
-        const formatado = lista.map(a => ({
+        const ativos = data.stocks || data.coins || [];
+        const filtrados = ativos.map(a => ({
           symbol: a.symbol || a.coin || a.name,
           changePercent: a.change || a.changePercent || 0
         }));
-        criarBolhas(formatado);
+        criarBolhas(filtrados);
       } catch (e) {
-        console.error("Erro ao carregar bolhas", e);
+        console.error("Erro ao carregar dados:", e);
       }
     }
 
