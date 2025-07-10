@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BUBLES – Ações ao Vivo</title>
+  <title>Ações ao Vivo</title>
   <style>
     body {
       margin: 0;
@@ -14,15 +14,8 @@
     }
 
     #topo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      text-align: center;
       padding: 10px;
-    }
-
-    .logo {
-      height: 30px;
-      margin-right: 10px;
     }
 
     .titulo-site {
@@ -48,15 +41,31 @@
       cursor: pointer;
     }
 
-    canvas {
-      display: block;
+    .bolha {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      text-align: center;
+      padding: 4px;
+      box-shadow: 0 0 10px white;
+      transition: transform 0.2s;
+    }
+
+    .bolha:hover {
+      transform: scale(1.1);
+      z-index: 2;
     }
   </style>
 </head>
 <body>
   <div id="topo">
-    <img src="logo.png" alt="BUBLES" class="logo">
-    <span class="titulo-site">BUBLES – Ações ao Vivo</span>
+    <span class="titulo-site">Ações ao Vivo</span>
   </div>
 
   <div id="botoes">
@@ -76,19 +85,22 @@
     let bolhas = [];
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map((dado) => {
-        const raio = 30 + Math.abs(dado.changePercent * 2);
+      bolhas = dados.slice(0, 60).map((dado, i) => {
+        const raio = 20 + Math.abs(dado.changePercent * 2);
         const x = Math.random() * (canvas.width - raio * 2) + raio;
         const y = Math.random() * (canvas.height - raio * 2) + raio;
-        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
+        const cor = dado.changePercent >= 0 ? "#006400" : "#cc0000";
+        const borda = "#ffffff";
+
         return {
           ...dado,
           x,
           y,
-          vx: (Math.random() - 0.5) * 0.03,
-          vy: (Math.random() - 0.5) * 0.03,
+          vx: Math.random() * 0.3 - 0.15,
+          vy: Math.random() * 0.3 - 0.15,
           raio,
-          cor
+          cor,
+          borda
         };
       });
     }
@@ -99,17 +111,16 @@
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
-        ctx.shadowColor = "white";
-        ctx.shadowBlur = 8;
         ctx.fill();
-        ctx.shadowBlur = 0;
-
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = b.borda;
+        ctx.stroke();
         ctx.fillStyle = "white";
-        ctx.font = `${Math.max(10, b.raio / 3)}px Arial`;
+        ctx.font = "bold 12px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 5);
-        ctx.font = `bold ${Math.max(10, b.raio / 3.5)}px Arial`;
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
+        ctx.fillText(b.symbol, b.x, b.y - 4);
+        ctx.font = "bold 14px Arial";
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 12);
       }
     }
 
@@ -123,19 +134,15 @@
         if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
 
         for (let j = i + 1; j < bolhas.length; j++) {
-          const o = bolhas[j];
-          const dx = b.x - o.x;
-          const dy = b.y - o.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist < b.raio + o.raio) {
-            const angle = Math.atan2(dy, dx);
-            const overlap = b.raio + o.raio - dist;
-            const moveX = (Math.cos(angle) * overlap) / 2;
-            const moveY = (Math.sin(angle) * overlap) / 2;
-            b.x += moveX;
-            b.y += moveY;
-            o.x -= moveX;
-            o.y -= moveY;
+          const b2 = bolhas[j];
+          const dx = b2.x - b.x;
+          const dy = b2.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < b.raio + b2.raio) {
+            b.vx *= -1;
+            b.vy *= -1;
+            b2.vx *= -1;
+            b2.vy *= -1;
           }
         }
       }
@@ -163,7 +170,7 @@
         const ativos = data.stocks || data.coins || [];
         const filtrados = ativos.map(a => ({
           symbol: a.symbol || a.coin || a.name,
-          changePercent: a.changePercent || a.change || 0
+          changePercent: a.change || a.changePercent || 0
         }));
         criarBolhas(filtrados);
       } catch (e) {
