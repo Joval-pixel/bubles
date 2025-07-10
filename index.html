@@ -20,11 +20,6 @@
       padding: 10px;
     }
 
-    .logo {
-      height: 30px;
-      margin-right: 10px;
-    }
-
     .titulo-site {
       font-size: 18px;
       font-weight: bold;
@@ -72,7 +67,6 @@
 </head>
 <body>
   <div id="topo">
-    <img src="logo.png" alt="BUBLES" class="logo">
     <span class="titulo-site">BUBLES – Ações ao Vivo</span>
   </div>
 
@@ -93,7 +87,7 @@
     let bolhas = [];
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 60).map((dado, i) => {
+      bolhas = dados.slice(0, 100).map((dado) => {
         const raio = 20 + Math.abs(dado.changePercent * 2);
         const x = Math.random() * (canvas.width - raio * 2) + raio;
         const y = Math.random() * (canvas.height - raio * 2) + raio;
@@ -132,53 +126,12 @@
     }
 
     function atualizar() {
-      for (let i = 0; i < bolhas.length; i++) {
-        const b = bolhas[i];
-
+      for (const b of bolhas) {
         b.x += b.vx;
         b.y += b.vy;
 
-        if (b.x - b.raio < 0) {
-          b.x = b.raio;
-          b.vx *= -1;
-        }
-        if (b.x + b.raio > canvas.width) {
-          b.x = canvas.width - b.raio;
-          b.vx *= -1;
-        }
-        if (b.y - b.raio < 0) {
-          b.y = b.raio;
-          b.vy *= -1;
-        }
-        if (b.y + b.raio > canvas.height) {
-          b.y = canvas.height - b.raio;
-          b.vy *= -1;
-        }
-
-        for (let j = i + 1; j < bolhas.length; j++) {
-          const o = bolhas[j];
-          const dx = o.x - b.x;
-          const dy = o.y - b.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const minDist = b.raio + o.raio;
-
-          if (dist < minDist) {
-            const angle = Math.atan2(dy, dx);
-            const move = (minDist - dist) / 2;
-
-            b.x -= Math.cos(angle) * move;
-            b.y -= Math.sin(angle) * move;
-            o.x += Math.cos(angle) * move;
-            o.y += Math.sin(angle) * move;
-
-            const tempVx = b.vx;
-            const tempVy = b.vy;
-            b.vx = o.vx;
-            b.vy = o.vy;
-            o.vx = tempVx;
-            o.vy = tempVy;
-          }
-        }
+        if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
+        if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
       }
     }
 
@@ -190,14 +143,13 @@
 
     async function carregarBolas(tipo) {
       let url = "";
-      const headers = { headers: { Authorization: "5bTDfSmR2ieax6y7JUqDAD" } };
 
       if (tipo === "acoes") {
         url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "criptos") {
         url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
       } else if (tipo === "opcoes") {
-        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
+        url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&search=CALL&token=5bTDfSmR2ieax6y7JUqDAD";
       }
 
       try {
