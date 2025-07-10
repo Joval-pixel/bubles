@@ -1,23 +1,27 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BUBLES – Ações ao Vivo</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      background: #111;
-      overflow: hidden;
+      background: #000;
+      color: white;
       font-family: Arial, sans-serif;
+      overflow: hidden;
     }
 
     #topo {
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 10px;
-      color: white;
-      font-size: 18px;
+    }
+
+    .titulo-site {
+      font-size: 20px;
       font-weight: bold;
     }
 
@@ -25,26 +29,46 @@
       display: flex;
       justify-content: center;
       gap: 8px;
-      padding-bottom: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
     }
 
     .botao {
       font-size: 12px;
       padding: 6px 10px;
       background: #222;
-      border: 1px solid #555;
+      border: 1px solid #444;
       color: white;
       border-radius: 4px;
       cursor: pointer;
     }
 
-    canvas {
-      display: block;
+    .bolha {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      text-align: center;
+      padding: 4px;
+      box-shadow: 0 0 10px white;
+      transition: transform 0.2s;
+    }
+
+    .bolha:hover {
+      transform: scale(1.1);
+      z-index: 2;
     }
   </style>
 </head>
 <body>
-  <div id="topo">BUBLES – Ações ao Vivo</div>
+  <div id="topo">
+    <span class="titulo-site">BUBLES – Ações ao Vivo</span>
+  </div>
 
   <div id="botoes">
     <button class="botao" onclick="carregarBolas('acoes')">Ações</button>
@@ -63,21 +87,22 @@
     let bolhas = [];
 
     function criarBolhas(dados) {
-      bolhas = dados.slice(0, 100).map((dado) => {
-        const raio = 30 + Math.abs(dado.changePercent || 0) * 2;
-        const x = Math.random() * (canvas.width - 2 * raio) + raio;
-        const y = Math.random() * (canvas.height - 2 * raio) + raio;
-        const cor = (dado.changePercent || 0) >= 0 ? "#009933" : "#ff1a1a";
+      bolhas = dados.slice(0, 60).map((dado) => {
+        const raio = 20 + Math.abs(dado.changePercent * 2);
+        const x = Math.random() * (canvas.width - raio * 2) + raio;
+        const y = Math.random() * (canvas.height - raio * 2) + raio;
+        const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
+        const borda = "#ffffff";
 
         return {
-          symbol: dado.symbol || dado.coin || dado.name,
-          changePercent: dado.changePercent || dado.change || 0,
+          ...dado,
           x,
           y,
+          vx: Math.random() * 0.4 - 0.2,
+          vy: Math.random() * 0.4 - 0.2,
           raio,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
-          cor
+          cor,
+          borda
         };
       });
     }
@@ -85,54 +110,28 @@
     function desenharBolhas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (const b of bolhas) {
-        // Bolha
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.raio, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
         ctx.fillStyle = b.cor;
-        ctx.shadowColor = "#000";
-        ctx.shadowBlur = 10;
         ctx.fill();
-        ctx.strokeStyle = "#fff";
         ctx.lineWidth = 2;
+        ctx.strokeStyle = b.borda;
         ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // Texto
-        ctx.fillStyle = "#fff";
-        ctx.font = `${Math.max(10, b.raio / 3)}px Arial`;
+        ctx.fillStyle = "white";
+        ctx.font = "10px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.symbol, b.x, b.y - 5);
-        ctx.font = `${Math.max(10, b.raio / 2.5)}px Arial bold`;
-        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 15);
+        ctx.fillText(b.symbol, b.x, b.y - 4);
+        ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
       }
     }
 
     function atualizar() {
-      for (let i = 0; i < bolhas.length; i++) {
-        const b = bolhas[i];
+      for (const b of bolhas) {
         b.x += b.vx;
         b.y += b.vy;
 
-        // Limites da tela
         if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
         if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-
-        // Colisão básica
-        for (let j = i + 1; j < bolhas.length; j++) {
-          const b2 = bolhas[j];
-          const dx = b2.x - b.x;
-          const dy = b2.y - b.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const minDist = b.raio + b2.raio;
-          if (dist < minDist) {
-            const angle = Math.atan2(dy, dx);
-            const move = (minDist - dist) / 2;
-            b.x -= move * Math.cos(angle);
-            b.y -= move * Math.sin(angle);
-            b2.x += move * Math.cos(angle);
-            b2.y += move * Math.sin(angle);
-          }
-        }
       }
     }
 
@@ -149,7 +148,7 @@
       if (tipo === "acoes") {
         url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=${token}`;
       } else if (tipo === "criptos") {
-        url = `https://brapi.dev/api/crypto?limit=100&token=${token}`;
+        url = `https://brapi.dev/api/crypto?sortBy=volume&sortOrder=desc&limit=60&token=${token}`;
       } else if (tipo === "opcoes") {
         url = `https://brapi.dev/api/option/list?sortBy=volume&sortOrder=desc&limit=100&token=${token}`;
       }
