@@ -1,33 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BUBLES – Ações ao Vivo</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <img src="logo.png" alt="BUBLES Logo" class="logo" />
-    <h1>BUBLES – Ações ao Vivo</h1>
-    <nav>
-      <button onclick="mostrarAba('acoes')">Ações</button>
-      <button onclick="mostrarAba('criptos')">Criptos</button>
-      <button onclick="mostrarAba('commodities')">Commodities</button>
-    </nav>
-  </header>
-
-  <main>
-    <section id="acoes" class="aba"> <!-- Conteúdo da aba Ações --></section>
-
-    <section id="criptos" class="aba ativa">
-      <div id="bolhas-criptos" class="container-bolhas"></div>
-    </section>
-
-    <section id="commodities" class="aba"> <!-- Conteúdo futuro --></section>
-  </main>
-
+  <div id="topo">
+    <span class="titulo-site">BUBLES – Ações ao Vivo</span>
+  </div>
+  <div id="botoes">
+    <button class="botao" onclick="carregarBolhas('acoes')">Ações</button>
+    <button class="botao" onclick="carregarBolhas('criptos')">Criptos</button>
+    <button class="botao" onclick="carregarBolhas('opcoes')">Opções</button>
+    <button class="botao" onclick="mostrarFrequencia()">Frequência de Mercado</button>
+  </div>
+  <canvas id="canvas"></canvas>
   <script src="script.js"></script>
 </body>
 </html>
