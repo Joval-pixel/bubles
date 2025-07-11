@@ -1,64 +1,89 @@
-/* style.css */
-body {
-  margin: 0;
-  background: #111;
-  color: white;
-  font-family: Arial, sans-serif;
-  overflow: hidden;
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+let bolhas = [];
+
+function criarBolhas(dados) {
+  bolhas = dados.map((dado, i) => {
+    const raio = 18 + Math.abs(dado.changePercent) * 1.5;
+    const x = Math.random() * (canvas.width - raio * 2) + raio;
+    const y = Math.random() * (canvas.height - raio * 2) + raio;
+    const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
+    const borda = "#ffffff";
+    return {
+      ...dado,
+      x,
+      y,
+      vx: Math.random() * 0.3 - 0.15,
+      vy: Math.random() * 0.3 - 0.15,
+      raio,
+      cor,
+      borda
+    };
+  });
 }
 
-#topo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
+function desenharBolhas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const b of bolhas) {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
+    ctx.fillStyle = b.cor;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = b.borda;
+    ctx.stroke();
+    ctx.fillStyle = "white";
+    ctx.font = "bold 10px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(b.symbol, b.x, b.y - 4);
+    ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
+  }
 }
 
-.logo {
-  height: 30px;
-  margin-right: 10px;
+function atualizar() {
+  for (const b of bolhas) {
+    b.x += b.vx;
+    b.y += b.vy;
+    if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
+    if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
+  }
 }
 
-.titulo-site {
-  font-size: 18px;
-  font-weight: bold;
+function animar() {
+  atualizar();
+  desenharBolhas();
+  requestAnimationFrame(animar);
 }
 
-#botoes {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin: 5px 0;
-  flex-wrap: wrap;
+async function carregarBolas(tipo) {
+  let url = "";
+  if (tipo === "acoes") {
+    url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD";
+  } else if (tipo === "criptos") {
+    url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
+  } else if (tipo === "opcoes") {
+    url = "https://brapi.dev/api/quote/list?search=CALL&sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD";
+  } else if (tipo === "frequencia") {
+    bolhas = []; // Em breve: gráfico com frequência de mercado
+    return;
+  }
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const ativos = data.stocks || data.coins || [];
+    const filtrados = ativos.map(a => ({
+      symbol: a.symbol || a.coin || a.name,
+      changePercent: a.change || a.changePercent || 0
+    }));
+    criarBolhas(filtrados);
+  } catch (e) {
+    console.error("Erro ao carregar dados:", e);
+  }
 }
 
-.botao {
-  font-size: 11px;
-  padding: 5px 8px;
-  background: #222;
-  border: 1px solid #444;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.bolha {
-  position: absolute;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  font-size: 9px;
-  font-weight: bold;
-  text-align: center;
-  padding: 4px;
-  box-shadow: 0 0 10px white;
-  transition: transform 0.2s;
-}
-
-.bolha:hover {
-  transform: scale(1.1);
-  z-index: 2;
-}
+carregarBolas("acoes");
+setInterval(() => carregarBolas("acoes"), 10000);
+animar();
