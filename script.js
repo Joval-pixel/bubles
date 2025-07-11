@@ -1,22 +1,26 @@
+// script.js
+
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
+
 let bolhas = [];
 
 function criarBolhas(dados) {
-  bolhas = dados.map((dado, i) => {
-    const raio = 18 + Math.abs(dado.changePercent) * 1.5;
+  bolhas = dados.slice(0, 100).map((dado) => {
+    const raio = 30 + Math.abs(dado.changePercent) * 1.5;
     const x = Math.random() * (canvas.width - raio * 2) + raio;
     const y = Math.random() * (canvas.height - raio * 2) + raio;
     const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
     const borda = "#ffffff";
+
     return {
       ...dado,
       x,
       y,
-      vx: Math.random() * 0.3 - 0.15,
-      vy: Math.random() * 0.3 - 0.15,
+      vx: Math.random() * 0.6 - 0.3,
+      vy: Math.random() * 0.6 - 0.3,
       raio,
       cor,
       borda
@@ -34,10 +38,12 @@ function desenharBolhas() {
     ctx.lineWidth = 2;
     ctx.strokeStyle = b.borda;
     ctx.stroke();
+
     ctx.fillStyle = "white";
-    ctx.font = "bold 10px Arial";
+    ctx.font = "bold 12px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(b.symbol, b.x, b.y - 4);
+    ctx.fillText(b.symbol, b.x, b.y - 5);
+    ctx.font = "bold 14px Arial";
     ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
   }
 }
@@ -46,6 +52,7 @@ function atualizar() {
   for (const b of bolhas) {
     b.x += b.vx;
     b.y += b.vy;
+
     if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
     if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
   }
@@ -65,16 +72,13 @@ async function carregarBolas(tipo) {
     url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
   } else if (tipo === "opcoes") {
     url = "https://brapi.dev/api/quote/list?search=CALL&sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD";
-  } else if (tipo === "frequencia") {
-    bolhas = []; // Em breve: gráfico com frequência de mercado
-    return;
   }
 
   try {
     const res = await fetch(url);
     const data = await res.json();
     const ativos = data.stocks || data.coins || [];
-    const filtrados = ativos.map(a => ({
+    const filtrados = ativos.map((a) => ({
       symbol: a.symbol || a.coin || a.name,
       changePercent: a.change || a.changePercent || 0
     }));
@@ -85,5 +89,6 @@ async function carregarBolas(tipo) {
 }
 
 carregarBolas("acoes");
-setInterval(() => carregarBolas("acoes"), 10000);
 animar();
+
+setInterval(() => carregarBolas("acoes"), 10000);
