@@ -13,11 +13,6 @@ body {
   background-color: #111;
 }
 
-.logo {
-  height: 30px;
-  margin-right: 10px;
-}
-
 .titulo-site {
   font-size: 18px;
   font-weight: bold;
@@ -27,37 +22,56 @@ body {
 #botoes {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
   gap: 6px;
-  padding-bottom: 10px;
+  padding: 6px;
+  flex-wrap: wrap;
 }
 
 .botao {
-  font-size: 11px;
-  padding: 5px 10px;
-  background-color: #222;
-  border: 1px solid #444;
+  font-size: 12px;
+  padding: 4px 10px;
+  background: #222;
+  border: 1px solid #555;
   color: white;
   border-radius: 4px;
   cursor: pointer;
-  transition: background 0.2s;
-}
-
-.botao:hover {
-  background-color: #333;
 }
 
 canvas {
   display: block;
+  position: absolute;
+  top: 70px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 70px);
 }
 
-.tooltip {
+.bolha {
   position: absolute;
-  padding: 6px;
-  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   color: white;
-  font-size: 12px;
-  pointer-events: none;
-  border-radius: 4px;
-  z-index: 10;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  overflow: hidden;
+}
+
+.bolha img {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+}
+
+.bolha .symbol {
+  font-size: 11px;
+}
+
+.bolha .change {
+  font-size: 13px;
+  font-weight: bold;
 }
