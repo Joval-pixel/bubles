@@ -1,33 +1,64 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BUBLES – Ações ao Vivo</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-  <header>
-    <img src="logo.png" alt="BUBLES Logo" class="logo" />
-    <h1>BUBLES – Ações ao Vivo</h1>
-    <nav>
-      <button onclick="mostrarAba('acoes')">Ações</button>
-      <button onclick="mostrarAba('criptos')">Criptos</button>
-      <button onclick="mostrarAba('commodities')">Commodities</button>
-    </nav>
-  </header>
+/* style.css */
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
 
-  <main>
-    <section id="acoes" class="aba"> <!-- Conteúdo da aba Ações --></section>
+#topo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
 
-    <section id="criptos" class="aba ativa">
-      <canvas id="canvasCriptos"></canvas>
-    </section>
+.logo {
+  height: 30px;
+  margin-right: 10px;
+}
 
-    <section id="commodities" class="aba"> <!-- Conteúdo futuro --></section>
-  </main>
+.titulo-site {
+  font-size: 18px;
+  font-weight: bold;
+}
 
-  <script src="script.js"></script>
-</body>
-</html>
+#botoes {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 5px 0;
+  flex-wrap: wrap;
+}
+
+.botao {
+  font-size: 11px;
+  padding: 5px 8px;
+  background: #222;
+  border: 1px solid #444;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bolha {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 9px;
+  font-weight: bold;
+  text-align: center;
+  padding: 4px;
+  box-shadow: 0 0 10px white;
+  transition: transform 0.2s;
+}
+
+.bolha:hover {
+  transform: scale(1.1);
+  z-index: 2;
+}
