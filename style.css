@@ -1,18 +1,46 @@
 body {
   margin: 0;
-  background: #111;
   overflow: hidden;
+  background-color: #111;
   font-family: Arial, sans-serif;
 }
 
-.bubble {
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Modal do gráfico */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.85);
+}
+
+.modal-content {
+  position: relative;
+  margin: 5% auto;
+  padding: 10px;
+  width: 90%;
+  max-width: 900px;
+  height: 500px;
+  background-color: #000;
+  border-radius: 10px;
+}
+
+.close {
   position: absolute;
-  transition: transform 0.2s;
-  text-align: center;
-  line-height: 1.1;
+  right: 15px;
+  top: 10px;
+  font-size: 28px;
+  color: #fff;
+  cursor: pointer;
+  z-index: 10;
 }
