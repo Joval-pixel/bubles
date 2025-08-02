@@ -7,25 +7,59 @@ let bubbles = [];
 
 async function fetchStockData() {
   const url = 'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD';
-  const response = await fetch(url);
-  const json = await response.json();
-  const stocks = json.stocks;
 
-  bubbles = stocks.map(stock => {
-    const change = parseFloat(stock.changePercent);
-    const safeChange = isNaN(change) ? 0 : change;
-    const radius = Math.max(25, Math.abs(safeChange) * 3.5 + 25);
-    const color = safeChange > 0 ? "#00ff4c" : (safeChange < 0 ? "#ff1e1e" : "#888");
-    const glow = safeChange > 0 ? "rgba(0,255,76,0.3)" : (safeChange < 0 ? "rgba(255,30,30,0.3)" : "rgba(180,180,180,0.2)");
+  try {
+    const response = await fetch(url);
+    const json = await response.json();
+    const stocks = json.stocks;
 
+    let todosZerados = stocks.every(s => parseFloat(s.changePercent) === 0 || isNaN(parseFloat(s.changePercent)));
+
+    if (todosZerados) {
+      console.warn("API retornou dados zerados. Usando fallback.");
+      return gerarBolhasSimuladas();
+    }
+
+    bubbles = stocks.map(stock => {
+      const change = parseFloat(stock.changePercent);
+      const safeChange = isNaN(change) ? 0 : change;
+      const radius = Math.max(25, Math.abs(safeChange) * 3.5 + 25);
+      const color = safeChange > 0 ? "#00ff4c" : (safeChange < 0 ? "#ff1e1e" : "#888");
+      const glow = safeChange > 0 ? "rgba(0,255,76,0.3)" : (safeChange < 0 ? "rgba(255,30,30,0.3)" : "rgba(180,180,180,0.2)");
+
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        radius,
+        symbol: stock.stock,
+        change: safeChange.toFixed(2),
+        color,
+        glow
+      };
+    });
+  } catch (error) {
+    console.error("Erro ao buscar dados da API. Usando fallback.", error);
+    gerarBolhasSimuladas();
+  }
+}
+
+function gerarBolhasSimuladas() {
+  const symbols = ["PETR4", "VALE3", "ITUB4", "BBDC4", "MGLU3", "BBAS3", "WEGE3", "RADL3", "AZUL4", "RENT3"];
+  bubbles = symbols.map(symbol => {
+    const change = (Math.random() - 0.5) * 14; // -7% a +7%
+    const radius = Math.abs(change) * 3.5 + 30;
+    const color = change > 0 ? "#00ff4c" : "#ff1e1e";
+    const glow = change > 0 ? "rgba(0,255,76,0.3)" : "rgba(255,30,30,0.3)";
     return {
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       vx: (Math.random() - 0.5) * 0.4,
       vy: (Math.random() - 0.5) * 0.4,
       radius,
-      symbol: stock.stock,
-      change: safeChange.toFixed(2),
+      symbol,
+      change: change.toFixed(2),
       color,
       glow
     };
