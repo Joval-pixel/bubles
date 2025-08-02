@@ -1,94 +1,62 @@
-// script.js
+function createBubbleElement(data) {
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+  const variation = parseFloat(data.changePercent);
+  const isPositive = variation >= 0;
 
-let bolhas = [];
+  const size = 60 + Math.min(Math.abs(variation) * 3, 120); // tamanho proporcional
 
-function criarBolhas(dados) {
-  bolhas = dados.slice(0, 100).map((dado) => {
-    const raio = 30 + Math.abs(dado.changePercent) * 1.5;
-    const x = Math.random() * (canvas.width - raio * 2) + raio;
-    const y = Math.random() * (canvas.height - raio * 2) + raio;
-    const cor = dado.changePercent >= 0 ? "#00cc00" : "#ff3333";
-    const borda = "#ffffff";
+  bubble.style.width = `${size}px`;
+  bubble.style.height = `${size}px`;
+  bubble.style.background = isPositive ? "#00ff4c" : "#ff1e1e";
+  bubble.style.boxShadow = `0 0 20px ${isPositive ? "#00ff4c" : "#ff1e1e"}`;
+  bubble.style.color = "#fff";
+  bubble.style.fontSize = `${Math.max(size / 6, 12)}px`;
 
-    return {
-      ...dado,
-      x,
-      y,
-      vx: Math.random() * 0.6 - 0.3,
-      vy: Math.random() * 0.6 - 0.3,
-      raio,
-      cor,
-      borda
-    };
-  });
-}
+  // Texto da bolha
+  bubble.innerHTML = `
+    <div style="font-weight:bold;">${data.symbol}</div>
+    <div>${variation.toFixed(2)}%</div>
+  `;
 
-function desenharBolhas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (const b of bolhas) {
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.raio, 0, 2 * Math.PI);
-    ctx.fillStyle = b.cor;
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = b.borda;
-    ctx.stroke();
+  // Posicionamento aleatório e movimento leve
+  bubble.style.position = "absolute";
+  bubble.style.left = `${Math.random() * (window.innerWidth - size)}px`;
+  bubble.style.top = `${Math.random() * (window.innerHeight - size)}px`;
 
-    ctx.fillStyle = "white";
-    ctx.font = "bold 12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(b.symbol, b.x, b.y - 5);
-    ctx.font = "bold 14px Arial";
-    ctx.fillText((b.changePercent > 0 ? "+" : "") + b.changePercent.toFixed(2) + "%", b.x, b.y + 10);
-  }
-}
+  // Animação rebote
+  let dx = (Math.random() - 0.5) * 0.8;
+  let dy = (Math.random() - 0.5) * 0.8;
 
-function atualizar() {
-  for (const b of bolhas) {
-    b.x += b.vx;
-    b.y += b.vy;
+  function move() {
+    let rect = bubble.getBoundingClientRect();
+    let x = rect.left + dx;
+    let y = rect.top + dy;
 
-    if (b.x - b.raio < 0 || b.x + b.raio > canvas.width) b.vx *= -1;
-    if (b.y - b.raio < 0 || b.y + b.raio > canvas.height) b.vy *= -1;
-  }
-}
+    if (x < 0 || x + size > window.innerWidth) dx *= -1;
+    if (y < 0 || y + size > window.innerHeight) dy *= -1;
 
-function animar() {
-  atualizar();
-  desenharBolhas();
-  requestAnimationFrame(animar);
-}
+    bubble.style.left = `${rect.left + dx}px`;
+    bubble.style.top = `${rect.top + dy}px`;
 
-async function carregarBolas(tipo) {
-  let url = "";
-  if (tipo === "acoes") {
-    url = "https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD";
-  } else if (tipo === "criptos") {
-    url = "https://brapi.dev/api/crypto?limit=60&token=5bTDfSmR2ieax6y7JUqDAD";
-  } else if (tipo === "opcoes") {
-    url = "https://brapi.dev/api/quote/list?search=CALL&sortBy=volume&sortOrder=desc&limit=100&token=5bTDfSmR2ieax6y7JUqDAD";
+    requestAnimationFrame(move);
   }
 
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    const ativos = data.stocks || data.coins || [];
-    const filtrados = ativos.map((a) => ({
-      symbol: a.symbol || a.coin || a.name,
-      changePercent: a.change || a.changePercent || 0
-    }));
-    criarBolhas(filtrados);
-  } catch (e) {
-    console.error("Erro ao carregar dados:", e);
-  }
+  requestAnimationFrame(move);
+  return bubble;
 }
 
-carregarBolas("acoes");
-animar();
+// Exemplo com dados fictícios (substitua pela sua API real)
+const dataExemplo = [
+  { symbol: "PETR4", changePercent: "2.34" },
+  { symbol: "VALE3", changePercent: "-1.18" },
+  { symbol: "ITUB4", changePercent: "0.76" },
+  { symbol: "MGLU3", changePercent: "-3.52" },
+  { symbol: "WEGE3", changePercent: "1.42" },
+];
 
-setInterval(() => carregarBolas("acoes"), 10000);
+dataExemplo.forEach((d) => {
+  const b = createBubbleElement(d);
+  document.body.appendChild(b);
+});
