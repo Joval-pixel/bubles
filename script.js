@@ -12,27 +12,51 @@ async function fetchStockData() {
   const stocks = json.stocks;
 
   bubbles = stocks.map(stock => {
-    const change = stock.changePercent ?? 0;
-    const radius = Math.max(30, Math.abs(change) * 4 + 20);
-    const color = change >= 0 ? "#00ff4c" : "#ff1e1e";
-    const glow = change >= 0 ? "rgba(0,255,76,0.4)" : "rgba(255,30,30,0.4)";
+    const change = parseFloat(stock.changePercent);
+    const safeChange = isNaN(change) ? 0 : change;
+    const radius = Math.max(25, Math.abs(safeChange) * 3.5 + 25);
+    const color = safeChange > 0 ? "#00ff4c" : (safeChange < 0 ? "#ff1e1e" : "#888");
+    const glow = safeChange > 0 ? "rgba(0,255,76,0.3)" : (safeChange < 0 ? "rgba(255,30,30,0.3)" : "rgba(180,180,180,0.2)");
 
     return {
-      x: Math.random() * (canvas.width - 100) + 50,
-      y: Math.random() * (canvas.height - 100) + 50,
-      vx: (Math.random() - 0.5) * 0.6,
-      vy: (Math.random() - 0.5) * 0.6,
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
       radius,
       symbol: stock.stock,
-      change: change.toFixed(2),
+      change: safeChange.toFixed(2),
       color,
       glow
     };
   });
 }
 
+function resolveCollisions() {
+  for (let i = 0; i < bubbles.length; i++) {
+    for (let j = i + 1; j < bubbles.length; j++) {
+      const a = bubbles[i];
+      const b = bubbles[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = a.radius + b.radius + 2;
+
+      if (dist < minDist) {
+        const angle = Math.atan2(dy, dx);
+        const overlap = (minDist - dist) / 2;
+
+        a.x -= Math.cos(angle) * overlap;
+        a.y -= Math.sin(angle) * overlap;
+        b.x += Math.cos(angle) * overlap;
+        b.y += Math.sin(angle) * overlap;
+      }
+    }
+  }
+}
+
 function drawBubble(bubble) {
-  ctx.shadowBlur = 25;
+  ctx.shadowBlur = 20;
   ctx.shadowColor = bubble.glow;
 
   ctx.beginPath();
@@ -43,11 +67,12 @@ function drawBubble(bubble) {
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = "#fff";
-  ctx.font = `${Math.max(bubble.radius / 3.2, 12)}px Arial`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(bubble.symbol, bubble.x, bubble.y - bubble.radius / 5);
-  ctx.fillText(`${bubble.change}%`, bubble.x, bubble.y + bubble.radius / 5);
+  const fontSize = Math.max(bubble.radius / 3.2, 10);
+  ctx.font = `${fontSize}px Arial`;
+  ctx.fillText(bubble.symbol, bubble.x, bubble.y - fontSize / 2.5);
+  ctx.fillText(`${bubble.change}%`, bubble.x, bubble.y + fontSize / 2.5);
 }
 
 function updateBubbles() {
@@ -63,6 +88,7 @@ function updateBubbles() {
 function animate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   updateBubbles();
+  resolveCollisions();
   for (let bubble of bubbles) drawBubble(bubble);
   requestAnimationFrame(animate);
 }
@@ -86,22 +112,21 @@ canvas.addEventListener("click", function (event) {
 function openModalWithChart(symbol) {
   const modal = document.getElementById("chartModal");
   modal.style.display = "block";
-
-  document.getElementById("tradingview_chart").innerHTML = ""; // Limpa antes de criar novo
+  document.getElementById("tradingview_chart").innerHTML = "";
 
   new TradingView.widget({
-    "width": "100%",
-    "height": "100%",
-    "symbol": `BMFBOVESPA:${symbol}`,
-    "interval": "D",
-    "timezone": "Etc/UTC",
-    "theme": "dark",
-    "style": "1",
-    "locale": "br",
-    "toolbar_bg": "#000",
-    "enable_publishing": false,
-    "allow_symbol_change": true,
-    "container_id": "tradingview_chart"
+    width: "100%",
+    height: "100%",
+    symbol: `BMFBOVESPA:${symbol}`,
+    interval: "D",
+    timezone: "Etc/UTC",
+    theme: "dark",
+    style: "1",
+    locale: "br",
+    toolbar_bg: "#000",
+    enable_publishing: false,
+    allow_symbol_change: true,
+    container_id: "tradingview_chart"
   });
 }
 
@@ -115,4 +140,4 @@ window.addEventListener("resize", () => {
 });
 
 fetchStockData().then(() => animate());
-setInterval(fetchStockData, 10000); // Atualiza a cada 10 segundos
+setInterval(fetchStockData, 10000);
