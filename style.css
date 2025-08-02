@@ -1,77 +1,18 @@
 body {
   margin: 0;
-  background-color: #111;
-  font-family: Arial, sans-serif;
+  background: #111;
   overflow: hidden;
+  font-family: Arial, sans-serif;
 }
 
-#topo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  background-color: #111;
-}
-
-.titulo-site {
-  font-size: 18px;
-  font-weight: bold;
-  color: white;
-}
-
-#botoes {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px;
-  flex-wrap: wrap;
-}
-
-.botao {
-  font-size: 12px;
-  padding: 4px 10px;
-  background: #222;
-  border: 1px solid #555;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-canvas {
-  display: block;
-  position: absolute;
-  top: 70px;
-  left: 0;
-  width: 100%;
-  height: calc(100% - 70px);
-}
-
-.bolha {
-  position: absolute;
+.bubble {
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
+  position: absolute;
+  transition: transform 0.2s;
   text-align: center;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
-  overflow: hidden;
-}
-
-.bolha img {
-  width: 24px;
-  height: 24px;
-  margin-bottom: 4px;
-}
-
-.bolha .symbol {
-  font-size: 11px;
-}
-
-.bolha .change {
-  font-size: 13px;
-  font-weight: bold;
+  line-height: 1.1;
 }
