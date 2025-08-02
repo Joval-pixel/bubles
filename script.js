@@ -13,19 +13,19 @@ async function fetchStockData() {
     const json = await response.json();
     const stocks = json.stocks;
 
-    let todosZerados = stocks.every(s => parseFloat(s.changePercent) === 0 || isNaN(parseFloat(s.changePercent)));
+    const todosZerados = stocks.every(s => parseFloat(s.changePercent) === 0 || isNaN(parseFloat(s.changePercent)));
 
     if (todosZerados) {
       console.warn("API retornou dados zerados. Usando fallback.");
-      return gerarBolhasSimuladas();
+      return usarFallback();
     }
 
     bubbles = stocks.map(stock => {
       const change = parseFloat(stock.changePercent);
       const safeChange = isNaN(change) ? 0 : change;
-      const radius = Math.max(25, Math.abs(safeChange) * 3.5 + 25);
-      const color = safeChange > 0 ? "#00ff4c" : (safeChange < 0 ? "#ff1e1e" : "#888");
-      const glow = safeChange > 0 ? "rgba(0,255,76,0.3)" : (safeChange < 0 ? "rgba(255,30,30,0.3)" : "rgba(180,180,180,0.2)");
+      const radius = Math.max(30, Math.abs(safeChange) * 3.5 + 20);
+      const color = safeChange > 0 ? "#00ff4c" : safeChange < 0 ? "#ff1e1e" : "#888";
+      const glow = safeChange > 0 ? "rgba(0,255,76,0.3)" : safeChange < 0 ? "rgba(255,30,30,0.3)" : "rgba(180,180,180,0.2)";
 
       return {
         x: Math.random() * canvas.width,
@@ -39,19 +39,20 @@ async function fetchStockData() {
         glow
       };
     });
-  } catch (error) {
-    console.error("Erro ao buscar dados da API. Usando fallback.", error);
-    gerarBolhasSimuladas();
+  } catch (err) {
+    console.error("Erro na API. Usando fallback.");
+    usarFallback();
   }
 }
 
-function gerarBolhasSimuladas() {
-  const symbols = ["PETR4", "VALE3", "ITUB4", "BBDC4", "MGLU3", "BBAS3", "WEGE3", "RADL3", "AZUL4", "RENT3"];
+function usarFallback() {
+  const symbols = ["PETR4", "VALE3", "ITUB4", "MGLU3", "BBDC4", "WEGE3", "BBAS3", "AZUL4", "RADL3", "RENT3"];
   bubbles = symbols.map(symbol => {
-    const change = (Math.random() - 0.5) * 14; // -7% a +7%
+    const change = (Math.random() - 0.5) * 14;
     const radius = Math.abs(change) * 3.5 + 30;
     const color = change > 0 ? "#00ff4c" : "#ff1e1e";
     const glow = change > 0 ? "rgba(0,255,76,0.3)" : "rgba(255,30,30,0.3)";
+
     return {
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -69,8 +70,7 @@ function gerarBolhasSimuladas() {
 function resolveCollisions() {
   for (let i = 0; i < bubbles.length; i++) {
     for (let j = i + 1; j < bubbles.length; j++) {
-      const a = bubbles[i];
-      const b = bubbles[j];
+      const a = bubbles[i], b = bubbles[j];
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -127,16 +127,16 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
-canvas.addEventListener("click", function (event) {
+canvas.addEventListener("click", e => {
   const rect = canvas.getBoundingClientRect();
-  const clickX = event.clientX - rect.left;
-  const clickY = event.clientY - rect.top;
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
 
   for (let bubble of bubbles) {
-    const dx = clickX - bubble.x;
-    const dy = clickY - bubble.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    if (distance < bubble.radius) {
+    const dx = x - bubble.x;
+    const dy = y - bubble.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < bubble.radius) {
       openModalWithChart(bubble.symbol);
       break;
     }
@@ -173,5 +173,5 @@ window.addEventListener("resize", () => {
   canvas.height = window.innerHeight;
 });
 
-fetchStockData().then(() => animate());
+fetchStockData().then(animate);
 setInterval(fetchStockData, 10000);
