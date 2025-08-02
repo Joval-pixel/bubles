@@ -1,23 +1,70 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BUBLES – Ações ao Vivo</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUBLES - Ações ao Vivo</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
-  <canvas id="bubbleCanvas"></canvas>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <h1>🫧 BUBLES</h1>
+                <span class="subtitle">Ações B3 ao Vivo</span>
+            </div>
+            <div class="controls">
+                <input type="text" id="searchInput" placeholder="Buscar ação..." class="search-input">
+                <div class="time-controls">
+                    <button class="time-btn active" data-period="1D">Dia</button>
+                    <button class="time-btn" data-period="1W">Semana</button>
+                    <button class="time-btn" data-period="1M">Mês</button>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Conectado</span>
+                </div>
+            </div>
+        </header>
 
-  <!-- Modal para o gráfico -->
-  <div id="chartModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <div id="tradingview_chart"></div>
+        <main class="main-content">
+            <div id="bubbleContainer" class="bubble-container">
+                <!-- Bolhas serão inseridas aqui dinamicamente -->
+            </div>
+            
+            <div id="loadingIndicator" class="loading-indicator">
+                <div class="loading-spinner"></div>
+                <p>Carregando dados das ações...</p>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;">
+                <p>⚠️ Erro ao carregar dados. Usando dados simulados.</p>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-info">
+                <span>Dados fornecidos pela API Brapi • Atualização a cada 10 segundos</span>
+                <span class="last-update">Última atualização: --:--</span>
+            </div>
+        </footer>
     </div>
-  </div>
 
-  <script src="https://s3.tradingview.com/tv.js"></script>
-  <script src="script.js"></script>
+    <!-- Modal do TradingView -->
+    <div id="tradingViewModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Gráfico</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="tradingViewWidget"></div>
+            </div>
+        </div>
+        <div class="modal-overlay"></div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
