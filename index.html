@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BUBLES - Ações ao Vivo</title>
+    <title>BUBLES - Ações e Crypto ao Vivo</title>
     <!-- Lightweight Charts para gráficos de candlestick - versão específica e estável -->
-    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -42,6 +42,7 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            height: 70px;
         }
 
         .logo h1 {
@@ -135,14 +136,11 @@
 
         .bubble-container {
             position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
-            height: 100%;
+            height: calc(100vh - 120px); /* Altura total menos cabeçalho e rodapé */
+            top: 70px; /* Altura do cabeçalho */
+            left: 0;
             overflow: hidden;
-            /* Margens de segurança para evitar que as bolhas ultrapassem o cabeçalho e rodapé */
-            padding-top: 70px;
-            padding-bottom: 50px;
         }
 
         .bubble {
@@ -155,9 +153,10 @@
             color: white;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: transform 0.2s ease;
             user-select: none;
             border: none;
+            z-index: 10;
         }
 
         .bubble:hover {
@@ -270,6 +269,8 @@
             font-size: 12px;
             color: #888;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
+            height: 50px;
+            z-index: 1000;
         }
 
         .footer-info {
@@ -426,6 +427,44 @@
             font-weight: bold;
         }
 
+        /* Botão para alternar entre ações e criptomoedas */
+        .market-toggle {
+            display: flex;
+            gap: 10px;
+            margin-right: 20px;
+        }
+
+        .market-btn {
+            padding: 8px 16px;
+            border: 1px solid #333;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .market-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .market-btn.active {
+            font-weight: bold;
+        }
+
+        #stocksBtn.active {
+            background: #22c55e;
+            color: #0a0a0a;
+            border-color: #22c55e;
+        }
+
+        #cryptoBtn.active {
+            background: #f59e0b;
+            color: #0a0a0a;
+            border-color: #f59e0b;
+        }
+
         /* Alternativa para gráficos quando o Lightweight Charts falhar */
         .fallback-chart {
             width: 100%;
@@ -494,6 +533,7 @@
                 flex-direction: column;
                 gap: 10px;
                 padding: 10px;
+                height: auto;
             }
 
             .controls {
@@ -508,6 +548,11 @@
 
             .time-controls {
                 justify-content: center;
+            }
+
+            .market-toggle {
+                margin-right: 0;
+                margin-bottom: 10px;
             }
 
             .modal-content {
@@ -525,8 +570,8 @@
 
             /* Ajustar margens para mobile */
             .bubble-container {
-                padding-top: 120px; /* Maior para acomodar o cabeçalho em coluna */
-                padding-bottom: 50px;
+                top: 120px;
+                height: calc(100vh - 170px);
             }
 
             /* Reduzir tamanho das bolhas em telas pequenas */
@@ -541,9 +586,13 @@
         <header class="header">
             <div class="logo">
                 <h1>🫧 BUBLES</h1>
-                <span class="subtitle">Ações B3 ao Vivo</span>
+                <span class="subtitle" id="marketSubtitle">Ações B3 ao Vivo</span>
             </div>
             <div class="controls">
+                <div class="market-toggle">
+                    <button class="market-btn active" id="stocksBtn" data-market="stocks">Ações B3</button>
+                    <button class="market-btn" id="cryptoBtn" data-market="crypto">Criptomoedas</button>
+                </div>
                 <input type="text" id="searchInput" placeholder="Buscar ação..." class="search-input">
                 <div class="time-controls">
                     <button class="time-btn active" id="dayBtn" data-period="1d">Dia</button>
@@ -564,7 +613,7 @@
             
             <div id="loadingIndicator" class="loading-indicator">
                 <div class="loading-spinner"></div>
-                <p>Carregando dados das ações...</p>
+                <p>Carregando dados...</p>
             </div>
 
             <div id="errorMessage" class="error-message" style="display: none;">
@@ -574,22 +623,22 @@
 
         <footer class="footer">
             <div class="footer-info">
-                <span>Dados fornecidos pela API Brapi • Atualização a cada 10 segundos</span>
+                <span id="dataSource">Dados fornecidos pela API Brapi • Atualização a cada 10 segundos</span>
                 <span class="last-update">Última atualização: --:--</span>
             </div>
         </footer>
     </div>
 
-    <!-- Modal de Gráfico da Ação -->
+    <!-- Modal de Gráfico -->
     <div id="stockModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalTitle">Gráfico da Ação</h3>
+                <h3 id="modalTitle">Gráfico</h3>
                 <button class="modal-close" id="closeModal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="stock-info" id="stockInfo">
-                    <!-- Informações da ação serão inseridas aqui -->
+                    <!-- Informações serão inseridas aqui -->
                 </div>
                 <div class="interval-controls" id="intervalControls">
                     <button class="interval-btn active" data-interval="5">5min</button>
@@ -606,7 +655,7 @@
                 </div>
                 <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
                     <p style="color: #888; font-size: 14px; margin: 0; line-height: 1.4;">
-                        📈 <strong>Gráfico em tempo real</strong> fornecido pela API Brapi. 
+                        📈 <strong>Gráfico em tempo real</strong> fornecido pela API. 
                         Use os botões acima para alterar o intervalo de tempo.
                     </p>
                 </div>
@@ -617,19 +666,21 @@
     <script>
         // Configurações globais
         const CONFIG = {
-            API_URL: 'https://brapi.dev/api/quote/list',
+            STOCKS_API_URL: 'https://brapi.dev/api/quote/list',
+            CRYPTO_API_URL: 'https://api.coingecko.com/api/v3/coins/markets',
             CHART_API_URL: 'https://brapi.dev/api/quote',
             API_TOKEN: '5bTDfSmR2ieax6y7JUqDAD',
             UPDATE_INTERVAL: 10000,
             MIN_BUBBLES: 50,
             BUBBLE_MIN_SIZE: 40,
             BUBBLE_MAX_SIZE: 120,
-            ANIMATION_SPEED: 0.8,
+            ANIMATION_SPEED: 0.5,
             API_TIMEOUT: 15000,
-            COLLISION_FORCE: 0.05,
-            FRICTION: 0.98,
+            COLLISION_FORCE: 0.03,
+            FRICTION: 0.99,
             HEADER_HEIGHT: 70,
-            FOOTER_HEIGHT: 50
+            FOOTER_HEIGHT: 50,
+            BUBBLE_MARGIN: 10
         };
 
         // Estado global
@@ -645,6 +696,7 @@
         let chartInstance = null;
         let candleSeries = null;
         let isLightweightChartsAvailable = false;
+        let currentMarket = 'stocks'; // 'stocks' ou 'crypto'
 
         // Verificar se Lightweight Charts está disponível
         try {
@@ -657,43 +709,83 @@
 
         // Dados simulados como fallback
         const FALLBACK_DATA = {
-            '1d': [
-                { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 2.34, volume: 45678900 },
-                { stock: 'VALE3', name: 'VALE', close: 65.78, change: -1.23, volume: 38456789 },
-                { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 0.87, volume: 34567890 },
-                { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -0.45, volume: 29876543 },
-                { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 1.56, volume: 25678901 },
-                { stock: 'DASA3', name: 'DASA', close: 1.51, change: 10.22, volume: 15678901 },
-                { stock: 'FNAM11', name: 'FNAM11', close: 0.36, change: 5.88, volume: 12345678 }
-            ],
-            '5d': [
-                { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 3.45, volume: 45678900 },
-                { stock: 'VALE3', name: 'VALE', close: 65.78, change: -2.67, volume: 38456789 },
-                { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 1.98, volume: 34567890 },
-                { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -1.23, volume: 29876543 },
-                { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 2.78, volume: 25678901 },
-                { stock: 'DASA3', name: 'DASA', close: 1.51, change: 12.45, volume: 15678901 },
-                { stock: 'FNAM11', name: 'FNAM11', close: 0.36, change: 7.23, volume: 12345678 }
-            ],
-            '1mo': [
-                { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 5.67, volume: 45678900 },
-                { stock: 'VALE3', name: 'VALE', close: 65.78, change: -4.56, volume: 38456789 },
-                { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 3.45, volume: 34567890 },
-                { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -2.34, volume: 29876543 },
-                { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 4.56, volume: 25678901 },
-                { stock: 'DASA3', name: 'DASA', close: 1.51, change: 15.67, volume: 15678901 },
-                { stock: 'FNAM11', name: 'FNAM11', close: 0.36, change: 9.45, volume: 12345678 }
-            ]
+            stocks: {
+                '1d': [
+                    { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 2.34, volume: 45678900 },
+                    { stock: 'VALE3', name: 'VALE', close: 65.78, change: -1.23, volume: 38456789 },
+                    { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 0.87, volume: 34567890 },
+                    { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -0.45, volume: 29876543 },
+                    { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 1.56, volume: 25678901 },
+                    { stock: 'DASA3', name: 'DASA', close: 1.51, change: 10.22, volume: 15678901 },
+                    { stock: 'FNAM11', name: 'FNAM11', close: 0.36, change: 5.88, volume: 12345678 }
+                ],
+                '5d': [
+                    { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 3.45, volume: 45678900 },
+                    { stock: 'VALE3', name: 'VALE', close: 65.78, change: -2.67, volume: 38456789 },
+                    { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 1.98, volume: 34567890 },
+                    { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -1.23, volume: 29876543 },
+                    { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 2.78, volume: 25678901 },
+                    { stock: 'DASA3', name: 'DASA', close: 1.51, change: 12.45, volume: 15678901 },
+                    { stock: 'FNAM11', name: 'FNAM11', close: 0.36, change: 7.23, volume: 12345678 }
+                ],
+                '1mo': [
+                    { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 5.67, volume: 45678900 },
+                    { stock: 'VALE3', name: 'VALE', close: 65.78, change: -4.56, volume: 38456789 },
+                    { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 3.45, volume: 34567890 },
+                    { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -2.34, volume: 29876543 },
+                    { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 4.56, volume: 25678901 },
+                    { stock: 'DASA3', name: 'DASA', close: 1.51, change: 15.67, volume: 15678901 },
+                    { stock: 'FNAM11', name: 'FNAM11', close: 0.36, change: 9.45, volume: 12345678 }
+                ]
+            },
+            crypto: {
+                '1d': [
+                    { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', current_price: 62345.78, price_change_percentage_24h: 2.34, market_cap: 1234567890 },
+                    { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', current_price: 3456.78, price_change_percentage_24h: -1.23, market_cap: 567890123 },
+                    { id: 'binancecoin', symbol: 'BNB', name: 'Binance Coin', current_price: 456.78, price_change_percentage_24h: 0.87, market_cap: 78901234 },
+                    { id: 'solana', symbol: 'SOL', name: 'Solana', current_price: 123.45, price_change_percentage_24h: -0.45, market_cap: 45678901 },
+                    { id: 'cardano', symbol: 'ADA', name: 'Cardano', current_price: 0.56, price_change_percentage_24h: 1.56, market_cap: 23456789 },
+                    { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', current_price: 0.12, price_change_percentage_24h: 10.22, market_cap: 12345678 },
+                    { id: 'polkadot', symbol: 'DOT', name: 'Polkadot', current_price: 8.90, price_change_percentage_24h: 5.88, market_cap: 9876543 }
+                ],
+                '5d': [
+                    { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', current_price: 62345.78, price_change_percentage_24h: 3.45, market_cap: 1234567890 },
+                    { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', current_price: 3456.78, price_change_percentage_24h: -2.67, market_cap: 567890123 },
+                    { id: 'binancecoin', symbol: 'BNB', name: 'Binance Coin', current_price: 456.78, price_change_percentage_24h: 1.98, market_cap: 78901234 },
+                    { id: 'solana', symbol: 'SOL', name: 'Solana', current_price: 123.45, price_change_percentage_24h: -1.23, market_cap: 45678901 },
+                    { id: 'cardano', symbol: 'ADA', name: 'Cardano', current_price: 0.56, price_change_percentage_24h: 2.78, market_cap: 23456789 },
+                    { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', current_price: 0.12, price_change_percentage_24h: 12.45, market_cap: 12345678 },
+                    { id: 'polkadot', symbol: 'DOT', name: 'Polkadot', current_price: 8.90, price_change_percentage_24h: 7.23, market_cap: 9876543 }
+                ],
+                '1mo': [
+                    { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', current_price: 62345.78, price_change_percentage_24h: 5.67, market_cap: 1234567890 },
+                    { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', current_price: 3456.78, price_change_percentage_24h: -4.56, market_cap: 567890123 },
+                    { id: 'binancecoin', symbol: 'BNB', name: 'Binance Coin', current_price: 456.78, price_change_percentage_24h: 3.45, market_cap: 78901234 },
+                    { id: 'solana', symbol: 'SOL', name: 'Solana', current_price: 123.45, price_change_percentage_24h: -2.34, market_cap: 45678901 },
+                    { id: 'cardano', symbol: 'ADA', name: 'Cardano', current_price: 0.56, price_change_percentage_24h: 4.56, market_cap: 23456789 },
+                    { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', current_price: 0.12, price_change_percentage_24h: 15.67, market_cap: 12345678 },
+                    { id: 'polkadot', symbol: 'DOT', name: 'Polkadot', current_price: 8.90, price_change_percentage_24h: 9.45, market_cap: 9876543 }
+                ]
+            }
         };
 
         // Classe Bubble
         class Bubble {
             constructor(data, container) {
-                this.symbol = data.stock || data.symbol;
-                this.name = data.name || data.shortName || this.symbol;
-                this.price = data.close || data.regularMarketPrice || 0;
-                this.change = data.change || data.regularMarketChangePercent || 0;
-                this.volume = data.volume || data.regularMarketVolume || 0;
+                // Dados diferentes para ações e criptomoedas
+                if (currentMarket === 'stocks') {
+                    this.symbol = data.stock || data.symbol;
+                    this.name = data.name || data.shortName || this.symbol;
+                    this.price = data.close || data.regularMarketPrice || 0;
+                    this.change = data.change || data.regularMarketChangePercent || 0;
+                    this.volume = data.volume || data.regularMarketVolume || 0;
+                } else {
+                    this.symbol = data.symbol || data.id;
+                    this.name = data.name || this.symbol;
+                    this.price = data.current_price || 0;
+                    this.change = data.price_change_percentage_24h || 0;
+                    this.volume = data.market_cap || 0;
+                }
                 
                 this.container = container;
                 this.element = null;
@@ -701,13 +793,16 @@
                 // Tamanho baseado na variação percentual absoluta
                 this.size = this.calculateSize();
                 
-                // Ajustar posição inicial para respeitar margens de segurança
-                const containerWidth = container.clientWidth;
-                const containerHeight = container.clientHeight - CONFIG.HEADER_HEIGHT - CONFIG.FOOTER_HEIGHT;
+                // Obter dimensões do container
+                const containerRect = container.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
                 
-                this.x = Math.random() * Math.max(0, containerWidth - this.size);
-                this.y = Math.random() * Math.max(0, containerHeight - this.size);
+                // Posição inicial com margens de segurança
+                this.x = CONFIG.BUBBLE_MARGIN + Math.random() * (containerWidth - this.size - CONFIG.BUBBLE_MARGIN * 2);
+                this.y = CONFIG.BUBBLE_MARGIN + Math.random() * (containerHeight - this.size - CONFIG.BUBBLE_MARGIN * 2);
                 
+                // Velocidade inicial aleatória (mais lenta que antes)
                 this.vx = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
                 this.vy = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
                 
@@ -739,7 +834,7 @@
                 this.element.style.top = `${this.y}px`;
                 
                 this.element.addEventListener('click', () => {
-                    openStockChart(this.symbol, this.name, this.price, this.change);
+                    openChart(this.symbol, this.name, this.price, this.change);
                 });
                 
                 this.container.appendChild(this.element);
@@ -752,65 +847,105 @@
                 const changeSign = this.change > 0 ? '+' : '';
                 const fontSize = Math.max(10, this.size / 8);
                 
+                // Formatar preço diferente para ações e criptomoedas
+                let formattedPrice;
+                if (currentMarket === 'stocks') {
+                    formattedPrice = `R$ ${this.price.toFixed(2)}`;
+                } else {
+                    // Para criptomoedas, formatar com $ e ajustar casas decimais conforme o valor
+                    if (this.price >= 1000) {
+                        formattedPrice = `$${this.price.toFixed(0)}`;
+                    } else if (this.price >= 1) {
+                        formattedPrice = `$${this.price.toFixed(2)}`;
+                    } else {
+                        formattedPrice = `$${this.price.toFixed(4)}`;
+                    }
+                }
+                
                 this.element.innerHTML = `
                     <div class="bubble-symbol" style="font-size: ${fontSize}px">${this.symbol}</div>
                     <div class="bubble-change" style="font-size: ${fontSize * 0.8}px">${changeSign}${this.change.toFixed(2)}%</div>
-                    <div class="bubble-price" style="font-size: ${fontSize * 0.7}px">R$ ${this.price.toFixed(2)}</div>
+                    <div class="bubble-price" style="font-size: ${fontSize * 0.7}px">${formattedPrice}</div>
                 `;
             }
             
             update() {
+                // Adicionar pequena variação aleatória para movimento mais natural
                 this.vx += (Math.random() - 0.5) * CONFIG.COLLISION_FORCE;
                 this.vy += (Math.random() - 0.5) * CONFIG.COLLISION_FORCE;
                 
+                // Aplicar fricção para movimento mais suave
                 this.vx *= CONFIG.FRICTION;
                 this.vy *= CONFIG.FRICTION;
-                this.vx = Math.max(-0.1, Math.min(0.1, this.vx));
-                this.vy = Math.max(-0.1, Math.min(0.1, this.vy));
                 
+                // Limitar velocidade máxima
+                const maxSpeed = 0.5;
+                this.vx = Math.max(-maxSpeed, Math.min(maxSpeed, this.vx));
+                this.vy = Math.max(-maxSpeed, Math.min(maxSpeed, this.vy));
+                
+                // Atualizar posição
                 this.x += this.vx;
                 this.y += this.vy;
                 
-                // Ajustar limites para respeitar margens de segurança
-                const maxX = Math.max(0, this.container.clientWidth - this.size);
-                const maxY = Math.max(0, this.container.clientHeight - this.size);
+                // Obter dimensões do container
+                const containerRect = this.container.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
                 
-                if (this.x <= 0 || this.x >= maxX) {
-                    this.vx *= -0.8;
-                    this.x = Math.max(0, Math.min(maxX, this.x));
+                // Verificar limites com margens de segurança
+                const minX = CONFIG.BUBBLE_MARGIN;
+                const maxX = containerWidth - this.size - CONFIG.BUBBLE_MARGIN;
+                const minY = CONFIG.BUBBLE_MARGIN;
+                const maxY = containerHeight - this.size - CONFIG.BUBBLE_MARGIN;
+                
+                // Rebater nas bordas
+                if (this.x <= minX || this.x >= maxX) {
+                    this.vx *= -1;
+                    this.x = Math.max(minX, Math.min(maxX, this.x));
                 }
                 
-                if (this.y <= 0 || this.y >= maxY) {
-                    this.vy *= -0.8;
-                    this.y = Math.max(0, Math.min(maxY, this.y));
+                if (this.y <= minY || this.y >= maxY) {
+                    this.vy *= -1;
+                    this.y = Math.max(minY, Math.min(maxY, this.y));
                 }
                 
+                // Atualizar posição do elemento
                 this.element.style.left = `${this.x}px`;
                 this.element.style.top = `${this.y}px`;
             }
             
             checkCollision(other) {
-                const dx = this.x + this.size/2 - (other.x + other.size/2);
-                const dy = this.y + this.size/2 - (other.y + other.size/2);
+                // Calcular distância entre os centros das bolhas
+                const dx = (this.x + this.size/2) - (other.x + other.size/2);
+                const dy = (this.y + this.size/2) - (other.y + other.size/2);
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const minDistance = (this.size + other.size) / 2;
                 
-                if (distance < minDistance && distance > 0) {
+                // Verificar colisão
+                if (distance < minDistance) {
+                    // Calcular sobreposição
                     const overlap = minDistance - distance;
+                    
+                    // Evitar divisão por zero
+                    if (distance === 0) return;
+                    
+                    // Calcular vetor de separação
                     const separationX = (dx / distance) * overlap * 0.5;
                     const separationY = (dy / distance) * overlap * 0.5;
                     
+                    // Separar as bolhas
                     this.x += separationX;
                     this.y += separationY;
                     other.x -= separationX;
                     other.y -= separationY;
                     
+                    // Trocar velocidades (colisão elástica)
                     const tempVx = this.vx;
                     const tempVy = this.vy;
-                    this.vx = other.vx * 0.8;
-                    this.vy = other.vy * 0.8;
-                    other.vx = tempVx * 0.8;
-                    other.vy = tempVy * 0.8;
+                    this.vx = other.vx * 0.9;
+                    this.vy = other.vy * 0.9;
+                    other.vx = tempVx * 0.9;
+                    other.vy = tempVy * 0.9;
                 }
             }
             
@@ -821,16 +956,16 @@
             }
         }
 
-        // Função para buscar dados da API com período específico
+        // Função para buscar dados de ações
         async function fetchStockData(period = '1d') {
             try {
-                console.log(`🔄 Buscando dados da API Brapi para período: ${period}...`);
+                console.log(`🔄 Buscando dados de ações para período: ${period}...`);
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
                 
                 // Adicionar parâmetro de período à URL
-                const url = `${CONFIG.API_URL}?token=${CONFIG.API_TOKEN}&sortBy=volume&sortOrder=desc&limit=100&range=${period}`;
+                const url = `${CONFIG.STOCKS_API_URL}?token=${CONFIG.API_TOKEN}&sortBy=volume&sortOrder=desc&limit=100&range=${period}`;
                 
                 const response = await fetch(url, {
                     signal: controller.signal,
@@ -862,15 +997,63 @@
                     throw new Error('Estrutura de dados da API não reconhecida');
                 }
             } catch (error) {
-                console.error('❌ Erro ao buscar dados da API:', error);
+                console.error('❌ Erro ao buscar dados de ações:', error);
                 useSimulatedData = true;
                 showErrorMessage();
-                return generateFallbackData(period);
+                return generateFallbackData(period, 'stocks');
             }
         }
 
-        // Função para gerar dados de candlestick simulados mais robustos
-        function generateFallbackCandlestickData(symbol, interval, currentPrice = 20) {
+        // Função para buscar dados de criptomoedas
+        async function fetchCryptoData(period = '1d') {
+            try {
+                console.log(`🔄 Buscando dados de criptomoedas...`);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
+                
+                // Parâmetros para a API do CoinGecko
+                const url = `${CONFIG.CRYPTO_API_URL}?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h`;
+                
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data && Array.isArray(data) && data.length > 0) {
+                    useSimulatedData = false;
+                    console.log(`✅ ${data.length} criptomoedas REAIS carregadas do CoinGecko!`);
+                    
+                    const errorElement = document.getElementById('errorMessage');
+                    if (errorElement) {
+                        errorElement.style.display = 'none';
+                    }
+                    
+                    return data;
+                } else {
+                    throw new Error('Estrutura de dados da API não reconhecida');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao buscar dados de criptomoedas:', error);
+                useSimulatedData = true;
+                showErrorMessage();
+                return generateFallbackData(period, 'crypto');
+            }
+        }
+
+        // Função para gerar dados de candlestick simulados
+        function generateCandlestickData(symbol, interval, currentPrice = 20) {
             console.log(`⚠️ Gerando dados de candlestick simulados para ${symbol} (${interval}min)...`);
             
             const now = new Date();
@@ -909,16 +1092,18 @@
             return data;
         }
 
-        function generateFallbackData(period) {
-            console.log(`⚠️ Usando dados simulados para período ${period}...`);
+        function generateFallbackData(period, market) {
+            console.log(`⚠️ Usando dados simulados para ${market} (período ${period})...`);
             
-            // Usar dados simulados específicos para o período
-            const periodData = FALLBACK_DATA[period] || FALLBACK_DATA['1d'];
+            // Usar dados simulados específicos para o mercado e período
+            const marketData = FALLBACK_DATA[market] || FALLBACK_DATA.stocks;
+            const periodData = marketData[period] || marketData['1d'];
             
             // Adicionar variação aleatória para simular dados diferentes
-            return periodData.map(stock => ({
-                ...stock,
-                change: stock.change + (Math.random() - 0.5) * 2
+            return periodData.map(item => ({
+                ...item,
+                change: item.change + (Math.random() - 0.5) * 2,
+                price_change_percentage_24h: item.price_change_percentage_24h + (Math.random() - 0.5) * 2
             }));
         }
 
@@ -932,8 +1117,8 @@
             }
         }
 
-        function createBubbles(stockData) {
-            console.log(`🫧 Criando bolhas com ${stockData.length} ações`);
+        function createBubbles(data) {
+            console.log(`🫧 Criando bolhas com ${data.length} itens`);
             const container = document.getElementById('bubbleContainer');
             
             if (!container) {
@@ -941,14 +1126,17 @@
                 return;
             }
             
+            // Destruir bolhas existentes
             bubbles.forEach(bubble => bubble.destroy());
             bubbles = [];
             
-            const dataToUse = stockData.slice(0, Math.max(CONFIG.MIN_BUBBLES, stockData.length));
+            // Usar no máximo 100 itens
+            const dataToUse = data.slice(0, Math.max(CONFIG.MIN_BUBBLES, data.length));
             
-            dataToUse.forEach((stock, index) => {
+            // Criar novas bolhas
+            dataToUse.forEach((item, index) => {
                 try {
-                    const bubble = new Bubble(stock, container);
+                    const bubble = new Bubble(item, container);
                     bubbles.push(bubble);
                 } catch (error) {
                     console.error(`❌ Erro ao criar bolha ${index}:`, error);
@@ -960,10 +1148,12 @@
         }
 
         function updateBubbles() {
+            // Atualizar posição de cada bolha
             bubbles.forEach((bubble, index) => {
                 try {
                     bubble.update();
                     
+                    // Verificar colisões com outras bolhas
                     for (let i = index + 1; i < bubbles.length; i++) {
                         bubble.checkCollision(bubbles[i]);
                     }
@@ -1016,12 +1206,16 @@
                     statusText.textContent = 'Dados simulados';
                 } else {
                     statusDot.style.background = '#22c55e';
-                    statusText.textContent = 'Dados reais Brapi';
+                    if (currentMarket === 'stocks') {
+                        statusText.textContent = 'Dados reais Brapi';
+                    } else {
+                        statusText.textContent = 'Dados reais CoinGecko';
+                    }
                 }
             }
         }
 
-        // Função para criar gráfico de fallback quando Lightweight Charts não estiver disponível
+        // Função para criar gráfico de fallback
         function createFallbackChart(container, data, symbol, name, currentPrice, changePercent) {
             console.log(`📊 Criando gráfico de fallback para ${symbol}`);
             
@@ -1037,6 +1231,20 @@
             const changeClass = isPositive ? 'positive' : 'negative';
             const changeSign = isPositive ? '+' : '';
             
+            // Formatar preço
+            let formattedPrice;
+            if (currentMarket === 'stocks') {
+                formattedPrice = `R$ ${currentPrice.toFixed(2)}`;
+            } else {
+                if (currentPrice >= 1000) {
+                    formattedPrice = `$${currentPrice.toFixed(0)}`;
+                } else if (currentPrice >= 1) {
+                    formattedPrice = `$${currentPrice.toFixed(2)}`;
+                } else {
+                    formattedPrice = `$${currentPrice.toFixed(4)}`;
+                }
+            }
+            
             // Criar barras de progresso simulando o gráfico
             const bars = [];
             for (let i = 0; i < 5; i++) {
@@ -1047,9 +1255,9 @@
             // Criar HTML para o gráfico de fallback
             fallbackDiv.innerHTML = `
                 <div class="fallback-chart-title">${symbol} - ${name}</div>
-                <div class="fallback-chart-price">R$ ${currentPrice.toFixed(2)}</div>
+                <div class="fallback-chart-price">${formattedPrice}</div>
                 <div class="fallback-chart-change ${changeClass}">${changeSign}${changePercent.toFixed(2)}%</div>
-                <div class="fallback-chart-message">Dados fornecidos pela API Brapi</div>
+                <div class="fallback-chart-message">Dados fornecidos pela API</div>
                 ${bars.map(value => `
                     <div class="fallback-chart-bar">
                         <div class="fallback-chart-progress ${changeClass}" style="width: ${value}%"></div>
@@ -1061,8 +1269,8 @@
             console.log(`✅ Gráfico de fallback criado com sucesso para ${symbol}`);
         }
 
-        // Função para abrir gráfico da ação
-        async function openStockChart(symbol, name, currentPrice, changePercent) {
+        // Função para abrir gráfico
+        async function openChart(symbol, name, currentPrice, changePercent) {
             console.log(`📊 Abrindo gráfico para ${symbol}`);
             
             const modal = document.getElementById('stockModal');
@@ -1096,10 +1304,24 @@
             const periodText = currentPeriod === '1d' ? 'Hoje' : 
                              currentPeriod === '5d' ? 'Esta semana' : 'Este mês';
             
+            // Formatar preço
+            let formattedPrice;
+            if (currentMarket === 'stocks') {
+                formattedPrice = `R$ ${currentPrice.toFixed(2)}`;
+            } else {
+                if (currentPrice >= 1000) {
+                    formattedPrice = `$${currentPrice.toFixed(0)}`;
+                } else if (currentPrice >= 1) {
+                    formattedPrice = `$${currentPrice.toFixed(2)}`;
+                } else {
+                    formattedPrice = `$${currentPrice.toFixed(4)}`;
+                }
+            }
+            
             stockInfo.innerHTML = `
                 <div class="info-card">
                     <div class="info-label">Preço Atual</div>
-                    <div class="info-value">R$ ${currentPrice.toFixed(2)}</div>
+                    <div class="info-value">${formattedPrice}</div>
                 </div>
                 <div class="info-card">
                     <div class="info-label">Variação ${periodText}</div>
@@ -1114,7 +1336,7 @@
                 <div class="info-card">
                     <div class="info-label">Fonte</div>
                     <div class="info-value ${useSimulatedData ? 'negative' : 'positive'}">
-                        ${useSimulatedData ? 'Simulado' : 'Brapi API'}
+                        ${useSimulatedData ? 'Simulado' : currentMarket === 'stocks' ? 'Brapi API' : 'CoinGecko API'}
                     </div>
                 </div>
             `;
@@ -1132,7 +1354,7 @@
             setTimeout(async () => {
                 try {
                     // Gerar dados de candlestick
-                    const candlestickData = generateFallbackCandlestickData(symbol, currentInterval, currentPrice);
+                    const candlestickData = generateCandlestickData(symbol, currentInterval, currentPrice);
                     
                     // Verificar se Lightweight Charts está disponível
                     if (isLightweightChartsAvailable) {
@@ -1259,7 +1481,23 @@
                 symbolTitle.style.color = isPositive ? '#22c55e' : '#ef4444';
                 symbolTitle.style.fontSize = '16px';
                 symbolTitle.style.fontWeight = 'bold';
-                symbolTitle.textContent = `${symbol} - R$ ${data[data.length - 1].close.toFixed(2)}`;
+                
+                // Formatar preço
+                let formattedPrice;
+                if (currentMarket === 'stocks') {
+                    formattedPrice = `R$ ${data[data.length - 1].close.toFixed(2)}`;
+                } else {
+                    const price = data[data.length - 1].close;
+                    if (price >= 1000) {
+                        formattedPrice = `$${price.toFixed(0)}`;
+                    } else if (price >= 1) {
+                        formattedPrice = `$${price.toFixed(2)}`;
+                    } else {
+                        formattedPrice = `$${price.toFixed(4)}`;
+                    }
+                }
+                
+                symbolTitle.textContent = `${symbol} - ${formattedPrice}`;
                 chartDiv.appendChild(symbolTitle);
                 
                 // Adicionar variação ao gráfico
@@ -1306,7 +1544,7 @@
             } catch (error) {
                 console.error('❌ Erro ao criar gráfico de candlestick:', error);
                 
-                // Criar gráfico de fallback em caso de erro
+                // Obter informações para gráfico de fallback
                 const stockInfo = document.getElementById('stockInfo');
                 const changeElement = stockInfo ? stockInfo.querySelector('.info-value.positive, .info-value.negative') : null;
                 const isPositive = changeElement ? changeElement.classList.contains('positive') : true;
@@ -1318,6 +1556,7 @@
                 const currentPrice = data.length > 0 ? data[data.length - 1].close : 0;
                 const changePercent = isPositive ? 1 : -1;
                 
+                // Criar gráfico de fallback
                 createFallbackChart(container, data, symbol, name, currentPrice, changePercent);
             }
         }
@@ -1363,7 +1602,13 @@
             
             // Buscar novos dados para o período selecionado
             try {
-                const newData = await fetchStockData(period);
+                let newData;
+                if (currentMarket === 'stocks') {
+                    newData = await fetchStockData(period);
+                } else {
+                    newData = await fetchCryptoData(period);
+                }
+                
                 stockData = newData;
                 createBubbles(newData);
                 updateLastUpdateTime();
@@ -1393,7 +1638,7 @@
                 console.log(`✅ Botão ${interval}min ativado com sucesso`);
             }
             
-            // Obter símbolo da ação atual
+            // Obter símbolo atual
             const modalTitle = document.getElementById('modalTitle');
             if (!modalTitle) {
                 console.error('❌ Título do modal não encontrado');
@@ -1405,7 +1650,7 @@
             const name = titleText.split(' - ')[1] || symbol;
             
             if (!symbol) {
-                console.error('❌ Símbolo da ação não encontrado no título do modal');
+                console.error('❌ Símbolo não encontrado no título do modal');
                 return;
             }
             
@@ -1415,15 +1660,32 @@
                 chartLoading.style.display = 'flex';
             }
             
-            // Buscar dados da ação atual para obter preço
-            const currentStock = stockData.find(stock => stock.stock === symbol || stock.symbol === symbol);
-            const currentPrice = currentStock ? (currentStock.close || currentStock.regularMarketPrice || 20) : 20;
-            const changePercent = currentStock ? (currentStock.change || 0) : 0;
+            // Buscar dados do item atual
+            let currentItem;
+            if (currentMarket === 'stocks') {
+                currentItem = stockData.find(item => item.stock === symbol || item.symbol === symbol);
+            } else {
+                currentItem = stockData.find(item => item.symbol === symbol || item.id === symbol);
+            }
+            
+            // Obter preço atual
+            let currentPrice = 0;
+            let changePercent = 0;
+            
+            if (currentItem) {
+                if (currentMarket === 'stocks') {
+                    currentPrice = currentItem.close || currentItem.regularMarketPrice || 0;
+                    changePercent = currentItem.change || currentItem.regularMarketChangePercent || 0;
+                } else {
+                    currentPrice = currentItem.current_price || 0;
+                    changePercent = currentItem.price_change_percentage_24h || 0;
+                }
+            }
             
             // Gerar novos dados de candlestick para o intervalo selecionado
             try {
                 console.log(`📊 Gerando dados de candlestick para ${symbol} (${interval}min)...`);
-                const candlestickData = generateFallbackCandlestickData(symbol, interval, currentPrice);
+                const candlestickData = generateCandlestickData(symbol, interval, currentPrice);
                 
                 // Obter container do gráfico
                 const chartContainer = document.getElementById('chartContainer');
@@ -1472,6 +1734,71 @@
             }
         }
 
+        // Função para alternar entre ações e criptomoedas
+        async function setMarket(market, buttonElement) {
+            console.log(`🔄 Alternando para mercado: ${market}`);
+            
+            // Mostrar loading
+            const loadingElement = document.getElementById('loadingIndicator');
+            if (loadingElement) {
+                loadingElement.style.display = 'flex';
+            }
+            isLoading = true;
+            
+            // Atualizar mercado atual
+            currentMarket = market;
+            
+            // Remover classe active de todos os botões
+            document.querySelectorAll('.market-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Adicionar classe active ao botão clicado
+            if (buttonElement) {
+                buttonElement.classList.add('active');
+                console.log(`✅ Botão ${market} ativado com sucesso`);
+            }
+            
+            // Atualizar subtítulo
+            const subtitleElement = document.getElementById('marketSubtitle');
+            if (subtitleElement) {
+                subtitleElement.textContent = market === 'stocks' ? 'Ações B3 ao Vivo' : 'Criptomoedas ao Vivo';
+            }
+            
+            // Atualizar placeholder do campo de busca
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.placeholder = market === 'stocks' ? 'Buscar ação...' : 'Buscar cripto...';
+            }
+            
+            // Atualizar fonte de dados
+            const dataSourceElement = document.getElementById('dataSource');
+            if (dataSourceElement) {
+                dataSourceElement.textContent = market === 'stocks' ? 
+                    'Dados fornecidos pela API Brapi • Atualização a cada 10 segundos' : 
+                    'Dados fornecidos pela API CoinGecko • Atualização a cada 10 segundos';
+            }
+            
+            // Buscar novos dados para o mercado selecionado
+            try {
+                let newData;
+                if (market === 'stocks') {
+                    newData = await fetchStockData(currentPeriod);
+                } else {
+                    newData = await fetchCryptoData(currentPeriod);
+                }
+                
+                stockData = newData;
+                createBubbles(newData);
+                updateLastUpdateTime();
+                updateStatusIndicator();
+                console.log(`✅ Dados atualizados para mercado: ${market}`);
+            } catch (error) {
+                console.error(`❌ Erro ao atualizar dados para mercado ${market}:`, error);
+                hideLoading();
+            }
+        }
+
         async function initializeApp() {
             console.log('🚀 Inicializando aplicação BUBLES...');
             
@@ -1487,7 +1814,12 @@
                 setInterval(async () => {
                     if (!isLoading) {
                         console.log('🔄 Atualizando dados automaticamente...');
-                        const newData = await fetchStockData(currentPeriod);
+                        let newData;
+                        if (currentMarket === 'stocks') {
+                            newData = await fetchStockData(currentPeriod);
+                        } else {
+                            newData = await fetchCryptoData(currentPeriod);
+                        }
                         stockData = newData;
                         createBubbles(newData);
                         updateLastUpdateTime();
@@ -1516,7 +1848,27 @@
                 isLightweightChartsAvailable = false;
             }
             
-            // Configurar botões de tempo com event listeners diretos
+            // Configurar botões de mercado
+            const stocksBtn = document.getElementById('stocksBtn');
+            const cryptoBtn = document.getElementById('cryptoBtn');
+            
+            if (stocksBtn) {
+                stocksBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('🖱️ Botão Ações B3 clicado');
+                    setMarket('stocks', stocksBtn);
+                });
+            }
+            
+            if (cryptoBtn) {
+                cryptoBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('🖱️ Botão Criptomoedas clicado');
+                    setMarket('crypto', cryptoBtn);
+                });
+            }
+            
+            // Configurar botões de tempo
             const dayBtn = document.getElementById('dayBtn');
             const weekBtn = document.getElementById('weekBtn');
             const monthBtn = document.getElementById('monthBtn');
