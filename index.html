@@ -1,110 +1,129 @@
-// BUBLES - Script Principal Corrigido
-// Versão com correção do erro de carregamento de gráficos
-
-// Configuração da API
-const CONFIG = {
-    API_URL: 'https://brapi.dev/api/quote/list?limit=100&page=1',
-    API_TIMEOUT: 10000,
-    UPDATE_INTERVAL: 10000
-};
-
-// Variáveis globais
-let useSimulatedData = false;
-let updateInterval;
-let currentStocks = [];
-
-// FUNÇÃO CORRIGIDA: fetchStockData
-async function fetchStockData() {
-    try {
-        console.log('Tentando buscar dados da API...');
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
-        
-        const response = await fetch(CONFIG.API_URL, {
-            signal: controller.signal,
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUBLES - Ações ao Vivo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        const data = await response.json();
-        console.log('Dados recebidos da API:', data);
-        
-        // CORREÇÃO PRINCIPAL: verificar data.stocks ao invés de data.results
-        if (data.stocks && data.stocks.length > 0) {
-            useSimulatedData = false;
-            hideErrorMessage();
-            return data.stocks;
-        } else {
-            throw new Error('Nenhum dado recebido da API');
-        }
-    } catch (error) {
-        console.error('Erro ao buscar dados da API:', error);
-        useSimulatedData = true;
-        showErrorMessage();
-        return generateFallbackData();
-    }
-}
 
-// FUNÇÃO CORRIGIDA: createBubbles
-function createBubbles(stocks) {
-    console.log(`Criando bolhas com ${stocks.length} ações`);
-    
-    const container = document.querySelector('.bubble-container') || 
-                     document.querySelector('#bubble-container') || 
-                     document.querySelector('.bubbles-container');
-    
-    if (!container) {
-        console.error('Container de bolhas não encontrado');
-        return;
-    }
-    
-    // Limpar bolhas existentes
-    container.innerHTML = '';
-    
-    // Criar bolhas para as primeiras 50 ações
-    stocks.slice(0, 50).forEach((stock, index) => {
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        
-        // Usar a estrutura correta dos dados da API
-        const stockCode = stock.stock || stock.symbol || 'N/A';
-        const stockName = stock.name || stockCode;
-        const price = stock.close || stock.price || 0;
-        const change = stock.change || 0;
-        const volume = stock.volume || 0;
-        
-        // Calcular tamanho da bolha baseado no volume
-        const minSize = 60;
-        const maxSize = 120;
-        const normalizedVolume = Math.min(volume / 10000000, 1);
-        const bubbleSize = minSize + (normalizedVolume * (maxSize - minSize));
-        
-        // Posicionamento aleatório
-        const x = Math.random() * (window.innerWidth - bubbleSize);
-        const y = Math.random() * (window.innerHeight - bubbleSize - 200) + 100;
-        
-        bubble.innerHTML = `
-            <div class="stock-code">${stockCode}</div>
-            <div class="stock-change">${change > 0 ? '+' : ''}${change.toFixed(2)}%</div>
-            <div class="stock-price">R$ ${price.toFixed(2)}</div>
-        `;
-        
-        // Aplicar estilos
-        bubble.style.cssText = `
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #111 0%, #222 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(17, 17, 17, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            color: #00ff88;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #888;
+            margin-left: 10px;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #333;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            outline: none;
+            width: 200px;
+        }
+
+        .search-input::placeholder {
+            color: #888;
+        }
+
+        .time-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .time-btn {
+            padding: 8px 16px;
+            border: 1px solid #333;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .time-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .time-btn.active {
+            background: #00ff88;
+            color: #111;
+            border-color: #00ff88;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+        }
+
+        .bubble-container {
             position: absolute;
-            left: ${x}px;
-            top: ${y}px;
-            width: ${bubbleSize}px;
-            height: ${bubbleSize}px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .bubble {
+            position: absolute;
             border-radius: 50%;
             display: flex;
             flex-direction: column;
@@ -114,243 +133,800 @@ function createBubbles(stocks) {
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        `;
-        
-        // Aplicar cor baseada na variação
-        if (change > 0) {
-            bubble.style.backgroundColor = '#10b981'; // Verde
-        } else if (change < 0) {
-            bubble.style.backgroundColor = '#ef4444'; // Vermelho
-        } else {
-            bubble.style.backgroundColor = '#6b7280'; // Cinza
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            user-select: none;
         }
-        
-        // Adicionar interatividade
-        bubble.addEventListener('mouseenter', () => {
-            bubble.style.transform = 'scale(1.1)';
-            bubble.style.zIndex = '1000';
-        });
-        
-        bubble.addEventListener('mouseleave', () => {
-            bubble.style.transform = 'scale(1)';
-            bubble.style.zIndex = 'auto';
-        });
-        
-        bubble.addEventListener('click', () => {
-            showStockDetails(stock);
-        });
-        
-        container.appendChild(bubble);
-    });
-    
-    console.log(`✅ ${stocks.length} bolhas criadas`);
-    hideLoading();
-}
 
-// Função para mostrar detalhes da ação
-function showStockDetails(stock) {
-    const modal = document.createElement('div');
-    modal.className = 'stock-modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>${stock.stock} - ${stock.name}</h2>
-            <p><strong>Preço:</strong> R$ ${stock.close.toFixed(2)}</p>
-            <p><strong>Variação:</strong> ${stock.change > 0 ? '+' : ''}${stock.change.toFixed(2)}%</p>
-            <p><strong>Volume:</strong> ${stock.volume.toLocaleString()}</p>
-            <p><strong>Setor:</strong> ${stock.sector}</p>
-            <p><strong>Tipo:</strong> ${stock.type}</p>
-        </div>
-    `;
-    
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    `;
-    
-    const content = modal.querySelector('.modal-content');
-    content.style.cssText = `
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        max-width: 400px;
-        width: 90%;
-        position: relative;
-    `;
-    
-    const closeBtn = modal.querySelector('.close');
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: 10px;
-        right: 15px;
-        font-size: 24px;
-        cursor: pointer;
-    `;
-    
-    closeBtn.addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-    
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
+        .bubble:hover {
+            transform: scale(1.1);
+            z-index: 100;
         }
-    });
-    
-    document.body.appendChild(modal);
-}
 
-// Função para mostrar mensagem de erro
-function showErrorMessage() {
-    let errorDiv = document.querySelector('.error-message');
-    if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.innerHTML = '⚠️ Erro ao carregar dados. Usando dados simulados.';
-        errorDiv.style.cssText = `
+        .bubble.positive {
+            background: radial-gradient(circle, #00ff88 0%, #00cc66 100%);
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .bubble.negative {
+            background: radial-gradient(circle, #ff4444 0%, #cc3333 100%);
+            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3);
+        }
+
+        .bubble.neutral {
+            background: radial-gradient(circle, #6b7280 0%, #4b5563 100%);
+            box-shadow: 0 4px 20px rgba(107, 114, 128, 0.3);
+        }
+
+        .bubble-symbol {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .bubble-change {
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .bubble-price {
+            font-size: 10px;
+            opacity: 0.9;
+        }
+
+        .loading-indicator {
             position: fixed;
-            top: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            position: fixed;
+            top: 80px;
             left: 50%;
             transform: translateX(-50%);
-            background: #ef4444;
+            background: #ff4444;
             color: white;
             padding: 12px 24px;
             border-radius: 8px;
             font-weight: 500;
             z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        `;
-        document.body.appendChild(errorDiv);
-    }
-}
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
 
-// Função para esconder mensagem de erro
-function hideErrorMessage() {
-    const errorDiv = document.querySelector('.error-message');
-    if (errorDiv) {
-        errorDiv.remove();
-    }
-}
-
-// Função para mostrar loading
-function showLoading() {
-    let loadingDiv = document.querySelector('.loading');
-    if (!loadingDiv) {
-        loadingDiv = document.createElement('div');
-        loadingDiv.className = 'loading';
-        loadingDiv.innerHTML = 'Carregando dados...';
-        loadingDiv.style.cssText = `
+        .footer {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(17, 17, 17, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .modal-content {
+            background: #222;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
             padding: 20px;
-            border-radius: 10px;
-            z-index: 1000;
-        `;
-        document.body.appendChild(loadingDiv);
-    }
-}
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-// Função para esconder loading
-function hideLoading() {
-    const loadingDiv = document.querySelector('.loading');
-    if (loadingDiv) {
-        loadingDiv.remove();
-    }
-}
+        .modal-header h3 {
+            color: #00ff88;
+            margin: 0;
+        }
 
-// Função para gerar dados de fallback
-function generateFallbackData() {
-    const fallbackStocks = [
-        { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 4.81, volume: 1000000, sector: 'Energy', type: 'stock' },
-        { stock: 'VALE3', name: 'VALE', close: 65.78, change: -5.28, volume: 800000, sector: 'Mining', type: 'stock' },
-        { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: -6.96, volume: 1200000, sector: 'Finance', type: 'stock' },
-        { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: 4.63, volume: 900000, sector: 'Finance', type: 'stock' },
-        { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: -2.17, volume: 700000, sector: 'Consumer', type: 'stock' }
-    ];
-    
-    return fallbackStocks;
-}
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-// Função para atualizar dados
-async function updateData() {
-    console.log('Atualizando dados...');
-    showLoading();
-    
-    try {
-        const stocks = await fetchStockData();
-        currentStocks = stocks;
-        createBubbles(stocks);
-    } catch (error) {
-        console.error('Erro ao atualizar dados:', error);
-    }
-}
+        .modal-close:hover {
+            color: white;
+        }
 
-// Função de busca
-function setupSearch() {
-    const searchInput = document.querySelector('input[placeholder*="Buscar"]');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const bubbles = document.querySelectorAll('.bubble');
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .time-controls {
+                justify-content: center;
+            }
+
+            .footer-info {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <h1>🫧 BUBLES</h1>
+                <span class="subtitle">Ações B3 ao Vivo</span>
+            </div>
+            <div class="controls">
+                <input type="text" id="searchInput" placeholder="Buscar ação..." class="search-input">
+                <div class="time-controls">
+                    <button class="time-btn active" data-filter="day">Dia</button>
+                    <button class="time-btn" data-filter="week">Semana</button>
+                    <button class="time-btn" data-filter="month">Mês</button>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Conectado</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div id="bubbleContainer" class="bubble-container">
+                <!-- Bolhas serão inseridas aqui dinamicamente -->
+            </div>
             
-            bubbles.forEach(bubble => {
-                const stockCode = bubble.querySelector('.stock-code').textContent.toLowerCase();
-                if (stockCode.includes(searchTerm)) {
-                    bubble.style.display = 'flex';
+            <div id="loadingIndicator" class="loading-indicator">
+                <div class="loading-spinner"></div>
+                <p>Carregando dados das ações...</p>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;">
+                <p>⚠️ Erro ao carregar dados. Usando dados simulados.</p>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-info">
+                <span>Dados fornecidos pela API Brapi • Atualização a cada 10 segundos</span>
+                <span class="last-update">Última atualização: --:--</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal de Informações da Ação -->
+    <div id="tradingViewModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Informações da Ação</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="tradingViewWidget"></div>
+            </div>
+        </div>
+        <div class="modal-overlay"></div>
+    </div>
+
+    <script>
+        // Configurações globais
+        const CONFIG = {
+            API_URL: 'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100',
+            UPDATE_INTERVAL: 10000,
+            MIN_BUBBLES: 50,
+            BUBBLE_MIN_SIZE: 40,
+            BUBBLE_MAX_SIZE: 120,
+            ANIMATION_SPEED: 0.8,
+            API_TIMEOUT: 5000,
+            COLLISION_FORCE: 0.05,
+            FRICTION: 0.98
+        };
+
+        // Estado global
+        let bubbles = [];
+        let animationId;
+        let isLoading = true;
+        let lastUpdate = null;
+        let useSimulatedData = false;
+        let currentFilter = 'day';
+
+        // Dados simulados
+        const FALLBACK_DATA = [
+            { symbol: 'PETR4', shortName: 'PETROBRAS', regularMarketPrice: 32.45, regularMarketChangePercent: 2.34, regularMarketVolume: 45678900 },
+            { symbol: 'VALE3', shortName: 'VALE', regularMarketPrice: 65.78, regularMarketChangePercent: -1.23, regularMarketVolume: 38456789 },
+            { symbol: 'ITUB4', shortName: 'ITAU UNIBANCO', regularMarketPrice: 28.90, regularMarketChangePercent: 0.87, regularMarketVolume: 34567890 },
+            { symbol: 'BBDC4', shortName: 'BRADESCO', regularMarketPrice: 15.67, regularMarketChangePercent: -0.45, regularMarketVolume: 29876543 },
+            { symbol: 'ABEV3', shortName: 'AMBEV', regularMarketPrice: 12.34, regularMarketChangePercent: 1.56, regularMarketVolume: 25678901 },
+            { symbol: 'WEGE3', shortName: 'WEG', regularMarketPrice: 45.23, regularMarketChangePercent: 3.21, regularMarketVolume: 23456789 },
+            { symbol: 'MGLU3', shortName: 'MAGAZINE LUIZA', regularMarketPrice: 8.76, regularMarketChangePercent: -2.34, regularMarketVolume: 21345678 },
+            { symbol: 'JBSS3', shortName: 'JBS', regularMarketPrice: 34.56, regularMarketChangePercent: 0.98, regularMarketVolume: 19234567 },
+            { symbol: 'RENT3', shortName: 'LOCALIZA', regularMarketPrice: 67.89, regularMarketChangePercent: -1.87, regularMarketVolume: 18123456 },
+            { symbol: 'LREN3', shortName: 'LOJAS RENNER', regularMarketPrice: 23.45, regularMarketChangePercent: 2.76, regularMarketVolume: 17012345 },
+            { symbol: 'SUZB3', shortName: 'SUZANO', regularMarketPrice: 56.78, regularMarketChangePercent: 1.45, regularMarketVolume: 16901234 },
+            { symbol: 'GGBR4', shortName: 'GERDAU', regularMarketPrice: 19.87, regularMarketChangePercent: -0.89, regularMarketVolume: 15890123 },
+            { symbol: 'USIM5', shortName: 'USIMINAS', regularMarketPrice: 7.65, regularMarketChangePercent: 2.13, regularMarketVolume: 14789012 },
+            { symbol: 'CSNA3', shortName: 'CSN', regularMarketPrice: 13.45, regularMarketChangePercent: -1.67, regularMarketVolume: 13678901 },
+            { symbol: 'EMBR3', shortName: 'EMBRAER', regularMarketPrice: 89.12, regularMarketChangePercent: 3.45, regularMarketVolume: 12567890 },
+            { symbol: 'CIEL3', shortName: 'CIELO', regularMarketPrice: 4.32, regularMarketChangePercent: -0.78, regularMarketVolume: 11456789 },
+            { symbol: 'RADL3', shortName: 'RAIA DROGASIL', regularMarketPrice: 23.67, regularMarketChangePercent: 1.89, regularMarketVolume: 10345678 },
+            { symbol: 'HAPV3', shortName: 'HAPVIDA', regularMarketPrice: 12.89, regularMarketChangePercent: -2.45, regularMarketVolume: 9234567 },
+            { symbol: 'FLRY3', shortName: 'FLEURY', regularMarketPrice: 18.45, regularMarketChangePercent: 0.67, regularMarketVolume: 8123456 },
+            { symbol: 'CCRO3', shortName: 'CCR', regularMarketPrice: 11.23, regularMarketChangePercent: 1.34, regularMarketVolume: 7012345 },
+            { symbol: 'EQTL3', shortName: 'EQUATORIAL', regularMarketPrice: 34.56, regularMarketChangePercent: -1.23, regularMarketVolume: 6901234 },
+            { symbol: 'ELET3', shortName: 'ELETROBRAS', regularMarketPrice: 45.67, regularMarketChangePercent: 2.78, regularMarketVolume: 5890123 },
+            { symbol: 'CPFE3', shortName: 'CPFL ENERGIA', regularMarketPrice: 29.87, regularMarketChangePercent: -0.56, regularMarketVolume: 4789012 },
+            { symbol: 'TAEE11', shortName: 'TAESA', regularMarketPrice: 38.45, regularMarketChangePercent: 1.67, regularMarketVolume: 3678901 },
+            { symbol: 'ENGI11', shortName: 'ENERGISA', regularMarketPrice: 42.13, regularMarketChangePercent: -1.89, regularMarketVolume: 2567890 },
+            { symbol: 'CMIN3', shortName: 'CSNMINERACAO', regularMarketPrice: 5.67, regularMarketChangePercent: 3.45, regularMarketVolume: 1456789 },
+            { symbol: 'GOAU4', shortName: 'GERDAU MET', regularMarketPrice: 8.90, regularMarketChangePercent: -2.13, regularMarketVolume: 1345678 },
+            { symbol: 'KLBN11', shortName: 'KLABIN', regularMarketPrice: 21.34, regularMarketChangePercent: 0.89, regularMarketVolume: 1234567 },
+            { symbol: 'BEEF3', shortName: 'MINERVA', regularMarketPrice: 6.78, regularMarketChangePercent: 1.45, regularMarketVolume: 1123456 },
+            { symbol: 'MRFG3', shortName: 'MARFRIG', regularMarketPrice: 9.87, regularMarketChangePercent: -0.67, regularMarketVolume: 1012345 },
+            { symbol: 'BRFS3', shortName: 'BRF', regularMarketPrice: 14.56, regularMarketChangePercent: 2.34, regularMarketVolume: 901234 },
+            { symbol: 'SMTO3', shortName: 'SAO MARTINHO', regularMarketPrice: 27.89, regularMarketChangePercent: -1.78, regularMarketVolume: 890123 },
+            { symbol: 'CSAN3', shortName: 'COSAN', regularMarketPrice: 19.45, regularMarketChangePercent: 0.98, regularMarketVolume: 789012 },
+            { symbol: 'RAIZ4', shortName: 'RAIZEN', regularMarketPrice: 3.67, regularMarketChangePercent: 1.23, regularMarketVolume: 678901 },
+            { symbol: 'UGPA3', shortName: 'ULTRAPAR', regularMarketPrice: 16.78, regularMarketChangePercent: -0.45, regularMarketVolume: 567890 },
+            { symbol: 'PRIO3', shortName: 'PETRO RIO', regularMarketPrice: 41.23, regularMarketChangePercent: 2.67, regularMarketVolume: 456789 },
+            { symbol: 'RECV3', shortName: 'PETRORECONCAVO', regularMarketPrice: 7.89, regularMarketChangePercent: -1.34, regularMarketVolume: 345678 },
+            { symbol: 'RRRP3', shortName: '3R PETROLEUM', regularMarketPrice: 25.67, regularMarketChangePercent: 3.12, regularMarketVolume: 234567 },
+            { symbol: 'PEAB4', shortName: 'PETROBRAS DISTRIBUIDORA', regularMarketPrice: 18.90, regularMarketChangePercent: -0.78, regularMarketVolume: 123456 },
+            { symbol: 'VIVT3', shortName: 'TELEFONICA BRASIL', regularMarketPrice: 49.87, regularMarketChangePercent: 1.56, regularMarketVolume: 112345 },
+            { symbol: 'TIMS3', shortName: 'TIM', regularMarketPrice: 13.45, regularMarketChangePercent: -2.89, regularMarketVolume: 101234 },
+            { symbol: 'OIBR3', shortName: 'OI', regularMarketPrice: 1.23, regularMarketChangePercent: 4.56, regularMarketVolume: 90123 },
+            { symbol: 'ALUP11', shortName: 'ALUPAR', regularMarketPrice: 22.67, regularMarketChangePercent: -1.45, regularMarketVolume: 89012 },
+            { symbol: 'TRPL4', shortName: 'CTEEP', regularMarketPrice: 35.89, regularMarketChangePercent: 0.67, regularMarketVolume: 78901 },
+            { symbol: 'EGIE3', shortName: 'ENGIE BRASIL', regularMarketPrice: 41.56, regularMarketChangePercent: 1.89, regularMarketVolume: 67890 },
+            { symbol: 'NEOE3', shortName: 'NEOENERGIA', regularMarketPrice: 18.34, regularMarketChangePercent: -0.98, regularMarketVolume: 56789 },
+            { symbol: 'CMIG4', shortName: 'CEMIG', regularMarketPrice: 12.78, regularMarketChangePercent: 2.45, regularMarketVolume: 45678 },
+            { symbol: 'COCE5', shortName: 'COELCE', regularMarketPrice: 29.45, regularMarketChangePercent: -1.67, regularMarketVolume: 34567 },
+            { symbol: 'CESP6', shortName: 'CESP', regularMarketPrice: 33.67, regularMarketChangePercent: 0.89, regularMarketVolume: 23456 },
+            { symbol: 'ELPL4', shortName: 'ELETROPAULO', regularMarketPrice: 44.89, regularMarketChangePercent: 1.34, regularMarketVolume: 12345 }
+        ];
+
+        // Classe Bubble
+        class Bubble {
+            constructor(data, container) {
+                this.symbol = data.symbol;
+                this.name = data.shortName || data.symbol;
+                this.price = data.regularMarketPrice || 0;
+                this.change = data.regularMarketChangePercent || 0;
+                this.volume = data.regularMarketVolume || 0;
+                
+                this.container = container;
+                this.element = null;
+                
+                this.size = this.calculateSize();
+                this.x = Math.random() * Math.max(0, container.clientWidth - this.size);
+                this.y = Math.random() * Math.max(0, container.clientHeight - this.size);
+                this.vx = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
+                this.vy = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
+                
+                this.createElement();
+                this.updateContent();
+            }
+            
+            calculateSize() {
+                const minVolume = 100000;
+                const maxVolume = 50000000;
+                const normalizedVolume = Math.log(Math.max(this.volume, minVolume)) / Math.log(maxVolume);
+                const minSize = CONFIG.BUBBLE_MIN_SIZE;
+                const maxSize = CONFIG.BUBBLE_MAX_SIZE;
+                return minSize + (maxSize - minSize) * Math.min(normalizedVolume, 1);
+            }
+            
+            createElement() {
+                this.element = document.createElement('div');
+                this.element.className = 'bubble';
+                this.element.style.width = `${this.size}px`;
+                this.element.style.height = `${this.size}px`;
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+                
+                this.element.addEventListener('click', () => {
+                    openStockModal(this.symbol, this.name, this.price, this.change);
+                });
+                
+                this.container.appendChild(this.element);
+            }
+            
+            updateContent() {
+                const colorClass = this.change > 0 ? 'positive' : this.change < 0 ? 'negative' : 'neutral';
+                this.element.className = `bubble ${colorClass}`;
+                
+                const changeSign = this.change > 0 ? '+' : '';
+                const fontSize = Math.max(10, this.size / 8);
+                
+                this.element.innerHTML = `
+                    <div class="bubble-symbol" style="font-size: ${fontSize}px">${this.symbol}</div>
+                    <div class="bubble-change" style="font-size: ${fontSize * 0.8}px">${changeSign}${this.change.toFixed(2)}%</div>
+                    <div class="bubble-price" style="font-size: ${fontSize * 0.7}px">R$ ${this.price.toFixed(2)}</div>
+                `;
+            }
+            
+            update() {
+                this.vx += (Math.random() - 0.5) * CONFIG.COLLISION_FORCE;
+                this.vy += (Math.random() - 0.5) * CONFIG.COLLISION_FORCE;
+                
+                this.vx *= CONFIG.FRICTION;
+                this.vy *= CONFIG.FRICTION;
+                this.vx = Math.max(-0.1, Math.min(0.1, this.vx));
+                this.vy = Math.max(-0.1, Math.min(0.1, this.vy));
+                
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                const maxX = Math.max(0, this.container.clientWidth - this.size);
+                const maxY = Math.max(0, this.container.clientHeight - this.size);
+                
+                if (this.x <= 0 || this.x >= maxX) {
+                    this.vx *= -0.8;
+                    this.x = Math.max(0, Math.min(maxX, this.x));
+                }
+                
+                if (this.y <= 0 || this.y >= maxY) {
+                    this.vy *= -0.8;
+                    this.y = Math.max(0, Math.min(maxY, this.y));
+                }
+                
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+            }
+            
+            checkCollision(other) {
+                const dx = this.x + this.size/2 - (other.x + other.size/2);
+                const dy = this.y + this.size/2 - (other.y + other.size/2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = (this.size + other.size) / 2;
+                
+                if (distance < minDistance && distance > 0) {
+                    const overlap = minDistance - distance;
+                    const separationX = (dx / distance) * overlap * 0.5;
+                    const separationY = (dy / distance) * overlap * 0.5;
+                    
+                    this.x += separationX;
+                    this.y += separationY;
+                    other.x -= separationX;
+                    other.y -= separationY;
+                    
+                    const tempVx = this.vx;
+                    const tempVy = this.vy;
+                    this.vx = other.vx * 0.8;
+                    this.vy = other.vy * 0.8;
+                    other.vx = tempVx * 0.8;
+                    other.vy = tempVy * 0.8;
+                }
+            }
+            
+            destroy() {
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+            }
+        }
+
+        // Funções principais
+        async function fetchStockData() {
+            try {
+                console.log('Tentando buscar dados da API...');
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
+                
+                const response = await fetch(CONFIG.API_URL, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Dados recebidos da API:', data);
+                
+                if (data.results && data.results.length > 0) {
+                    useSimulatedData = false;
+                    return data.results;
                 } else {
-                    bubble.style.display = 'none';
+                    throw new Error('Nenhum dado recebido da API');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar dados da API:', error);
+                useSimulatedData = true;
+                showErrorMessage();
+                return generateFallbackData();
+            }
+        }
+
+        function generateFallbackData() {
+            console.log('Usando dados simulados...');
+            return FALLBACK_DATA.map(stock => ({
+                ...stock,
+                regularMarketChangePercent: (Math.random() - 0.5) * 14
+            }));
+        }
+
+        function showErrorMessage() {
+            const errorElement = document.getElementById('errorMessage');
+            if (errorElement) {
+                errorElement.style.display = 'block';
+                setTimeout(() => {
+                    errorElement.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function createBubbles(stockData) {
+            console.log('Criando bolhas com', stockData.length, 'ações');
+            const container = document.getElementById('bubbleContainer');
+            
+            if (!container) {
+                console.error('Container de bolhas não encontrado!');
+                return;
+            }
+            
+            bubbles.forEach(bubble => bubble.destroy());
+            bubbles = [];
+            
+            const dataToUse = stockData.slice(0, Math.max(CONFIG.MIN_BUBBLES, stockData.length));
+            
+            dataToUse.forEach((stock, index) => {
+                try {
+                    const bubble = new Bubble(stock, container);
+                    bubbles.push(bubble);
+                } catch (error) {
+                    console.error(`Erro ao criar bolha ${index}:`, error);
                 }
             });
+            
+            console.log('Criadas', bubbles.length, 'bolhas');
+            hideLoading();
+        }
+
+        function updateBubbles() {
+            bubbles.forEach((bubble, index) => {
+                try {
+                    bubble.update();
+                    
+                    for (let i = index + 1; i < bubbles.length; i++) {
+                        bubble.checkCollision(bubbles[i]);
+                    }
+                } catch (error) {
+                    console.error(`Erro ao atualizar bolha ${index}:`, error);
+                }
+            });
+        }
+
+        function animate() {
+            try {
+                updateBubbles();
+                animationId = requestAnimationFrame(animate);
+            } catch (error) {
+                console.error('Erro na animação:', error);
+                setTimeout(() => {
+                    animationId = requestAnimationFrame(animate);
+                }, 1000);
+            }
+        }
+
+        function hideLoading() {
+            const loadingElement = document.getElementById('loadingIndicator');
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
+            }
+            isLoading = false;
+            console.log('Loading ocultado');
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            const lastUpdateElement = document.querySelector('.last-update');
+            if (lastUpdateElement) {
+                lastUpdateElement.textContent = `Última atualização: ${timeString}`;
+            }
+            lastUpdate = now;
+        }
+
+        function updateStatusIndicator() {
+            const statusDot = document.querySelector('.status-dot');
+            const statusText = document.querySelector('.status-text');
+            
+            if (statusDot && statusText) {
+                if (useSimulatedData) {
+                    statusDot.style.background = '#ff4444';
+                    statusText.textContent = 'Dados simulados';
+                } else {
+                    statusDot.style.background = '#00ff88';
+                    statusText.textContent = 'Conectado';
+                }
+            }
+        }
+
+        function openStockModal(symbol, name, currentPrice, changePercent) {
+            console.log(`Abrindo modal para ${symbol}`);
+            
+            const modal = document.getElementById('tradingViewModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const widgetContainer = document.getElementById('tradingViewWidget');
+            
+            if (!modal || !modalTitle || !widgetContainer) {
+                console.error('Elementos do modal não encontrados');
+                return;
+            }
+            
+            modalTitle.textContent = `${symbol} - ${name}`;
+            modal.style.display = 'flex';
+            
+            let days = 30;
+            switch (currentFilter) {
+                case 'day':
+                    days = 1;
+                    break;
+                case 'week':
+                    days = 7;
+                    break;
+                case 'month':
+                    days = 30;
+                    break;
+            }
+            
+            const periodText = currentFilter === 'day' ? 'Hoje' : 
+                             currentFilter === 'week' ? 'Esta semana' : 'Este mês';
+            
+            widgetContainer.innerHTML = `
+                <div style="color: white; text-align: center; padding: 40px; font-family: Arial, sans-serif;">
+                    <div style="margin-bottom: 30px;">
+                        <h2 style="color: #00ff88; margin: 0 0 10px 0; font-size: 28px;">${symbol}</h2>
+                        <h3 style="color: #ccc; margin: 0 0 20px 0; font-size: 18px; font-weight: normal;">${name}</h3>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 30px; flex-wrap: wrap;">
+                        <div style="text-align: center;">
+                            <div style="color: #888; font-size: 14px; margin-bottom: 5px;">Preço Atual</div>
+                            <div style="color: #00ff88; font-size: 24px; font-weight: bold;">R$ ${currentPrice.toFixed(2)}</div>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <div style="color: #888; font-size: 14px; margin-bottom: 5px;">Variação ${periodText}</div>
+                            <div style="color: ${changePercent >= 0 ? '#00ff88' : '#ff4444'}; font-size: 24px; font-weight: bold;">
+                                ${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 20px; margin: 20px 0;">
+                        <h4 style="color: #00ff88; margin: 0 0 15px 0;">Informações da Ação</h4>
+                        <div style="text-align: left; max-width: 400px; margin: 0 auto;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: #888;">Símbolo:</span>
+                                <span style="color: white;">${symbol}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: #888;">Empresa:</span>
+                                <span style="color: white;">${name}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: #888;">Período:</span>
+                                <span style="color: white;">${periodText}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #888;">Status:</span>
+                                <span style="color: ${useSimulatedData ? '#ff4444' : '#00ff88'};">
+                                    ${useSimulatedData ? 'Dados Simulados' : 'Dados Reais'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <p style="color: #888; font-size: 14px; margin: 0; line-height: 1.4;">
+                            💡 <strong>Dica:</strong> Use os botões "Dia", "Semana" e "Mês" no topo da página para alterar o período de análise.
+                            ${useSimulatedData ? ' Dados simulados estão sendo exibidos devido à indisponibilidade da API.' : ''}
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('tradingViewModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function setTimeFilter(filter) {
+            console.log(`Definindo filtro de tempo: ${filter}`);
+            
+            currentFilter = filter;
+            
+            document.querySelectorAll('.time-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            const activeBtn = document.querySelector(`[data-filter="${filter}"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                console.log(`Botão ${filter} ativado com sucesso`);
+            } else {
+                console.error(`Botão com data-filter="${filter}" não encontrado`);
+            }
+            
+            console.log(`Filtro de tempo atualizado para: ${filter}`);
+        }
+
+        async function initializeApp() {
+            console.log('Inicializando aplicação...');
+            
+            try {
+                const stockData = await fetchStockData();
+                createBubbles(stockData);
+                animate();
+                updateLastUpdateTime();
+                updateStatusIndicator();
+                
+                setInterval(async () => {
+                    if (!isLoading) {
+                        console.log('Atualizando dados automaticamente...');
+                        const newData = await fetchStockData();
+                        createBubbles(newData);
+                        updateLastUpdateTime();
+                        updateStatusIndicator();
+                    }
+                }, CONFIG.UPDATE_INTERVAL);
+                
+                console.log('Aplicação inicializada com sucesso');
+                
+            } catch (error) {
+                console.error('Erro na inicialização:', error);
+                hideLoading();
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM carregado, inicializando...');
+            
+            // Configurar botões de tempo
+            document.querySelectorAll('.time-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const filter = e.target.getAttribute('data-filter');
+                    console.log(`Clique no botão: ${filter}`);
+                    if (filter) {
+                        setTimeFilter(filter);
+                    } else {
+                        console.error('Atributo data-filter não encontrado no botão');
+                    }
+                });
+            });
+            
+            // Configurar busca
+            const searchInput = document.querySelector('.search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    console.log(`Buscando por: ${searchTerm}`);
+                    
+                    bubbles.forEach(bubble => {
+                        const isVisible = bubble.symbol.toLowerCase().includes(searchTerm) || 
+                                        bubble.name.toLowerCase().includes(searchTerm);
+                        bubble.element.style.display = isVisible ? 'flex' : 'none';
+                    });
+                });
+            }
+            
+            // Configurar fechamento do modal
+            const modal = document.getElementById('tradingViewModal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeModal();
+                    }
+                });
+            }
+            
+            // Configurar botão de fechar modal
+            const closeBtn = document.querySelector('.modal-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeModal);
+            }
+            
+            // Configurar tecla ESC para fechar modal
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+            
+            // Inicializar aplicação
+            initializeApp();
         });
-    }
-}
-
-// Função de inicialização
-async function initializeApp() {
-    console.log('Inicializando aplicação...');
-    
-    try {
-        // Buscar dados iniciais
-        const stocks = await fetchStockData();
-        currentStocks = stocks;
-        
-        // Criar visualização
-        createBubbles(stocks);
-        
-        // Configurar busca
-        setupSearch();
-        
-        // Configurar atualização automática
-        updateInterval = setInterval(updateData, CONFIG.UPDATE_INTERVAL);
-        
-        console.log('Aplicação inicializada com sucesso');
-    } catch (error) {
-        console.error('Erro na inicialização:', error);
-    }
-}
-
-// Inicializar quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM carregado, inicializando...');
-    initializeApp();
-});
-
-// Limpar interval ao sair da página
-window.addEventListener('beforeunload', () => {
-    if (updateInterval) {
-        clearInterval(updateInterval);
-    }
-});
+    </script>
+</body>
+</html>
