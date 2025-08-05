@@ -385,15 +385,16 @@
     </div>
 
     <script>
-        // Configurações globais
+        // Configurações globais com TOKEN da Brapi
         const CONFIG = {
-            API_URL: 'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100',
+            API_URL: 'https://brapi.dev/api/quote/list',
+            API_TOKEN: '5bTDfSmR2ieax6y7JUqDAD', // Seu token da Brapi
             UPDATE_INTERVAL: 10000,
             MIN_BUBBLES: 50,
             BUBBLE_MIN_SIZE: 40,
             BUBBLE_MAX_SIZE: 120,
             ANIMATION_SPEED: 0.8,
-            API_TIMEOUT: 5000,
+            API_TIMEOUT: 10000,
             COLLISION_FORCE: 0.05,
             FRICTION: 0.98
         };
@@ -406,7 +407,7 @@
         let useSimulatedData = false;
         let currentFilter = 'day';
 
-        // Dados simulados
+        // Dados simulados como fallback
         const FALLBACK_DATA = [
             { symbol: 'PETR4', shortName: 'PETROBRAS', regularMarketPrice: 32.45, regularMarketChangePercent: 2.34, regularMarketVolume: 45678900 },
             { symbol: 'VALE3', shortName: 'VALE', regularMarketPrice: 65.78, regularMarketChangePercent: -1.23, regularMarketVolume: 38456789 },
@@ -581,15 +582,18 @@
             }
         }
 
-        // Funções principais
+        // Função para buscar dados da API com TOKEN
         async function fetchStockData() {
             try {
-                console.log('Tentando buscar dados da API...');
+                console.log('Buscando dados da API Brapi com token...');
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
                 
-                const response = await fetch(CONFIG.API_URL, {
+                // URL com token de autenticação
+                const url = `${CONFIG.API_URL}?token=${CONFIG.API_TOKEN}&sortBy=volume&sortOrder=desc&limit=100`;
+                
+                const response = await fetch(url, {
                     signal: controller.signal,
                     headers: {
                         'Accept': 'application/json',
@@ -604,16 +608,17 @@
                 }
                 
                 const data = await response.json();
-                console.log('Dados recebidos da API:', data);
+                console.log('✅ Dados REAIS recebidos da API Brapi:', data);
                 
                 if (data.results && data.results.length > 0) {
                     useSimulatedData = false;
+                    console.log(`✅ ${data.results.length} ações carregadas com sucesso!`);
                     return data.results;
                 } else {
                     throw new Error('Nenhum dado recebido da API');
                 }
             } catch (error) {
-                console.error('Erro ao buscar dados da API:', error);
+                console.error('❌ Erro ao buscar dados da API:', error);
                 useSimulatedData = true;
                 showErrorMessage();
                 return generateFallbackData();
@@ -621,7 +626,7 @@
         }
 
         function generateFallbackData() {
-            console.log('Usando dados simulados...');
+            console.log('⚠️ Usando dados simulados como fallback...');
             return FALLBACK_DATA.map(stock => ({
                 ...stock,
                 regularMarketChangePercent: (Math.random() - 0.5) * 14
@@ -723,7 +728,7 @@
                     statusText.textContent = 'Dados simulados';
                 } else {
                     statusDot.style.background = '#00ff88';
-                    statusText.textContent = 'Conectado';
+                    statusText.textContent = 'Dados reais';
                 }
             }
         }
@@ -798,7 +803,7 @@
                             <div style="display: flex; justify-content: space-between;">
                                 <span style="color: #888;">Status:</span>
                                 <span style="color: ${useSimulatedData ? '#ff4444' : '#00ff88'};">
-                                    ${useSimulatedData ? 'Dados Simulados' : 'Dados Reais'}
+                                    ${useSimulatedData ? 'Dados Simulados' : 'Dados Reais da Brapi'}
                                 </span>
                             </div>
                         </div>
@@ -807,7 +812,7 @@
                     <div style="margin-top: 30px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
                         <p style="color: #888; font-size: 14px; margin: 0; line-height: 1.4;">
                             💡 <strong>Dica:</strong> Use os botões "Dia", "Semana" e "Mês" no topo da página para alterar o período de análise.
-                            ${useSimulatedData ? ' Dados simulados estão sendo exibidos devido à indisponibilidade da API.' : ''}
+                            ${useSimulatedData ? ' Dados simulados estão sendo exibidos devido à indisponibilidade da API.' : ' Dados fornecidos em tempo real pela API Brapi.'}
                         </p>
                     </div>
                 </div>
@@ -842,7 +847,7 @@
         }
 
         async function initializeApp() {
-            console.log('Inicializando aplicação...');
+            console.log('🚀 Inicializando aplicação BUBLES...');
             
             try {
                 const stockData = await fetchStockData();
@@ -853,7 +858,7 @@
                 
                 setInterval(async () => {
                     if (!isLoading) {
-                        console.log('Atualizando dados automaticamente...');
+                        console.log('🔄 Atualizando dados automaticamente...');
                         const newData = await fetchStockData();
                         createBubbles(newData);
                         updateLastUpdateTime();
@@ -861,17 +866,17 @@
                     }
                 }, CONFIG.UPDATE_INTERVAL);
                 
-                console.log('Aplicação inicializada com sucesso');
+                console.log('✅ Aplicação inicializada com sucesso');
                 
             } catch (error) {
-                console.error('Erro na inicialização:', error);
+                console.error('❌ Erro na inicialização:', error);
                 hideLoading();
             }
         }
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM carregado, inicializando...');
+            console.log('📄 DOM carregado, inicializando...');
             
             // Configurar botões de tempo
             document.querySelectorAll('.time-btn').forEach(btn => {
