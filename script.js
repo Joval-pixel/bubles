@@ -528,4 +528,3 @@ window.addEventListener('unhandledrejection', function(e) {
 });
 
 console.log('Script carregado com sucesso');
- 
