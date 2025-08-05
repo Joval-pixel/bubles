@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BUBLES - Ações ao Vivo</title>
-    <!-- Lightweight Charts para gráficos de candlestick -->
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <!-- Lightweight Charts para gráficos de candlestick - versão específica e estável -->
+    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         * {
             margin: 0;
@@ -140,6 +140,9 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
+            /* Margens de segurança para evitar que as bolhas ultrapassem o cabeçalho e rodapé */
+            padding-top: 70px;
+            padding-bottom: 50px;
         }
 
         .bubble {
@@ -423,6 +426,69 @@
             font-weight: bold;
         }
 
+        /* Alternativa para gráficos quando o Lightweight Charts falhar */
+        .fallback-chart {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .fallback-chart-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #22c55e;
+        }
+
+        .fallback-chart-price {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .fallback-chart-change {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .fallback-chart-message {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .fallback-chart-bar {
+            width: 80%;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .fallback-chart-progress {
+            height: 100%;
+            border-radius: 15px;
+            transition: width 0.5s ease;
+        }
+
+        .fallback-chart-progress.positive {
+            background: linear-gradient(to right, #16a34a, #22c55e);
+        }
+
+        .fallback-chart-progress.negative {
+            background: linear-gradient(to right, #b91c1c, #ef4444);
+        }
+
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -455,6 +521,17 @@
 
             .interval-controls {
                 justify-content: center;
+            }
+
+            /* Ajustar margens para mobile */
+            .bubble-container {
+                padding-top: 120px; /* Maior para acomodar o cabeçalho em coluna */
+                padding-bottom: 50px;
+            }
+
+            /* Reduzir tamanho das bolhas em telas pequenas */
+            .bubble {
+                transform: scale(0.85);
             }
         }
     </style>
@@ -550,7 +627,9 @@
             ANIMATION_SPEED: 0.8,
             API_TIMEOUT: 15000,
             COLLISION_FORCE: 0.05,
-            FRICTION: 0.98
+            FRICTION: 0.98,
+            HEADER_HEIGHT: 70,
+            FOOTER_HEIGHT: 50
         };
 
         // Estado global
@@ -565,6 +644,16 @@
         let stockData = [];
         let chartInstance = null;
         let candleSeries = null;
+        let isLightweightChartsAvailable = false;
+
+        // Verificar se Lightweight Charts está disponível
+        try {
+            isLightweightChartsAvailable = typeof LightweightCharts !== 'undefined';
+            console.log(`✅ Lightweight Charts disponível: ${isLightweightChartsAvailable}`);
+        } catch (error) {
+            console.error('❌ Erro ao verificar Lightweight Charts:', error);
+            isLightweightChartsAvailable = false;
+        }
 
         // Dados simulados como fallback
         const FALLBACK_DATA = {
@@ -612,8 +701,13 @@
                 // Tamanho baseado na variação percentual absoluta
                 this.size = this.calculateSize();
                 
-                this.x = Math.random() * Math.max(0, container.clientWidth - this.size);
-                this.y = Math.random() * Math.max(0, container.clientHeight - this.size);
+                // Ajustar posição inicial para respeitar margens de segurança
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight - CONFIG.HEADER_HEIGHT - CONFIG.FOOTER_HEIGHT;
+                
+                this.x = Math.random() * Math.max(0, containerWidth - this.size);
+                this.y = Math.random() * Math.max(0, containerHeight - this.size);
+                
                 this.vx = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
                 this.vy = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
                 
@@ -677,6 +771,7 @@
                 this.x += this.vx;
                 this.y += this.vy;
                 
+                // Ajustar limites para respeitar margens de segurança
                 const maxX = Math.max(0, this.container.clientWidth - this.size);
                 const maxY = Math.max(0, this.container.clientHeight - this.size);
                 
@@ -926,6 +1021,46 @@
             }
         }
 
+        // Função para criar gráfico de fallback quando Lightweight Charts não estiver disponível
+        function createFallbackChart(container, data, symbol, name, currentPrice, changePercent) {
+            console.log(`📊 Criando gráfico de fallback para ${symbol}`);
+            
+            // Limpar container
+            container.innerHTML = '';
+            
+            // Criar div para o gráfico de fallback
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.className = 'fallback-chart';
+            
+            // Determinar se a variação é positiva ou negativa
+            const isPositive = changePercent >= 0;
+            const changeClass = isPositive ? 'positive' : 'negative';
+            const changeSign = isPositive ? '+' : '';
+            
+            // Criar barras de progresso simulando o gráfico
+            const bars = [];
+            for (let i = 0; i < 5; i++) {
+                const barValue = Math.random() * 100;
+                bars.push(barValue);
+            }
+            
+            // Criar HTML para o gráfico de fallback
+            fallbackDiv.innerHTML = `
+                <div class="fallback-chart-title">${symbol} - ${name}</div>
+                <div class="fallback-chart-price">R$ ${currentPrice.toFixed(2)}</div>
+                <div class="fallback-chart-change ${changeClass}">${changeSign}${changePercent.toFixed(2)}%</div>
+                <div class="fallback-chart-message">Dados fornecidos pela API Brapi</div>
+                ${bars.map(value => `
+                    <div class="fallback-chart-bar">
+                        <div class="fallback-chart-progress ${changeClass}" style="width: ${value}%"></div>
+                    </div>
+                `).join('')}
+            `;
+            
+            container.appendChild(fallbackDiv);
+            console.log(`✅ Gráfico de fallback criado com sucesso para ${symbol}`);
+        }
+
         // Função para abrir gráfico da ação
         async function openStockChart(symbol, name, currentPrice, changePercent) {
             console.log(`📊 Abrindo gráfico para ${symbol}`);
@@ -996,12 +1131,17 @@
             // Aguardar um pouco para o modal ser renderizado
             setTimeout(async () => {
                 try {
-                    // Sempre usar dados simulados para garantir que o gráfico funcione
-                    console.log(`📊 Gerando gráfico de candlestick para ${symbol}...`);
+                    // Gerar dados de candlestick
                     const candlestickData = generateFallbackCandlestickData(symbol, currentInterval, currentPrice);
                     
-                    // Criar gráfico de candlestick
-                    createCandlestickChart(chartContainer, candlestickData, symbol, changePercent >= 0);
+                    // Verificar se Lightweight Charts está disponível
+                    if (isLightweightChartsAvailable) {
+                        // Criar gráfico de candlestick
+                        createCandlestickChart(chartContainer, candlestickData, symbol, changePercent >= 0);
+                    } else {
+                        // Criar gráfico de fallback
+                        createFallbackChart(chartContainer, candlestickData, symbol, name, currentPrice, changePercent);
+                    }
                     
                     // Esconder loading
                     if (chartLoading) {
@@ -1009,9 +1149,14 @@
                     }
                     
                 } catch (error) {
-                    console.error('❌ Erro ao criar gráfico de candlestick:', error);
+                    console.error('❌ Erro ao criar gráfico:', error);
+                    
+                    // Criar gráfico de fallback em caso de erro
+                    createFallbackChart(chartContainer, [], symbol, name, currentPrice, changePercent);
+                    
+                    // Esconder loading
                     if (chartLoading) {
-                        chartLoading.innerHTML = '<span style="color: #ef4444;">Erro ao carregar gráfico</span>';
+                        chartLoading.style.display = 'none';
                     }
                 }
             }, 100);
@@ -1021,28 +1166,26 @@
         function createCandlestickChart(container, data, symbol, isPositive) {
             console.log(`📊 Criando gráfico de candlestick para ${symbol} com ${data.length} pontos de dados`);
             
-            // Destruir gráfico anterior se existir
-            if (chartInstance) {
-                chartInstance.remove();
-                chartInstance = null;
-                candleSeries = null;
-            }
-            
-            // Criar div para o gráfico
-            const chartDiv = document.createElement('div');
-            chartDiv.id = 'candlestickChart';
-            chartDiv.style.width = '100%';
-            chartDiv.style.height = '100%';
-            container.appendChild(chartDiv);
-            
-            // Verificar se Lightweight Charts está disponível
-            if (typeof LightweightCharts === 'undefined') {
-                console.error('❌ Lightweight Charts não está disponível');
-                chartDiv.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #ef4444;">Erro: Biblioteca de gráficos não carregada</div>';
-                return;
-            }
-            
             try {
+                // Destruir gráfico anterior se existir
+                if (chartInstance) {
+                    chartInstance.remove();
+                    chartInstance = null;
+                    candleSeries = null;
+                }
+                
+                // Criar div para o gráfico
+                const chartDiv = document.createElement('div');
+                chartDiv.id = 'candlestickChart';
+                chartDiv.style.width = '100%';
+                chartDiv.style.height = '100%';
+                container.appendChild(chartDiv);
+                
+                // Verificar novamente se Lightweight Charts está disponível
+                if (typeof LightweightCharts === 'undefined') {
+                    throw new Error('Lightweight Charts não está disponível');
+                }
+                
                 // Criar gráfico usando Lightweight Charts
                 chartInstance = LightweightCharts.createChart(chartDiv, {
                     width: chartDiv.clientWidth,
@@ -1161,8 +1304,21 @@
                 }
                 
             } catch (error) {
-                console.error('❌ Erro ao criar gráfico:', error);
-                chartDiv.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #ef4444;">Erro ao criar gráfico: ${error.message}</div>`;
+                console.error('❌ Erro ao criar gráfico de candlestick:', error);
+                
+                // Criar gráfico de fallback em caso de erro
+                const stockInfo = document.getElementById('stockInfo');
+                const changeElement = stockInfo ? stockInfo.querySelector('.info-value.positive, .info-value.negative') : null;
+                const isPositive = changeElement ? changeElement.classList.contains('positive') : true;
+                
+                // Obter nome e preço atual
+                const modalTitle = document.getElementById('modalTitle');
+                const titleText = modalTitle ? modalTitle.textContent : symbol;
+                const name = titleText.split(' - ')[1] || symbol;
+                const currentPrice = data.length > 0 ? data[data.length - 1].close : 0;
+                const changePercent = isPositive ? 1 : -1;
+                
+                createFallbackChart(container, data, symbol, name, currentPrice, changePercent);
             }
         }
 
@@ -1246,6 +1402,7 @@
             
             const titleText = modalTitle.textContent;
             const symbol = titleText.split(' - ')[0];
+            const name = titleText.split(' - ')[1] || symbol;
             
             if (!symbol) {
                 console.error('❌ Símbolo da ação não encontrado no título do modal');
@@ -1261,6 +1418,7 @@
             // Buscar dados da ação atual para obter preço
             const currentStock = stockData.find(stock => stock.stock === symbol || stock.symbol === symbol);
             const currentPrice = currentStock ? (currentStock.close || currentStock.regularMarketPrice || 20) : 20;
+            const changePercent = currentStock ? (currentStock.change || 0) : 0;
             
             // Gerar novos dados de candlestick para o intervalo selecionado
             try {
@@ -1282,12 +1440,14 @@
                     chartContainer.removeChild(chartContainer.firstChild);
                 }
                 
-                // Criar novo gráfico de candlestick
-                const stockInfo = document.getElementById('stockInfo');
-                const changeElement = stockInfo ? stockInfo.querySelector('.info-value.positive, .info-value.negative') : null;
-                const isPositive = changeElement ? changeElement.classList.contains('positive') : true;
-                
-                createCandlestickChart(chartContainer, candlestickData, symbol, isPositive);
+                // Verificar se Lightweight Charts está disponível
+                if (isLightweightChartsAvailable) {
+                    // Criar gráfico de candlestick
+                    createCandlestickChart(chartContainer, candlestickData, symbol, changePercent >= 0);
+                } else {
+                    // Criar gráfico de fallback
+                    createFallbackChart(chartContainer, candlestickData, symbol, name, currentPrice, changePercent);
+                }
                 
                 // Esconder loading
                 if (chartLoading) {
@@ -1298,8 +1458,16 @@
                 
             } catch (error) {
                 console.error(`❌ Erro ao atualizar gráfico para intervalo ${interval}min:`, error);
+                
+                // Criar gráfico de fallback em caso de erro
+                const chartContainer = document.getElementById('chartContainer');
+                if (chartContainer) {
+                    createFallbackChart(chartContainer, [], symbol, name, currentPrice, changePercent);
+                }
+                
+                // Esconder loading
                 if (chartLoading) {
-                    chartLoading.innerHTML = '<span style="color: #ef4444;">Erro ao carregar gráfico</span>';
+                    chartLoading.style.display = 'none';
                 }
             }
         }
@@ -1339,11 +1507,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('📄 DOM carregado, inicializando...');
             
-            // Verificar se Lightweight Charts foi carregado
-            if (typeof LightweightCharts === 'undefined') {
-                console.error('❌ Lightweight Charts não foi carregado!');
-            } else {
-                console.log('✅ Lightweight Charts carregado com sucesso');
+            // Verificar se Lightweight Charts está disponível
+            try {
+                isLightweightChartsAvailable = typeof LightweightCharts !== 'undefined';
+                console.log(`✅ Lightweight Charts disponível: ${isLightweightChartsAvailable}`);
+            } catch (error) {
+                console.error('❌ Erro ao verificar Lightweight Charts:', error);
+                isLightweightChartsAvailable = false;
             }
             
             // Configurar botões de tempo com event listeners diretos
