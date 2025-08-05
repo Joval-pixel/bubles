@@ -1,12 +1,13 @@
-// Configurações globais
 const CONFIG = {
     API_URL: 'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100',
     UPDATE_INTERVAL: 10000, // 10 segundos
     MIN_BUBBLES: 50,
     BUBBLE_MIN_SIZE: 40,
     BUBBLE_MAX_SIZE: 120,
-    ANIMATION_SPEED: 0.5,
-    API_TIMEOUT: 5000 // 5 segundos timeout
+    ANIMATION_SPEED: 0.8, // Aumentado para movimento mais suave
+    API_TIMEOUT: 5000, // 5 segundos timeout
+    COLLISION_FORCE: 0.05, // Força de repulsão na colisão
+    FRICTION: 0.98 // Fricção para desacelerar bolhas
 };
 
 // Estado global da aplicação
@@ -133,10 +134,12 @@ class Bubble {
     
     update() {
         // Movimento browniano
-        this.vx += (Math.random() - 0.5) * 0.1;
-        this.vy += (Math.random() - 0.5) * 0.1;
+        this.vx += (Math.random() - 0.5) * CONFIG.COLLISION_FORCE; // Ajustado para usar COLLISION_FORCE
+        this.vy += (Math.random() - 0.5) * CONFIG.COLLISION_FORCE; // Ajustado para usar COLLISION_FORCE
         
-        // Limitar velocidade
+        // Limitar velocidade e aplicar fricção
+        this.vx *= CONFIG.FRICTION;
+        this.vy *= CONFIG.FRICTION;
         this.vx = Math.max(-2, Math.min(2, this.vx));
         this.vy = Math.max(-2, Math.min(2, this.vy));
         
@@ -520,4 +523,3 @@ window.addEventListener('unhandledrejection', function(e) {
 });
 
 console.log('Script carregado com sucesso');
- 
