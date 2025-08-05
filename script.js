@@ -354,3 +354,4 @@ window.addEventListener('beforeunload', () => {
         clearInterval(updateInterval);
     }
 });
+ 
