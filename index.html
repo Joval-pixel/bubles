@@ -342,7 +342,7 @@
                 </div>
                 <div class="status-indicator">
                     <span class="status-dot"></span>
-                    <span class="status-text">Conectado</span>
+                    <span class="status-text">Conectando...</span>
                 </div>
             </div>
         </header>
@@ -388,13 +388,13 @@
         // Configurações globais com TOKEN da Brapi
         const CONFIG = {
             API_URL: 'https://brapi.dev/api/quote/list',
-            API_TOKEN: '5bTDfSmR2ieax6y7JUqDAD', // Seu token da Brapi
+            API_TOKEN: '5bTDfSmR2ieax6y7JUqDAD',
             UPDATE_INTERVAL: 10000,
             MIN_BUBBLES: 50,
             BUBBLE_MIN_SIZE: 40,
             BUBBLE_MAX_SIZE: 120,
             ANIMATION_SPEED: 0.8,
-            API_TIMEOUT: 10000,
+            API_TIMEOUT: 15000,
             COLLISION_FORCE: 0.05,
             FRICTION: 0.98
         };
@@ -409,66 +409,27 @@
 
         // Dados simulados como fallback
         const FALLBACK_DATA = [
-            { symbol: 'PETR4', shortName: 'PETROBRAS', regularMarketPrice: 32.45, regularMarketChangePercent: 2.34, regularMarketVolume: 45678900 },
-            { symbol: 'VALE3', shortName: 'VALE', regularMarketPrice: 65.78, regularMarketChangePercent: -1.23, regularMarketVolume: 38456789 },
-            { symbol: 'ITUB4', shortName: 'ITAU UNIBANCO', regularMarketPrice: 28.90, regularMarketChangePercent: 0.87, regularMarketVolume: 34567890 },
-            { symbol: 'BBDC4', shortName: 'BRADESCO', regularMarketPrice: 15.67, regularMarketChangePercent: -0.45, regularMarketVolume: 29876543 },
-            { symbol: 'ABEV3', shortName: 'AMBEV', regularMarketPrice: 12.34, regularMarketChangePercent: 1.56, regularMarketVolume: 25678901 },
-            { symbol: 'WEGE3', shortName: 'WEG', regularMarketPrice: 45.23, regularMarketChangePercent: 3.21, regularMarketVolume: 23456789 },
-            { symbol: 'MGLU3', shortName: 'MAGAZINE LUIZA', regularMarketPrice: 8.76, regularMarketChangePercent: -2.34, regularMarketVolume: 21345678 },
-            { symbol: 'JBSS3', shortName: 'JBS', regularMarketPrice: 34.56, regularMarketChangePercent: 0.98, regularMarketVolume: 19234567 },
-            { symbol: 'RENT3', shortName: 'LOCALIZA', regularMarketPrice: 67.89, regularMarketChangePercent: -1.87, regularMarketVolume: 18123456 },
-            { symbol: 'LREN3', shortName: 'LOJAS RENNER', regularMarketPrice: 23.45, regularMarketChangePercent: 2.76, regularMarketVolume: 17012345 },
-            { symbol: 'SUZB3', shortName: 'SUZANO', regularMarketPrice: 56.78, regularMarketChangePercent: 1.45, regularMarketVolume: 16901234 },
-            { symbol: 'GGBR4', shortName: 'GERDAU', regularMarketPrice: 19.87, regularMarketChangePercent: -0.89, regularMarketVolume: 15890123 },
-            { symbol: 'USIM5', shortName: 'USIMINAS', regularMarketPrice: 7.65, regularMarketChangePercent: 2.13, regularMarketVolume: 14789012 },
-            { symbol: 'CSNA3', shortName: 'CSN', regularMarketPrice: 13.45, regularMarketChangePercent: -1.67, regularMarketVolume: 13678901 },
-            { symbol: 'EMBR3', shortName: 'EMBRAER', regularMarketPrice: 89.12, regularMarketChangePercent: 3.45, regularMarketVolume: 12567890 },
-            { symbol: 'CIEL3', shortName: 'CIELO', regularMarketPrice: 4.32, regularMarketChangePercent: -0.78, regularMarketVolume: 11456789 },
-            { symbol: 'RADL3', shortName: 'RAIA DROGASIL', regularMarketPrice: 23.67, regularMarketChangePercent: 1.89, regularMarketVolume: 10345678 },
-            { symbol: 'HAPV3', shortName: 'HAPVIDA', regularMarketPrice: 12.89, regularMarketChangePercent: -2.45, regularMarketVolume: 9234567 },
-            { symbol: 'FLRY3', shortName: 'FLEURY', regularMarketPrice: 18.45, regularMarketChangePercent: 0.67, regularMarketVolume: 8123456 },
-            { symbol: 'CCRO3', shortName: 'CCR', regularMarketPrice: 11.23, regularMarketChangePercent: 1.34, regularMarketVolume: 7012345 },
-            { symbol: 'EQTL3', shortName: 'EQUATORIAL', regularMarketPrice: 34.56, regularMarketChangePercent: -1.23, regularMarketVolume: 6901234 },
-            { symbol: 'ELET3', shortName: 'ELETROBRAS', regularMarketPrice: 45.67, regularMarketChangePercent: 2.78, regularMarketVolume: 5890123 },
-            { symbol: 'CPFE3', shortName: 'CPFL ENERGIA', regularMarketPrice: 29.87, regularMarketChangePercent: -0.56, regularMarketVolume: 4789012 },
-            { symbol: 'TAEE11', shortName: 'TAESA', regularMarketPrice: 38.45, regularMarketChangePercent: 1.67, regularMarketVolume: 3678901 },
-            { symbol: 'ENGI11', shortName: 'ENERGISA', regularMarketPrice: 42.13, regularMarketChangePercent: -1.89, regularMarketVolume: 2567890 },
-            { symbol: 'CMIN3', shortName: 'CSNMINERACAO', regularMarketPrice: 5.67, regularMarketChangePercent: 3.45, regularMarketVolume: 1456789 },
-            { symbol: 'GOAU4', shortName: 'GERDAU MET', regularMarketPrice: 8.90, regularMarketChangePercent: -2.13, regularMarketVolume: 1345678 },
-            { symbol: 'KLBN11', shortName: 'KLABIN', regularMarketPrice: 21.34, regularMarketChangePercent: 0.89, regularMarketVolume: 1234567 },
-            { symbol: 'BEEF3', shortName: 'MINERVA', regularMarketPrice: 6.78, regularMarketChangePercent: 1.45, regularMarketVolume: 1123456 },
-            { symbol: 'MRFG3', shortName: 'MARFRIG', regularMarketPrice: 9.87, regularMarketChangePercent: -0.67, regularMarketVolume: 1012345 },
-            { symbol: 'BRFS3', shortName: 'BRF', regularMarketPrice: 14.56, regularMarketChangePercent: 2.34, regularMarketVolume: 901234 },
-            { symbol: 'SMTO3', shortName: 'SAO MARTINHO', regularMarketPrice: 27.89, regularMarketChangePercent: -1.78, regularMarketVolume: 890123 },
-            { symbol: 'CSAN3', shortName: 'COSAN', regularMarketPrice: 19.45, regularMarketChangePercent: 0.98, regularMarketVolume: 789012 },
-            { symbol: 'RAIZ4', shortName: 'RAIZEN', regularMarketPrice: 3.67, regularMarketChangePercent: 1.23, regularMarketVolume: 678901 },
-            { symbol: 'UGPA3', shortName: 'ULTRAPAR', regularMarketPrice: 16.78, regularMarketChangePercent: -0.45, regularMarketVolume: 567890 },
-            { symbol: 'PRIO3', shortName: 'PETRO RIO', regularMarketPrice: 41.23, regularMarketChangePercent: 2.67, regularMarketVolume: 456789 },
-            { symbol: 'RECV3', shortName: 'PETRORECONCAVO', regularMarketPrice: 7.89, regularMarketChangePercent: -1.34, regularMarketVolume: 345678 },
-            { symbol: 'RRRP3', shortName: '3R PETROLEUM', regularMarketPrice: 25.67, regularMarketChangePercent: 3.12, regularMarketVolume: 234567 },
-            { symbol: 'PEAB4', shortName: 'PETROBRAS DISTRIBUIDORA', regularMarketPrice: 18.90, regularMarketChangePercent: -0.78, regularMarketVolume: 123456 },
-            { symbol: 'VIVT3', shortName: 'TELEFONICA BRASIL', regularMarketPrice: 49.87, regularMarketChangePercent: 1.56, regularMarketVolume: 112345 },
-            { symbol: 'TIMS3', shortName: 'TIM', regularMarketPrice: 13.45, regularMarketChangePercent: -2.89, regularMarketVolume: 101234 },
-            { symbol: 'OIBR3', shortName: 'OI', regularMarketPrice: 1.23, regularMarketChangePercent: 4.56, regularMarketVolume: 90123 },
-            { symbol: 'ALUP11', shortName: 'ALUPAR', regularMarketPrice: 22.67, regularMarketChangePercent: -1.45, regularMarketVolume: 89012 },
-            { symbol: 'TRPL4', shortName: 'CTEEP', regularMarketPrice: 35.89, regularMarketChangePercent: 0.67, regularMarketVolume: 78901 },
-            { symbol: 'EGIE3', shortName: 'ENGIE BRASIL', regularMarketPrice: 41.56, regularMarketChangePercent: 1.89, regularMarketVolume: 67890 },
-            { symbol: 'NEOE3', shortName: 'NEOENERGIA', regularMarketPrice: 18.34, regularMarketChangePercent: -0.98, regularMarketVolume: 56789 },
-            { symbol: 'CMIG4', shortName: 'CEMIG', regularMarketPrice: 12.78, regularMarketChangePercent: 2.45, regularMarketVolume: 45678 },
-            { symbol: 'COCE5', shortName: 'COELCE', regularMarketPrice: 29.45, regularMarketChangePercent: -1.67, regularMarketVolume: 34567 },
-            { symbol: 'CESP6', shortName: 'CESP', regularMarketPrice: 33.67, regularMarketChangePercent: 0.89, regularMarketVolume: 23456 },
-            { symbol: 'ELPL4', shortName: 'ELETROPAULO', regularMarketPrice: 44.89, regularMarketChangePercent: 1.34, regularMarketVolume: 12345 }
+            { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 2.34, volume: 45678900 },
+            { stock: 'VALE3', name: 'VALE', close: 65.78, change: -1.23, volume: 38456789 },
+            { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 0.87, volume: 34567890 },
+            { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -0.45, volume: 29876543 },
+            { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 1.56, volume: 25678901 },
+            { stock: 'WEGE3', name: 'WEG', close: 45.23, change: 3.21, volume: 23456789 },
+            { stock: 'MGLU3', name: 'MAGAZINE LUIZA', close: 8.76, change: -2.34, volume: 21345678 },
+            { stock: 'JBSS3', name: 'JBS', close: 34.56, change: 0.98, volume: 19234567 },
+            { stock: 'RENT3', name: 'LOCALIZA', close: 67.89, change: -1.87, volume: 18123456 },
+            { stock: 'LREN3', name: 'LOJAS RENNER', close: 23.45, change: 2.76, volume: 17012345 }
         ];
 
         // Classe Bubble
         class Bubble {
             constructor(data, container) {
-                this.symbol = data.symbol;
-                this.name = data.shortName || data.symbol;
-                this.price = data.regularMarketPrice || 0;
-                this.change = data.regularMarketChangePercent || 0;
-                this.volume = data.regularMarketVolume || 0;
+                // Adaptar para estrutura da API Brapi
+                this.symbol = data.stock || data.symbol;
+                this.name = data.name || data.shortName || this.symbol;
+                this.price = data.close || data.regularMarketPrice || 0;
+                this.change = data.change || data.regularMarketChangePercent || 0;
+                this.volume = data.volume || data.regularMarketVolume || 0;
                 
                 this.container = container;
                 this.element = null;
@@ -582,16 +543,17 @@
             }
         }
 
-        // Função para buscar dados da API com TOKEN
+        // Função para buscar dados da API com TOKEN - CORRIGIDA DEFINITIVAMENTE
         async function fetchStockData() {
             try {
-                console.log('Buscando dados da API Brapi com token...');
+                console.log('🔄 Buscando dados da API Brapi com token...');
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
                 
                 // URL com token de autenticação
                 const url = `${CONFIG.API_URL}?token=${CONFIG.API_TOKEN}&sortBy=volume&sortOrder=desc&limit=100`;
+                console.log('🌐 URL da API:', url);
                 
                 const response = await fetch(url, {
                     signal: controller.signal,
@@ -608,14 +570,26 @@
                 }
                 
                 const data = await response.json();
-                console.log('✅ Dados REAIS recebidos da API Brapi:', data);
+                console.log('📊 Resposta da API recebida:', data);
+                console.log('🔍 Verificando data.stocks:', !!data.stocks);
+                console.log('📈 Quantidade de stocks:', data.stocks ? data.stocks.length : 0);
                 
-                if (data.results && data.results.length > 0) {
+                // CORREÇÃO DEFINITIVA: Verificação mais robusta
+                if (data && data.stocks && Array.isArray(data.stocks) && data.stocks.length > 0) {
                     useSimulatedData = false;
-                    console.log(`✅ ${data.results.length} ações carregadas com sucesso!`);
-                    return data.results;
+                    console.log(`✅ ${data.stocks.length} ações REAIS carregadas da Brapi!`);
+                    console.log('📈 Primeira ação:', data.stocks[0]);
+                    
+                    // Esconder mensagem de erro se estiver visível
+                    const errorElement = document.getElementById('errorMessage');
+                    if (errorElement) {
+                        errorElement.style.display = 'none';
+                    }
+                    
+                    return data.stocks;
                 } else {
-                    throw new Error('Nenhum dado recebido da API');
+                    console.warn('⚠️ Estrutura de dados inesperada:', data);
+                    throw new Error('Estrutura de dados da API não reconhecida');
                 }
             } catch (error) {
                 console.error('❌ Erro ao buscar dados da API:', error);
@@ -629,7 +603,7 @@
             console.log('⚠️ Usando dados simulados como fallback...');
             return FALLBACK_DATA.map(stock => ({
                 ...stock,
-                regularMarketChangePercent: (Math.random() - 0.5) * 14
+                change: (Math.random() - 0.5) * 14
             }));
         }
 
@@ -644,11 +618,11 @@
         }
 
         function createBubbles(stockData) {
-            console.log('Criando bolhas com', stockData.length, 'ações');
+            console.log(`🫧 Criando bolhas com ${stockData.length} ações`);
             const container = document.getElementById('bubbleContainer');
             
             if (!container) {
-                console.error('Container de bolhas não encontrado!');
+                console.error('❌ Container de bolhas não encontrado!');
                 return;
             }
             
@@ -662,11 +636,11 @@
                     const bubble = new Bubble(stock, container);
                     bubbles.push(bubble);
                 } catch (error) {
-                    console.error(`Erro ao criar bolha ${index}:`, error);
+                    console.error(`❌ Erro ao criar bolha ${index}:`, error);
                 }
             });
             
-            console.log('Criadas', bubbles.length, 'bolhas');
+            console.log(`✅ ${bubbles.length} bolhas criadas com sucesso`);
             hideLoading();
         }
 
@@ -679,7 +653,7 @@
                         bubble.checkCollision(bubbles[i]);
                     }
                 } catch (error) {
-                    console.error(`Erro ao atualizar bolha ${index}:`, error);
+                    console.error(`❌ Erro ao atualizar bolha ${index}:`, error);
                 }
             });
         }
@@ -689,7 +663,7 @@
                 updateBubbles();
                 animationId = requestAnimationFrame(animate);
             } catch (error) {
-                console.error('Erro na animação:', error);
+                console.error('❌ Erro na animação:', error);
                 setTimeout(() => {
                     animationId = requestAnimationFrame(animate);
                 }, 1000);
@@ -702,7 +676,6 @@
                 loadingElement.style.display = 'none';
             }
             isLoading = false;
-            console.log('Loading ocultado');
         }
 
         function updateLastUpdateTime() {
@@ -728,38 +701,25 @@
                     statusText.textContent = 'Dados simulados';
                 } else {
                     statusDot.style.background = '#00ff88';
-                    statusText.textContent = 'Dados reais';
+                    statusText.textContent = 'Dados reais Brapi';
                 }
             }
         }
 
         function openStockModal(symbol, name, currentPrice, changePercent) {
-            console.log(`Abrindo modal para ${symbol}`);
+            console.log(`📊 Abrindo modal para ${symbol}`);
             
             const modal = document.getElementById('tradingViewModal');
             const modalTitle = document.getElementById('modalTitle');
             const widgetContainer = document.getElementById('tradingViewWidget');
             
             if (!modal || !modalTitle || !widgetContainer) {
-                console.error('Elementos do modal não encontrados');
+                console.error('❌ Elementos do modal não encontrados');
                 return;
             }
             
             modalTitle.textContent = `${symbol} - ${name}`;
             modal.style.display = 'flex';
-            
-            let days = 30;
-            switch (currentFilter) {
-                case 'day':
-                    days = 1;
-                    break;
-                case 'week':
-                    days = 7;
-                    break;
-                case 'month':
-                    days = 30;
-                    break;
-            }
             
             const periodText = currentFilter === 'day' ? 'Hoje' : 
                              currentFilter === 'week' ? 'Esta semana' : 'Este mês';
@@ -801,9 +761,9 @@
                                 <span style="color: white;">${periodText}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #888;">Status:</span>
+                                <span style="color: #888;">Fonte:</span>
                                 <span style="color: ${useSimulatedData ? '#ff4444' : '#00ff88'};">
-                                    ${useSimulatedData ? 'Dados Simulados' : 'Dados Reais da Brapi'}
+                                    ${useSimulatedData ? 'Dados Simulados' : 'API Brapi (Dados Reais)'}
                                 </span>
                             </div>
                         </div>
@@ -827,7 +787,7 @@
         }
 
         function setTimeFilter(filter) {
-            console.log(`Definindo filtro de tempo: ${filter}`);
+            console.log(`⏰ Definindo filtro de tempo: ${filter}`);
             
             currentFilter = filter;
             
@@ -838,12 +798,8 @@
             const activeBtn = document.querySelector(`[data-filter="${filter}"]`);
             if (activeBtn) {
                 activeBtn.classList.add('active');
-                console.log(`Botão ${filter} ativado com sucesso`);
-            } else {
-                console.error(`Botão com data-filter="${filter}" não encontrado`);
+                console.log(`✅ Botão ${filter} ativado com sucesso`);
             }
-            
-            console.log(`Filtro de tempo atualizado para: ${filter}`);
         }
 
         async function initializeApp() {
@@ -882,11 +838,8 @@
             document.querySelectorAll('.time-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const filter = e.target.getAttribute('data-filter');
-                    console.log(`Clique no botão: ${filter}`);
                     if (filter) {
                         setTimeFilter(filter);
-                    } else {
-                        console.error('Atributo data-filter não encontrado no botão');
                     }
                 });
             });
@@ -896,7 +849,6 @@
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
                     const searchTerm = e.target.value.toLowerCase();
-                    console.log(`Buscando por: ${searchTerm}`);
                     
                     bubbles.forEach(bubble => {
                         const isVisible = bubble.symbol.toLowerCase().includes(searchTerm) || 
@@ -916,13 +868,11 @@
                 });
             }
             
-            // Configurar botão de fechar modal
             const closeBtn = document.querySelector('.modal-close');
             if (closeBtn) {
                 closeBtn.addEventListener('click', closeModal);
             }
             
-            // Configurar tecla ESC para fechar modal
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     closeModal();
@@ -935,4 +885,3 @@
     </script>
 </body>
 </html>
- 
