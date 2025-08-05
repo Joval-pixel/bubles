@@ -1,13 +1,14 @@
+// Configurações globais
 const CONFIG = {
     API_URL: 'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=100',
     UPDATE_INTERVAL: 10000, // 10 segundos
     MIN_BUBBLES: 50,
-    BUBBLE_MIN_SIZE: 40,
-    BUBBLE_MAX_SIZE: 120,
-    ANIMATION_SPEED: 0.8, // Aumentado para movimento mais suave
+    BUBBLE_MIN_SIZE: 25, // Reduzido ainda mais para mobile
+    BUBBLE_MAX_SIZE: 80, // Reduzido ainda mais para mobile
+    ANIMATION_SPEED: 0.01, // Reduzido drasticamente para movimento muito lento
     API_TIMEOUT: 5000, // 5 segundos timeout
-    COLLISION_FORCE: 0.05, // Força de repulsão na colisão
-    FRICTION: 0.98 // Fricção para desacelerar bolhas
+    COLLISION_FORCE: 0.7, // Aumentado para repulsão muito forte
+    FRICTION: 0.5 // Aumentado para fricção muito alta (quase parando)
 };
 
 // Estado global da aplicação
@@ -85,6 +86,7 @@ class Bubble {
         
         // Propriedades físicas
         this.size = this.calculateSize();
+        // Ajustar posição inicial para evitar aglomeração
         this.x = Math.random() * Math.max(0, container.clientWidth - this.size);
         this.y = Math.random() * Math.max(0, container.clientHeight - this.size);
         this.vx = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
@@ -99,7 +101,10 @@ class Bubble {
         const minVolume = 100000;
         const maxVolume = 50000000;
         const normalizedVolume = Math.log(Math.max(this.volume, minVolume)) / Math.log(maxVolume);
-        return CONFIG.BUBBLE_MIN_SIZE + (CONFIG.BUBBLE_MAX_SIZE - CONFIG.BUBBLE_MIN_SIZE) * Math.min(normalizedVolume, 1);
+        // Ajustar o range de tamanho para mobile
+        const minSize = CONFIG.BUBBLE_MIN_SIZE * (window.innerWidth < 768 ? 0.2 : 1); // Reduzir ainda mais para mobile
+        const maxSize = CONFIG.BUBBLE_MAX_SIZE * (window.innerWidth < 768 ? 0.2 : 1); // Reduzir ainda mais para mobile
+        return minSize + (maxSize - minSize) * Math.min(normalizedVolume, 1);
     }
     
     createElement() {
@@ -140,8 +145,8 @@ class Bubble {
         // Limitar velocidade e aplicar fricção
         this.vx *= CONFIG.FRICTION;
         this.vy *= CONFIG.FRICTION;
-        this.vx = Math.max(-2, Math.min(2, this.vx));
-        this.vy = Math.max(-2, Math.min(2, this.vy));
+        this.vx = Math.max(-0.1, Math.min(0.1, this.vx)); // Velocidade máxima reduzida
+        this.vy = Math.max(-0.1, Math.min(0.1, this.vy)); // Velocidade máxima reduzida
         
         // Atualizar posição
         this.x += this.vx;
