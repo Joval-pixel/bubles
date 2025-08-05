@@ -198,25 +198,28 @@
         }
 
         .bubble-symbol {
-            font-size: 14px;
+            font-size: 16px; /* Aumentado de 14px para 16px */
             font-weight: bold;
-            margin-bottom: 2px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-            filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.3));
+            margin-bottom: 3px; /* Aumentado de 2px para 3px */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9); /* Sombra mais forte */
+            filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)); /* Brilho mais forte */
+            color: white;
         }
 
         .bubble-change {
-            font-size: 12px;
-            margin-bottom: 2px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-            filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.3));
+            font-size: 14px; /* Aumentado de 12px para 14px */
+            margin-bottom: 3px; /* Aumentado de 2px para 3px */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9); /* Sombra mais forte */
+            filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)); /* Brilho mais forte */
+            color: white;
         }
 
         .bubble-price {
-            font-size: 10px;
-            opacity: 0.9;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-            filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.3));
+            font-size: 12px; /* Aumentado de 10px para 12px */
+            opacity: 1; /* Aumentado de 0.9 para 1 */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9); /* Sombra mais forte */
+            filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)); /* Brilho mais forte */
+            color: white;
         }
 
         .loading-indicator {
@@ -674,7 +677,9 @@
             MIN_BUBBLES: 50,
             BUBBLE_MIN_SIZE: 40,
             BUBBLE_MAX_SIZE: 120,
-            ANIMATION_SPEED: 0.5,
+            // Velocidades diferentes para ações e criptomoedas
+            STOCKS_ANIMATION_SPEED: 0.5,
+            CRYPTO_ANIMATION_SPEED: 0.2, // Muito mais lento para criptomoedas
             API_TIMEOUT: 15000,
             COLLISION_FORCE: 0.03,
             FRICTION: 0.99,
@@ -718,53 +723,17 @@
                     { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 1.56, volume: 25678901 },
                     { stock: 'DASA3', name: 'DASA', close: 1.51, change: 10.22, volume: 15678901 },
                     { stock: 'FNAM11', name: 'FNAM11', close: 0.36, change: 5.88, volume: 12345678 }
-                ],
-                '5d': [
-                    { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 3.45, volume: 45678900 },
-                    { stock: 'VALE3', name: 'VALE', close: 65.78, change: -2.67, volume: 38456789 },
-                    { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 1.98, volume: 34567890 },
-                    { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -1.23, volume: 29876543 },
-                    { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 2.78, volume: 25678901 },
-                    { stock: 'DASA3', name: 'DASA', close: 1.51, change: 12.45, volume: 15678901 },
-                    { stock: 'FNAM11', name: 'FNAM11', close: 0.36, change: 7.23, volume: 12345678 }
-                ],
-                '1mo': [
-                    { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 5.67, volume: 45678900 },
-                    { stock: 'VALE3', name: 'VALE', close: 65.78, change: -4.56, volume: 38456789 },
-                    { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 3.45, volume: 34567890 },
-                    { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -2.34, volume: 29876543 },
-                    { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 4.56, volume: 25678901 },
-                    { stock: 'DASA3', name: 'DASA', close: 1.51, change: 15.67, volume: 15678901 },
-                    { stock: 'FNAM11', name: 'FNAM11', close: 0.36, change: 9.45, volume: 12345678 }
                 ]
             },
             crypto: {
                 '1d': [
                     { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', current_price: 62345.78, price_change_percentage_24h: 2.34, market_cap: 1234567890 },
                     { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', current_price: 3456.78, price_change_percentage_24h: -1.23, market_cap: 567890123 },
-                    { id: 'binancecoin', symbol: 'BNB', name: 'Binance Coin', current_price: 456.78, price_change_percentage_24h: 0.87, market_cap: 78901234 },
+                    { id: 'binancecoin', symbol: 'BNB', name: 'BNB', current_price: 456.78, price_change_percentage_24h: 0.87, market_cap: 78901234 },
                     { id: 'solana', symbol: 'SOL', name: 'Solana', current_price: 123.45, price_change_percentage_24h: -0.45, market_cap: 45678901 },
                     { id: 'cardano', symbol: 'ADA', name: 'Cardano', current_price: 0.56, price_change_percentage_24h: 1.56, market_cap: 23456789 },
                     { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', current_price: 0.12, price_change_percentage_24h: 10.22, market_cap: 12345678 },
                     { id: 'polkadot', symbol: 'DOT', name: 'Polkadot', current_price: 8.90, price_change_percentage_24h: 5.88, market_cap: 9876543 }
-                ],
-                '5d': [
-                    { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', current_price: 62345.78, price_change_percentage_24h: 3.45, market_cap: 1234567890 },
-                    { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', current_price: 3456.78, price_change_percentage_24h: -2.67, market_cap: 567890123 },
-                    { id: 'binancecoin', symbol: 'BNB', name: 'Binance Coin', current_price: 456.78, price_change_percentage_24h: 1.98, market_cap: 78901234 },
-                    { id: 'solana', symbol: 'SOL', name: 'Solana', current_price: 123.45, price_change_percentage_24h: -1.23, market_cap: 45678901 },
-                    { id: 'cardano', symbol: 'ADA', name: 'Cardano', current_price: 0.56, price_change_percentage_24h: 2.78, market_cap: 23456789 },
-                    { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', current_price: 0.12, price_change_percentage_24h: 12.45, market_cap: 12345678 },
-                    { id: 'polkadot', symbol: 'DOT', name: 'Polkadot', current_price: 8.90, price_change_percentage_24h: 7.23, market_cap: 9876543 }
-                ],
-                '1mo': [
-                    { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', current_price: 62345.78, price_change_percentage_24h: 5.67, market_cap: 1234567890 },
-                    { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', current_price: 3456.78, price_change_percentage_24h: -4.56, market_cap: 567890123 },
-                    { id: 'binancecoin', symbol: 'BNB', name: 'Binance Coin', current_price: 456.78, price_change_percentage_24h: 3.45, market_cap: 78901234 },
-                    { id: 'solana', symbol: 'SOL', name: 'Solana', current_price: 123.45, price_change_percentage_24h: -2.34, market_cap: 45678901 },
-                    { id: 'cardano', symbol: 'ADA', name: 'Cardano', current_price: 0.56, price_change_percentage_24h: 4.56, market_cap: 23456789 },
-                    { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', current_price: 0.12, price_change_percentage_24h: 15.67, market_cap: 12345678 },
-                    { id: 'polkadot', symbol: 'DOT', name: 'Polkadot', current_price: 8.90, price_change_percentage_24h: 9.45, market_cap: 9876543 }
                 ]
             }
         };
@@ -780,7 +749,7 @@
                     this.change = data.change || data.regularMarketChangePercent || 0;
                     this.volume = data.volume || data.regularMarketVolume || 0;
                 } else {
-                    this.symbol = data.symbol || data.id;
+                    this.symbol = (data.symbol || data.id || '').toUpperCase();
                     this.name = data.name || this.symbol;
                     this.price = data.current_price || 0;
                     this.change = data.price_change_percentage_24h || 0;
@@ -802,9 +771,10 @@
                 this.x = CONFIG.BUBBLE_MARGIN + Math.random() * (containerWidth - this.size - CONFIG.BUBBLE_MARGIN * 2);
                 this.y = CONFIG.BUBBLE_MARGIN + Math.random() * (containerHeight - this.size - CONFIG.BUBBLE_MARGIN * 2);
                 
-                // Velocidade inicial aleatória (mais lenta que antes)
-                this.vx = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
-                this.vy = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
+                // Velocidade inicial aleatória (diferente para ações e criptomoedas)
+                const animationSpeed = currentMarket === 'stocks' ? CONFIG.STOCKS_ANIMATION_SPEED : CONFIG.CRYPTO_ANIMATION_SPEED;
+                this.vx = (Math.random() - 0.5) * animationSpeed;
+                this.vy = (Math.random() - 0.5) * animationSpeed;
                 
                 this.createElement();
                 this.updateContent();
@@ -845,7 +815,9 @@
                 this.element.className = `bubble ${colorClass}`;
                 
                 const changeSign = this.change > 0 ? '+' : '';
-                const fontSize = Math.max(10, this.size / 8);
+                
+                // Tamanho de fonte baseado no tamanho da bolha, mas com mínimos maiores
+                const baseFontSize = Math.max(12, this.size / 6); // Aumentado de 8 para 6
                 
                 // Formatar preço diferente para ações e criptomoedas
                 let formattedPrice;
@@ -863,9 +835,9 @@
                 }
                 
                 this.element.innerHTML = `
-                    <div class="bubble-symbol" style="font-size: ${fontSize}px">${this.symbol}</div>
-                    <div class="bubble-change" style="font-size: ${fontSize * 0.8}px">${changeSign}${this.change.toFixed(2)}%</div>
-                    <div class="bubble-price" style="font-size: ${fontSize * 0.7}px">${formattedPrice}</div>
+                    <div class="bubble-symbol" style="font-size: ${baseFontSize}px">${this.symbol}</div>
+                    <div class="bubble-change" style="font-size: ${baseFontSize * 0.85}px">${changeSign}${this.change.toFixed(2)}%</div>
+                    <div class="bubble-price" style="font-size: ${baseFontSize * 0.75}px">${formattedPrice}</div>
                 `;
             }
             
@@ -878,8 +850,8 @@
                 this.vx *= CONFIG.FRICTION;
                 this.vy *= CONFIG.FRICTION;
                 
-                // Limitar velocidade máxima
-                const maxSpeed = 0.5;
+                // Limitar velocidade máxima (diferente para ações e criptomoedas)
+                const maxSpeed = currentMarket === 'stocks' ? 0.5 : 0.2; // Criptomoedas mais lentas
                 this.vx = Math.max(-maxSpeed, Math.min(maxSpeed, this.vx));
                 this.vy = Math.max(-maxSpeed, Math.min(maxSpeed, this.vy));
                 
@@ -1004,16 +976,16 @@
             }
         }
 
-        // Função para buscar dados de criptomoedas
+        // Função para buscar dados de criptomoedas (150 mais negociadas)
         async function fetchCryptoData(period = '1d') {
             try {
-                console.log(`🔄 Buscando dados de criptomoedas...`);
+                console.log(`🔄 Buscando dados de criptomoedas (150 mais negociadas)...`);
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
                 
-                // Parâmetros para a API do CoinGecko
-                const url = `${CONFIG.CRYPTO_API_URL}?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h`;
+                // Parâmetros para a API do CoinGecko - 150 criptomoedas mais negociadas
+                const url = `${CONFIG.CRYPTO_API_URL}?vs_currency=usd&order=market_cap_desc&per_page=150&page=1&sparkline=false&price_change_percentage=24h`;
                 
                 const response = await fetch(url, {
                     signal: controller.signal,
@@ -1059,7 +1031,7 @@
             const now = new Date();
             const data = [];
             
-            // Usar preço atual da ação se disponível
+            // Usar preço atual se disponível
             let basePrice = currentPrice || 20;
             
             // Gerar 100 pontos de dados de candlestick simulados
@@ -1130,7 +1102,7 @@
             bubbles.forEach(bubble => bubble.destroy());
             bubbles = [];
             
-            // Usar no máximo 100 itens
+            // Usar todos os dados disponíveis (até 150 para criptomoedas)
             const dataToUse = data.slice(0, Math.max(CONFIG.MIN_BUBBLES, data.length));
             
             // Criar novas bolhas
@@ -1356,14 +1328,8 @@
                     // Gerar dados de candlestick
                     const candlestickData = generateCandlestickData(symbol, currentInterval, currentPrice);
                     
-                    // Verificar se Lightweight Charts está disponível
-                    if (isLightweightChartsAvailable) {
-                        // Criar gráfico de candlestick
-                        createCandlestickChart(chartContainer, candlestickData, symbol, changePercent >= 0);
-                    } else {
-                        // Criar gráfico de fallback
-                        createFallbackChart(chartContainer, candlestickData, symbol, name, currentPrice, changePercent);
-                    }
+                    // Criar gráfico de fallback (mais confiável)
+                    createFallbackChart(chartContainer, candlestickData, symbol, name, currentPrice, changePercent);
                     
                     // Esconder loading
                     if (chartLoading) {
@@ -1382,183 +1348,6 @@
                     }
                 }
             }, 100);
-        }
-
-        // Função para criar gráfico de candlestick
-        function createCandlestickChart(container, data, symbol, isPositive) {
-            console.log(`📊 Criando gráfico de candlestick para ${symbol} com ${data.length} pontos de dados`);
-            
-            try {
-                // Destruir gráfico anterior se existir
-                if (chartInstance) {
-                    chartInstance.remove();
-                    chartInstance = null;
-                    candleSeries = null;
-                }
-                
-                // Criar div para o gráfico
-                const chartDiv = document.createElement('div');
-                chartDiv.id = 'candlestickChart';
-                chartDiv.style.width = '100%';
-                chartDiv.style.height = '100%';
-                container.appendChild(chartDiv);
-                
-                // Verificar novamente se Lightweight Charts está disponível
-                if (typeof LightweightCharts === 'undefined') {
-                    throw new Error('Lightweight Charts não está disponível');
-                }
-                
-                // Criar gráfico usando Lightweight Charts
-                chartInstance = LightweightCharts.createChart(chartDiv, {
-                    width: chartDiv.clientWidth,
-                    height: chartDiv.clientHeight,
-                    layout: {
-                        background: { color: '#1a1a1a' },
-                        textColor: '#d9d9d9',
-                    },
-                    grid: {
-                        vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
-                        horzLines: { color: 'rgba(42, 46, 57, 0.5)' },
-                    },
-                    timeScale: {
-                        timeVisible: true,
-                        secondsVisible: false,
-                        borderColor: '#333',
-                    },
-                    rightPriceScale: {
-                        borderColor: '#333',
-                    },
-                    crosshair: {
-                        mode: LightweightCharts.CrosshairMode.Normal,
-                        vertLine: {
-                            color: '#555',
-                            width: 1,
-                            style: LightweightCharts.LineStyle.Dashed,
-                        },
-                        horzLine: {
-                            color: '#555',
-                            width: 1,
-                            style: LightweightCharts.LineStyle.Dashed,
-                        },
-                    },
-                });
-                
-                // Adicionar série de candlestick
-                candleSeries = chartInstance.addCandlestickSeries({
-                    upColor: '#22c55e',
-                    downColor: '#ef4444',
-                    borderUpColor: '#22c55e',
-                    borderDownColor: '#ef4444',
-                    wickUpColor: '#22c55e',
-                    wickDownColor: '#ef4444',
-                });
-                
-                // Formatar dados para o formato esperado pelo Lightweight Charts
-                const formattedData = data.map(item => {
-                    // Converter string de data para timestamp
-                    const timestamp = new Date(item.date).getTime() / 1000;
-                    
-                    return {
-                        time: timestamp,
-                        open: item.open,
-                        high: item.high,
-                        low: item.low,
-                        close: item.close
-                    };
-                });
-                
-                // Definir dados da série
-                candleSeries.setData(formattedData);
-                
-                // Ajustar escala de tempo para mostrar todos os dados
-                chartInstance.timeScale().fitContent();
-                
-                // Adicionar título ao gráfico
-                const symbolTitle = document.createElement('div');
-                symbolTitle.style.position = 'absolute';
-                symbolTitle.style.top = '10px';
-                symbolTitle.style.left = '10px';
-                symbolTitle.style.color = isPositive ? '#22c55e' : '#ef4444';
-                symbolTitle.style.fontSize = '16px';
-                symbolTitle.style.fontWeight = 'bold';
-                
-                // Formatar preço
-                let formattedPrice;
-                if (currentMarket === 'stocks') {
-                    formattedPrice = `R$ ${data[data.length - 1].close.toFixed(2)}`;
-                } else {
-                    const price = data[data.length - 1].close;
-                    if (price >= 1000) {
-                        formattedPrice = `$${price.toFixed(0)}`;
-                    } else if (price >= 1) {
-                        formattedPrice = `$${price.toFixed(2)}`;
-                    } else {
-                        formattedPrice = `$${price.toFixed(4)}`;
-                    }
-                }
-                
-                symbolTitle.textContent = `${symbol} - ${formattedPrice}`;
-                chartDiv.appendChild(symbolTitle);
-                
-                // Adicionar variação ao gráfico
-                const lastClose = data[data.length - 1].close;
-                const firstOpen = data[0].open;
-                const chartChange = ((lastClose - firstOpen) / firstOpen) * 100;
-                const changeText = document.createElement('div');
-                changeText.style.position = 'absolute';
-                changeText.style.top = '10px';
-                changeText.style.right = '10px';
-                changeText.style.color = chartChange >= 0 ? '#22c55e' : '#ef4444';
-                changeText.style.fontSize = '16px';
-                changeText.style.fontWeight = 'bold';
-                changeText.textContent = `${chartChange >= 0 ? '+' : ''}${chartChange.toFixed(2)}%`;
-                chartDiv.appendChild(changeText);
-                
-                console.log(`✅ Gráfico de candlestick criado com sucesso para ${symbol}`);
-                
-                // Ajustar tamanho do gráfico quando a janela for redimensionada
-                const resizeChart = () => {
-                    if (chartInstance) {
-                        chartInstance.resize(chartDiv.clientWidth, chartDiv.clientHeight);
-                        chartInstance.timeScale().fitContent();
-                    }
-                };
-                
-                window.addEventListener('resize', resizeChart);
-                
-                // Limpar listener quando o modal for fechado
-                const modal = document.getElementById('stockModal');
-                if (modal) {
-                    const originalDisplay = modal.style.display;
-                    const observer = new MutationObserver((mutations) => {
-                        mutations.forEach((mutation) => {
-                            if (mutation.attributeName === 'style' && modal.style.display !== originalDisplay) {
-                                window.removeEventListener('resize', resizeChart);
-                                observer.disconnect();
-                            }
-                        });
-                    });
-                    observer.observe(modal, { attributes: true });
-                }
-                
-            } catch (error) {
-                console.error('❌ Erro ao criar gráfico de candlestick:', error);
-                
-                // Obter informações para gráfico de fallback
-                const stockInfo = document.getElementById('stockInfo');
-                const changeElement = stockInfo ? stockInfo.querySelector('.info-value.positive, .info-value.negative') : null;
-                const isPositive = changeElement ? changeElement.classList.contains('positive') : true;
-                
-                // Obter nome e preço atual
-                const modalTitle = document.getElementById('modalTitle');
-                const titleText = modalTitle ? modalTitle.textContent : symbol;
-                const name = titleText.split(' - ')[1] || symbol;
-                const currentPrice = data.length > 0 ? data[data.length - 1].close : 0;
-                const changePercent = isPositive ? 1 : -1;
-                
-                // Criar gráfico de fallback
-                createFallbackChart(container, data, symbol, name, currentPrice, changePercent);
-            }
         }
 
         function closeModal() {
@@ -1665,7 +1454,7 @@
             if (currentMarket === 'stocks') {
                 currentItem = stockData.find(item => item.stock === symbol || item.symbol === symbol);
             } else {
-                currentItem = stockData.find(item => item.symbol === symbol || item.id === symbol);
+                currentItem = stockData.find(item => (item.symbol || '').toUpperCase() === symbol || item.id === symbol.toLowerCase());
             }
             
             // Obter preço atual
@@ -1702,14 +1491,8 @@
                     chartContainer.removeChild(chartContainer.firstChild);
                 }
                 
-                // Verificar se Lightweight Charts está disponível
-                if (isLightweightChartsAvailable) {
-                    // Criar gráfico de candlestick
-                    createCandlestickChart(chartContainer, candlestickData, symbol, changePercent >= 0);
-                } else {
-                    // Criar gráfico de fallback
-                    createFallbackChart(chartContainer, candlestickData, symbol, name, currentPrice, changePercent);
-                }
+                // Criar gráfico de fallback
+                createFallbackChart(chartContainer, candlestickData, symbol, name, currentPrice, changePercent);
                 
                 // Esconder loading
                 if (chartLoading) {
@@ -1838,15 +1621,6 @@
         // Event listeners
         document.addEventListener('DOMContentLoaded', () => {
             console.log('📄 DOM carregado, inicializando...');
-            
-            // Verificar se Lightweight Charts está disponível
-            try {
-                isLightweightChartsAvailable = typeof LightweightCharts !== 'undefined';
-                console.log(`✅ Lightweight Charts disponível: ${isLightweightChartsAvailable}`);
-            } catch (error) {
-                console.error('❌ Erro ao verificar Lightweight Charts:', error);
-                isLightweightChartsAvailable = false;
-            }
             
             // Configurar botões de mercado
             const stocksBtn = document.getElementById('stocksBtn');
