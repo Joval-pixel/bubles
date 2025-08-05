@@ -24,7 +24,7 @@
             height: 100vh;
             position: relative;
             overflow: hidden;
-            background: radial-gradient(ellipse at center, #111111 0%, #0a0a0a 100%);
+            background: radial-gradient(ellipse at center, #1a1a1a 0%, #0a0a0a 100%);
         }
 
         .header {
@@ -99,6 +99,7 @@
             background: #22c55e;
             color: #0a0a0a;
             border-color: #22c55e;
+            font-weight: bold;
         }
 
         .status-indicator {
@@ -144,39 +145,59 @@
             z-index: 100;
         }
 
-        /* Cores idênticas ao CryptoBubbles */
+        /* Gradientes 3D idênticos ao CryptoBubbles */
         .bubble.positive {
-            background: radial-gradient(circle at 30% 30%, #22c55e 0%, #16a34a 70%, #15803d 100%);
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), 0 0 40px rgba(34, 197, 94, 0.2);
+            background: radial-gradient(circle at 25% 25%, #4ade80 0%, #22c55e 35%, #16a34a 70%, #15803d 100%);
+            box-shadow: 
+                0 0 0 1px rgba(34, 197, 94, 0.3),
+                0 2px 8px rgba(34, 197, 94, 0.4),
+                0 4px 16px rgba(34, 197, 94, 0.3),
+                0 8px 32px rgba(34, 197, 94, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
         }
 
         .bubble.negative {
-            background: radial-gradient(circle at 30% 30%, #ef4444 0%, #dc2626 70%, #b91c1c 100%);
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), 0 0 40px rgba(239, 68, 68, 0.2);
+            background: radial-gradient(circle at 25% 25%, #f87171 0%, #ef4444 35%, #dc2626 70%, #b91c1c 100%);
+            box-shadow: 
+                0 0 0 1px rgba(239, 68, 68, 0.3),
+                0 2px 8px rgba(239, 68, 68, 0.4),
+                0 4px 16px rgba(239, 68, 68, 0.3),
+                0 8px 32px rgba(239, 68, 68, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
         }
 
         .bubble.neutral {
-            background: radial-gradient(circle at 30% 30%, #6b7280 0%, #4b5563 70%, #374151 100%);
-            box-shadow: 0 0 15px rgba(107, 114, 128, 0.3);
+            background: radial-gradient(circle at 25% 25%, #9ca3af 0%, #6b7280 35%, #4b5563 70%, #374151 100%);
+            box-shadow: 
+                0 0 0 1px rgba(107, 114, 128, 0.3),
+                0 2px 8px rgba(107, 114, 128, 0.3),
+                0 4px 16px rgba(107, 114, 128, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
         }
 
         .bubble-symbol {
             font-size: 14px;
             font-weight: bold;
             margin-bottom: 2px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.3));
         }
 
         .bubble-change {
             font-size: 12px;
             margin-bottom: 2px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.3));
         }
 
         .bubble-price {
             font-size: 10px;
             opacity: 0.9;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.3));
         }
 
         .loading-indicator {
@@ -428,7 +449,7 @@
             { stock: 'LREN3', name: 'LOJAS RENNER', close: 23.45, change: 2.76, volume: 17012345 }
         ];
 
-        // Classe Bubble com cores do CryptoBubbles
+        // Classe Bubble com gradientes 3D corretos
         class Bubble {
             constructor(data, container) {
                 // Adaptar para estrutura da API Brapi
@@ -476,7 +497,7 @@
             }
             
             updateContent() {
-                // Cores idênticas ao CryptoBubbles
+                // Cores com gradientes 3D
                 const colorClass = this.change > 0 ? 'positive' : this.change < 0 ? 'negative' : 'neutral';
                 this.element.className = `bubble ${colorClass}`;
                 
@@ -785,19 +806,24 @@
             }
         }
 
+        // CORREÇÃO DOS BOTÕES - Função corrigida
         function setTimeFilter(filter) {
             console.log(`⏰ Definindo filtro de tempo: ${filter}`);
             
             currentFilter = filter;
             
+            // Remover classe active de todos os botões
             document.querySelectorAll('.time-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
+            // Adicionar classe active ao botão clicado
             const activeBtn = document.querySelector(`[data-filter="${filter}"]`);
             if (activeBtn) {
                 activeBtn.classList.add('active');
                 console.log(`✅ Botão ${filter} ativado com sucesso`);
+            } else {
+                console.error(`❌ Botão com data-filter="${filter}" não encontrado`);
             }
         }
 
@@ -829,16 +855,29 @@
             }
         }
 
-        // Event listeners
+        // Event listeners - CORRIGIDOS
         document.addEventListener('DOMContentLoaded', () => {
             console.log('📄 DOM carregado, inicializando...');
             
-            // Configurar botões de tempo
-            document.querySelectorAll('.time-btn').forEach(btn => {
+            // CORREÇÃO: Configurar botões de tempo com logs detalhados
+            const timeButtons = document.querySelectorAll('.time-btn');
+            console.log(`🔘 Encontrados ${timeButtons.length} botões de tempo`);
+            
+            timeButtons.forEach((btn, index) => {
+                const filter = btn.getAttribute('data-filter');
+                console.log(`🔘 Botão ${index}: data-filter="${filter}"`);
+                
                 btn.addEventListener('click', (e) => {
-                    const filter = e.target.getAttribute('data-filter');
-                    if (filter) {
-                        setTimeFilter(filter);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const clickedFilter = e.target.getAttribute('data-filter');
+                    console.log(`🖱️ Botão clicado: ${clickedFilter}`);
+                    
+                    if (clickedFilter) {
+                        setTimeFilter(clickedFilter);
+                    } else {
+                        console.error('❌ data-filter não encontrado no botão clicado');
                     }
                 });
             });
