@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BUBLES - Ações ao Vivo</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- Lightweight Charts para gráficos de candlestick -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         * {
             margin: 0;
@@ -390,6 +391,38 @@
             color: #888;
         }
 
+        /* Estilos para os botões de intervalo de tempo */
+        .interval-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .interval-btn {
+            padding: 6px 12px;
+            border: 1px solid #333;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+        }
+
+        .interval-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .interval-btn.active {
+            background: #22c55e;
+            color: #0a0a0a;
+            border-color: #22c55e;
+            font-weight: bold;
+        }
+
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -418,6 +451,10 @@
 
             .chart-container {
                 height: 300px;
+            }
+
+            .interval-controls {
+                justify-content: center;
             }
         }
     </style>
@@ -477,17 +514,23 @@
                 <div class="stock-info" id="stockInfo">
                     <!-- Informações da ação serão inseridas aqui -->
                 </div>
-                <div class="chart-container">
+                <div class="interval-controls" id="intervalControls">
+                    <button class="interval-btn active" data-interval="5">5min</button>
+                    <button class="interval-btn" data-interval="10">10min</button>
+                    <button class="interval-btn" data-interval="15">15min</button>
+                    <button class="interval-btn" data-interval="30">30min</button>
+                    <button class="interval-btn" data-interval="60">60min</button>
+                </div>
+                <div class="chart-container" id="chartContainer">
                     <div id="chartLoading" class="chart-loading">
                         <div class="loading-spinner"></div>
                         <span style="margin-left: 10px;">Carregando gráfico...</span>
                     </div>
-                    <canvas id="stockChart" class="chart-canvas" style="display: none;"></canvas>
                 </div>
                 <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
                     <p style="color: #888; font-size: 14px; margin: 0; line-height: 1.4;">
                         📈 <strong>Gráfico em tempo real</strong> fornecido pela API Brapi. 
-                        Use os botões no topo para alterar o período de análise.
+                        Use os botões acima para alterar o intervalo de tempo.
                     </p>
                 </div>
             </div>
@@ -517,8 +560,11 @@
         let lastUpdate = null;
         let useSimulatedData = false;
         let currentPeriod = '1d';
+        let currentInterval = '5';
         let currentChart = null;
         let stockData = [];
+        let chartInstance = null;
+        let candleSeries = null;
 
         // Dados simulados como fallback
         const FALLBACK_DATA = {
@@ -722,6 +768,45 @@
             }
         }
 
+        // Função para buscar dados de candlestick para uma ação específica
+        async function fetchCandlestickData(symbol, interval = '5') {
+            try {
+                console.log(`🔄 Buscando dados de candlestick para ${symbol} com intervalo ${interval}min...`);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
+                
+                // Construir URL para dados de candlestick
+                const url = `${CONFIG.CHART_API_URL}/${symbol}/chart?interval=${interval}min&token=${CONFIG.API_TOKEN}`;
+                
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data && data.results && Array.isArray(data.results) && data.results.length > 0) {
+                    console.log(`✅ ${data.results.length} dados de candlestick carregados para ${symbol}!`);
+                    return data.results;
+                } else {
+                    throw new Error('Estrutura de dados de candlestick não reconhecida');
+                }
+            } catch (error) {
+                console.error(`❌ Erro ao buscar dados de candlestick para ${symbol}:`, error);
+                return generateFallbackCandlestickData(symbol, interval);
+            }
+        }
+
         function generateFallbackData(period) {
             console.log(`⚠️ Usando dados simulados para período ${period}...`);
             
@@ -733,6 +818,35 @@
                 ...stock,
                 change: stock.change + (Math.random() - 0.5) * 2
             }));
+        }
+
+        function generateFallbackCandlestickData(symbol, interval) {
+            console.log(`⚠️ Usando dados de candlestick simulados para ${symbol}...`);
+            
+            const now = new Date();
+            const data = [];
+            
+            // Gerar 50 pontos de dados de candlestick simulados
+            for (let i = 50; i >= 0; i--) {
+                const date = new Date(now.getTime() - i * interval * 60000);
+                const basePrice = 20 + Math.random() * 10;
+                const open = basePrice;
+                const high = open + Math.random() * 2;
+                const low = open - Math.random() * 2;
+                const close = low + Math.random() * (high - low);
+                const volume = Math.floor(Math.random() * 1000000);
+                
+                data.push({
+                    date: date.toISOString(),
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume
+                });
+            }
+            
+            return data;
         }
 
         function showErrorMessage() {
@@ -841,10 +955,10 @@
             const modal = document.getElementById('stockModal');
             const modalTitle = document.getElementById('modalTitle');
             const stockInfo = document.getElementById('stockInfo');
+            const chartContainer = document.getElementById('chartContainer');
             const chartLoading = document.getElementById('chartLoading');
-            const chartCanvas = document.getElementById('stockChart');
             
-            if (!modal || !modalTitle || !stockInfo) {
+            if (!modal || !modalTitle || !stockInfo || !chartContainer) {
                 console.error('❌ Elementos do modal não encontrados');
                 return;
             }
@@ -852,9 +966,18 @@
             modalTitle.textContent = `${symbol} - ${name}`;
             modal.style.display = 'flex';
             
-            // Mostrar loading e esconder canvas
-            chartLoading.style.display = 'flex';
-            chartCanvas.style.display = 'none';
+            // Mostrar loading
+            if (chartLoading) {
+                chartLoading.style.display = 'flex';
+            }
+            
+            // Limpar container do gráfico
+            while (chartContainer.firstChild) {
+                if (chartContainer.firstChild.id === 'chartLoading') {
+                    break;
+                }
+                chartContainer.removeChild(chartContainer.firstChild);
+            }
             
             // Mostrar informações básicas
             const periodText = currentPeriod === '1d' ? 'Hoje' : 
@@ -883,168 +1006,172 @@
                 </div>
             `;
             
+            // Configurar botões de intervalo
+            const intervalButtons = document.querySelectorAll('.interval-btn');
+            intervalButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-interval') === currentInterval) {
+                    btn.classList.add('active');
+                }
+            });
+            
             // Aguardar um pouco para o modal ser renderizado
             setTimeout(async () => {
                 try {
-                    // Destruir gráfico anterior se existir
-                    if (currentChart) {
-                        currentChart.destroy();
-                        currentChart = null;
+                    // Buscar dados de candlestick
+                    const candlestickData = await fetchCandlestickData(symbol, currentInterval);
+                    
+                    // Criar gráfico de candlestick
+                    createCandlestickChart(chartContainer, candlestickData, symbol, changePercent >= 0);
+                    
+                    // Esconder loading
+                    if (chartLoading) {
+                        chartLoading.style.display = 'none';
                     }
                     
-                    // Gerar dados do gráfico (simulados para demonstração)
-                    const chartData = generateChartData(symbol, currentPrice, changePercent, currentPeriod);
-                    
-                    // Criar gráfico
-                    await createChart(chartData, symbol, currentPrice, changePercent);
-                    
-                    // Esconder loading e mostrar canvas
-                    chartLoading.style.display = 'none';
-                    chartCanvas.style.display = 'block';
-                    
                 } catch (error) {
-                    console.error('❌ Erro ao criar gráfico:', error);
-                    chartLoading.innerHTML = '<span style="color: #ef4444;">Erro ao carregar gráfico</span>';
+                    console.error('❌ Erro ao criar gráfico de candlestick:', error);
+                    if (chartLoading) {
+                        chartLoading.innerHTML = '<span style="color: #ef4444;">Erro ao carregar gráfico</span>';
+                    }
                 }
             }, 100);
         }
 
-        // Função para gerar dados do gráfico
-        function generateChartData(symbol, currentPrice, changePercent, period) {
-            const days = period === '1d' ? 7 : period === '5d' ? 30 : 90;
-            const labels = [];
-            const prices = [];
+        // Função para criar gráfico de candlestick
+        function createCandlestickChart(container, data, symbol, isPositive) {
+            console.log(`📊 Criando gráfico de candlestick para ${symbol} com ${data.length} pontos de dados`);
             
-            // Gerar dados históricos simulados
-            for (let i = days - 1; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                
-                if (period === '1d') {
-                    labels.push(date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }));
-                } else {
-                    labels.push(date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }));
-                }
-                
-                // Simular variação de preço
-                const variation = (Math.random() - 0.5) * 0.1;
-                const basePrice = currentPrice * (1 - (changePercent / 100));
-                const price = basePrice * (1 + variation + (i / days) * (changePercent / 100));
-                prices.push(Math.max(0.01, price));
+            // Destruir gráfico anterior se existir
+            if (chartInstance) {
+                chartInstance.remove();
+                chartInstance = null;
+                candleSeries = null;
             }
             
-            return { labels, prices };
-        }
-
-        // Função para criar gráfico
-        async function createChart(chartData, symbol, currentPrice, changePercent) {
-            return new Promise((resolve, reject) => {
-                try {
-                    const ctx = document.getElementById('stockChart');
-                    
-                    if (!ctx) {
-                        reject(new Error('Canvas não encontrado'));
-                        return;
-                    }
-                    
-                    // Garantir que o Chart.js está carregado
-                    if (typeof Chart === 'undefined') {
-                        reject(new Error('Chart.js não carregado'));
-                        return;
-                    }
-                    
-                    const isPositive = changePercent >= 0;
-                    
-                    currentChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: chartData.labels,
-                            datasets: [{
-                                label: `Preço de ${symbol}`,
-                                data: chartData.prices,
-                                borderColor: isPositive ? '#22c55e' : '#ef4444',
-                                backgroundColor: isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0.4,
-                                pointBackgroundColor: isPositive ? '#22c55e' : '#ef4444',
-                                pointBorderColor: '#ffffff',
-                                pointBorderWidth: 2,
-                                pointRadius: 4,
-                                pointHoverRadius: 6
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            interaction: {
-                                intersect: false,
-                                mode: 'index'
-                            },
-                            plugins: {
-                                legend: {
-                                    labels: {
-                                        color: 'white',
-                                        font: {
-                                            size: 14
-                                        }
-                                    }
-                                },
-                                tooltip: {
-                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                    titleColor: 'white',
-                                    bodyColor: 'white',
-                                    borderColor: isPositive ? '#22c55e' : '#ef4444',
-                                    borderWidth: 1,
-                                    callbacks: {
-                                        label: function(context) {
-                                            return `${symbol}: R$ ${context.parsed.y.toFixed(2)}`;
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                x: {
-                                    ticks: {
-                                        color: '#888',
-                                        font: {
-                                            size: 12
-                                        }
-                                    },
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
-                                    }
-                                },
-                                y: {
-                                    ticks: {
-                                        color: '#888',
-                                        font: {
-                                            size: 12
-                                        },
-                                        callback: function(value) {
-                                            return 'R$ ' + value.toFixed(2);
-                                        }
-                                    },
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
-                                    }
-                                }
-                            },
-                            animation: {
-                                duration: 1000,
-                                easing: 'easeInOutQuart'
-                            }
+            // Criar div para o gráfico
+            const chartDiv = document.createElement('div');
+            chartDiv.id = 'candlestickChart';
+            chartDiv.style.width = '100%';
+            chartDiv.style.height = '100%';
+            container.appendChild(chartDiv);
+            
+            // Criar gráfico usando Lightweight Charts
+            chartInstance = LightweightCharts.createChart(chartDiv, {
+                width: chartDiv.clientWidth,
+                height: chartDiv.clientHeight,
+                layout: {
+                    background: { color: '#1a1a1a' },
+                    textColor: '#d9d9d9',
+                },
+                grid: {
+                    vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
+                    horzLines: { color: 'rgba(42, 46, 57, 0.5)' },
+                },
+                timeScale: {
+                    timeVisible: true,
+                    secondsVisible: false,
+                    borderColor: '#333',
+                },
+                rightPriceScale: {
+                    borderColor: '#333',
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                    vertLine: {
+                        color: '#555',
+                        width: 1,
+                        style: LightweightCharts.LineStyle.Dashed,
+                    },
+                    horzLine: {
+                        color: '#555',
+                        width: 1,
+                        style: LightweightCharts.LineStyle.Dashed,
+                    },
+                },
+            });
+            
+            // Adicionar série de candlestick
+            candleSeries = chartInstance.addCandlestickSeries({
+                upColor: '#22c55e',
+                downColor: '#ef4444',
+                borderUpColor: '#22c55e',
+                borderDownColor: '#ef4444',
+                wickUpColor: '#22c55e',
+                wickDownColor: '#ef4444',
+            });
+            
+            // Formatar dados para o formato esperado pelo Lightweight Charts
+            const formattedData = data.map(item => {
+                // Converter string de data para timestamp
+                const timestamp = new Date(item.date).getTime() / 1000;
+                
+                return {
+                    time: timestamp,
+                    open: item.open,
+                    high: item.high,
+                    low: item.low,
+                    close: item.close
+                };
+            });
+            
+            // Definir dados da série
+            candleSeries.setData(formattedData);
+            
+            // Ajustar escala de tempo para mostrar todos os dados
+            chartInstance.timeScale().fitContent();
+            
+            // Adicionar título ao gráfico
+            const symbolTitle = document.createElement('div');
+            symbolTitle.style.position = 'absolute';
+            symbolTitle.style.top = '10px';
+            symbolTitle.style.left = '10px';
+            symbolTitle.style.color = isPositive ? '#22c55e' : '#ef4444';
+            symbolTitle.style.fontSize = '16px';
+            symbolTitle.style.fontWeight = 'bold';
+            symbolTitle.textContent = `${symbol} - R$ ${data[data.length - 1].close.toFixed(2)}`;
+            chartDiv.appendChild(symbolTitle);
+            
+            // Adicionar variação ao gráfico
+            const lastClose = data[data.length - 1].close;
+            const firstOpen = data[0].open;
+            const chartChange = ((lastClose - firstOpen) / firstOpen) * 100;
+            const changeText = document.createElement('div');
+            changeText.style.position = 'absolute';
+            changeText.style.top = '10px';
+            changeText.style.right = '10px';
+            changeText.style.color = chartChange >= 0 ? '#22c55e' : '#ef4444';
+            changeText.style.fontSize = '16px';
+            changeText.style.fontWeight = 'bold';
+            changeText.textContent = `${chartChange >= 0 ? '+' : ''}${chartChange.toFixed(2)}%`;
+            chartDiv.appendChild(changeText);
+            
+            console.log(`✅ Gráfico de candlestick criado com sucesso para ${symbol}`);
+            
+            // Ajustar tamanho do gráfico quando a janela for redimensionada
+            const resizeChart = () => {
+                if (chartInstance) {
+                    chartInstance.resize(chartDiv.clientWidth, chartDiv.clientHeight);
+                    chartInstance.timeScale().fitContent();
+                }
+            };
+            
+            window.addEventListener('resize', resizeChart);
+            
+            // Limpar listener quando o modal for fechado
+            const modal = document.getElementById('stockModal');
+            if (modal) {
+                const originalDisplay = modal.style.display;
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.attributeName === 'style' && modal.style.display !== originalDisplay) {
+                            window.removeEventListener('resize', resizeChart);
+                            observer.disconnect();
                         }
                     });
-                    
-                    console.log('✅ Gráfico criado com sucesso');
-                    resolve(currentChart);
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao criar gráfico:', error);
-                    reject(error);
-                }
-            });
+                });
+                observer.observe(modal, { attributes: true });
+            }
         }
 
         function closeModal() {
@@ -1053,9 +1180,11 @@
                 modal.style.display = 'none';
             }
             
-            if (currentChart) {
-                currentChart.destroy();
-                currentChart = null;
+            // Destruir gráfico ao fechar o modal
+            if (chartInstance) {
+                chartInstance.remove();
+                chartInstance = null;
+                candleSeries = null;
             }
         }
 
@@ -1098,6 +1227,86 @@
             }
         }
 
+        // Função para definir intervalo de tempo do gráfico
+        async function setChartInterval(interval, buttonElement) {
+            console.log(`⏰ Definindo intervalo do gráfico: ${interval}min`);
+            
+            // Atualizar intervalo atual
+            currentInterval = interval;
+            
+            // Remover classe active de todos os botões
+            document.querySelectorAll('.interval-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Adicionar classe active ao botão clicado
+            if (buttonElement) {
+                buttonElement.classList.add('active');
+                console.log(`✅ Botão ${interval}min ativado com sucesso`);
+            }
+            
+            // Obter símbolo da ação atual
+            const modalTitle = document.getElementById('modalTitle');
+            if (!modalTitle) {
+                console.error('❌ Título do modal não encontrado');
+                return;
+            }
+            
+            const titleText = modalTitle.textContent;
+            const symbol = titleText.split(' - ')[0];
+            
+            if (!symbol) {
+                console.error('❌ Símbolo da ação não encontrado no título do modal');
+                return;
+            }
+            
+            // Mostrar loading
+            const chartLoading = document.getElementById('chartLoading');
+            if (chartLoading) {
+                chartLoading.style.display = 'flex';
+            }
+            
+            // Buscar novos dados de candlestick para o intervalo selecionado
+            try {
+                const candlestickData = await fetchCandlestickData(symbol, interval);
+                
+                // Obter container do gráfico
+                const chartContainer = document.getElementById('chartContainer');
+                if (!chartContainer) {
+                    console.error('❌ Container do gráfico não encontrado');
+                    return;
+                }
+                
+                // Limpar container do gráfico
+                while (chartContainer.firstChild) {
+                    if (chartContainer.firstChild.id === 'chartLoading') {
+                        break;
+                    }
+                    chartContainer.removeChild(chartContainer.firstChild);
+                }
+                
+                // Criar novo gráfico de candlestick
+                const stockInfo = document.getElementById('stockInfo');
+                const changeElement = stockInfo ? stockInfo.querySelector('.info-value.positive, .info-value.negative') : null;
+                const isPositive = changeElement ? changeElement.classList.contains('positive') : true;
+                
+                createCandlestickChart(chartContainer, candlestickData, symbol, isPositive);
+                
+                // Esconder loading
+                if (chartLoading) {
+                    chartLoading.style.display = 'none';
+                }
+                
+                console.log(`✅ Gráfico atualizado para intervalo: ${interval}min`);
+                
+            } catch (error) {
+                console.error(`❌ Erro ao atualizar gráfico para intervalo ${interval}min:`, error);
+                if (chartLoading) {
+                    chartLoading.innerHTML = '<span style="color: #ef4444;">Erro ao carregar gráfico</span>';
+                }
+            }
+        }
+
         async function initializeApp() {
             console.log('🚀 Inicializando aplicação BUBLES...');
             
@@ -1133,11 +1342,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('📄 DOM carregado, inicializando...');
             
-            // Verificar se Chart.js foi carregado
-            if (typeof Chart === 'undefined') {
-                console.error('❌ Chart.js não foi carregado!');
+            // Verificar se Lightweight Charts foi carregado
+            if (typeof LightweightCharts === 'undefined') {
+                console.error('❌ Lightweight Charts não foi carregado!');
             } else {
-                console.log('✅ Chart.js carregado com sucesso');
+                console.log('✅ Lightweight Charts carregado com sucesso');
             }
             
             // Configurar botões de tempo com event listeners diretos
@@ -1168,6 +1377,17 @@
                     setTimePeriod('1mo', monthBtn);
                 });
             }
+            
+            // Configurar botões de intervalo
+            const intervalButtons = document.querySelectorAll('.interval-btn');
+            intervalButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const interval = btn.getAttribute('data-interval');
+                    console.log(`🖱️ Botão ${interval}min clicado`);
+                    setChartInterval(interval, btn);
+                });
+            });
             
             // Configurar busca
             const searchInput = document.querySelector('.search-input');
