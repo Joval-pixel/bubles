@@ -97,10 +97,25 @@
         }
 
         .time-btn.active {
+            font-weight: bold;
+        }
+
+        #dayBtn.active {
+            background: #3b82f6;
+            color: #0a0a0a;
+            border-color: #3b82f6;
+        }
+
+        #weekBtn.active {
             background: #22c55e;
             color: #0a0a0a;
             border-color: #22c55e;
-            font-weight: bold;
+        }
+
+        #monthBtn.active {
+            background: #d946ef;
+            color: #0a0a0a;
+            border-color: #d946ef;
         }
 
         .status-indicator {
@@ -503,20 +518,32 @@
         let useSimulatedData = false;
         let currentPeriod = '1d';
         let currentChart = null;
+        let stockData = [];
 
         // Dados simulados como fallback
-        const FALLBACK_DATA = [
-            { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 2.34, volume: 45678900 },
-            { stock: 'VALE3', name: 'VALE', close: 65.78, change: -1.23, volume: 38456789 },
-            { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 0.87, volume: 34567890 },
-            { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -0.45, volume: 29876543 },
-            { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 1.56, volume: 25678901 },
-            { stock: 'WEGE3', name: 'WEG', close: 45.23, change: 3.21, volume: 23456789 },
-            { stock: 'MGLU3', name: 'MAGAZINE LUIZA', close: 8.76, change: -2.34, volume: 21345678 },
-            { stock: 'JBSS3', name: 'JBS', close: 34.56, change: 0.98, volume: 19234567 },
-            { stock: 'RENT3', name: 'LOCALIZA', close: 67.89, change: -1.87, volume: 18123456 },
-            { stock: 'LREN3', name: 'LOJAS RENNER', close: 23.45, change: 2.76, volume: 17012345 }
-        ];
+        const FALLBACK_DATA = {
+            '1d': [
+                { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 2.34, volume: 45678900 },
+                { stock: 'VALE3', name: 'VALE', close: 65.78, change: -1.23, volume: 38456789 },
+                { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 0.87, volume: 34567890 },
+                { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -0.45, volume: 29876543 },
+                { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 1.56, volume: 25678901 }
+            ],
+            '5d': [
+                { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 3.45, volume: 45678900 },
+                { stock: 'VALE3', name: 'VALE', close: 65.78, change: -2.67, volume: 38456789 },
+                { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 1.98, volume: 34567890 },
+                { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -1.23, volume: 29876543 },
+                { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 2.78, volume: 25678901 }
+            ],
+            '1mo': [
+                { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 5.67, volume: 45678900 },
+                { stock: 'VALE3', name: 'VALE', close: 65.78, change: -4.56, volume: 38456789 },
+                { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: 3.45, volume: 34567890 },
+                { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: -2.34, volume: 29876543 },
+                { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: 4.56, volume: 25678901 }
+            ]
+        };
 
         // Classe Bubble
         class Bubble {
@@ -530,7 +557,9 @@
                 this.container = container;
                 this.element = null;
                 
+                // Tamanho baseado na variação percentual absoluta
                 this.size = this.calculateSize();
+                
                 this.x = Math.random() * Math.max(0, container.clientWidth - this.size);
                 this.y = Math.random() * Math.max(0, container.clientHeight - this.size);
                 this.vx = (Math.random() - 0.5) * CONFIG.ANIMATION_SPEED;
@@ -541,12 +570,18 @@
             }
             
             calculateSize() {
-                const minVolume = 100000;
-                const maxVolume = 50000000;
-                const normalizedVolume = Math.log(Math.max(this.volume, minVolume)) / Math.log(maxVolume);
+                // Tamanho baseado na variação percentual absoluta
+                const absChange = Math.abs(this.change);
+                const minChange = 0.1;
+                const maxChange = 10;
+                
+                // Normalizar a variação entre 0 e 1
+                const normalizedChange = Math.min(Math.max(absChange, minChange), maxChange) / maxChange;
+                
+                // Calcular tamanho entre min e max
                 const minSize = CONFIG.BUBBLE_MIN_SIZE;
                 const maxSize = CONFIG.BUBBLE_MAX_SIZE;
-                return minSize + (maxSize - minSize) * Math.min(normalizedVolume, 1);
+                return minSize + (maxSize - minSize) * normalizedChange;
             }
             
             createElement() {
@@ -639,15 +674,16 @@
             }
         }
 
-        // Função para buscar dados da API
-        async function fetchStockData() {
+        // Função para buscar dados da API com período específico
+        async function fetchStockData(period = '1d') {
             try {
-                console.log('🔄 Buscando dados da API Brapi...');
+                console.log(`🔄 Buscando dados da API Brapi para período: ${period}...`);
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
                 
-                const url = `${CONFIG.API_URL}?token=${CONFIG.API_TOKEN}&sortBy=volume&sortOrder=desc&limit=100`;
+                // Adicionar parâmetro de período à URL
+                const url = `${CONFIG.API_URL}?token=${CONFIG.API_TOKEN}&sortBy=volume&sortOrder=desc&limit=100&range=${period}`;
                 
                 const response = await fetch(url, {
                     signal: controller.signal,
@@ -667,7 +703,7 @@
                 
                 if (data && data.stocks && Array.isArray(data.stocks) && data.stocks.length > 0) {
                     useSimulatedData = false;
-                    console.log(`✅ ${data.stocks.length} ações REAIS carregadas da Brapi!`);
+                    console.log(`✅ ${data.stocks.length} ações REAIS carregadas da Brapi para período ${period}!`);
                     
                     const errorElement = document.getElementById('errorMessage');
                     if (errorElement) {
@@ -682,15 +718,20 @@
                 console.error('❌ Erro ao buscar dados da API:', error);
                 useSimulatedData = true;
                 showErrorMessage();
-                return generateFallbackData();
+                return generateFallbackData(period);
             }
         }
 
-        function generateFallbackData() {
-            console.log('⚠️ Usando dados simulados...');
-            return FALLBACK_DATA.map(stock => ({
+        function generateFallbackData(period) {
+            console.log(`⚠️ Usando dados simulados para período ${period}...`);
+            
+            // Usar dados simulados específicos para o período
+            const periodData = FALLBACK_DATA[period] || FALLBACK_DATA['1d'];
+            
+            // Adicionar variação aleatória para simular dados diferentes
+            return periodData.map(stock => ({
                 ...stock,
-                change: (Math.random() - 0.5) * 14
+                change: stock.change + (Math.random() - 0.5) * 2
             }));
         }
 
@@ -793,7 +834,7 @@
             }
         }
 
-        // Função para abrir gráfico da ação - CORRIGIDA
+        // Função para abrir gráfico da ação
         async function openStockChart(symbol, name, currentPrice, changePercent) {
             console.log(`📊 Abrindo gráfico para ${symbol}`);
             
@@ -895,7 +936,7 @@
             return { labels, prices };
         }
 
-        // Função para criar gráfico - CORRIGIDA
+        // Função para criar gráfico
         async function createChart(chartData, symbol, currentPrice, changePercent) {
             return new Promise((resolve, reject) => {
                 try {
@@ -1018,10 +1059,18 @@
             }
         }
 
-        // Função para definir período - CORRIGIDA
-        function setTimePeriod(period, buttonElement) {
+        // Função para definir período e atualizar dados
+        async function setTimePeriod(period, buttonElement) {
             console.log(`⏰ Definindo período: ${period}`);
             
+            // Mostrar loading
+            const loadingElement = document.getElementById('loadingIndicator');
+            if (loadingElement) {
+                loadingElement.style.display = 'flex';
+            }
+            isLoading = true;
+            
+            // Atualizar período atual
             currentPeriod = period;
             
             // Remover classe active de todos os botões
@@ -1034,22 +1083,38 @@
                 buttonElement.classList.add('active');
                 console.log(`✅ Botão ${period} ativado com sucesso`);
             }
+            
+            // Buscar novos dados para o período selecionado
+            try {
+                const newData = await fetchStockData(period);
+                stockData = newData;
+                createBubbles(newData);
+                updateLastUpdateTime();
+                updateStatusIndicator();
+                console.log(`✅ Dados atualizados para período: ${period}`);
+            } catch (error) {
+                console.error(`❌ Erro ao atualizar dados para período ${period}:`, error);
+                hideLoading();
+            }
         }
 
         async function initializeApp() {
             console.log('🚀 Inicializando aplicação BUBLES...');
             
             try {
-                const stockData = await fetchStockData();
+                // Buscar dados iniciais
+                stockData = await fetchStockData(currentPeriod);
                 createBubbles(stockData);
                 animate();
                 updateLastUpdateTime();
                 updateStatusIndicator();
                 
+                // Configurar atualização automática
                 setInterval(async () => {
                     if (!isLoading) {
                         console.log('🔄 Atualizando dados automaticamente...');
-                        const newData = await fetchStockData();
+                        const newData = await fetchStockData(currentPeriod);
+                        stockData = newData;
                         createBubbles(newData);
                         updateLastUpdateTime();
                         updateStatusIndicator();
@@ -1064,7 +1129,7 @@
             }
         }
 
-        // Event listeners - CORRIGIDOS
+        // Event listeners
         document.addEventListener('DOMContentLoaded', () => {
             console.log('📄 DOM carregado, inicializando...');
             
