@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BUBLES - Ações ao Vivo</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
         * {
             margin: 0;
@@ -275,8 +275,8 @@
         .modal-content {
             background: #1a1a1a;
             border-radius: 15px;
-            max-width: 800px;
-            width: 90%;
+            max-width: 900px;
+            width: 95%;
             max-height: 90vh;
             overflow-y: auto;
             position: relative;
@@ -323,6 +323,14 @@
             height: 400px;
             margin: 20px 0;
             position: relative;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .chart-canvas {
+            width: 100% !important;
+            height: 100% !important;
         }
 
         .stock-info {
@@ -359,6 +367,14 @@
             color: #ef4444;
         }
 
+        .chart-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+            color: #888;
+        }
+
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -381,7 +397,7 @@
             }
 
             .modal-content {
-                width: 95%;
+                width: 98%;
                 max-height: 95vh;
             }
 
@@ -447,7 +463,11 @@
                     <!-- Informações da ação serão inseridas aqui -->
                 </div>
                 <div class="chart-container">
-                    <canvas id="stockChart"></canvas>
+                    <div id="chartLoading" class="chart-loading">
+                        <div class="loading-spinner"></div>
+                        <span style="margin-left: 10px;">Carregando gráfico...</span>
+                    </div>
+                    <canvas id="stockChart" class="chart-canvas" style="display: none;"></canvas>
                 </div>
                 <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
                     <p style="color: #888; font-size: 14px; margin: 0; line-height: 1.4;">
@@ -666,34 +686,6 @@
             }
         }
 
-        // Função para buscar dados do gráfico
-        async function fetchChartData(symbol, period = '1d') {
-            try {
-                console.log(`📊 Buscando dados do gráfico para ${symbol} (${period})...`);
-                
-                const url = `${CONFIG.CHART_API_URL}/${symbol}?token=${CONFIG.API_TOKEN}&range=${period}&interval=1d`;
-                
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data && data.results && data.results.length > 0) {
-                    const result = data.results[0];
-                    console.log(`✅ Dados do gráfico carregados para ${symbol}`);
-                    return result;
-                } else {
-                    throw new Error('Dados do gráfico não encontrados');
-                }
-            } catch (error) {
-                console.error(`❌ Erro ao buscar gráfico para ${symbol}:`, error);
-                return null;
-            }
-        }
-
         function generateFallbackData() {
             console.log('⚠️ Usando dados simulados...');
             return FALLBACK_DATA.map(stock => ({
@@ -801,13 +793,15 @@
             }
         }
 
-        // Função para abrir gráfico da ação
+        // Função para abrir gráfico da ação - CORRIGIDA
         async function openStockChart(symbol, name, currentPrice, changePercent) {
             console.log(`📊 Abrindo gráfico para ${symbol}`);
             
             const modal = document.getElementById('stockModal');
             const modalTitle = document.getElementById('modalTitle');
             const stockInfo = document.getElementById('stockInfo');
+            const chartLoading = document.getElementById('chartLoading');
+            const chartCanvas = document.getElementById('stockChart');
             
             if (!modal || !modalTitle || !stockInfo) {
                 console.error('❌ Elementos do modal não encontrados');
@@ -816,6 +810,10 @@
             
             modalTitle.textContent = `${symbol} - ${name}`;
             modal.style.display = 'flex';
+            
+            // Mostrar loading e esconder canvas
+            chartLoading.style.display = 'flex';
+            chartCanvas.style.display = 'none';
             
             // Mostrar informações básicas
             const periodText = currentPeriod === '1d' ? 'Hoje' : 
@@ -844,153 +842,166 @@
                 </div>
             `;
             
-            // Buscar e exibir gráfico
-            const chartData = await fetchChartData(symbol, currentPeriod);
-            
-            if (chartData && chartData.historicalDataPrice) {
-                createChart(chartData.historicalDataPrice, symbol);
-            } else {
-                // Gráfico de fallback
-                createFallbackChart(symbol, currentPrice, changePercent);
-            }
-        }
-
-        function createChart(historicalData, symbol) {
-            const ctx = document.getElementById('stockChart');
-            
-            if (currentChart) {
-                currentChart.destroy();
-            }
-            
-            const labels = historicalData.map(item => {
-                const date = new Date(item.date * 1000);
-                return date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' });
-            });
-            
-            const prices = historicalData.map(item => item.close);
-            
-            const firstPrice = prices[0];
-            const lastPrice = prices[prices.length - 1];
-            const isPositive = lastPrice >= firstPrice;
-            
-            currentChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: `Preço de ${symbol}`,
-                        data: prices,
-                        borderColor: isPositive ? '#22c55e' : '#ef4444',
-                        backgroundColor: isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'white'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                color: '#888'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                color: '#888',
-                                callback: function(value) {
-                                    return 'R$ ' + value.toFixed(2);
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        }
+            // Aguardar um pouco para o modal ser renderizado
+            setTimeout(async () => {
+                try {
+                    // Destruir gráfico anterior se existir
+                    if (currentChart) {
+                        currentChart.destroy();
+                        currentChart = null;
                     }
+                    
+                    // Gerar dados do gráfico (simulados para demonstração)
+                    const chartData = generateChartData(symbol, currentPrice, changePercent, currentPeriod);
+                    
+                    // Criar gráfico
+                    await createChart(chartData, symbol, currentPrice, changePercent);
+                    
+                    // Esconder loading e mostrar canvas
+                    chartLoading.style.display = 'none';
+                    chartCanvas.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao criar gráfico:', error);
+                    chartLoading.innerHTML = '<span style="color: #ef4444;">Erro ao carregar gráfico</span>';
                 }
-            });
+            }, 100);
         }
 
-        function createFallbackChart(symbol, currentPrice, changePercent) {
-            const ctx = document.getElementById('stockChart');
-            
-            if (currentChart) {
-                currentChart.destroy();
-            }
-            
-            // Gerar dados simulados para demonstração
-            const days = currentPeriod === '1d' ? 1 : currentPeriod === '5d' ? 5 : 30;
+        // Função para gerar dados do gráfico
+        function generateChartData(symbol, currentPrice, changePercent, period) {
+            const days = period === '1d' ? 7 : period === '5d' ? 30 : 90;
             const labels = [];
             const prices = [];
             
+            // Gerar dados históricos simulados
             for (let i = days - 1; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
-                labels.push(date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }));
                 
+                if (period === '1d') {
+                    labels.push(date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }));
+                } else {
+                    labels.push(date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }));
+                }
+                
+                // Simular variação de preço
                 const variation = (Math.random() - 0.5) * 0.1;
-                const price = currentPrice * (1 + variation);
-                prices.push(price);
+                const basePrice = currentPrice * (1 - (changePercent / 100));
+                const price = basePrice * (1 + variation + (i / days) * (changePercent / 100));
+                prices.push(Math.max(0.01, price));
             }
             
-            const isPositive = changePercent >= 0;
-            
-            currentChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: `Preço de ${symbol} (Simulado)`,
-                        data: prices,
-                        borderColor: isPositive ? '#22c55e' : '#ef4444',
-                        backgroundColor: isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'white'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                color: '#888'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
+            return { labels, prices };
+        }
+
+        // Função para criar gráfico - CORRIGIDA
+        async function createChart(chartData, symbol, currentPrice, changePercent) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const ctx = document.getElementById('stockChart');
+                    
+                    if (!ctx) {
+                        reject(new Error('Canvas não encontrado'));
+                        return;
+                    }
+                    
+                    // Garantir que o Chart.js está carregado
+                    if (typeof Chart === 'undefined') {
+                        reject(new Error('Chart.js não carregado'));
+                        return;
+                    }
+                    
+                    const isPositive = changePercent >= 0;
+                    
+                    currentChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: chartData.labels,
+                            datasets: [{
+                                label: `Preço de ${symbol}`,
+                                data: chartData.prices,
+                                borderColor: isPositive ? '#22c55e' : '#ef4444',
+                                backgroundColor: isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: isPositive ? '#22c55e' : '#ef4444',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }]
                         },
-                        y: {
-                            ticks: {
-                                color: '#888',
-                                callback: function(value) {
-                                    return 'R$ ' + value.toFixed(2);
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: 'white',
+                                        font: {
+                                            size: 14
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    titleColor: 'white',
+                                    bodyColor: 'white',
+                                    borderColor: isPositive ? '#22c55e' : '#ef4444',
+                                    borderWidth: 1,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${symbol}: R$ ${context.parsed.y.toFixed(2)}`;
+                                        }
+                                    }
                                 }
                             },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
+                            scales: {
+                                x: {
+                                    ticks: {
+                                        color: '#888',
+                                        font: {
+                                            size: 12
+                                        }
+                                    },
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                },
+                                y: {
+                                    ticks: {
+                                        color: '#888',
+                                        font: {
+                                            size: 12
+                                        },
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toFixed(2);
+                                        }
+                                    },
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                }
+                            },
+                            animation: {
+                                duration: 1000,
+                                easing: 'easeInOutQuart'
                             }
                         }
-                    }
+                    });
+                    
+                    console.log('✅ Gráfico criado com sucesso');
+                    resolve(currentChart);
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao criar gráfico:', error);
+                    reject(error);
                 }
             });
         }
@@ -1007,7 +1018,7 @@
             }
         }
 
-        // CORREÇÃO DOS BOTÕES - Função corrigida
+        // Função para definir período - CORRIGIDA
         function setTimePeriod(period, buttonElement) {
             console.log(`⏰ Definindo período: ${period}`);
             
@@ -1057,7 +1068,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('📄 DOM carregado, inicializando...');
             
-            // CORREÇÃO: Configurar botões de tempo com event listeners diretos
+            // Verificar se Chart.js foi carregado
+            if (typeof Chart === 'undefined') {
+                console.error('❌ Chart.js não foi carregado!');
+            } else {
+                console.log('✅ Chart.js carregado com sucesso');
+            }
+            
+            // Configurar botões de tempo com event listeners diretos
             const dayBtn = document.getElementById('dayBtn');
             const weekBtn = document.getElementById('weekBtn');
             const monthBtn = document.getElementById('monthBtn');
