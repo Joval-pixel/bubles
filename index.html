@@ -3,123 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bubles - Gráfico de Bolhas de Ações</title>
+    <title>Bubles - Stock Market Bubbles</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Cabeçalho -->
-    <header>
-        <h1>📊 Bubles - Gráfico de Ações</h1>
-        <p>Visualização com bolhas maiores, texto bem posicionado e 100+ ações</p>
+    <!-- Header igual ao Cryptobubbles -->
+    <header class="header">
+        <div class="header-left">
+            <!-- Logo igual ao Cryptobubbles -->
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" width="24" height="24">
+                    <path fill="#22c55e" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <span class="logo-text">BUBLES</span>
+            </div>
+        </div>
+        
+        <div class="header-center">
+            <!-- Campo de busca -->
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search stocks" class="search-input">
+                <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16">
+                    <path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+            </div>
+            
+            <!-- Seletor de range -->
+            <div class="range-selector">
+                <select id="range-select" class="range-select">
+                    <option value="1-100">1 - 100</option>
+                    <option value="1-50">1 - 50</option>
+                    <option value="1-25">1 - 25</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <!-- Botões de período -->
+            <div class="period-buttons">
+                <button class="period-btn" data-period="hour">Hour</button>
+                <button class="period-btn active" data-period="day">Day</button>
+                <button class="period-btn" data-period="week">Week</button>
+                <button class="period-btn" data-period="month">Month</button>
+                <button class="period-btn" data-period="year">Year</button>
+            </div>
+            
+            <!-- Dropdown de métrica -->
+            <div class="metric-selector">
+                <select id="metric-select" class="metric-select">
+                    <option value="market-cap">Market Cap & Day</option>
+                    <option value="volume">Volume & Day</option>
+                    <option value="price">Price & Day</option>
+                </select>
+            </div>
+            
+            <!-- Botões de ação -->
+            <div class="action-buttons">
+                <button class="action-btn" id="edit-chart" title="Edit chart">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                </button>
+                <button class="action-btn" id="add-chart" title="Add chart">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                </button>
+                <button class="action-btn" id="settings" title="Settings">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path fill="currentColor" d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.82,11.69,4.82,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
     </header>
 
-    <!-- Controles principais -->
-    <div class="controles">
-        <button id="btn-brasileiro" class="btn-indice ativo" onclick="alternarIndice('brasileiro')">
-            🇧🇷 Índice Brasileiro
-        </button>
-        <button id="btn-americano" class="btn-indice" onclick="alternarIndice('americano')">
-            🇺🇸 Índice Americano
-        </button>
-        <button id="btn-opcoes" class="btn-opcoes" onclick="mostrarListaAcoes()">
-            ⚙️ Opções de Ações
-        </button>
-    </div>
-
-    <!-- Informações de exibição -->
-    <div class="info-exibicao">
-        <div class="contador">
-            <span id="contador-acoes">Exibindo 15 de 100 ações</span>
+    <!-- Container principal do gráfico -->
+    <main class="main-container">
+        <!-- Gráfico de bolhas -->
+        <div class="bubble-chart-container">
+            <svg id="bubble-chart" class="bubble-chart" viewBox="0 0 1200 700">
+                <!-- As bolhas serão inseridas aqui via JavaScript -->
+            </svg>
         </div>
-        <div class="legenda">
-            <div class="legenda-item">
-                <div class="cor-alta"></div>
-                <span>Ações em alta</span>
-            </div>
-            <div class="legenda-item">
-                <div class="cor-baixa"></div>
-                <span>Ações em baixa</span>
-            </div>
-            <div class="legenda-texto">
-                Tamanho da bolha = volume de negociação
-            </div>
-        </div>
-    </div>
+    </main>
 
-    <!-- Container do Gráfico -->
-    <div class="grafico-container">
-        <svg id="grafico-svg" width="100%" height="600" viewBox="0 0 1000 600">
-            <!-- As bolhas serão inseridas aqui via JavaScript -->
-        </svg>
-    </div>
+    <!-- Tabela de dados igual ao Cryptobubbles -->
+    <section class="data-table-section">
+        <table class="data-table" id="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Market Cap</th>
+                    <th>24h Volume</th>
+                    <th>Hour</th>
+                    <th>Day</th>
+                    <th>Week</th>
+                    <th>Month</th>
+                    <th>Year</th>
+                    <th>Links & Trade</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Dados serão inseridos via JavaScript -->
+            </tbody>
+        </table>
+    </section>
 
-    <!-- Informações sobre correções -->
-    <div class="info-melhorias">
-        <h3>✅ Correções implementadas:</h3>
-        <div class="melhorias-grid">
-            <div class="melhoria-item">
-                <span class="icone">🎯</span>
-                <div>
-                    <strong>Bolhas maiores</strong>
-                    <p>Raio de 50-75px para melhor legibilidade</p>
-                </div>
+    <!-- Modal de configurações -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close" id="close-modal">&times;</button>
             </div>
-            <div class="melhoria-item">
-                <span class="icone">📝</span>
-                <div>
-                    <strong>Texto centralizado</strong>
-                    <p>Posicionamento perfeito dentro das bolhas</p>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label>Market:</label>
+                    <select id="market-select">
+                        <option value="brazilian">🇧🇷 Brazilian Stocks</option>
+                        <option value="american">🇺🇸 American Stocks</option>
+                    </select>
                 </div>
-            </div>
-            <div class="melhoria-item">
-                <span class="icone">📊</span>
-                <div>
-                    <strong>100+ ações brasileiras</strong>
-                    <p>Lista completa das mais negociadas</p>
+                <div class="setting-group">
+                    <label>Bubble Size:</label>
+                    <select id="bubble-size-select">
+                        <option value="market-cap">Market Cap</option>
+                        <option value="volume">Volume</option>
+                        <option value="price">Price</option>
+                    </select>
                 </div>
-            </div>
-            <div class="melhoria-item">
-                <span class="icone">🇺🇸</span>
-                <div>
-                    <strong>50 ações americanas</strong>
-                    <p>Principais ações do mercado americano</p>
-                </div>
-            </div>
-            <div class="melhoria-item">
-                <span class="icone">⚙️</span>
-                <div>
-                    <strong>Botão de opções</strong>
-                    <p>Selecione ações específicas ou grupos</p>
-                </div>
-            </div>
-            <div class="melhoria-item">
-                <span class="icone">📱</span>
-                <div>
-                    <strong>Design responsivo</strong>
-                    <p>Funciona perfeitamente em mobile</p>
+                <div class="setting-group">
+                    <label>Color By:</label>
+                    <select id="color-select">
+                        <option value="day">Day Change</option>
+                        <option value="week">Week Change</option>
+                        <option value="month">Month Change</option>
+                    </select>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Instruções de uso -->
-    <div class="instrucoes">
-        <h3>📖 Como usar:</h3>
-        <ol>
-            <li><strong>Escolha o mercado:</strong> Clique em 🇧🇷 para ações brasileiras ou 🇺🇸 para americanas</li>
-            <li><strong>Explore as opções:</strong> Use o botão ⚙️ para ver todas as ações disponíveis</li>
-            <li><strong>Selecione ações:</strong> Clique em uma ação específica para visualizar apenas ela</li>
-            <li><strong>Visualize grupos:</strong> Escolha "Top 15" ou "Mostrar Todas" conforme preferir</li>
-            <li><strong>Interaja:</strong> Passe o mouse sobre as bolhas para efeitos visuais</li>
-        </ol>
-    </div>
-
-    <!-- Rodapé -->
-    <footer>
-        <p>Bubles - Gráfico de Bolhas Corrigido | Bolhas maiores + Texto bem posicionado + 100+ ações</p>
-        <p>Desenvolvido para melhor visualização de dados financeiros</p>
-    </footer>
 
     <script src="script.js"></script>
 </body>
 </html>
+
