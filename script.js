@@ -1,356 +1,251 @@
-// BUBLES - Script Principal Corrigido
-// Versão com correção do erro de carregamento de gráficos
+// Dados das ações brasileiras (baseado na imagem original)
+const acoesBrasileiras = [
+    { codigo: 'AZUL4', variacao: -7.46, valor: 6.62, volume: 100 },
+    { codigo: 'AMBP3', variacao: 18.79, valor: 17.42, volume: 85 },
+    { codigo: 'DASA3', variacao: 6.76, valor: 1.46, volume: 90 },
+    { codigo: 'VAMO3', variacao: 1.30, valor: 1.31, volume: 45 },
+    { codigo: 'POMO4', variacao: 2.64, valor: 14.85, volume: 60 },
+    { codigo: 'CPFE3', variacao: -2.80, valor: 37.41, volume: 70 },
+    { codigo: 'FNAM11', variacao: 5.86, valor: 8.26, volume: 55 },
+    { codigo: 'IGTI11', variacao: 1.76, valor: 21.06, volume: 65 },
+    { codigo: 'BRFS3', variacao: -0.53, valor: 14.67, volume: 75 },
+    { codigo: 'PETR4', variacao: 0.47, valor: 35.31, volume: 95 },
+    { codigo: 'VALE3', variacao: -1.64, valor: 54.71, volume: 88 },
+    { codigo: 'ITUB4', variacao: 1.10, valor: 32.22, volume: 80 },
+    { codigo: 'BBDC3', variacao: 0.22, valor: 13.45, volume: 72 },
+    { codigo: 'MGLU3', variacao: -3.20, valor: 7.28, volume: 68 },
+    { codigo: 'WEGE3', variacao: 2.15, valor: 67.89, volume: 58 }
+];
 
-// Configuração da API
-const CONFIG = {
-    API_URL: 'https://brapi.dev/api/quote/list?limit=100&page=1',
-    API_TIMEOUT: 10000,
-    UPDATE_INTERVAL: 10000
-};
+// Dados das ações americanas
+const acoesAmericanas = [
+    { codigo: 'AAPL', variacao: 2.34, valor: 185.92, volume: 95 },
+    { codigo: 'MSFT', variacao: 1.87, valor: 378.85, volume: 90 },
+    { codigo: 'GOOGL', variacao: -0.45, valor: 142.56, volume: 85 },
+    { codigo: 'AMZN', variacao: 3.21, valor: 151.94, volume: 88 },
+    { codigo: 'TSLA', variacao: -2.67, valor: 248.42, volume: 82 },
+    { codigo: 'META', variacao: 1.95, valor: 484.49, volume: 78 },
+    { codigo: 'NVDA', variacao: 4.12, valor: 875.28, volume: 92 },
+    { codigo: 'NFLX', variacao: -1.23, valor: 486.81, volume: 65 },
+    { codigo: 'AMD', variacao: 2.89, valor: 142.37, volume: 70 },
+    { codigo: 'INTC', variacao: -0.78, valor: 23.45, volume: 60 },
+    { codigo: 'CRM', variacao: 1.56, valor: 267.89, volume: 55 },
+    { codigo: 'ORCL', variacao: 0.92, valor: 112.34, volume: 58 },
+    { codigo: 'ADBE', variacao: -1.45, valor: 567.23, volume: 62 },
+    { codigo: 'PYPL', variacao: 2.67, valor: 78.45, volume: 48 },
+    { codigo: 'DIS', variacao: -0.34, valor: 98.76, volume: 52 }
+];
 
-// Variáveis globais
-let useSimulatedData = false;
-let updateInterval;
-let currentStocks = [];
+// Variável global para controlar o índice atual
+let indiceAtual = 'brasileiro';
 
-// FUNÇÃO CORRIGIDA: fetchStockData
-async function fetchStockData() {
-    try {
-        console.log('Tentando buscar dados da API...');
+// Função para gerar posições das bolhas de forma espaçada
+function gerarPosicoes(dados) {
+    const posicoes = [];
+    const largura = 1000;
+    const altura = 600;
+    const margemX = 80;
+    const margemY = 80;
+    
+    dados.forEach((acao, index) => {
+        // Distribuir as bolhas em uma grade mais espaçada
+        const colunas = Math.ceil(Math.sqrt(dados.length));
+        const linha = Math.floor(index / colunas);
+        const coluna = index % colunas;
         
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
+        const x = margemX + (coluna * (largura - 2 * margemX) / (colunas - 1));
+        const y = margemY + (linha * (altura - 2 * margemY) / (Math.ceil(dados.length / colunas) - 1));
         
-        const response = await fetch(CONFIG.API_URL, {
-            signal: controller.signal,
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
+        // Adicionar um pouco de aleatoriedade para parecer mais natural
+        const offsetX = (Math.random() - 0.5) * 40;
+        const offsetY = (Math.random() - 0.5) * 40;
+        
+        posicoes.push({
+            x: Math.max(60, Math.min(largura - 60, x + offsetX)),
+            y: Math.max(60, Math.min(altura - 60, y + offsetY))
         });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('Dados recebidos da API:', data);
-        
-        // CORREÇÃO PRINCIPAL: verificar data.stocks ao invés de data.results
-        if (data.stocks && data.stocks.length > 0) {
-            useSimulatedData = false;
-            hideErrorMessage();
-            return data.stocks;
-        } else {
-            throw new Error('Nenhum dado recebido da API');
-        }
-    } catch (error) {
-        console.error('Erro ao buscar dados da API:', error);
-        useSimulatedData = true;
-        showErrorMessage();
-        return generateFallbackData();
+    });
+    
+    return posicoes;
+}
+
+// Função para criar uma bolha melhorada
+function criarBolha(acao, posicao, moeda) {
+    // Tamanho mínimo maior para garantir que o texto caiba
+    const raio = Math.max(40, Math.min(65, 35 + acao.volume * 0.4));
+    const cor = acao.variacao >= 0 ? '#22c55e' : '#ef4444';
+    
+    // Criar grupo SVG
+    const grupo = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    grupo.setAttribute('class', 'bolha-grupo');
+    
+    // Círculo da bolha
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', posicao.x);
+    circle.setAttribute('cy', posicao.y);
+    circle.setAttribute('r', raio);
+    circle.setAttribute('fill', cor);
+    circle.setAttribute('opacity', '0.85');
+    circle.setAttribute('stroke', cor);
+    circle.setAttribute('stroke-width', '2');
+    circle.setAttribute('class', 'bolha-circle');
+    
+    // Texto do código da ação
+    const textoCodigo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textoCodigo.setAttribute('x', posicao.x);
+    textoCodigo.setAttribute('y', posicao.y - 10);
+    textoCodigo.setAttribute('text-anchor', 'middle');
+    textoCodigo.setAttribute('fill', 'white');
+    textoCodigo.setAttribute('font-weight', 'bold');
+    textoCodigo.setAttribute('font-size', '14');
+    textoCodigo.setAttribute('class', 'texto-codigo');
+    textoCodigo.textContent = acao.codigo;
+    
+    // Texto da variação percentual
+    const textoVariacao = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textoVariacao.setAttribute('x', posicao.x);
+    textoVariacao.setAttribute('y', posicao.y + 5);
+    textoVariacao.setAttribute('text-anchor', 'middle');
+    textoVariacao.setAttribute('fill', 'white');
+    textoVariacao.setAttribute('font-weight', '600');
+    textoVariacao.setAttribute('font-size', '12');
+    textoVariacao.setAttribute('class', 'texto-variacao');
+    textoVariacao.textContent = `${acao.variacao > 0 ? '+' : ''}${acao.variacao.toFixed(2)}%`;
+    
+    // Texto do valor
+    const textoValor = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textoValor.setAttribute('x', posicao.x);
+    textoValor.setAttribute('y', posicao.y + 20);
+    textoValor.setAttribute('text-anchor', 'middle');
+    textoValor.setAttribute('fill', 'white');
+    textoValor.setAttribute('font-size', '11');
+    textoValor.setAttribute('class', 'texto-valor');
+    textoValor.textContent = `${moeda} ${acao.valor.toFixed(2)}`;
+    
+    // Adicionar elementos ao grupo
+    grupo.appendChild(circle);
+    grupo.appendChild(textoCodigo);
+    grupo.appendChild(textoVariacao);
+    grupo.appendChild(textoValor);
+    
+    return grupo;
+}
+
+// Função para renderizar o gráfico
+function renderizarGrafico(dados, moeda) {
+    const svg = document.getElementById('grafico-svg');
+    
+    // Limpar gráfico atual
+    svg.innerHTML = '';
+    
+    // Gerar posições
+    const posicoes = gerarPosicoes(dados);
+    
+    // Criar bolhas
+    dados.forEach((acao, index) => {
+        const bolha = criarBolha(acao, posicoes[index], moeda);
+        svg.appendChild(bolha);
+    });
+}
+
+// Função para alternar entre índices
+function alternarIndice(tipo) {
+    indiceAtual = tipo;
+    
+    // Atualizar botões
+    const btnBrasileiro = document.getElementById('btn-brasileiro');
+    const btnAmericano = document.getElementById('btn-americano');
+    
+    if (tipo === 'brasileiro') {
+        btnBrasileiro.classList.add('ativo');
+        btnAmericano.classList.remove('ativo');
+        renderizarGrafico(acoesBrasileiras, 'R$');
+    } else {
+        btnAmericano.classList.add('ativo');
+        btnBrasileiro.classList.remove('ativo');
+        renderizarGrafico(acoesAmericanas, '$');
     }
 }
 
-// FUNÇÃO CORRIGIDA: createBubbles
-function createBubbles(stocks) {
-    console.log(`Criando bolhas com ${stocks.length} ações`);
-    
-    const container = document.querySelector('.bubble-container') || 
-                     document.querySelector('#bubble-container') || 
-                     document.querySelector('.bubbles-container');
-    
-    if (!container) {
-        console.error('Container de bolhas não encontrado');
-        return;
-    }
-    
-    // Limpar bolhas existentes
-    container.innerHTML = '';
-    
-    // Criar bolhas para as primeiras 50 ações
-    stocks.slice(0, 50).forEach((stock, index) => {
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        
-        // Usar a estrutura correta dos dados da API
-        const stockCode = stock.stock || stock.symbol || 'N/A';
-        const stockName = stock.name || stockCode;
-        const price = stock.close || stock.price || 0;
-        const change = stock.change || 0;
-        const volume = stock.volume || 0;
-        
-        // Calcular tamanho da bolha baseado no volume
-        const minSize = 60;
-        const maxSize = 120;
-        const normalizedVolume = Math.min(volume / 10000000, 1);
-        const bubbleSize = minSize + (normalizedVolume * (maxSize - minSize));
-        
-        // Posicionamento aleatório
-        const x = Math.random() * (window.innerWidth - bubbleSize);
-        const y = Math.random() * (window.innerHeight - bubbleSize - 200) + 100;
-        
-        bubble.innerHTML = `
-            <div class="stock-code">${stockCode}</div>
-            <div class="stock-change">${change > 0 ? '+' : ''}${change.toFixed(2)}%</div>
-            <div class="stock-price">R$ ${price.toFixed(2)}</div>
-        `;
-        
-        // Aplicar estilos
-        bubble.style.cssText = `
-            position: absolute;
-            left: ${x}px;
-            top: ${y}px;
-            width: ${bubbleSize}px;
-            height: ${bubbleSize}px;
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
+// Função para adicionar efeitos de hover
+function adicionarEfeitosHover() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .bolha-grupo:hover .bolha-circle {
+            opacity: 1 !important;
+            stroke-width: 3 !important;
+            transform: scale(1.05);
             transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        `;
+        }
         
-        // Aplicar cor baseada na variação
-        if (change > 0) {
-            bubble.style.backgroundColor = '#10b981'; // Verde
-        } else if (change < 0) {
-            bubble.style.backgroundColor = '#ef4444'; // Vermelho
+        .bolha-grupo {
+            cursor: pointer;
+        }
+        
+        .bolha-circle {
+            transition: all 0.3s ease;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Função para tornar o gráfico responsivo
+function tornarResponsivo() {
+    function ajustarTamanho() {
+        const container = document.querySelector('.grafico-container');
+        const svg = document.getElementById('grafico-svg');
+        
+        if (window.innerWidth < 768) {
+            svg.setAttribute('height', '400');
+            svg.setAttribute('viewBox', '0 0 800 400');
         } else {
-            bubble.style.backgroundColor = '#6b7280'; // Cinza
+            svg.setAttribute('height', '600');
+            svg.setAttribute('viewBox', '0 0 1000 600');
         }
         
-        // Adicionar interatividade
-        bubble.addEventListener('mouseenter', () => {
-            bubble.style.transform = 'scale(1.1)';
-            bubble.style.zIndex = '1000';
-        });
-        
-        bubble.addEventListener('mouseleave', () => {
-            bubble.style.transform = 'scale(1)';
-            bubble.style.zIndex = 'auto';
-        });
-        
-        bubble.addEventListener('click', () => {
-            showStockDetails(stock);
-        });
-        
-        container.appendChild(bubble);
-    });
-    
-    console.log(`✅ ${stocks.length} bolhas criadas`);
-    hideLoading();
-}
-
-// Função para mostrar detalhes da ação
-function showStockDetails(stock) {
-    const modal = document.createElement('div');
-    modal.className = 'stock-modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>${stock.stock} - ${stock.name}</h2>
-            <p><strong>Preço:</strong> R$ ${stock.close.toFixed(2)}</p>
-            <p><strong>Variação:</strong> ${stock.change > 0 ? '+' : ''}${stock.change.toFixed(2)}%</p>
-            <p><strong>Volume:</strong> ${stock.volume.toLocaleString()}</p>
-            <p><strong>Setor:</strong> ${stock.sector}</p>
-            <p><strong>Tipo:</strong> ${stock.type}</p>
-        </div>
-    `;
-    
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    `;
-    
-    const content = modal.querySelector('.modal-content');
-    content.style.cssText = `
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        max-width: 400px;
-        width: 90%;
-        position: relative;
-    `;
-    
-    const closeBtn = modal.querySelector('.close');
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: 10px;
-        right: 15px;
-        font-size: 24px;
-        cursor: pointer;
-    `;
-    
-    closeBtn.addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-    
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    });
-    
-    document.body.appendChild(modal);
-}
-
-// Função para mostrar mensagem de erro
-function showErrorMessage() {
-    let errorDiv = document.querySelector('.error-message');
-    if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.innerHTML = '⚠️ Erro ao carregar dados. Usando dados simulados.';
-        errorDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #ef4444;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        `;
-        document.body.appendChild(errorDiv);
+        // Re-renderizar com o índice atual
+        const dados = indiceAtual === 'brasileiro' ? acoesBrasileiras : acoesAmericanas;
+        const moeda = indiceAtual === 'brasileiro' ? 'R$' : '$';
+        renderizarGrafico(dados, moeda);
     }
-}
-
-// Função para esconder mensagem de erro
-function hideErrorMessage() {
-    const errorDiv = document.querySelector('.error-message');
-    if (errorDiv) {
-        errorDiv.remove();
-    }
-}
-
-// Função para mostrar loading
-function showLoading() {
-    let loadingDiv = document.querySelector('.loading');
-    if (!loadingDiv) {
-        loadingDiv = document.createElement('div');
-        loadingDiv.className = 'loading';
-        loadingDiv.innerHTML = 'Carregando dados...';
-        loadingDiv.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 1000;
-        `;
-        document.body.appendChild(loadingDiv);
-    }
-}
-
-// Função para esconder loading
-function hideLoading() {
-    const loadingDiv = document.querySelector('.loading');
-    if (loadingDiv) {
-        loadingDiv.remove();
-    }
-}
-
-// Função para gerar dados de fallback
-function generateFallbackData() {
-    const fallbackStocks = [
-        { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 4.81, volume: 1000000, sector: 'Energy', type: 'stock' },
-        { stock: 'VALE3', name: 'VALE', close: 65.78, change: -5.28, volume: 800000, sector: 'Mining', type: 'stock' },
-        { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: -6.96, volume: 1200000, sector: 'Finance', type: 'stock' },
-        { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: 4.63, volume: 900000, sector: 'Finance', type: 'stock' },
-        { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: -2.17, volume: 700000, sector: 'Consumer', type: 'stock' }
-    ];
     
-    return fallbackStocks;
+    window.addEventListener('resize', ajustarTamanho);
+    ajustarTamanho(); // Executar uma vez no carregamento
 }
 
-// Função para atualizar dados
-async function updateData() {
-    console.log('Atualizando dados...');
-    showLoading();
+// Inicialização quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Bubles - Gráfico de Bolhas Melhorado carregado!');
     
-    try {
-        const stocks = await fetchStockData();
-        currentStocks = stocks;
-        createBubbles(stocks);
-    } catch (error) {
-        console.error('Erro ao atualizar dados:', error);
-    }
-}
-
-// Função de busca
-function setupSearch() {
-    const searchInput = document.querySelector('input[placeholder*="Buscar"]');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const bubbles = document.querySelectorAll('.bubble');
-            
-            bubbles.forEach(bubble => {
-                const stockCode = bubble.querySelector('.stock-code').textContent.toLowerCase();
-                if (stockCode.includes(searchTerm)) {
-                    bubble.style.display = 'flex';
-                } else {
-                    bubble.style.display = 'none';
-                }
-            });
-        });
-    }
-}
-
-// Função de inicialização
-async function initializeApp() {
-    console.log('Inicializando aplicação...');
+    // Adicionar efeitos visuais
+    adicionarEfeitosHover();
     
-    try {
-        // Buscar dados iniciais
-        const stocks = await fetchStockData();
-        currentStocks = stocks;
-        
-        // Criar visualização
-        createBubbles(stocks);
-        
-        // Configurar busca
-        setupSearch();
-        
-        // Configurar atualização automática
-        updateInterval = setInterval(updateData, CONFIG.UPDATE_INTERVAL);
-        
-        console.log('Aplicação inicializada com sucesso');
-    } catch (error) {
-        console.error('Erro na inicialização:', error);
-    }
-}
-
-// Inicializar quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM carregado, inicializando...');
-    initializeApp();
+    // Tornar responsivo
+    tornarResponsivo();
+    
+    // Carregar gráfico inicial (brasileiro)
+    alternarIndice('brasileiro');
+    
+    console.log('✅ Melhorias implementadas:');
+    console.log('- Bolhas maiores para melhor legibilidade');
+    console.log('- Texto centralizado dentro das bolhas');
+    console.log('- Botão para índice americano');
+    console.log('- Efeitos hover melhorados');
+    console.log('- Design responsivo');
 });
 
-// Limpar interval ao sair da página
-window.addEventListener('beforeunload', () => {
-    if (updateInterval) {
-        clearInterval(updateInterval);
-    }
-});
+// Função para exportar dados (funcionalidade extra)
+function exportarDados() {
+    const dados = indiceAtual === 'brasileiro' ? acoesBrasileiras : acoesAmericanas;
+    const dataStr = JSON.stringify(dados, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `acoes_${indiceAtual}.json`;
+    link.click();
+}
+
+// Disponibilizar função globalmente para uso opcional
+window.exportarDados = exportarDados;
+
