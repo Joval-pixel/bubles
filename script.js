@@ -1,516 +1,350 @@
-// Lista das 100 ações mais negociadas (brasileiras)
-const top100AcoesBrasileiras = [
-    { codigo: 'PETR4', variacao: 0.47, valor: 35.31, volume: 100 },
-    { codigo: 'VALE3', variacao: -1.64, valor: 54.71, volume: 98 },
-    { codigo: 'ITUB4', variacao: 1.10, valor: 32.22, volume: 96 },
-    { codigo: 'BBDC4', variacao: 0.22, valor: 13.45, volume: 94 },
-    { codigo: 'ABEV3', variacao: 2.15, valor: 12.89, volume: 92 },
-    { codigo: 'WEGE3', variacao: 2.15, valor: 67.89, volume: 90 },
-    { codigo: 'AZUL4', variacao: -7.46, valor: 6.62, volume: 88 },
-    { codigo: 'MGLU3', variacao: -3.20, valor: 7.28, volume: 86 },
-    { codigo: 'AMBP3', variacao: 18.79, valor: 17.42, volume: 84 },
-    { codigo: 'DASA3', variacao: 6.76, valor: 1.46, volume: 82 },
-    { codigo: 'VAMO3', variacao: 1.30, valor: 1.31, volume: 80 },
-    { codigo: 'POMO4', variacao: 2.64, valor: 14.85, volume: 78 },
-    { codigo: 'CPFE3', variacao: -2.80, valor: 37.41, volume: 76 },
-    { codigo: 'FNAM11', variacao: 5.86, valor: 8.26, volume: 74 },
-    { codigo: 'IGTI11', variacao: 1.76, valor: 21.06, volume: 72 },
-    { codigo: 'BRFS3', variacao: -0.53, valor: 14.67, volume: 70 },
-    { codigo: 'BBAS3', variacao: 0.85, valor: 28.45, volume: 68 },
-    { codigo: 'RENT3', variacao: 1.23, valor: 45.67, volume: 66 },
-    { codigo: 'LREN3', variacao: -0.89, valor: 23.12, volume: 64 },
-    { codigo: 'JBSS3', variacao: 2.34, valor: 34.56, volume: 62 },
-    { codigo: 'SUZB3', variacao: -1.45, valor: 56.78, volume: 60 },
-    { codigo: 'GGBR4', variacao: 3.21, valor: 18.90, volume: 58 },
-    { codigo: 'USIM5', variacao: -2.10, valor: 7.65, volume: 56 },
-    { codigo: 'CSNA3', variacao: 1.87, valor: 12.34, volume: 54 },
-    { codigo: 'GOAU4', variacao: -0.76, valor: 9.87, volume: 52 },
-    { codigo: 'EMBR3', variacao: 2.98, valor: 23.45, volume: 50 },
-    { codigo: 'CCRO3', variacao: -1.23, valor: 14.56, volume: 48 },
-    { codigo: 'EQTL3', variacao: 0.98, valor: 27.89, volume: 46 },
-    { codigo: 'ELET3', variacao: -0.45, valor: 39.12, volume: 44 },
-    { codigo: 'ELET6', variacao: 1.56, valor: 41.23, volume: 42 },
-    { codigo: 'CMIG4', variacao: -0.87, valor: 8.76, volume: 40 },
-    { codigo: 'TAEE11', variacao: 2.10, valor: 32.45, volume: 38 },
-    { codigo: 'CPLE6', variacao: -1.34, valor: 45.67, volume: 36 },
-    { codigo: 'ENGI11', variacao: 0.67, valor: 38.90, volume: 34 },
-    { codigo: 'SBSP3', variacao: 1.45, valor: 67.23, volume: 32 },
-    { codigo: 'SAPR11', variacao: -0.23, valor: 78.45, volume: 30 },
-    { codigo: 'VIVT3', variacao: 2.87, valor: 43.21, volume: 28 },
-    { codigo: 'TIMP3', variacao: -1.56, valor: 9.87, volume: 26 },
-    { codigo: 'OIBR3', variacao: 3.45, valor: 2.34, volume: 24 },
-    { codigo: 'QUAL3', variacao: -2.10, valor: 12.56, volume: 22 },
-    { codigo: 'RADL3', variacao: 1.23, valor: 34.78, volume: 20 },
-    { codigo: 'RAIA3', variacao: -0.89, valor: 23.45, volume: 18 },
-    { codigo: 'PCAR3', variacao: 2.56, valor: 45.67, volume: 16 },
-    { codigo: 'KLBN11', variacao: -1.23, valor: 3.45, volume: 14 },
-    { codigo: 'SUZB3', variacao: 0.78, valor: 56.78, volume: 12 },
-    { codigo: 'FIBR3', variacao: 1.90, valor: 67.89, volume: 10 },
-    { codigo: 'MRFG3', variacao: -0.45, valor: 8.90, volume: 8 },
-    { codigo: 'BEEF3', variacao: 2.34, valor: 12.34, volume: 6 },
-    { codigo: 'JALL3', variacao: -1.67, valor: 23.45, volume: 4 },
-    { codigo: 'HAPV3', variacao: 0.89, valor: 34.56, volume: 2 }
+// Dados das ações brasileiras (Top 100)
+const brazilianStocks = [
+    { symbol: 'PETR4', name: 'Petrobras', price: 35.31, marketCap: 460.2, volume: 2.1, hour: 0.1, day: 0.47, week: -2.1, month: 5.4, year: 12.3 },
+    { symbol: 'VALE3', name: 'Vale', price: 54.71, marketCap: 245.8, volume: 1.8, hour: -0.2, day: -1.64, week: -3.2, month: 8.7, year: 15.6 },
+    { symbol: 'ITUB4', name: 'Itaú Unibanco', price: 32.22, marketCap: 312.5, volume: 1.5, hour: 0.0, day: 1.10, week: 2.3, month: 4.1, year: 18.9 },
+    { symbol: 'BBDC4', name: 'Bradesco', price: 13.45, marketCap: 156.7, volume: 1.2, hour: 0.1, day: 0.22, week: 1.8, month: 3.5, year: 22.1 },
+    { symbol: 'ABEV3', name: 'Ambev', price: 12.89, marketCap: 203.4, volume: 0.9, hour: -0.1, day: 2.15, week: 3.4, month: 6.2, year: 8.7 },
+    { symbol: 'WEGE3', name: 'WEG', price: 67.89, marketCap: 89.3, volume: 0.8, hour: 0.2, day: 2.15, week: 4.1, month: 12.3, year: 45.6 },
+    { symbol: 'AZUL4', name: 'Azul', price: 6.62, marketCap: 28.1, volume: 0.7, hour: -0.3, day: -7.46, week: -12.1, month: -15.8, year: -23.4 },
+    { symbol: 'MGLU3', name: 'Magazine Luiza', price: 7.28, marketCap: 48.9, volume: 0.6, hour: 0.0, day: -3.20, week: -5.7, month: -8.9, year: -45.2 },
+    { symbol: 'AMBP3', name: 'Ambipar', price: 17.42, marketCap: 12.5, volume: 0.5, hour: 0.4, day: 18.79, week: 25.3, month: 34.7, year: 89.2 },
+    { symbol: 'DASA3', name: 'Dasa', price: 1.46, marketCap: 8.7, volume: 0.4, hour: 0.1, day: 6.76, week: 8.9, month: 15.2, year: 23.8 },
+    { symbol: 'VAMO3', name: 'Vamos', price: 1.31, marketCap: 6.2, volume: 0.3, hour: 0.0, day: 1.30, week: 2.1, month: 4.5, year: 12.7 },
+    { symbol: 'POMO4', name: 'Marcopolo', price: 14.85, marketCap: 9.8, volume: 0.3, hour: 0.1, day: 2.64, week: 3.8, month: 7.2, year: 18.9 },
+    { symbol: 'CPFE3', name: 'CPFL Energia', price: 37.41, marketCap: 45.6, volume: 0.2, hour: -0.1, day: -2.80, week: -1.2, month: 3.4, year: 15.7 },
+    { symbol: 'FNAM11', name: 'FII Fator Verita', price: 8.26, marketCap: 3.2, volume: 0.2, hour: 0.2, day: 5.86, week: 7.3, month: 9.8, year: 14.2 },
+    { symbol: 'IGTI11', name: 'Iguatemi', price: 21.06, marketCap: 15.4, volume: 0.1, hour: 0.0, day: 1.76, week: 2.9, month: 5.1, year: 8.7 },
+    { symbol: 'BRFS3', name: 'BRF', price: 14.67, marketCap: 23.8, volume: 0.1, hour: -0.1, day: -0.53, week: 1.2, month: 4.6, year: 12.3 },
+    { symbol: 'BBAS3', name: 'Banco do Brasil', price: 28.45, marketCap: 98.7, volume: 1.1, hour: 0.1, day: 0.85, week: 2.1, month: 5.4, year: 19.8 },
+    { symbol: 'RENT3', name: 'Localiza', price: 45.67, marketCap: 67.2, volume: 0.9, hour: 0.0, day: 1.23, week: 3.2, month: 7.8, year: 25.4 },
+    { symbol: 'LREN3', name: 'Lojas Renner', price: 23.12, marketCap: 34.5, volume: 0.8, hour: -0.2, day: -0.89, week: 1.5, month: 4.2, year: 16.7 },
+    { symbol: 'JBSS3', name: 'JBS', price: 34.56, marketCap: 78.9, volume: 0.7, hour: 0.1, day: 2.34, week: 4.1, month: 8.7, year: 21.3 }
 ];
 
-// Lista das 50 ações americanas mais negociadas
-const top50AcoesAmericanas = [
-    { codigo: 'AAPL', variacao: 2.34, valor: 185.92, volume: 100 },
-    { codigo: 'MSFT', variacao: 1.87, valor: 378.85, volume: 98 },
-    { codigo: 'GOOGL', variacao: -0.45, valor: 142.56, volume: 96 },
-    { codigo: 'AMZN', variacao: 3.21, valor: 151.94, volume: 94 },
-    { codigo: 'TSLA', variacao: -2.67, valor: 248.42, volume: 92 },
-    { codigo: 'META', variacao: 1.95, valor: 484.49, volume: 90 },
-    { codigo: 'NVDA', variacao: 4.12, valor: 875.28, volume: 88 },
-    { codigo: 'NFLX', variacao: -1.23, valor: 486.81, volume: 86 },
-    { codigo: 'AMD', variacao: 2.89, valor: 142.37, volume: 84 },
-    { codigo: 'INTC', variacao: -0.78, valor: 23.45, volume: 82 },
-    { codigo: 'CRM', variacao: 1.56, valor: 267.89, volume: 80 },
-    { codigo: 'ORCL', variacao: 0.92, valor: 112.34, volume: 78 },
-    { codigo: 'ADBE', variacao: -1.45, valor: 567.23, volume: 76 },
-    { codigo: 'PYPL', variacao: 2.67, valor: 78.45, volume: 74 },
-    { codigo: 'DIS', variacao: -0.34, valor: 98.76, volume: 72 },
-    { codigo: 'UBER', variacao: 3.45, valor: 67.89, volume: 70 },
-    { codigo: 'SPOT', variacao: -2.10, valor: 234.56, volume: 68 },
-    { codigo: 'ZOOM', variacao: 1.78, valor: 89.12, volume: 66 },
-    { codigo: 'SQ', variacao: -0.89, valor: 123.45, volume: 64 },
-    { codigo: 'SHOP', variacao: 2.34, valor: 456.78, volume: 62 },
-    { codigo: 'ROKU', variacao: -1.56, valor: 67.89, volume: 60 },
-    { codigo: 'TWTR', variacao: 0.78, valor: 45.67, volume: 58 },
-    { codigo: 'SNAP', variacao: 1.90, valor: 12.34, volume: 56 },
-    { codigo: 'PINS', variacao: -0.45, valor: 23.45, volume: 54 },
-    { codigo: 'DOCU', variacao: 2.67, valor: 78.90, volume: 52 },
-    { codigo: 'ZM', variacao: -1.23, valor: 89.12, volume: 50 },
-    { codigo: 'WORK', variacao: 0.89, valor: 34.56, volume: 48 },
-    { codigo: 'OKTA', variacao: 1.45, valor: 123.78, volume: 46 },
-    { codigo: 'CRWD', variacao: -0.67, valor: 234.90, volume: 44 },
-    { codigo: 'ZS', variacao: 2.10, valor: 156.78, volume: 42 },
-    { codigo: 'DDOG', variacao: -1.34, valor: 89.45, volume: 40 },
-    { codigo: 'SNOW', variacao: 0.56, valor: 267.89, volume: 38 },
-    { codigo: 'PLTR', variacao: 1.78, valor: 23.45, volume: 36 },
-    { codigo: 'RBLX', variacao: -0.89, valor: 45.67, volume: 34 },
-    { codigo: 'COIN', variacao: 2.34, valor: 178.90, volume: 32 },
-    { codigo: 'HOOD', variacao: -1.56, valor: 12.34, volume: 30 },
-    { codigo: 'SOFI', variacao: 0.78, valor: 8.90, volume: 28 },
-    { codigo: 'UPST', variacao: 1.90, valor: 34.56, volume: 26 },
-    { codigo: 'AFRM', variacao: -0.45, valor: 23.78, volume: 24 },
-    { codigo: 'SQ', variacao: 2.67, valor: 89.12, volume: 22 },
-    { codigo: 'ABNB', variacao: -1.23, valor: 123.45, volume: 20 },
-    { codigo: 'DASH', variacao: 0.89, valor: 67.89, volume: 18 },
-    { codigo: 'LYFT', variacao: 1.45, valor: 45.67, volume: 16 },
-    { codigo: 'UBER', variacao: -0.67, valor: 34.56, volume: 14 },
-    { codigo: 'GRUB', variacao: 2.10, valor: 23.45, volume: 12 },
-    { codigo: 'ETSY', variacao: -1.34, valor: 78.90, volume: 10 },
-    { codigo: 'EBAY', variacao: 0.56, valor: 45.67, volume: 8 },
-    { codigo: 'AMZN', variacao: 1.78, valor: 123.45, volume: 6 },
-    { codigo: 'WMT', variacao: -0.89, valor: 156.78, volume: 4 },
-    { codigo: 'TGT', variacao: 2.34, valor: 234.56, volume: 2 }
+// Dados das ações americanas (Top 50)
+const americanStocks = [
+    { symbol: 'AAPL', name: 'Apple', price: 185.92, marketCap: 2850.4, volume: 45.2, hour: 0.2, day: 2.34, week: 1.8, month: 5.7, year: 23.4 },
+    { symbol: 'MSFT', name: 'Microsoft', price: 378.85, marketCap: 2820.1, volume: 32.1, hour: 0.1, day: 1.87, week: 2.3, month: 6.2, year: 28.9 },
+    { symbol: 'GOOGL', name: 'Alphabet', price: 142.56, marketCap: 1780.3, volume: 28.7, hour: -0.1, day: -0.45, week: 1.2, month: 4.8, year: 19.6 },
+    { symbol: 'AMZN', name: 'Amazon', price: 151.94, marketCap: 1590.8, volume: 35.4, hour: 0.3, day: 3.21, week: 4.1, month: 8.9, year: 32.1 },
+    { symbol: 'TSLA', name: 'Tesla', price: 248.42, marketCap: 789.2, volume: 42.8, hour: -0.2, day: -2.67, week: -1.8, month: 12.4, year: 45.7 },
+    { symbol: 'META', name: 'Meta', price: 484.49, marketCap: 1234.5, volume: 25.6, hour: 0.1, day: 1.95, week: 3.4, month: 9.8, year: 67.2 },
+    { symbol: 'NVDA', name: 'NVIDIA', price: 875.28, marketCap: 2156.7, volume: 38.9, hour: 0.4, day: 4.12, week: 6.7, month: 15.3, year: 189.4 },
+    { symbol: 'NFLX', name: 'Netflix', price: 486.81, marketCap: 215.4, volume: 18.2, hour: -0.1, day: -1.23, week: 2.1, month: 7.8, year: 34.6 },
+    { symbol: 'AMD', name: 'AMD', price: 142.37, marketCap: 234.8, volume: 22.1, hour: 0.2, day: 2.89, week: 4.5, month: 11.2, year: 78.9 },
+    { symbol: 'INTC', name: 'Intel', price: 23.45, marketCap: 98.7, volume: 15.6, hour: -0.1, day: -0.78, week: -2.3, month: 1.4, year: -12.8 },
+    { symbol: 'CRM', name: 'Salesforce', price: 267.89, marketCap: 267.3, volume: 12.4, hour: 0.1, day: 1.56, week: 2.8, month: 6.9, year: 25.7 },
+    { symbol: 'ORCL', name: 'Oracle', price: 112.34, marketCap: 312.1, volume: 14.7, hour: 0.0, day: 0.92, week: 1.9, month: 4.3, year: 18.6 },
+    { symbol: 'ADBE', name: 'Adobe', price: 567.23, marketCap: 256.8, volume: 9.8, hour: -0.2, day: -1.45, week: 0.8, month: 5.2, year: 22.4 },
+    { symbol: 'PYPL', name: 'PayPal', price: 78.45, marketCap: 89.2, volume: 16.3, hour: 0.3, day: 2.67, week: 3.9, month: 8.1, year: 15.7 },
+    { symbol: 'DIS', name: 'Disney', price: 98.76, marketCap: 180.4, volume: 11.2, hour: -0.1, day: -0.34, week: 1.6, month: 3.8, year: 9.2 },
+    { symbol: 'UBER', name: 'Uber', price: 67.89, marketCap: 145.6, volume: 19.7, hour: 0.2, day: 3.45, week: 5.2, month: 12.8, year: 89.3 },
+    { symbol: 'SPOT', name: 'Spotify', price: 234.56, marketCap: 45.8, volume: 8.9, hour: -0.3, day: -2.10, week: -0.7, month: 6.4, year: 34.1 },
+    { symbol: 'ZOOM', name: 'Zoom', price: 89.12, marketCap: 26.7, volume: 7.4, hour: 0.1, day: 1.78, week: 2.9, month: 5.6, year: -15.2 },
+    { symbol: 'SQ', name: 'Block', price: 123.45, marketCap: 67.3, volume: 13.8, hour: -0.1, day: -0.89, week: 2.3, month: 7.9, year: 45.6 },
+    { symbol: 'SHOP', name: 'Shopify', price: 456.78, marketCap: 58.9, volume: 10.5, hour: 0.2, day: 2.34, week: 4.7, month: 11.3, year: 67.8 }
 ];
 
-// Variável global para controlar o índice atual
-let indiceAtual = 'brasileiro';
-let dadosExibidos = top100AcoesBrasileiras.slice(0, 15); // Mostrar apenas 15 por vez
+// Estado da aplicação
+let currentMarket = 'brazilian';
+let currentPeriod = 'day';
+let currentMetric = 'market-cap';
+let currentData = brazilianStocks;
 
-// Função para gerar posições das bolhas de forma espaçada
-function gerarPosicoes(dados) {
-    const posicoes = [];
-    const largura = 1000;
-    const altura = 600;
-    const margemX = 100;
-    const margemY = 100;
+// Elementos DOM
+const bubbleChart = document.getElementById('bubble-chart');
+const tableBody = document.getElementById('table-body');
+const searchInput = document.getElementById('search-input');
+const rangeSelect = document.getElementById('range-select');
+const periodButtons = document.querySelectorAll('.period-btn');
+const metricSelect = document.getElementById('metric-select');
+const settingsBtn = document.getElementById('settings');
+const settingsModal = document.getElementById('settings-modal');
+const closeModal = document.getElementById('close-modal');
+const marketSelect = document.getElementById('market-select');
+
+// Função para gerar posições das bolhas (algoritmo similar ao Cryptobubbles)
+function generateBubblePositions(data) {
+    const positions = [];
+    const width = 1200;
+    const height = 700;
+    const padding = 60;
     
-    dados.forEach((acao, index) => {
-        // Distribuir as bolhas em uma grade mais espaçada
-        const colunas = Math.ceil(Math.sqrt(dados.length));
-        const linha = Math.floor(index / colunas);
-        const coluna = index % colunas;
+    // Ordenar por market cap para posicionamento
+    const sortedData = [...data].sort((a, b) => b.marketCap - a.marketCap);
+    
+    sortedData.forEach((stock, index) => {
+        let x, y, radius;
+        let attempts = 0;
+        const maxAttempts = 100;
         
-        const x = margemX + (coluna * (largura - 2 * margemX) / Math.max(1, colunas - 1));
-        const y = margemY + (linha * (altura - 2 * margemY) / Math.max(1, Math.ceil(dados.length / colunas) - 1));
+        // Calcular raio baseado na métrica selecionada
+        const maxValue = Math.max(...data.map(s => s[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price']));
+        const minValue = Math.min(...data.map(s => s[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price']));
+        const value = stock[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price'];
         
-        // Adicionar um pouco de aleatoriedade para parecer mais natural
-        const offsetX = (Math.random() - 0.5) * 30;
-        const offsetY = (Math.random() - 0.5) * 30;
+        // Raio entre 20 e 80 pixels
+        radius = 20 + ((value - minValue) / (maxValue - minValue)) * 60;
         
-        posicoes.push({
-            x: Math.max(80, Math.min(largura - 80, x + offsetX)),
-            y: Math.max(80, Math.min(altura - 80, y + offsetY))
-        });
+        do {
+            // Posicionamento mais natural (não em grade)
+            if (index === 0) {
+                // Primeira bolha no centro
+                x = width / 2;
+                y = height / 2;
+            } else {
+                // Outras bolhas em posições aleatórias, mas tendendo ao centro
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * Math.min(width, height) * 0.3;
+                x = width / 2 + Math.cos(angle) * distance;
+                y = height / 2 + Math.sin(angle) * distance;
+                
+                // Garantir que está dentro dos limites
+                x = Math.max(radius + padding, Math.min(width - radius - padding, x));
+                y = Math.max(radius + padding, Math.min(height - radius - padding, y));
+            }
+            
+            // Verificar colisão com outras bolhas
+            let collision = false;
+            for (let i = 0; i < positions.length; i++) {
+                const other = positions[i];
+                const distance = Math.sqrt((x - other.x) ** 2 + (y - other.y) ** 2);
+                const minDistance = radius + other.radius + 5; // 5px de espaçamento
+                
+                if (distance < minDistance) {
+                    collision = true;
+                    break;
+                }
+            }
+            
+            if (!collision) {
+                positions.push({ x, y, radius, stock, index });
+                break;
+            }
+            
+            attempts++;
+        } while (attempts < maxAttempts);
+        
+        // Se não conseguiu posicionar sem colisão, força uma posição
+        if (attempts >= maxAttempts) {
+            positions.push({ x, y, radius, stock, index });
+        }
     });
     
-    return posicoes;
+    return positions;
 }
 
-// Função para criar uma bolha com tamanho maior e texto bem posicionado
-function criarBolha(acao, posicao, moeda) {
-    // Tamanho ainda maior para garantir que o texto caiba perfeitamente
-    const raio = Math.max(50, Math.min(75, 45 + acao.volume * 0.3));
-    const cor = acao.variacao >= 0 ? '#22c55e' : '#ef4444';
+// Função para renderizar as bolhas
+function renderBubbles() {
+    const positions = generateBubblePositions(currentData);
+    bubbleChart.innerHTML = '';
     
-    // Criar grupo SVG
-    const grupo = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    grupo.setAttribute('class', 'bolha-grupo');
-    
-    // Círculo da bolha
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('cx', posicao.x);
-    circle.setAttribute('cy', posicao.y);
-    circle.setAttribute('r', raio);
-    circle.setAttribute('fill', cor);
-    circle.setAttribute('opacity', '0.85');
-    circle.setAttribute('stroke', cor);
-    circle.setAttribute('stroke-width', '2');
-    circle.setAttribute('class', 'bolha-circle');
-    
-    // Texto do código da ação - posicionamento melhorado
-    const textoCodigo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textoCodigo.setAttribute('x', posicao.x);
-    textoCodigo.setAttribute('y', posicao.y - 12); // Mais espaço acima
-    textoCodigo.setAttribute('text-anchor', 'middle');
-    textoCodigo.setAttribute('dominant-baseline', 'middle');
-    textoCodigo.setAttribute('fill', 'white');
-    textoCodigo.setAttribute('font-weight', 'bold');
-    textoCodigo.setAttribute('font-size', '15'); // Fonte maior
-    textoCodigo.setAttribute('class', 'texto-codigo');
-    textoCodigo.textContent = acao.codigo;
-    
-    // Texto da variação percentual - centralizado
-    const textoVariacao = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textoVariacao.setAttribute('x', posicao.x);
-    textoVariacao.setAttribute('y', posicao.y + 2); // Centralizado
-    textoVariacao.setAttribute('text-anchor', 'middle');
-    textoVariacao.setAttribute('dominant-baseline', 'middle');
-    textoVariacao.setAttribute('fill', 'white');
-    textoVariacao.setAttribute('font-weight', '600');
-    textoVariacao.setAttribute('font-size', '13'); // Fonte maior
-    textoVariacao.setAttribute('class', 'texto-variacao');
-    textoVariacao.textContent = `${acao.variacao > 0 ? '+' : ''}${acao.variacao.toFixed(2)}%`;
-    
-    // Texto do valor - posicionamento melhorado
-    const textoValor = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textoValor.setAttribute('x', posicao.x);
-    textoValor.setAttribute('y', posicao.y + 16); // Mais espaço abaixo
-    textoValor.setAttribute('text-anchor', 'middle');
-    textoValor.setAttribute('dominant-baseline', 'middle');
-    textoValor.setAttribute('fill', 'white');
-    textoValor.setAttribute('font-size', '12'); // Fonte maior
-    textoValor.setAttribute('class', 'texto-valor');
-    textoValor.textContent = `${moeda} ${acao.valor.toFixed(2)}`;
-    
-    // Adicionar elementos ao grupo
-    grupo.appendChild(circle);
-    grupo.appendChild(textoCodigo);
-    grupo.appendChild(textoVariacao);
-    grupo.appendChild(textoValor);
-    
-    return grupo;
-}
-
-// Função para renderizar o gráfico
-function renderizarGrafico(dados, moeda) {
-    const svg = document.getElementById('grafico-svg');
-    
-    // Limpar gráfico atual
-    svg.innerHTML = '';
-    
-    // Gerar posições
-    const posicoes = gerarPosicoes(dados);
-    
-    // Criar bolhas
-    dados.forEach((acao, index) => {
-        const bolha = criarBolha(acao, posicoes[index], moeda);
-        svg.appendChild(bolha);
+    positions.forEach(({ x, y, radius, stock }) => {
+        // Determinar cor baseada na variação do período atual
+        const change = stock[currentPeriod];
+        let bubbleClass = 'bubble-neutral';
+        if (change > 0) bubbleClass = 'bubble-positive';
+        else if (change < 0) bubbleClass = 'bubble-negative';
+        
+        // Criar grupo da bolha
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', 'bubble');
+        group.setAttribute('data-symbol', stock.symbol);
+        
+        // Círculo da bolha
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', radius);
+        circle.setAttribute('class', bubbleClass);
+        circle.setAttribute('stroke-width', '2');
+        
+        // Texto do símbolo
+        const symbolText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        symbolText.setAttribute('x', x);
+        symbolText.setAttribute('y', y - 8);
+        symbolText.setAttribute('class', 'bubble-text bubble-symbol');
+        symbolText.textContent = stock.symbol;
+        
+        // Texto da variação
+        const changeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        changeText.setAttribute('x', x);
+        changeText.setAttribute('y', y + 8);
+        changeText.setAttribute('class', 'bubble-text bubble-change');
+        changeText.textContent = `${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+        
+        group.appendChild(circle);
+        group.appendChild(symbolText);
+        group.appendChild(changeText);
+        
+        // Event listeners
+        group.addEventListener('click', () => showStockDetails(stock));
+        group.addEventListener('mouseenter', () => highlightTableRow(stock.symbol));
+        group.addEventListener('mouseleave', () => removeTableHighlight());
+        
+        bubbleChart.appendChild(group);
     });
 }
 
-// Função para alternar entre índices
-function alternarIndice(tipo) {
-    indiceAtual = tipo;
+// Função para renderizar a tabela
+function renderTable() {
+    tableBody.innerHTML = '';
     
-    // Atualizar botões
-    const btnBrasileiro = document.getElementById('btn-brasileiro');
-    const btnAmericano = document.getElementById('btn-americano');
-    
-    if (tipo === 'brasileiro') {
-        btnBrasileiro.classList.add('ativo');
-        btnAmericano.classList.remove('ativo');
-        dadosExibidos = top100AcoesBrasileiras.slice(0, 15);
-        renderizarGrafico(dadosExibidos, 'R$');
-    } else {
-        btnAmericano.classList.add('ativo');
-        btnBrasileiro.classList.remove('ativo');
-        dadosExibidos = top50AcoesAmericanas.slice(0, 15);
-        renderizarGrafico(dadosExibidos, '$');
-    }
-    
-    atualizarContadorAcoes();
+    currentData.forEach((stock, index) => {
+        const row = document.createElement('tr');
+        row.setAttribute('data-symbol', stock.symbol);
+        
+        // Determinar classes de cor para as variações
+        const getChangeClass = (value) => {
+            if (value > 0) return 'change-positive';
+            if (value < 0) return 'change-negative';
+            return 'change-neutral';
+        };
+        
+        row.innerHTML = `
+            <td class="rank-cell">${index + 1}</td>
+            <td class="name-cell">
+                <div class="stock-icon">${stock.symbol.substring(0, 2)}</div>
+                <span class="stock-name">${stock.symbol}</span>
+            </td>
+            <td class="price-cell">$${stock.price.toFixed(2)}</td>
+            <td class="market-cap-cell">$${stock.marketCap.toFixed(1)}B</td>
+            <td class="volume-cell">$${stock.volume.toFixed(1)}B</td>
+            <td class="change-cell ${getChangeClass(stock.hour)}">${stock.hour > 0 ? '+' : ''}${stock.hour.toFixed(2)}%</td>
+            <td class="change-cell ${getChangeClass(stock.day)}">${stock.day > 0 ? '+' : ''}${stock.day.toFixed(2)}%</td>
+            <td class="change-cell ${getChangeClass(stock.week)}">${stock.week > 0 ? '+' : ''}${stock.week.toFixed(2)}%</td>
+            <td class="change-cell ${getChangeClass(stock.month)}">${stock.month > 0 ? '+' : ''}${stock.month.toFixed(2)}%</td>
+            <td class="change-cell ${getChangeClass(stock.year)}">${stock.year > 0 ? '+' : ''}${stock.year.toFixed(2)}%</td>
+            <td class="links-cell">
+                <button class="link-btn link-cmc" title="CoinMarketCap">C</button>
+                <button class="link-btn link-cg" title="CoinGecko">G</button>
+                <button class="link-btn link-tv" title="TradingView">T</button>
+                <button class="link-btn link-trade" title="Trade">$</button>
+            </td>
+        `;
+        
+        // Event listeners para a linha da tabela
+        row.addEventListener('mouseenter', () => highlightBubble(stock.symbol));
+        row.addEventListener('mouseleave', () => removeBubbleHighlight());
+        row.addEventListener('click', () => showStockDetails(stock));
+        
+        tableBody.appendChild(row);
+    });
 }
 
-// Função para mostrar modal com lista de ações
-function mostrarListaAcoes() {
-    const dados = indiceAtual === 'brasileiro' ? top100AcoesBrasileiras : top50AcoesAmericanas;
-    const moeda = indiceAtual === 'brasileiro' ? 'R$' : '$';
-    const titulo = indiceAtual === 'brasileiro' ? 'Top 100 Ações Brasileiras' : 'Top 50 Ações Americanas';
-    
-    // Criar modal
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>${titulo}</h2>
-                <button class="btn-fechar" onclick="fecharModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="lista-acoes">
-                    ${dados.map((acao, index) => `
-                        <div class="acao-item ${acao.variacao >= 0 ? 'alta' : 'baixa'}" onclick="selecionarAcao(${index})">
-                            <span class="codigo">${acao.codigo}</span>
-                            <span class="variacao">${acao.variacao > 0 ? '+' : ''}${acao.variacao.toFixed(2)}%</span>
-                            <span class="valor">${moeda} ${acao.valor.toFixed(2)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-selecionar-todas" onclick="selecionarTodasAcoes()">Mostrar Todas</button>
-                <button class="btn-top15" onclick="mostrarTop15()">Mostrar Top 15</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-}
-
-// Função para fechar modal
-function fecharModal() {
-    const modal = document.querySelector('.modal-overlay');
-    if (modal) {
-        modal.remove();
+// Função para destacar linha da tabela
+function highlightTableRow(symbol) {
+    const row = document.querySelector(`tr[data-symbol="${symbol}"]`);
+    if (row) {
+        row.style.backgroundColor = '#2a2a2a';
     }
 }
 
-// Função para selecionar uma ação específica
-function selecionarAcao(index) {
-    const dados = indiceAtual === 'brasileiro' ? top100AcoesBrasileiras : top50AcoesAmericanas;
-    const moeda = indiceAtual === 'brasileiro' ? 'R$' : '$';
-    
-    dadosExibidos = [dados[index]];
-    renderizarGrafico(dadosExibidos, moeda);
-    atualizarContadorAcoes();
-    fecharModal();
+// Função para remover destaque da tabela
+function removeTableHighlight() {
+    const rows = document.querySelectorAll('tr[data-symbol]');
+    rows.forEach(row => {
+        row.style.backgroundColor = '';
+    });
 }
 
-// Função para mostrar todas as ações
-function selecionarTodasAcoes() {
-    const dados = indiceAtual === 'brasileiro' ? top100AcoesBrasileiras : top50AcoesAmericanas;
-    const moeda = indiceAtual === 'brasileiro' ? 'R$' : '$';
-    
-    dadosExibidos = dados;
-    renderizarGrafico(dadosExibidos, moeda);
-    atualizarContadorAcoes();
-    fecharModal();
-}
-
-// Função para mostrar top 15
-function mostrarTop15() {
-    const dados = indiceAtual === 'brasileiro' ? top100AcoesBrasileiras : top50AcoesAmericanas;
-    const moeda = indiceAtual === 'brasileiro' ? 'R$' : '$';
-    
-    dadosExibidos = dados.slice(0, 15);
-    renderizarGrafico(dadosExibidos, moeda);
-    atualizarContadorAcoes();
-    fecharModal();
-}
-
-// Função para atualizar contador de ações
-function atualizarContadorAcoes() {
-    const contador = document.getElementById('contador-acoes');
-    const total = indiceAtual === 'brasileiro' ? top100AcoesBrasileiras.length : top50AcoesAmericanas.length;
-    if (contador) {
-        contador.textContent = `Exibindo ${dadosExibidos.length} de ${total} ações`;
+// Função para destacar bolha
+function highlightBubble(symbol) {
+    const bubble = document.querySelector(`g[data-symbol="${symbol}"]`);
+    if (bubble) {
+        const circle = bubble.querySelector('circle');
+        circle.style.strokeWidth = '4';
+        circle.style.filter = 'brightness(1.2)';
     }
 }
 
-// Função para adicionar efeitos de hover
-function adicionarEfeitosHover() {
-    const style = document.createElement('style');
-    style.textContent = `
-        .bolha-grupo:hover .bolha-circle {
-            opacity: 1 !important;
-            stroke-width: 4 !important;
-            transform: scale(1.08);
-            transition: all 0.3s ease;
-        }
-        
-        .bolha-grupo {
-            cursor: pointer;
-        }
-        
-        .bolha-circle {
-            transition: all 0.3s ease;
-        }
-        
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-        
-        .modal-header {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .modal-header h2 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
-        
-        .btn-fechar {
-            background: none;
-            border: none;
-            font-size: 2rem;
-            color: white;
-            cursor: pointer;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-body {
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 20px;
-        }
-        
-        .lista-acoes {
-            display: grid;
-            gap: 10px;
-        }
-        
-        .acao-item {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 2px solid transparent;
-        }
-        
-        .acao-item.alta {
-            background: rgba(34, 197, 94, 0.1);
-            border-color: rgba(34, 197, 94, 0.2);
-        }
-        
-        .acao-item.baixa {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: rgba(239, 68, 68, 0.2);
-        }
-        
-        .acao-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .acao-item .codigo {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        
-        .acao-item .variacao {
-            text-align: center;
-            font-weight: 600;
-        }
-        
-        .acao-item .valor {
-            text-align: right;
-            color: #666;
-        }
-        
-        .modal-footer {
-            padding: 20px;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            background: #f8f9fa;
-        }
-        
-        .btn-selecionar-todas, .btn-top15 {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-selecionar-todas {
-            background: #22c55e;
-            color: white;
-        }
-        
-        .btn-top15 {
-            background: #3b82f6;
-            color: white;
-        }
-        
-        .btn-selecionar-todas:hover, .btn-top15:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-    `;
-    document.head.appendChild(style);
+// Função para remover destaque da bolha
+function removeBubbleHighlight() {
+    const bubbles = document.querySelectorAll('.bubble circle');
+    bubbles.forEach(circle => {
+        circle.style.strokeWidth = '2';
+        circle.style.filter = '';
+    });
 }
 
-// Inicialização quando a página carregar
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Bubles - Gráfico de Bolhas Corrigido carregado!');
-    
-    // Adicionar efeitos visuais
-    adicionarEfeitosHover();
-    
-    // Carregar gráfico inicial (brasileiro)
-    alternarIndice('brasileiro');
-    
-    console.log('✅ Correções implementadas:');
-    console.log('- Bolhas ainda maiores (50-75px de raio)');
-    console.log('- Texto perfeitamente centralizado');
-    console.log('- Lista com 100 ações brasileiras');
-    console.log('- Lista com 50 ações americanas');
-    console.log('- Modal de seleção de ações');
+// Função para mostrar detalhes da ação
+function showStockDetails(stock) {
+    alert(`${stock.symbol} - ${stock.name}\nPrice: $${stock.price.toFixed(2)}\nMarket Cap: $${stock.marketCap.toFixed(1)}B\nDay Change: ${stock.day > 0 ? '+' : ''}${stock.day.toFixed(2)}%`);
+}
+
+// Event listeners
+periodButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        periodButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentPeriod = btn.dataset.period;
+        renderBubbles();
+    });
 });
 
-// Disponibilizar funções globalmente
-window.alternarIndice = alternarIndice;
-window.mostrarListaAcoes = mostrarListaAcoes;
-window.fecharModal = fecharModal;
-window.selecionarAcao = selecionarAcao;
-window.selecionarTodasAcoes = selecionarTodasAcoes;
-window.mostrarTop15 = mostrarTop15;
+metricSelect.addEventListener('change', (e) => {
+    currentMetric = e.target.value;
+    renderBubbles();
+});
+
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    if (query) {
+        currentData = (currentMarket === 'brazilian' ? brazilianStocks : americanStocks)
+            .filter(stock => 
+                stock.symbol.toLowerCase().includes(query) || 
+                stock.name.toLowerCase().includes(query)
+            );
+    } else {
+        currentData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+    }
+    renderBubbles();
+    renderTable();
+});
+
+rangeSelect.addEventListener('change', (e) => {
+    const range = e.target.value;
+    const [start, end] = range.split('-').map(Number);
+    const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+    currentData = baseData.slice(start - 1, end);
+    renderBubbles();
+    renderTable();
+});
+
+settingsBtn.addEventListener('click', () => {
+    settingsModal.classList.remove('hidden');
+});
+
+closeModal.addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+});
+
+marketSelect.addEventListener('change', (e) => {
+    currentMarket = e.target.value;
+    currentData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+    renderBubbles();
+    renderTable();
+    settingsModal.classList.add('hidden');
+});
+
+// Fechar modal clicando fora
+settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+        settingsModal.classList.add('hidden');
+    }
+});
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    renderBubbles();
+    renderTable();
+});
+
+// Redimensionamento da janela
+window.addEventListener('resize', () => {
+    setTimeout(() => {
+        renderBubbles();
+    }, 100);
+});
+
