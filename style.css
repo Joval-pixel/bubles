@@ -45,7 +45,7 @@ header p {
     flex-wrap: wrap;
 }
 
-.btn-indice {
+.btn-indice, .btn-opcoes {
     padding: 12px 24px;
     border: none;
     border-radius: 25px;
@@ -53,17 +53,35 @@ header p {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
     backdrop-filter: blur(10px);
     border: 2px solid rgba(255, 255, 255, 0.3);
     min-width: 180px;
 }
 
-.btn-indice:hover {
+.btn-indice {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.btn-opcoes {
+    background: rgba(255, 165, 0, 0.8);
+    color: white;
+    border-color: rgba(255, 165, 0, 0.6);
+    min-width: 200px;
+}
+
+.btn-indice:hover, .btn-opcoes:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.btn-indice:hover {
     background: rgba(255, 255, 255, 0.3);
+}
+
+.btn-opcoes:hover {
+    background: rgba(255, 165, 0, 1);
+    box-shadow: 0 8px 25px rgba(255, 165, 0, 0.4);
 }
 
 .btn-indice.ativo {
@@ -73,13 +91,33 @@ header p {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-/* Legenda */
+/* Informações de exibição */
+.info-exibicao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    margin: 0 20px;
+    border-radius: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.contador {
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 16px;
+    border-radius: 20px;
+}
+
 .legenda {
     display: flex;
-    justify-content: center;
     align-items: center;
-    gap: 30px;
-    padding: 15px 20px;
+    gap: 20px;
     flex-wrap: wrap;
 }
 
@@ -116,7 +154,7 @@ header p {
 /* Container do gráfico */
 .grafico-container {
     max-width: 1200px;
-    margin: 0 auto 30px;
+    margin: 20px auto;
     padding: 20px;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(15px);
@@ -132,7 +170,7 @@ header p {
     box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-/* Efeitos das bolhas */
+/* Efeitos das bolhas - CORRIGIDOS */
 .bolha-grupo {
     cursor: pointer;
 }
@@ -155,10 +193,10 @@ header p {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Informações sobre melhorias */
+/* Melhorias implementadas */
 .info-melhorias {
     max-width: 1200px;
-    margin: 0 auto 30px;
+    margin: 20px auto;
     padding: 25px;
     background: rgba(255, 255, 255, 0.95);
     border-radius: 15px;
@@ -169,30 +207,74 @@ header p {
 .info-melhorias h3 {
     color: #1e293b;
     font-size: 1.3rem;
+    margin-bottom: 20px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.melhorias-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.melhoria-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 12px;
+    border-left: 4px solid #667eea;
+}
+
+.melhoria-item .icone {
+    font-size: 1.5rem;
+    min-width: 30px;
+}
+
+.melhoria-item strong {
+    color: #1e293b;
+    font-size: 1rem;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.melhoria-item p {
+    color: #475569;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Instruções */
+.instrucoes {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 25px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.instrucoes h3 {
+    color: #1e293b;
+    font-size: 1.3rem;
     margin-bottom: 15px;
     font-weight: 600;
 }
 
-.info-melhorias ul {
-    list-style: none;
-    padding: 0;
+.instrucoes ol {
+    padding-left: 20px;
 }
 
-.info-melhorias li {
-    padding: 8px 0;
+.instrucoes li {
+    margin-bottom: 10px;
     color: #475569;
-    font-size: 0.95rem;
-    position: relative;
-    padding-left: 25px;
+    line-height: 1.6;
 }
 
-.info-melhorias li::before {
-    content: '✓';
-    position: absolute;
-    left: 0;
-    color: #22c55e;
-    font-weight: bold;
-    font-size: 1.1rem;
+.instrucoes strong {
+    color: #1e293b;
 }
 
 /* Rodapé */
@@ -203,6 +285,11 @@ footer {
     color: rgba(255, 255, 255, 0.8);
     font-size: 0.9rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 30px;
+}
+
+footer p {
+    margin-bottom: 5px;
 }
 
 /* Responsividade para tablets */
@@ -212,7 +299,7 @@ footer {
     }
     
     .grafico-container {
-        margin: 0 15px 25px;
+        margin: 15px;
         padding: 15px;
     }
     
@@ -220,8 +307,18 @@ footer {
         padding: 20px 15px;
     }
     
+    .info-exibicao {
+        margin: 0 15px;
+        flex-direction: column;
+        text-align: center;
+    }
+    
     .legenda {
-        gap: 20px;
+        justify-content: center;
+    }
+    
+    .melhorias-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -246,21 +343,21 @@ footer {
         gap: 10px;
     }
     
-    .btn-indice {
+    .btn-indice, .btn-opcoes {
         width: 100%;
         max-width: 280px;
         padding: 14px 20px;
         font-size: 1.1rem;
     }
     
-    .legenda {
-        flex-direction: column;
-        gap: 15px;
+    .info-exibicao {
+        margin: 0 10px;
         padding: 15px;
     }
     
-    .legenda-item {
-        justify-content: center;
+    .legenda {
+        flex-direction: column;
+        gap: 10px;
     }
     
     .grafico-container {
@@ -272,18 +369,19 @@ footer {
         height: 400px !important;
     }
     
-    .info-melhorias {
+    .info-melhorias, .instrucoes {
         margin: 0 10px 20px;
         padding: 20px;
     }
     
-    .info-melhorias h3 {
+    .info-melhorias h3, .instrucoes h3 {
         font-size: 1.1rem;
     }
     
-    .info-melhorias li {
-        font-size: 0.9rem;
-        padding: 6px 0;
+    .melhoria-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
     }
     
     footer {
@@ -298,7 +396,7 @@ footer {
         font-size: 1.5rem;
     }
     
-    .btn-indice {
+    .btn-indice, .btn-opcoes {
         font-size: 1rem;
         padding: 12px 16px;
     }
@@ -308,15 +406,20 @@ footer {
     }
     
     .texto-codigo {
-        font-size: 12px !important;
+        font-size: 13px !important;
     }
     
     .texto-variacao {
-        font-size: 10px !important;
+        font-size: 11px !important;
     }
     
     .texto-valor {
-        font-size: 9px !important;
+        font-size: 10px !important;
+    }
+    
+    .contador {
+        font-size: 0.9rem;
+        padding: 6px 12px;
     }
 }
 
@@ -340,25 +443,37 @@ footer {
     animation: fadeIn 0.8s ease-out;
 }
 
+.info-melhorias, .instrucoes {
+    animation: fadeIn 1s ease-out;
+}
+
 /* Efeitos de foco para acessibilidade */
-.btn-indice:focus {
+.btn-indice:focus, .btn-opcoes:focus {
     outline: 3px solid rgba(255, 255, 255, 0.6);
     outline-offset: 2px;
 }
 
 /* Modo escuro automático */
 @media (prefers-color-scheme: dark) {
-    .info-melhorias {
+    .info-melhorias, .instrucoes {
         background: rgba(30, 41, 59, 0.95);
         color: white;
     }
     
-    .info-melhorias h3 {
+    .info-melhorias h3, .instrucoes h3 {
         color: white;
     }
     
-    .info-melhorias li {
+    .melhoria-item strong, .instrucoes strong {
+        color: white;
+    }
+    
+    .melhoria-item p, .instrucoes li {
         color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .melhoria-item {
+        background: rgba(102, 126, 234, 0.2);
     }
 }
 
@@ -369,4 +484,30 @@ footer {
 
 #grafico-svg {
     contain: layout style paint;
+}
+
+/* Estilos para o modal (já incluídos no JavaScript, mas aqui para referência) */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: white;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.3s ease-out;
 }
