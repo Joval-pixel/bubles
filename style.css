@@ -1,356 +1,372 @@
-// BUBLES - Script Principal Corrigido
-// Versão com correção do erro de carregamento de gráficos
+/* Reset e configurações básicas */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-// Configuração da API
-const CONFIG = {
-    API_URL: 'https://brapi.dev/api/quote/list?limit=100&page=1',
-    API_TIMEOUT: 10000,
-    UPDATE_INTERVAL: 10000
-};
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+    line-height: 1.6;
+}
 
-// Variáveis globais
-let useSimulatedData = false;
-let updateInterval;
-let currentStocks = [];
+/* Cabeçalho */
+header {
+    text-align: center;
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
 
-// FUNÇÃO CORRIGIDA: fetchStockData
-async function fetchStockData() {
-    try {
-        console.log('Tentando buscar dados da API...');
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
-        
-        const response = await fetch(CONFIG.API_URL, {
-            signal: controller.signal,
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('Dados recebidos da API:', data);
-        
-        // CORREÇÃO PRINCIPAL: verificar data.stocks ao invés de data.results
-        if (data.stocks && data.stocks.length > 0) {
-            useSimulatedData = false;
-            hideErrorMessage();
-            return data.stocks;
-        } else {
-            throw new Error('Nenhum dado recebido da API');
-        }
-    } catch (error) {
-        console.error('Erro ao buscar dados da API:', error);
-        useSimulatedData = true;
-        showErrorMessage();
-        return generateFallbackData();
+header h1 {
+    color: white;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+header p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.1rem;
+    font-weight: 300;
+}
+
+/* Controles */
+.controles {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 25px 20px;
+    flex-wrap: wrap;
+}
+
+.btn-indice {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    min-width: 180px;
+}
+
+.btn-indice:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.btn-indice.ativo {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Legenda */
+.legenda {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    padding: 15px 20px;
+    flex-wrap: wrap;
+}
+
+.legenda-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.cor-alta, .cor-baixa {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.cor-alta {
+    background: #22c55e;
+}
+
+.cor-baixa {
+    background: #ef4444;
+}
+
+.legenda-texto {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* Container do gráfico */
+.grafico-container {
+    max-width: 1200px;
+    margin: 0 auto 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#grafico-svg {
+    width: 100%;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+    border-radius: 15px;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Efeitos das bolhas */
+.bolha-grupo {
+    cursor: pointer;
+}
+
+.bolha-circle {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.bolha-grupo:hover .bolha-circle {
+    opacity: 1 !important;
+    stroke-width: 4 !important;
+    transform: scale(1.08);
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+}
+
+.texto-codigo, .texto-variacao, .texto-valor {
+    pointer-events: none;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Informações sobre melhorias */
+.info-melhorias {
+    max-width: 1200px;
+    margin: 0 auto 30px;
+    padding: 25px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.info-melhorias h3 {
+    color: #1e293b;
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.info-melhorias ul {
+    list-style: none;
+    padding: 0;
+}
+
+.info-melhorias li {
+    padding: 8px 0;
+    color: #475569;
+    font-size: 0.95rem;
+    position: relative;
+    padding-left: 25px;
+}
+
+.info-melhorias li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #22c55e;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+/* Rodapé */
+footer {
+    text-align: center;
+    padding: 25px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Responsividade para tablets */
+@media (max-width: 1024px) {
+    header h1 {
+        font-size: 2.2rem;
+    }
+    
+    .grafico-container {
+        margin: 0 15px 25px;
+        padding: 15px;
+    }
+    
+    .controles {
+        padding: 20px 15px;
+    }
+    
+    .legenda {
+        gap: 20px;
     }
 }
 
-// FUNÇÃO CORRIGIDA: createBubbles
-function createBubbles(stocks) {
-    console.log(`Criando bolhas com ${stocks.length} ações`);
-    
-    const container = document.querySelector('.bubble-container') || 
-                     document.querySelector('#bubble-container') || 
-                     document.querySelector('.bubbles-container');
-    
-    if (!container) {
-        console.error('Container de bolhas não encontrado');
-        return;
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+    header {
+        padding: 20px 15px;
     }
     
-    // Limpar bolhas existentes
-    container.innerHTML = '';
+    header h1 {
+        font-size: 1.8rem;
+    }
     
-    // Criar bolhas para as primeiras 50 ações
-    stocks.slice(0, 50).forEach((stock, index) => {
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        
-        // Usar a estrutura correta dos dados da API
-        const stockCode = stock.stock || stock.symbol || 'N/A';
-        const stockName = stock.name || stockCode;
-        const price = stock.close || stock.price || 0;
-        const change = stock.change || 0;
-        const volume = stock.volume || 0;
-        
-        // Calcular tamanho da bolha baseado no volume
-        const minSize = 60;
-        const maxSize = 120;
-        const normalizedVolume = Math.min(volume / 10000000, 1);
-        const bubbleSize = minSize + (normalizedVolume * (maxSize - minSize));
-        
-        // Posicionamento aleatório
-        const x = Math.random() * (window.innerWidth - bubbleSize);
-        const y = Math.random() * (window.innerHeight - bubbleSize - 200) + 100;
-        
-        bubble.innerHTML = `
-            <div class="stock-code">${stockCode}</div>
-            <div class="stock-change">${change > 0 ? '+' : ''}${change.toFixed(2)}%</div>
-            <div class="stock-price">R$ ${price.toFixed(2)}</div>
-        `;
-        
-        // Aplicar estilos
-        bubble.style.cssText = `
-            position: absolute;
-            left: ${x}px;
-            top: ${y}px;
-            width: ${bubbleSize}px;
-            height: ${bubbleSize}px;
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        `;
-        
-        // Aplicar cor baseada na variação
-        if (change > 0) {
-            bubble.style.backgroundColor = '#10b981'; // Verde
-        } else if (change < 0) {
-            bubble.style.backgroundColor = '#ef4444'; // Vermelho
-        } else {
-            bubble.style.backgroundColor = '#6b7280'; // Cinza
-        }
-        
-        // Adicionar interatividade
-        bubble.addEventListener('mouseenter', () => {
-            bubble.style.transform = 'scale(1.1)';
-            bubble.style.zIndex = '1000';
-        });
-        
-        bubble.addEventListener('mouseleave', () => {
-            bubble.style.transform = 'scale(1)';
-            bubble.style.zIndex = 'auto';
-        });
-        
-        bubble.addEventListener('click', () => {
-            showStockDetails(stock);
-        });
-        
-        container.appendChild(bubble);
-    });
+    header p {
+        font-size: 1rem;
+    }
     
-    console.log(`✅ ${stocks.length} bolhas criadas`);
-    hideLoading();
-}
-
-// Função para mostrar detalhes da ação
-function showStockDetails(stock) {
-    const modal = document.createElement('div');
-    modal.className = 'stock-modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>${stock.stock} - ${stock.name}</h2>
-            <p><strong>Preço:</strong> R$ ${stock.close.toFixed(2)}</p>
-            <p><strong>Variação:</strong> ${stock.change > 0 ? '+' : ''}${stock.change.toFixed(2)}%</p>
-            <p><strong>Volume:</strong> ${stock.volume.toLocaleString()}</p>
-            <p><strong>Setor:</strong> ${stock.sector}</p>
-            <p><strong>Tipo:</strong> ${stock.type}</p>
-        </div>
-    `;
-    
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        display: flex;
-        justify-content: center;
+    .controles {
+        flex-direction: column;
         align-items: center;
-        z-index: 10000;
-    `;
+        padding: 20px 15px;
+        gap: 10px;
+    }
     
-    const content = modal.querySelector('.modal-content');
-    content.style.cssText = `
-        background: white;
+    .btn-indice {
+        width: 100%;
+        max-width: 280px;
+        padding: 14px 20px;
+        font-size: 1.1rem;
+    }
+    
+    .legenda {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .legenda-item {
+        justify-content: center;
+    }
+    
+    .grafico-container {
+        margin: 0 10px 20px;
+        padding: 10px;
+    }
+    
+    #grafico-svg {
+        height: 400px !important;
+    }
+    
+    .info-melhorias {
+        margin: 0 10px 20px;
         padding: 20px;
-        border-radius: 10px;
-        max-width: 400px;
-        width: 90%;
-        position: relative;
-    `;
+    }
     
-    const closeBtn = modal.querySelector('.close');
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: 10px;
-        right: 15px;
-        font-size: 24px;
-        cursor: pointer;
-    `;
+    .info-melhorias h3 {
+        font-size: 1.1rem;
+    }
     
-    closeBtn.addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
+    .info-melhorias li {
+        font-size: 0.9rem;
+        padding: 6px 0;
+    }
     
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    });
+    footer {
+        padding: 20px 15px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Responsividade para telas muito pequenas */
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.5rem;
+    }
     
-    document.body.appendChild(modal);
-}
-
-// Função para mostrar mensagem de erro
-function showErrorMessage() {
-    let errorDiv = document.querySelector('.error-message');
-    if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.innerHTML = '⚠️ Erro ao carregar dados. Usando dados simulados.';
-        errorDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #ef4444;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        `;
-        document.body.appendChild(errorDiv);
+    .btn-indice {
+        font-size: 1rem;
+        padding: 12px 16px;
     }
-}
-
-// Função para esconder mensagem de erro
-function hideErrorMessage() {
-    const errorDiv = document.querySelector('.error-message');
-    if (errorDiv) {
-        errorDiv.remove();
-    }
-}
-
-// Função para mostrar loading
-function showLoading() {
-    let loadingDiv = document.querySelector('.loading');
-    if (!loadingDiv) {
-        loadingDiv = document.createElement('div');
-        loadingDiv.className = 'loading';
-        loadingDiv.innerHTML = 'Carregando dados...';
-        loadingDiv.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 1000;
-        `;
-        document.body.appendChild(loadingDiv);
-    }
-}
-
-// Função para esconder loading
-function hideLoading() {
-    const loadingDiv = document.querySelector('.loading');
-    if (loadingDiv) {
-        loadingDiv.remove();
-    }
-}
-
-// Função para gerar dados de fallback
-function generateFallbackData() {
-    const fallbackStocks = [
-        { stock: 'PETR4', name: 'PETROBRAS', close: 32.45, change: 4.81, volume: 1000000, sector: 'Energy', type: 'stock' },
-        { stock: 'VALE3', name: 'VALE', close: 65.78, change: -5.28, volume: 800000, sector: 'Mining', type: 'stock' },
-        { stock: 'ITUB4', name: 'ITAU UNIBANCO', close: 28.90, change: -6.96, volume: 1200000, sector: 'Finance', type: 'stock' },
-        { stock: 'BBDC4', name: 'BRADESCO', close: 15.67, change: 4.63, volume: 900000, sector: 'Finance', type: 'stock' },
-        { stock: 'ABEV3', name: 'AMBEV', close: 12.34, change: -2.17, volume: 700000, sector: 'Consumer', type: 'stock' }
-    ];
     
-    return fallbackStocks;
-}
-
-// Função para atualizar dados
-async function updateData() {
-    console.log('Atualizando dados...');
-    showLoading();
+    #grafico-svg {
+        height: 350px !important;
+    }
     
-    try {
-        const stocks = await fetchStockData();
-        currentStocks = stocks;
-        createBubbles(stocks);
-    } catch (error) {
-        console.error('Erro ao atualizar dados:', error);
+    .texto-codigo {
+        font-size: 12px !important;
     }
-}
-
-// Função de busca
-function setupSearch() {
-    const searchInput = document.querySelector('input[placeholder*="Buscar"]');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const bubbles = document.querySelectorAll('.bubble');
-            
-            bubbles.forEach(bubble => {
-                const stockCode = bubble.querySelector('.stock-code').textContent.toLowerCase();
-                if (stockCode.includes(searchTerm)) {
-                    bubble.style.display = 'flex';
-                } else {
-                    bubble.style.display = 'none';
-                }
-            });
-        });
-    }
-}
-
-// Função de inicialização
-async function initializeApp() {
-    console.log('Inicializando aplicação...');
     
-    try {
-        // Buscar dados iniciais
-        const stocks = await fetchStockData();
-        currentStocks = stocks;
-        
-        // Criar visualização
-        createBubbles(stocks);
-        
-        // Configurar busca
-        setupSearch();
-        
-        // Configurar atualização automática
-        updateInterval = setInterval(updateData, CONFIG.UPDATE_INTERVAL);
-        
-        console.log('Aplicação inicializada com sucesso');
-    } catch (error) {
-        console.error('Erro na inicialização:', error);
+    .texto-variacao {
+        font-size: 10px !important;
+    }
+    
+    .texto-valor {
+        font-size: 9px !important;
     }
 }
 
-// Inicializar quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM carregado, inicializando...');
-    initializeApp();
-});
-
-// Limpar interval ao sair da página
-window.addEventListener('beforeunload', () => {
-    if (updateInterval) {
-        clearInterval(updateInterval);
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
     }
-});
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.grafico-container {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.bolha-grupo {
+    animation: fadeIn 0.8s ease-out;
+}
+
+/* Efeitos de foco para acessibilidade */
+.btn-indice:focus {
+    outline: 3px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+}
+
+/* Modo escuro automático */
+@media (prefers-color-scheme: dark) {
+    .info-melhorias {
+        background: rgba(30, 41, 59, 0.95);
+        color: white;
+    }
+    
+    .info-melhorias h3 {
+        color: white;
+    }
+    
+    .info-melhorias li {
+        color: rgba(255, 255, 255, 0.8);
+    }
+}
+
+/* Melhorias de performance */
+.bolha-circle {
+    will-change: transform, opacity;
+}
+
+#grafico-svg {
+    contain: layout style paint;
+}
