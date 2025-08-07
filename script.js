@@ -47,6 +47,7 @@ function generateSimulatedFrequencia() {
   ];
   return corretoras.map(c => ({
     symbol: c.name,
+    regularMarketPrice: c.value,
     change: (Math.random() * 4 - 2).toFixed(2),
     volume: c.value
   }));
@@ -54,24 +55,25 @@ function generateSimulatedFrequencia() {
 
 function createBubbles(data) {
   bubbles = data.map((item) => {
-    const volume = parseFloat(item.volume || item.regularMarketVolume || 1000);
-    const change = parseFloat(item.change || item.regularMarketChangePercent || 0);
     const symbol = item.symbol || item.name || "???";
-    const radius = Math.max(10, Math.min(40, volume / 20000)); // bolhas menores
+    const price = parseFloat(item.regularMarketPrice || item.price || 0);
+    const change = parseFloat(item.change || item.regularMarketChangePercent || 0);
+    const volume = parseFloat(item.volume || item.regularMarketVolume || 1000);
+    const radius = Math.max(10, Math.min(35, volume / 30000)); // menor tamanho
 
-    let color = "#333333"; // cinza escuro neutro
-    if (change > 0) color = "#006400";      // verde escuro
-    else if (change < 0) color = "#8B0000"; // vermelho escuro
+    let color = "#333333";
+    if (change > 0) color = "#006400"; // verde escuro vivo
+    else if (change < 0) color = "#B22222"; // vermelho escuro vivo
 
     return {
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       r: radius,
-      dx: (Math.random() - 0.5) * 0.3,
-      dy: (Math.random() - 0.5) * 0.3,
-      label: symbol,
-      change: isNaN(change) ? 0 : change.toFixed(2),
-      color: color
+      dx: (Math.random() - 0.5) * 0.25,
+      dy: (Math.random() - 0.5) * 0.25,
+      symbol,
+      price: isNaN(price) ? "R$0,00" : `R$${price.toFixed(2).replace('.', ',')}`,
+      color
     };
   });
 }
@@ -80,23 +82,33 @@ function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   for (let b of bubbles) {
+    // gradiente radial para dar efeito 3D
+    const gradient = ctx.createRadialGradient(
+      b.x - b.r / 3, b.y - b.r / 3, b.r / 10,
+      b.x, b.y, b.r
+    );
+    gradient.addColorStop(0, "#ffffff66");
+    gradient.addColorStop(1, b.color);
+
+    // bolha com sombra e borda branca
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fillStyle = b.color;
+    ctx.fillStyle = gradient;
     ctx.shadowColor = "#00000055";
     ctx.shadowBlur = 10;
     ctx.fill();
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#ffffff";
     ctx.stroke();
     ctx.closePath();
 
-    const fontSize = Math.max(10, Math.min(13, b.r / 2));
-    ctx.font = `${fontSize}px sans-serif`;
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.fillText(b.label, b.x, b.y - 5);
-    ctx.fillText(`${b.change}%`, b.x, b.y + 12);
+    // texto centralizado
+    ctx.font = `${Math.max(10, b.r / 2)}px sans-serif`;
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.fillText(b.symbol, b.x, b.y - 5);
+    ctx.font = `${Math.max(9, b.r / 2.5)}px sans-serif`;
+    ctx.fillText(b.price, b.x, b.y + 12);
   }
 }
 
