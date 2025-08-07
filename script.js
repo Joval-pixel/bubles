@@ -1,39 +1,33 @@
-let canvas = document.getElementById('bubbleCanvas');
-let ctx = canvas.getContext('2d');
+const canvas = document.getElementById('bubbleCanvas');
+const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let bubbles = [];
-let category = 'acoes';
-
-function setCategory(cat) {
-  category = cat;
-  loadData();
-}
 
 function getColor(change) {
-  if (change > 0) return '#006400'; // verde escuro
-  if (change < 0) return '#8B0000'; // vermelho escuro
-  return '#444'; // cinza escuro
+  if (change > 0) return '#006400';       // Verde escuro
+  if (change < 0) return '#8B0000';       // Vermelho escuro
+  return '#555';                          // Cinza escuro
 }
 
 function loadData() {
-  fetch(`https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&limit=100`)
+  fetch('https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&limit=100')
     .then(res => res.json())
     .then(json => {
       bubbles = json.stocks.slice(0, 80).map(stock => {
-        let change = parseFloat(stock.change) || 0;
+        const change = parseFloat(stock.change) || 0;
         return {
           symbol: stock.stock,
           price: stock.close || 0,
           change,
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          r: 30 + Math.min(Math.abs(change) * 2, 40),
-          dx: (Math.random() - 0.5) * 1.2,
-          dy: (Math.random() - 0.5) * 1.2,
+          r: 20 + Math.min(Math.abs(change) * 2, 40),
+          dx: (Math.random() - 0.5) * 1,
+          dy: (Math.random() - 0.5) * 1,
           color: getColor(change)
-        }
+        };
       });
     });
 }
@@ -44,7 +38,7 @@ function draw() {
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fillStyle = b.color;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 20;
     ctx.shadowColor = b.color;
     ctx.fill();
     ctx.lineWidth = 2;
@@ -53,10 +47,10 @@ function draw() {
 
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
-    ctx.font = 'bold 12px Arial';
+    ctx.font = 'bold 11px Arial';
     ctx.fillText(b.symbol, b.x, b.y - 10);
-    ctx.font = '12px Arial';
-    ctx.fillText(`R$${b.price.toFixed(2)}`, b.x, b.y + 6);
+    ctx.font = '11px Arial';
+    ctx.fillText(`R$${b.price.toFixed(2)}`, b.x, b.y + 5);
     ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 20);
   }
 }
@@ -84,11 +78,14 @@ canvas.addEventListener('click', function (e) {
   }
 });
 
-// ✅ Corrigido: TradingView com BMFBOVESPA
 function openModal(symbol) {
   const modal = document.getElementById('chartModal');
   const iframe = document.getElementById('tradingview-frame');
-  iframe.src = `https://s.tradingview.com/widgetembed/?symbol=${symbol}:BMFBOVESPA&interval=1&theme=dark&style=1&locale=br#`;
+
+  // Corrige símbolo para TradingView
+  let corrected = symbol.includes('3') || symbol.includes('4') ? symbol + 'F' : symbol;
+  iframe.src = `https://s.tradingview.com/widgetembed/?symbol=BVMF:${corrected}&interval=1&theme=dark`;
+
   modal.style.display = 'block';
 }
 
@@ -109,3 +106,4 @@ window.addEventListener('resize', () => {
 
 loadData();
 loop();
+setInterval(loadData, 10000); // Atualiza dados a cada 10 segundos
