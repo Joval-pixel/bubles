@@ -1,77 +1,62 @@
 body {
   margin: 0;
-  padding: 0;
+  overflow: hidden;
   background-color: #111;
   font-family: Arial, sans-serif;
-  overflow: hidden;
-  color: white;
 }
 
-header {
-  text-align: center;
-  padding: 15px;
-  font-size: 20px;
-  font-weight: bold;
-  background-color: #111;
-  color: white;
-}
-
-nav {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-
-button {
-  padding: 8px 14px;
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 5px;
-  background-color: #222;
-  color: white;
-  border: 1px solid #444;
-}
-
-button:hover {
-  background-color: #333;
-}
-
-canvas {
-  display: block;
-  position: absolute;
-  top: 80px;
-  left: 0;
-  z-index: 0;
-}
-
-#chartModal {
-  display: none;
-  position: fixed;
-  top: 5%;
-  left: 5%;
-  width: 90%;
-  height: 90%;
-  background: rgba(0, 0, 0, 0.95);
-  z-index: 10;
-  border: 2px solid white;
-  border-radius: 10px;
-}
-
-#chartModal iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  border-radius: 10px;
-}
-
-#chartModal .close {
+#menu {
   position: absolute;
   top: 10px;
-  right: 15px;
-  font-size: 24px;
+  width: 100%;
+  text-align: center;
+  z-index: 10;
+}
+
+h1 {
   color: white;
+  margin-bottom: 10px;
+}
+
+.buttons button {
+  background-color: #333;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  margin: 0 5px;
   cursor: pointer;
-  z-index: 11;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.buttons button:hover {
+  background-color: #555;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+  background-color: #222;
+  margin: 10% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 800px;
+}
+
+.close {
+  color: white;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
 }
