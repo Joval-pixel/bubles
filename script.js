@@ -12,9 +12,9 @@ function setCategory(cat) {
 }
 
 function getColor(change) {
-  if (change > 0) return '#00cc00'; // verde
-  if (change < 0) return '#cc0000'; // vermelho
-  return '#888'; // cinza neutro
+  if (change > 0) return '#00cc00'; // verde forte
+  if (change < 0) return '#cc0000'; // vermelho forte
+  return '#888888'; // cinza
 }
 
 function loadData() {
@@ -22,18 +22,25 @@ function loadData() {
     .then(res => res.json())
     .then(json => {
       bubbles = json.stocks
-        .filter(stock => stock.close !== null && stock.change !== null && !isNaN(stock.close) && !isNaN(stock.change))
+        .filter(stock =>
+          stock?.stock &&
+          typeof stock.close === 'number' &&
+          typeof stock.change === 'number' &&
+          !isNaN(stock.close) &&
+          !isNaN(stock.change) &&
+          stock.close > 0
+        )
         .map(stock => {
-          let change = parseFloat(stock.change);
+          const change = stock.change;
           return {
             symbol: stock.stock,
             price: stock.close,
-            change,
+            change: change,
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            r: 20 + Math.min(Math.abs(change) * 2, 40),
-            dx: (Math.random() - 0.5) * 1.2,
-            dy: (Math.random() - 0.5) * 1.2,
+            r: 18 + Math.min(Math.abs(change) * 2.5, 45),
+            dx: (Math.random() - 0.5) * 1.5,
+            dy: (Math.random() - 0.5) * 1.5,
             color: getColor(change)
           };
         });
@@ -47,7 +54,7 @@ function draw() {
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fillStyle = b.color;
     ctx.shadowBlur = 20;
-    ctx.shadowColor = '#ffffff';
+    ctx.shadowColor = 'white';
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.strokeStyle = 'white';
