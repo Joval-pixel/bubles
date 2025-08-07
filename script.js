@@ -1,36 +1,46 @@
-const canvas = document.getElementById('bubbleCanvas');
-const ctx = canvas.getContext('2d');
+let canvas = document.getElementById('bubbleCanvas');
+let ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let bubbles = [];
+let category = 'acoes';
 
-function loadData(tipo) {
-  fetch(`https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD`)
+function setCategory(cat) {
+  category = cat;
+  loadData();
+}
+
+function getColor(change) {
+  if (change > 0) return '#006400'; // verde escuro
+  if (change < 0) return '#8B0000'; // vermelho escuro
+  return '#444'; // cinza escuro
+}
+
+function loadData() {
+  fetch(`https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&limit=100`)
     .then(res => res.json())
-    .then(data => {
-      bubbles = data.stocks.slice(0, 80).map((stock, i) => {
-        const change = stock.change_percent || 0;
-        const color = change > 0 ? '#006400' : change < 0 ? '#8B0000' : '#555';
+    .then(json => {
+      bubbles = json.stocks.slice(0, 80).map(stock => {
+        let change = parseFloat(stock.change) || 0;
         return {
+          symbol: stock.stock,
+          price: stock.close || 0,
+          change,
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          r: 40 + Math.abs(change * 2),
-          dx: (Math.random() - 0.5) * 0.6,
-          dy: (Math.random() - 0.5) * 0.6,
-          color,
-          symbol: stock.symbol,
-          price: stock.regularMarketPrice,
-          change: change.toFixed(2)
-        };
+          r: 30 + Math.min(Math.abs(change) * 2, 40),
+          dx: (Math.random() - 0.5) * 1.2,
+          dy: (Math.random() - 0.5) * 1.2,
+          color: getColor(change)
+        }
       });
     });
 }
 
-function drawBubbles() {
+function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let b of bubbles) {
-    // Bolha
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fillStyle = b.color;
@@ -40,29 +50,55 @@ function drawBubbles() {
     ctx.lineWidth = 2;
     ctx.strokeStyle = 'white';
     ctx.stroke();
-    ctx.closePath();
 
-    // Texto
-    ctx.font = 'bold 12px Arial';
     ctx.fillStyle = 'white';
-    ctx.shadowBlur = 0;
     ctx.textAlign = 'center';
-    ctx.fillText(b.symbol, b.x, b.y - 6);
-    ctx.fillText(`R$${b.price}`, b.x, b.y + 8);
-    ctx.fillText(`${b.change}%`, b.x, b.y + 22);
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText(b.symbol, b.x, b.y - 8);
+    ctx.font = '12px Arial';
+    ctx.fillText(`R$${b.price.toFixed(2)}`, b.x, b.y + 6);
+    ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 20);
   }
 }
 
-function animate() {
-  requestAnimationFrame(animate);
-  drawBubbles();
+function update() {
   for (let b of bubbles) {
     b.x += b.dx;
     b.y += b.dy;
-
-    if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
-    if (b.y + b.r > canvas.height || b.y - b.r < 80) b.dy *= -1;
+    if (b.x < b.r || b.x > canvas.width - b.r) b.dx *= -1;
+    if (b.y < b.r || b.y > canvas.height - b.r) b.dy *= -1;
   }
+}
+
+canvas.addEventListener('click', function (e) {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  for (let b of bubbles) {
+    const dx = mouseX - b.x;
+    const dy = mouseY - b.y;
+    if (Math.sqrt(dx * dx + dy * dy) < b.r) {
+      openModal(b.symbol);
+      break;
+    }
+  }
+});
+
+function openModal(symbol) {
+  const modal = document.getElementById('chartModal');
+  const iframe = document.getElementById('tradingview-frame');
+  iframe.src = `https://s.tradingview.com/widgetembed/?symbol=BMF%3A${symbol}&interval=1&theme=dark&style=1&locale=br#`;
+  modal.style.display = 'block';
+}
+
+function closeModal() {
+  document.getElementById('chartModal').style.display = 'none';
+}
+
+function loop() {
+  draw();
+  update();
+  requestAnimationFrame(loop);
 }
 
 window.addEventListener('resize', () => {
@@ -70,5 +106,5 @@ window.addEventListener('resize', () => {
   canvas.height = window.innerHeight;
 });
 
-loadData('acoes');
-animate();
+loadData();
+loop();
