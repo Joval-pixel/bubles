@@ -54,7 +54,7 @@ function draw() {
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
     ctx.font = 'bold 12px Arial';
-    ctx.fillText(b.symbol, b.x, b.y - 8);
+    ctx.fillText(b.symbol, b.x, b.y - 10);
     ctx.font = '12px Arial';
     ctx.fillText(`R$${b.price.toFixed(2)}`, b.x, b.y + 6);
     ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 20);
@@ -84,10 +84,11 @@ canvas.addEventListener('click', function (e) {
   }
 });
 
+// ✅ Corrigido: TradingView com BMFBOVESPA
 function openModal(symbol) {
   const modal = document.getElementById('chartModal');
   const iframe = document.getElementById('tradingview-frame');
-  iframe.src = `https://s.tradingview.com/widgetembed/?symbol=BMF%3A${symbol}&interval=1&theme=dark&style=1&locale=br#`;
+  iframe.src = `https://s.tradingview.com/widgetembed/?symbol=${symbol}:BMFBOVESPA&interval=1&theme=dark&style=1&locale=br#`;
   modal.style.display = 'block';
 }
 
