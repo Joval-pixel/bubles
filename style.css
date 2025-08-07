@@ -1,33 +1,80 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BUBLES – Ações ao Vivo</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
-  <script src="https://unpkg.com/chart.js"></script>
-</head>
-<body>
-  <div class="header">
-    <h1>BUBLES – Ações ao Vivo</h1>
-    <div class="buttons">
-      <button onclick="setCategory('acoes')">Ações</button>
-      <button onclick="setCategory('criptos')">Criptos</button>
-      <button onclick="setCategory('commodities')">Commodities</button>
-      <button onclick="setCategory('opcoes')">Opções</button>
-      <button onclick="setCategory('frequencia')">Frequência de Mercado</button>
-    </div>
-  </div>
-  <canvas id="bubbleCanvas"></canvas>
+body {
+  margin: 0;
+  background-color: #121212;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+  color: #fff;
+}
 
-  <div id="chartModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <iframe id="tradingview-frame" width="100%" height="400px" frameborder="0"></iframe>
-    </div>
-  </div>
+.header {
+  background-color: #1f1f1f;
+  padding: 10px;
+  text-align: center;
+}
 
-  <script src="script.js"></script>
-</body>
-</html>
+h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.buttons {
+  margin-top: 10px;
+}
+
+button {
+  background-color: #333;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #555;
+}
+
+canvas {
+  display: block;
+}
+
+.modal {
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #000;
+  border: 2px solid white;
+  z-index: 1000;
+  display: none;
+  width: 90%;
+  max-width: 800px;
+  height: 500px;
+  box-shadow: 0 0 20px #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.modal iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 10;
+}
