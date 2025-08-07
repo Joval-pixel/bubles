@@ -57,40 +57,47 @@ function createBubbles(data) {
     const volume = parseFloat(item.volume || item.regularMarketVolume || 1000);
     const change = parseFloat(item.change || item.regularMarketChangePercent || 0);
     const symbol = item.symbol || item.name || "???";
-
-    const radius = Math.max(20, Math.min(80, volume / 10000)); // bolhas equilibradas
+    const radius = Math.max(20, Math.min(80, volume / 10000));
 
     return {
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       r: radius,
-      dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5,
+      dx: (Math.random() - 0.5) * 0.3,
+      dy: (Math.random() - 0.5) * 0.3,
       label: symbol,
       change: isNaN(change) ? 0 : change.toFixed(2),
-      color: change >= 0 ? 'rgba(0,255,0,0.5)' : 'rgba(255,0,0,0.5)'
+      color: change >= 0 ? '#00ff00' : '#ff0000'
     };
   });
 }
 
 function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   for (let b of bubbles) {
+    const gradient = ctx.createRadialGradient(b.x - b.r / 3, b.y - b.r / 3, b.r / 10, b.x, b.y, b.r);
+    gradient.addColorStop(0, "#ffffff99");
+    gradient.addColorStop(1, b.color);
+
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fillStyle = b.color;
-    ctx.shadowColor = b.color;
-    ctx.shadowBlur = 15;
+    ctx.fillStyle = gradient;
+    ctx.shadowColor = "#ffffff";
+    ctx.shadowBlur = 10;
     ctx.fill();
     ctx.closePath();
 
-    // texto
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
     const fontSize = Math.max(10, Math.min(14, b.r / 2));
     ctx.font = `${fontSize}px sans-serif`;
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
     ctx.fillText(b.label, b.x, b.y - 5);
-    ctx.fillText(`${b.change}%`, b.x, b.y + 10);
+    ctx.fillText(`${b.change}%`, b.x, b.y + 12);
   }
 }
 
