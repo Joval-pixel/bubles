@@ -1,133 +1,119 @@
-const canvas = document.getElementById('bubbleCanvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("bubbleCanvas");
+const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let bubbles = [];
-let category = 'acoes';
 
-function setCategory(cat) {
-  category = cat;
-  loadData();
+function getRandom(min, max) {
+  return Math.random() * (max - min) + min;
 }
 
-function getColor(change) {
-  if (change > 0) return '#00cc00'; // verde vivo
-  if (change < 0) return '#cc0000'; // vermelho vivo
-  return '#444444'; // cinza escuro
+function createBubble(name, price, change) {
+  const radius = Math.max(30, Math.abs(change) * 8 + 20);
+  const x = getRandom(radius, canvas.width - radius);
+  const y = getRandom(radius, canvas.height - radius);
+  const dx = getRandom(-0.3, 0.3);
+  const dy = getRandom(-0.3, 0.3);
+  return { name, price, change, x, y, dx, dy, radius };
 }
 
-function loadData() {
-  fetch(`https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&limit=100`)
-    .then(res => res.json())
-    .then(json => {
-      bubbles = json.stocks.slice(0, 100).map(stock => {
-        const change = parseFloat(stock.change) || 0;
-        return {
-          symbol: stock.stock,
-          price: stock.close || 0,
-          change,
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          r: 30 + Math.min(Math.abs(change) * 2, 45),
-          dx: (Math.random() - 0.5) * 0.8,
-          dy: (Math.random() - 0.5) * 0.8,
-          color: getColor(change)
-        };
-      });
-    });
+function drawBubble(b) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+
+  // Glow externo
+  ctx.shadowBlur = 20;
+  ctx.shadowColor =
+    b.change > 0
+      ? "rgba(0,255,0,0.6)"
+      : b.change < 0
+      ? "rgba(255,0,0,0.6)"
+      : "rgba(180,180,180,0.5)";
+  ctx.fillStyle =
+    b.change > 0
+      ? "rgb(0,150,0)"
+      : b.change < 0
+      ? "rgb(200,0,0)"
+      : "rgb(150,150,150)";
+  ctx.fill();
+
+  // Contorno branco
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "white";
+  ctx.stroke();
+  ctx.closePath();
+  ctx.restore();
+
+  // Brilho deslocado (efeito 3D)
+  ctx.save();
+  const grad = ctx.createRadialGradient(
+    b.x - b.radius * 0.3,
+    b.y - b.radius * 0.3,
+    5,
+    b.x,
+    b.y,
+    b.radius
+  );
+  grad.addColorStop(0, "rgba(255,255,255,0.4)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.closePath();
+  ctx.restore();
+
+  // Texto
+  ctx.save();
+  ctx.fillStyle = "white";
+  ctx.font = `${Math.max(12, b.radius / 3)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(b.name, b.x, b.y - 10);
+  ctx.fillText(`R$${b.price.toFixed(2)}`, b.x, b.y + 10);
+  ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 28);
+  ctx.restore();
 }
 
-function draw() {
+function animate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let b of bubbles) {
-    // Gradiente 3D
-    const gradient = ctx.createRadialGradient(b.x, b.y, b.r * 0.3, b.x, b.y, b.r);
-    gradient.addColorStop(0, 'white');
-    gradient.addColorStop(1, b.color);
-
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fillStyle = gradient;
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = b.color;
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'white';
-    ctx.stroke();
-
-    // Texto
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.font = `bold ${Math.max(10, b.r / 3)}px Arial`;
-    ctx.fillText(b.symbol, b.x, b.y - 10);
-    ctx.font = `${Math.max(9, b.r / 3.5)}px Arial`;
-    ctx.fillText(`R$${b.price.toFixed(2)}`, b.x, b.y + 6);
-    ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + 20);
-  }
-}
-
-function update() {
   for (let b of bubbles) {
     b.x += b.dx;
     b.y += b.dy;
 
-    // Evitar sair da tela
-    if (b.x < b.r || b.x > canvas.width - b.r) b.dx *= -1;
-    if (b.y < b.r || b.y > canvas.height - b.r) b.dy *= -1;
+    // Rebote
+    if (b.x < b.radius || b.x > canvas.width - b.radius) b.dx *= -1;
+    if (b.y < b.radius || b.y > canvas.height - b.radius) b.dy *= -1;
 
-    // Simples colisão entre bolhas
-    for (let other of bubbles) {
-      if (b === other) continue;
-      const dx = b.x - other.x;
-      const dy = b.y - other.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < b.r + other.r) {
-        // Rebate
-        b.dx = -b.dx;
-        b.dy = -b.dy;
-        other.dx = -other.dx;
-        other.dy = -other.dy;
-      }
-    }
+    drawBubble(b);
+  }
+  requestAnimationFrame(animate);
+}
+
+function loadBubbles(tipo) {
+  bubbles = [];
+  for (let i = 0; i < 80; i++) {
+    const change = getRandom(-10, 10);
+    const price = getRandom(5, 60);
+    const nome =
+      tipo === "acoes"
+        ? `ABC${i}`
+        : tipo === "criptos"
+        ? `BTC${i}`
+        : tipo === "commodities"
+        ? `PET${i}`
+        : tipo === "opcoes"
+        ? `OPC${i}`
+        : `FRE${i}`;
+    bubbles.push(createBubble(nome, price, change));
   }
 }
 
-canvas.addEventListener('click', function (e) {
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  for (let b of bubbles) {
-    const dx = x - b.x;
-    const dy = y - b.y;
-    if (Math.sqrt(dx * dx + dy * dy) < b.r) {
-      openModal(b.symbol);
-      break;
-    }
-  }
-});
-
-function openModal(symbol) {
-  const modal = document.getElementById('chartModal');
-  const iframe = document.getElementById('tradingview-frame');
-  iframe.src = `https://s.tradingview.com/widgetembed/?symbol=BMFBOVESPA:${symbol}&interval=1&theme=dark`;
-  modal.style.display = 'block';
-}
-
-function closeModal() {
-  document.getElementById('chartModal').style.display = 'none';
-}
-
-function loop() {
-  draw();
-  update();
-  requestAnimationFrame(loop);
-}
-
-window.addEventListener('resize', () => {
+window.addEventListener("resize", () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 });
 
-loadData();
-loop();
+loadBubbles("acoes");
+animate();
