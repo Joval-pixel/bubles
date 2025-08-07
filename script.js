@@ -13,7 +13,7 @@ async function fetchData(tab) {
       url = 'https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&sortBy=volume&limit=100';
       break;
     case 'criptos':
-      url = 'https://brapi.dev/api/quote/crypto?token=5bTDfSmR2ieax6y7JUqDAD&sortBy=volume&limit=60';
+      url = 'https://brapi.dev/api/quote/crypto?token=5bTDfSmR2ieax6y7JUqDAD&limit=60';
       break;
     case 'commodities':
       url = 'https://brapi.dev/api/quote/commodities?token=5bTDfSmR2ieax6y7JUqDAD';
@@ -28,8 +28,7 @@ async function fetchData(tab) {
   try {
     const res = await fetch(url);
     const json = await res.json();
-    const data = json.stocks || json.results || json.coins || [];
-    return data;
+    return json.stocks || json.results || json.coins || [];
   } catch (e) {
     console.error('Erro ao buscar dados:', e);
     return [];
@@ -38,41 +37,36 @@ async function fetchData(tab) {
 
 function generateSimulatedFrequencia() {
   const corretoras = [
-    { name: "Morgan Stanley", value: 2200 },
-    { name: "JP Morgan", value: 1800 },
-    { name: "UBS", value: 1400 },
-    { name: "Merrill Lynch", value: 1000 },
-    { name: "BTG", value: 800 },
-    { name: "XP", value: 600 },
+    { symbol: "Morgan Stanley", price: 2200, change: 1.5 },
+    { symbol: "JP Morgan", price: 1800, change: -0.7 },
+    { symbol: "UBS", price: 1400, change: 0.2 },
+    { symbol: "Merrill Lynch", price: 1000, change: -2.1 },
+    { symbol: "BTG", price: 800, change: 0.5 },
+    { symbol: "XP", price: 600, change: 0.0 }
   ];
-  return corretoras.map(c => ({
-    symbol: c.name,
-    regularMarketPrice: c.value,
-    change: (Math.random() * 4 - 2).toFixed(2),
-    volume: c.value
-  }));
+  return corretoras;
 }
 
 function createBubbles(data) {
   bubbles = data.map((item) => {
     const symbol = item.symbol || item.name || "???";
-    const price = parseFloat(item.regularMarketPrice || item.price || 0);
+    const price = parseFloat(item.regularMarketPrice || item.price || item.last || 0);
     const change = parseFloat(item.change || item.regularMarketChangePercent || 0);
     const volume = parseFloat(item.volume || item.regularMarketVolume || 1000);
-    const radius = Math.max(10, Math.min(35, volume / 30000)); // menor tamanho
+    const radius = Math.max(10, Math.min(40, volume / 20000));
 
     let color = "#333333";
-    if (change > 0) color = "#006400"; // verde escuro vivo
-    else if (change < 0) color = "#B22222"; // vermelho escuro vivo
+    if (change > 0) color = "#006400";
+    else if (change < 0) color = "#B22222";
 
     return {
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       r: radius,
-      dx: (Math.random() - 0.5) * 0.25,
-      dy: (Math.random() - 0.5) * 0.25,
+      dx: (Math.random() - 0.5) * 0.2,
+      dy: (Math.random() - 0.5) * 0.2,
       symbol,
-      price: isNaN(price) ? "R$0,00" : `R$${price.toFixed(2).replace('.', ',')}`,
+      price: `R$${isNaN(price) ? '0,00' : price.toFixed(2).replace('.', ',')}`,
       color
     };
   });
@@ -82,15 +76,10 @@ function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   for (let b of bubbles) {
-    // gradiente radial para dar efeito 3D
-    const gradient = ctx.createRadialGradient(
-      b.x - b.r / 3, b.y - b.r / 3, b.r / 10,
-      b.x, b.y, b.r
-    );
+    const gradient = ctx.createRadialGradient(b.x - b.r / 3, b.y - b.r / 3, b.r / 10, b.x, b.y, b.r);
     gradient.addColorStop(0, "#ffffff66");
     gradient.addColorStop(1, b.color);
 
-    // bolha com sombra e borda branca
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fillStyle = gradient;
@@ -102,7 +91,6 @@ function drawBubbles() {
     ctx.stroke();
     ctx.closePath();
 
-    // texto centralizado
     ctx.font = `${Math.max(10, b.r / 2)}px sans-serif`;
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
