@@ -12,29 +12,31 @@ function setCategory(cat) {
 }
 
 function getColor(change) {
-  if (change > 0) return '#00cc00';
-  if (change < 0) return '#cc0000';
-  return '#888';
+  if (change > 0) return '#00cc00'; // verde
+  if (change < 0) return '#cc0000'; // vermelho
+  return '#888'; // cinza neutro
 }
 
 function loadData() {
   fetch(`https://brapi.dev/api/quote/list?token=5bTDfSmR2ieax6y7JUqDAD&limit=100`)
     .then(res => res.json())
     .then(json => {
-      bubbles = json.stocks.map(stock => {
-        let change = parseFloat(stock.change) || 0;
-        return {
-          symbol: stock.stock,
-          price: stock.close || 0,
-          change,
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          r: 20 + Math.min(Math.abs(change) * 2, 40),
-          dx: (Math.random() - 0.5) * 1.2,
-          dy: (Math.random() - 0.5) * 1.2,
-          color: getColor(change)
-        }
-      });
+      bubbles = json.stocks
+        .filter(stock => stock.close !== null && stock.change !== null && !isNaN(stock.close) && !isNaN(stock.change))
+        .map(stock => {
+          let change = parseFloat(stock.change);
+          return {
+            symbol: stock.stock,
+            price: stock.close,
+            change,
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: 20 + Math.min(Math.abs(change) * 2, 40),
+            dx: (Math.random() - 0.5) * 1.2,
+            dy: (Math.random() - 0.5) * 1.2,
+            color: getColor(change)
+          };
+        });
     });
 }
 
