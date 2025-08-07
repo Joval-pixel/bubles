@@ -50,7 +50,15 @@ function generateSimulatedFrequencia() {
 function createBubbles(data) {
   bubbles = data.map((item) => {
     const symbol = item.symbol || item.name || "???";
-    const price = parseFloat(item.regularMarketPrice || item.price || item.last || 0);
+
+    const price = parseFloat(
+      item.regularMarketPrice ||
+      item.regularMarketLastPrice ||
+      item.price ||
+      item.last ||
+      0
+    );
+
     const change = parseFloat(item.change || item.regularMarketChangePercent || 0);
     const volume = parseFloat(item.volume || item.regularMarketVolume || 1000);
     const radius = Math.max(10, Math.min(40, volume / 20000));
@@ -76,7 +84,14 @@ function drawBubbles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   for (let b of bubbles) {
-    const gradient = ctx.createRadialGradient(b.x - b.r / 3, b.y - b.r / 3, b.r / 10, b.x, b.y, b.r);
+    const gradient = ctx.createRadialGradient(
+      b.x - b.r / 3,
+      b.y - b.r / 3,
+      b.r / 10,
+      b.x,
+      b.y,
+      b.r
+    );
     gradient.addColorStop(0, "#ffffff66");
     gradient.addColorStop(1, b.color);
 
