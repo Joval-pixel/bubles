@@ -1,42 +1,30 @@
 body {
   margin: 0;
-  background-color: #1e1e1e;
-  color: white;
-  font-family: sans-serif;
-  overflow: hidden;
-}
-
-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   background-color: #111;
-  padding: 10px;
-  justify-content: space-between;
-}
-
-h1 {
-  font-size: 18px;
-  margin: 5px 0;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
 }
 
 .menu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.menu button {
-  padding: 8px 12px;
-  background-color: #333;
+  background: #000;
   color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
+  padding: 10px;
+  text-align: center;
 }
 
-.menu button:hover {
-  background-color: #555;
+.buttons {
+  margin-top: 10px;
+}
+
+button {
+  margin: 5px;
+  padding: 10px;
+  font-size: 14px;
+  border: none;
+  border-radius: 5px;
+  background: #444;
+  color: white;
+  cursor: pointer;
 }
 
 canvas {
