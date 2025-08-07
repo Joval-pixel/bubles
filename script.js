@@ -59,9 +59,9 @@ function createBubbles(data) {
     const symbol = item.symbol || item.name || "???";
     const radius = Math.max(10, Math.min(40, volume / 20000)); // bolhas menores
 
-    let color = "#333333"; // cinza escuro padrão
-    if (change > 0) color = "#006400";       // verde escuro
-    else if (change < 0) color = "#8B0000";  // vermelho escuro
+    let color = "#333333"; // cinza escuro neutro
+    if (change > 0) color = "#006400";      // verde escuro
+    else if (change < 0) color = "#8B0000"; // vermelho escuro
 
     return {
       x: Math.random() * canvas.width,
