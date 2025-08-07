@@ -4,22 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BUBLES – Ações ao Vivo</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
+  <div class="menu">
     <h1>BUBLES – Ações ao Vivo</h1>
-    <div class="menu">
-      <button onclick="showTab('acoes')">Ações</button>
-      <button onclick="showTab('criptos')">Criptos</button>
-      <button onclick="showTab('commodities')">Commodities</button>
-      <button onclick="showTab('opcoes')">Opções</button>
-      <button onclick="showTab('frequencia')">Frequência de Mercado</button>
+    <div class="buttons">
+      <button onclick="loadData('acoes')">Ações</button>
+      <button onclick="loadData('criptos')">Criptos</button>
+      <button onclick="loadData('commodities')">Commodities</button>
+      <button onclick="loadData('opcoes')">Opções</button>
+      <button onclick="loadData('frequencia')">Frequência de Mercado</button>
     </div>
-  </header>
-  <main>
-    <canvas id="bubbleCanvas"></canvas>
-  </main>
+  </div>
+  <canvas id="bubbleCanvas"></canvas>
   <script src="script.js"></script>
 </body>
 </html>
