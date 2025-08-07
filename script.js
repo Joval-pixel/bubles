@@ -28,10 +28,7 @@ async function fetchData(tab) {
   try {
     const res = await fetch(url);
     const json = await res.json();
-
-    // Corrige para qualquer nome de propriedade
     const data = json.stocks || json.results || json.coins || [];
-    console.log('Dados recebidos:', data);
     return data;
   } catch (e) {
     console.error('Erro ao buscar dados:', e);
@@ -57,20 +54,21 @@ function generateSimulatedFrequencia() {
 
 function createBubbles(data) {
   bubbles = data.map((item) => {
-    const volume = item.volume || item.regularMarketVolume || 1000;
-    const change = parseFloat(item.change || item.regularMarketChangePercent || 0).toFixed(2);
-    const symbol = item.symbol || item.name || "??";
-    const radius = Math.max(20, Math.min(100, volume / 100));
+    const volume = parseFloat(item.volume || item.regularMarketVolume || 1000);
+    const change = parseFloat(item.change || item.regularMarketChangePercent || 0);
+    const symbol = item.symbol || item.name || "???";
+
+    const radius = Math.max(20, Math.min(80, volume / 10000)); // bolhas equilibradas
 
     return {
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       r: radius,
-      dx: (Math.random() - 0.5) * 0.6,
-      dy: (Math.random() - 0.5) * 0.6,
+      dx: (Math.random() - 0.5) * 0.5,
+      dy: (Math.random() - 0.5) * 0.5,
       label: symbol,
-      change: change,
-      color: change >= 0 ? 'rgba(0,255,0,0.6)' : 'rgba(255,0,0,0.6)'
+      change: isNaN(change) ? 0 : change.toFixed(2),
+      color: change >= 0 ? 'rgba(0,255,0,0.5)' : 'rgba(255,0,0,0.5)'
     };
   });
 }
@@ -82,15 +80,17 @@ function drawBubbles() {
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fillStyle = b.color;
     ctx.shadowColor = b.color;
-    ctx.shadowBlur = 20;
+    ctx.shadowBlur = 15;
     ctx.fill();
     ctx.closePath();
 
-    ctx.font = `${Math.max(12, b.r / 3)}px sans-serif`;
+    // texto
+    const fontSize = Math.max(10, Math.min(14, b.r / 2));
+    ctx.font = `${fontSize}px sans-serif`;
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
-    ctx.fillText(b.label, b.x, b.y);
-    ctx.fillText(`${b.change}%`, b.x, b.y + 15);
+    ctx.fillText(b.label, b.x, b.y - 5);
+    ctx.fillText(`${b.change}%`, b.x, b.y + 10);
   }
 }
 
@@ -99,7 +99,6 @@ function updateBubbles() {
     b.x += b.dx;
     b.y += b.dy;
 
-    // rebote
     if (b.x + b.r > canvas.width || b.x - b.r < 0) b.dx *= -1;
     if (b.y + b.r > canvas.height || b.y - b.r < 0) b.dy *= -1;
   }
