@@ -3,9 +3,9 @@ const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
-const TOP_N = IS_MOBILE ? 25 : 100;
+const TOP_N = IS_MOBILE ? 30 : 100;
 
-/* Física mais suave no celular + bolhas menores */
+/* Física suave (mobile mais lento) */
 const HEADER_SAFE     = 84;
 const WALL_MARGIN     = IS_MOBILE ? 18 : 10;
 const FRICTION        = IS_MOBILE ? 0.998 : 0.985;
@@ -37,7 +37,9 @@ const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 const rand  = (a,b)=>Math.random()*(b-a)+a;
 const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
+const formatBRL = v => Number.isFinite(Number(v)) ? `R$ ${Number(v).toFixed(2).replace('.',',')}` : "";
 
+/* raio proporcional à variação + volume */
 function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
@@ -45,16 +47,6 @@ function radiusFor(changePct, volume){
   const base = 16;
   return clamp(base + varScale*3 + volScale, 18, MAX_RADIUS);
 }
-async function getJSON(url){
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(`${res.status} ${url}`);
-  return res.json();
-}
-const formatBRL = v => {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return "—"; // 🔹 placeholder quando não houver preço
-  return `R$ ${n.toFixed(2).replace('.',',')}`;
-};
 
 /************ LISTAS ************/
 const LISTS = {
@@ -83,9 +75,9 @@ function mapQuote(it){
     volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
   };
 }
-function valid(q){ return q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct); }
+const valid = q => q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct);
 
-/* Ações por volume (geral) */
+/* Ações TOP por volume (geral) */
 async function fetchAcoesTop(){
   const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
   const json = await getJSON(url);
@@ -95,7 +87,7 @@ async function fetchAcoesTop(){
   return norm.slice(0, TOP_N);
 }
 
-/* Consulta múltiplos tickers com fallback de campos */
+/* Múltiplos tickers com fallback de campos */
 async function fetchByTickersLive(tickers){
   if (!tickers.length) return [];
   const chunk = 40;
@@ -106,65 +98,29 @@ async function fetchByTickersLive(tickers){
   }
   const results = (await Promise.allSettled(batches))
     .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
-  const mapped = results.map(mapQuote);
+  const mapped = results.map(mapQuote).filter(valid);
   mapped.sort((a,b)=>(b.volume||0)-(a.volume||0));
   return mapped;
 }
 
-/* Minério com “até 20” SEM ficar vazio */
-async function fetchMinerioUpTo20(){
-  const MAX_MINERIO = 20;
-  // 1) pega tudo que a API retornar (até com preço nulo)
-  const liveAll = await fetchByTickersLive(LISTS.minerio);
-
-  // 2) separa válidos e inválidos
-  const good = liveAll.filter(valid);
-  const bad  = liveAll.filter(q => !valid(q));
-
-  // 3) começa com os válidos
-  let out = good.slice(0, MAX_MINERIO);
-
-  // 4) se faltou, preenche com placeholders dos “bad”
-  if (out.length < MAX_MINERIO) {
-    const rest = MAX_MINERIO - out.length;
-    out = out.concat(
-      bad.slice(0, rest).map(q => ({
-        symbol: (q.symbol || "").toUpperCase(),
-        price:  NaN,            // aparece “—”
-        changePct: 0,           // cinza
-        volume: 0
-      }))
-    );
-  }
-
-  // 5) se ainda faltou, adiciona tickers que nem voltaram na API
-  if (out.length < MAX_MINERIO) {
-    const present = new Set(liveAll.map(q => (q.symbol||"").toUpperCase()));
-    const missingTickers = LISTS.minerio.filter(t => !present.has(t));
-    const rest2 = MAX_MINERIO - out.length;
-    out = out.concat(
-      missingTickers.slice(0, rest2).map(t => ({
-        symbol: t,
-        price:  NaN,  // “—”
-        changePct: 0,
-        volume: 0
-      }))
-    );
-  }
-
-  // 6) respeita o TOP_N do dispositivo, mas com teto 20
-  const cap = Math.min(MAX_MINERIO, TOP_N);
-  return out.slice(0, cap);
+async function getJSON(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`${res.status} ${url}`);
+  return res.json();
 }
 
 /************ DISPATCH ************/
 async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
-    case "minerio":   return fetchMinerioUpTo20();
-    case "petroleo":  return (await fetchByTickersLive(LISTS.petroleo)).filter(valid).slice(0, TOP_N);
-    case "bancos":    return (await fetchByTickersLive(LISTS.bancos)).filter(valid).slice(0, TOP_N);
-    case "varejo":    return (await fetchByTickersLive(LISTS.varejo)).filter(valid).slice(0, TOP_N);
+    case "minerio": { // ✅ apenas os que estiverem cotando (sem placeholders)
+      const data = await fetchByTickersLive(LISTS.minerio);
+      // teto 20 no minério
+      return data.slice(0, Math.min(20, TOP_N));
+    }
+    case "petroleo":  return (await fetchByTickersLive(LISTS.petroleo)).slice(0, TOP_N);
+    case "bancos":    return (await fetchByTickersLive(LISTS.bancos)).slice(0, TOP_N);
+    case "varejo":    return (await fetchByTickersLive(LISTS.varejo)).slice(0, TOP_N);
     default:          return fetchAcoesTop();
   }
 }
@@ -183,8 +139,7 @@ function createBubbles(data){
     vy: rand(-START_VEL, START_VEL),
     phase: Math.random()*Math.PI*2
   }));
-  // afastamento inicial
-  for (let k=0;k<3;k++) resolveCollisions(true);
+  for (let k=0;k<3;k++) resolveCollisions(true); // afastamento inicial
 }
 
 /************ FÍSICA ************/
@@ -220,12 +175,16 @@ function wallConstraints(p){
 function drawBubble(b){
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
   ctx.fillStyle=b.color; ctx.fill();
+
+  // brilho nas bordas (sem luz no centro)
   const ring=ctx.createRadialGradient(b.x,b.y,b.r*0.75,b.x,b.y,b.r);
   ring.addColorStop(0,"rgba(255,255,255,0)");
   ring.addColorStop(1,"rgba(255,255,255,0.85)");
   ctx.fillStyle=ring; ctx.fill();
+
   ctx.lineWidth=BORDER_WIDTH; ctx.strokeStyle="#fff"; ctx.stroke();
 
+  // textos
   ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle";
   const f1=Math.max(11,Math.floor(b.r*0.4));
   const f2=Math.max(10,Math.floor(b.r*0.3));
@@ -238,9 +197,8 @@ function drawBubble(b){
   ctx.fillText(`${formatBRL(b.price)}`, b.x, b.y);
 
   ctx.font=`600 ${f3}px Arial`;
-  const sign = Number.isFinite(b.change) && b.change>=0 ? "+" : "";
-  const pct  = Number.isFinite(b.change) ? `${sign}${b.change.toFixed(2)}%` : "0,00%";
-  ctx.fillText(pct, b.x, b.y + b.r*0.3);
+  const sign=b.change>=0?"+":"";
+  ctx.fillText(`${sign}${b.change.toFixed(2)}%`, b.x, b.y + b.r*0.3);
 }
 
 function draw(){
@@ -248,7 +206,7 @@ function draw(){
   for(const b of bubbles) drawBubble(b);
 }
 
-/************ LOOP (delta-time + wobble nas bolhas) ************/
+/************ LOOP ************/
 function step(now = performance.now()){
   let dt = now - lastTime;
   lastTime = now;
@@ -256,14 +214,20 @@ function step(now = performance.now()){
   const s = dt / 16;
 
   for(const p of bubbles){
+    // leve oscilação (não no texto)
     const t = now * WOBBLE_FREQ + p.phase;
     p.vx += Math.sin(t) * WOBBLE_STRENGTH * s;
     p.vy += Math.cos(t) * WOBBLE_STRENGTH * s;
 
+    // atrito e limites
     p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
     p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
-    p.x  += p.vx * s; p.y  += p.vy * s;
 
+    // puxar levemente ao centro para não “fugir”
+    p.vx += (canvas.width*0.5  - p.x) * CENTER_PULL * s;
+    p.vy += (canvas.height*0.55 - p.y) * CENTER_PULL * s;
+
+    p.x  += p.vx * s; p.y  += p.vy * s;
     wallConstraints(p);
   }
   for(let k=0;k<COLLISION_PASSES;k++) resolveCollisions();
