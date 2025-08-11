@@ -1,12 +1,22 @@
-/************ CONFIG VISUAL + FÍSICA ************/
+/************ CONFIG BÁSICA ************/
 const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
-const TOP_N = 100;               // quantidade exibida por botão
+
+// === MODO MOBILE (detecta tela pequena ou ponteiro grosso) ===
+const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
+                  (window.navigator.maxTouchPoints || 0) > 0;
+
+// Quantidade de bolhas por categoria (top N por volume)
+const TOP_N = IS_MOBILE ? 70 : 100;
+
+// Física (mobile mais “pesada”, mais lenta)
 const HEADER_SAFE = 84;
-const WALL_MARGIN = 10;
-const FRICTION = 0.985;
-const MAX_SPEED = 0.9;
-const REPULSE = 0.4;
-const BORDER_WIDTH = 2.5;
+const WALL_MARGIN = IS_MOBILE ? 14 : 10;
+const FRICTION    = IS_MOBILE ? 0.992 : 0.985;   // + atrito
+const MAX_SPEED   = IS_MOBILE ? 0.55  : 0.90;    // - velocidade máx
+const START_VEL   = IS_MOBILE ? 0.25  : 0.45;    // - velocidade inicial
+const REPULSE     = IS_MOBILE ? 0.55  : 0.40;    // + repulsão
+const BORDER_WIDTH= 2.5;
+const COLLISION_PASSES = IS_MOBILE ? 3 : 1;      // mais iterações por frame
 
 /************ CANVAS ************/
 const canvas = document.getElementById("bubbleCanvas");
@@ -20,15 +30,15 @@ let bubbles = [];
 
 /************ UTILS ************/
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-const rand = (a,b)=>Math.random()*(b-a)+a;
+const rand  = (a,b)=>Math.random()*(b-a)+a;
 const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
 const radiusFor = (chg, vol) => {
   const v = Math.max(1, Number(vol)||1);
-  const volScale = Math.log10(v+10)*3;      // comprime volumes grandes
+  const volScale = Math.log10(v+10)*3;
   const varScale = Math.min(8, Math.abs(Number(chg)||0));
   const base = 22;
-  return clamp(base + varScale*3 + volScale, 24, 90);
+  return clamp(base + varScale*3 + volScale, 24, IS_MOBILE ? 80 : 90);
 };
 async function getJSON(url){
   const res = await fetch(url);
@@ -40,30 +50,17 @@ function formatBRL(v){
   return Number.isFinite(n) ? `R$ ${n.toFixed(2).replace('.',',')}` : "";
 }
 
-/************ LISTAS ABRANGENTES POR SEGMENTO ************/
-/* Você pode ajustar/expandir a qualquer momento. */
+/************ LISTAS POR SEGMENTO (ajuste à vontade) ************/
 const LISTS = {
-  minerio: [
-    "VALE3","CMIN3","USIM5","USIM3","USIM6","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3",
-    "BRAP4","BRAP3","FESA4","FESA3","PMAM3","RRRP3" // incluo PMAM (ferro) e RRRP (ligado a O&G; pode remover)
-  ],
-  petroleo: [
-    "PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"
-  ],
-  bancos: [
-    "ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4",
-    "BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BBRK3","BPAC11"
-  ],
-  varejo: [
-    "MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3",
-    "PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"
-  ]
+  minerio: ["VALE3","CMIN3","USIM5","USIM3","USIM6","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3","FESA4","FESA3","PMAM3"],
+  petroleo:["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
+  bancos:  ["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
+  varejo:  ["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
 };
 
-/************ AÇÕES (top 100 por volume) ************/
+/************ AÇÕES TOP 100 POR VOLUME ************/
 async function fetchAcoesTop(){
-  // a BRAPI limita 'limit', então pegamos 300 e cortamos para 100
-  const url = `https://brapi.dev/api/quote/list?limit=300&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
+  const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
   const json = await getJSON(url);
   const arr = json.stocks || json.results || [];
   const norm = arr.map(it => ({
@@ -72,20 +69,18 @@ async function fetchAcoesTop(){
     changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
     volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
   })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
-  // já vem ordenado, mas garantimos:
   norm.sort((a,b)=>(b.volume||0)-(a.volume||0));
   return norm.slice(0, TOP_N);
 }
 
-/************ GENÉRICO: BUSCA POR LISTA DE TICKERS E ORDENA POR VOLUME ************/
+/************ POR LISTA + TOP 100 POR VOLUME ************/
 async function fetchByTickersTop(tickers){
   if (!tickers.length) return [];
-  const chunk = 40; // evitar URL muito longa
+  const chunk = 40;
   const batches = [];
   for (let i=0;i<tickers.length;i+=chunk){
     const slice = tickers.slice(i,i+chunk);
-    const url = `https://brapi.dev/api/quote/${slice.join(",")}?token=${TOKEN}`;
-    batches.push(getJSON(url));
+    batches.push(getJSON(`https://brapi.dev/api/quote/${slice.join(",")}?token=${TOKEN}`));
   }
   const results = (await Promise.allSettled(batches))
     .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
@@ -95,12 +90,11 @@ async function fetchByTickersTop(tickers){
     changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
     volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
   })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
-
   mapped.sort((a,b)=>(b.volume||0)-(a.volume||0));
   return mapped.slice(0, TOP_N);
 }
 
-/************ DISPATCH POR BOTÃO ************/
+/************ DISPATCH ************/
 async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
@@ -112,7 +106,7 @@ async function fetchData(){
   }
 }
 
-/************ BUILD BUBBLES ************/
+/************ BUILD BOLHAS ************/
 function createBubbles(data){
   bubbles = data.map(d => {
     const r = radiusFor(d.changePct, d.volume);
@@ -124,8 +118,8 @@ function createBubbles(data){
       r,
       x: rand(r+WALL_MARGIN, canvas.width-r-WALL_MARGIN),
       y: rand(Math.max(HEADER_SAFE+r, r+WALL_MARGIN), canvas.height-r-WALL_MARGIN),
-      vx: rand(-0.45, 0.45),
-      vy: rand(-0.45, 0.45)
+      vx: rand(-START_VEL, START_VEL),
+      vy: rand(-START_VEL, START_VEL)
     };
   });
   // afasta as que nascem coladas
@@ -161,13 +155,13 @@ function wallConstraints(p){
   if(p.y<T){p.y=T;p.vy=Math.abs(p.vy);} if(p.y>B){p.y=B;p.vy=-Math.abs(p.vy);}
 }
 
-/************ DESENHO (3D nas bordas, contorno e texto) ************/
+/************ DESENHO ************/
 function drawBubble(b){
   // base
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
   ctx.fillStyle=b.color; ctx.fill();
 
-  // brilho de borda (sem luz no centro)
+  // brilho de borda
   const ring=ctx.createRadialGradient(b.x,b.y,b.r*0.72,b.x,b.y,b.r);
   ring.addColorStop(0,"rgba(255,255,255,0)");
   ring.addColorStop(1,"rgba(255,255,255,0.85)");
@@ -191,12 +185,14 @@ function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); for(const b of b
 /************ LOOP ************/
 function step(){
   for(const p of bubbles){
+    // suaviza e limita
     p.vx = clamp(p.vx*FRICTION, -MAX_SPEED, MAX_SPEED);
     p.vy = clamp(p.vy*FRICTION, -MAX_SPEED, MAX_SPEED);
     p.x += p.vx; p.y += p.vy;
     wallConstraints(p);
   }
-  resolveCollisions();
+  // mais passes de colisão em mobile
+  for(let k=0;k<COLLISION_PASSES;k++) resolveCollisions();
   draw();
   requestAnimationFrame(step);
 }
@@ -215,7 +211,6 @@ async function setCategory(cat){
     bubbles = []; draw();
   }
 }
-// liga cliques
 document.querySelectorAll(".buttons button").forEach(b=>{
   b.addEventListener("click", ()=>setCategory(b.dataset.cat));
 });
@@ -223,5 +218,5 @@ document.querySelectorAll(".buttons button").forEach(b=>{
 /************ START ************/
 setCategory("acoes");
 step();
-// atualiza periodicamente a categoria visível
+// atualiza periodicamente
 setInterval(()=>setCategory(category), 30000);
