@@ -55,9 +55,9 @@ const formatBRL = v => {
   return Number.isFinite(n) ? `R$ ${n.toFixed(2).replace('.',',')}` : "";
 };
 
-/************ LISTAS (Minério revertido p/ B3 estáveis) ************/
+/************ LISTAS ************/
 const LISTS = {
-  // ✅ Apenas tickers da B3 que costumam cotar bem na BRAPI
+  // Minério: B3 estáveis + AURA33 (se cotar)
   minerio: [
     "VALE3","CMIN3","CSNA3",
     "GGBR4","GGBR3","GOAU4","GOAU3",
@@ -67,32 +67,36 @@ const LISTS = {
     "CBAV3","PMAM3",
     "PATI4","PATI3",
     "EALT4","EALT3",
-    "MGEL4",
-    // Se AURA33 estiver cotando bem para você, pode manter:
-    "AURA33"
+    "MGEL4","AURA33"
   ],
   petroleo:["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
   bancos:  ["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
   varejo:  ["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
 };
 
-/************ AÇÕES TOP (por volume) ************/
+/************ FETCH HELPERS ************/
+function mapQuote(it){
+  return {
+    symbol: it.symbol || it.stock || it.code || it.ticker,
+    price:  pickNum(it.regularMarketPrice, it.price, it.close, it.lastPrice),
+    changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
+    volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
+  };
+}
+function valid(q){ return q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct); }
+
+/* Ações por volume (fallback geral) */
 async function fetchAcoesTop(){
   const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
   const json = await getJSON(url);
   const arr = json.stocks || json.results || [];
-  const norm = arr.map(it => ({
-    symbol: it.symbol || it.stock || it.code || it.ticker,
-    price: pickNum(it.regularMarketPrice, it.close, it.price, it.lastPrice),
-    changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
-    volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
-  })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
+  const norm = arr.map(mapQuote).filter(valid);
   norm.sort((a,b)=>(b.volume||0)-(a.volume||0));
   return norm.slice(0, TOP_N);
 }
 
-/************ POR LISTA + TOP (por volume) ************/
-async function fetchByTickersTop(tickers){
+/* Consulta múltiplos tickers com fallback de campos */
+async function fetchByTickersLive(tickers){
   if (!tickers.length) return [];
   const chunk = 40;
   const batches = [];
@@ -102,24 +106,32 @@ async function fetchByTickersTop(tickers){
   }
   const results = (await Promise.allSettled(batches))
     .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
-  const mapped = results.map(it => ({
-    symbol: it.symbol || it.stock || it.code,
-    price: pickNum(it.regularMarketPrice, it.price, it.close, it.lastPrice),
-    changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
-    volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
-  })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
+  const mapped = results.map(mapQuote).filter(valid);
   mapped.sort((a,b)=>(b.volume||0)-(a.volume||0));
   return mapped.slice(0, TOP_N);
+}
+
+/* Minério “à prova de tela preta” */
+async function fetchMinerioSmart(){
+  // 1) tenta pelos tickers de Minério
+  let data = await fetchByTickersLive(LISTS.minerio);
+  if (data.length > 0) return data.slice(0, Math.min(TOP_N, data.length));
+
+  // 2) fallback: pega ações por volume e filtra pelos tickers de Minério que estiverem cotando
+  const top = await fetchAcoesTop();
+  const set = new Set(LISTS.minerio);
+  const filtered = top.filter(q => set.has((q.symbol||"").toUpperCase()));
+  return filtered.slice(0, Math.min(TOP_N, filtered.length));
 }
 
 /************ DISPATCH ************/
 async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
-    case "minerio":   return fetchByTickersTop(LISTS.minerio);
-    case "petroleo":  return fetchByTickersTop(LISTS.petroleo);
-    case "bancos":    return fetchByTickersTop(LISTS.bancos);
-    case "varejo":    return fetchByTickersTop(LISTS.varejo);
+    case "minerio":   return fetchMinerioSmart();
+    case "petroleo":  return fetchByTickersLive(LISTS.petroleo);
+    case "bancos":    return fetchByTickersLive(LISTS.bancos);
+    case "varejo":    return fetchByTickersLive(LISTS.varejo);
     default:          return fetchAcoesTop();
   }
 }
