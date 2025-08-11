@@ -13,10 +13,12 @@ body{
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   overflow:hidden;
 }
+
+/* Topo */
 .topbar{
   position:fixed;
   inset:0 0 auto 0;
-  padding:10px 12px;
+  padding:10px 12px 8px;
   background:linear-gradient(to bottom, rgba(0,0,0,.45), rgba(0,0,0,0));
   text-align:center;
   z-index:10;
@@ -26,7 +28,15 @@ h1{
   font-size:22px;
   letter-spacing:.3px;
 }
-.buttons{display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:center}
+
+/* Botões desktop */
+.buttons{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap; /* desktop pode quebrar */
+}
 button{
   background:var(--btn);
   color:var(--white);
@@ -35,11 +45,37 @@ button{
   border-radius:10px;
   cursor:pointer;
   font-weight:600;
+  white-space:nowrap;
 }
 button.active{outline:2px solid #888}
 button:hover{filter:brightness(1.15)}
-#bubbleCanvas{
-  position:fixed;
-  inset:0;
-  display:block;
+
+/* Canvas */
+#bubbleCanvas{ position:fixed; inset:0; display:block; }
+
+/* --- MOBILE TUNING --- */
+@media (max-width: 820px){
+  h1{
+    font-size:18px;
+    margin:4px 0 6px;
+  }
+  .buttons{
+    gap:6px;
+    flex-wrap:nowrap;         /* não quebrar linha */
+    justify-content:center;
+    overflow:hidden;          /* evita scroll lateral */
+  }
+  .buttons button{
+    /* tamanhos menores para caber em 1 linha */
+    padding:6px 10px;
+    border-radius:8px;
+    font-size:13px;           /* reduz o texto */
+  }
+}
+
+@media (max-width: 420px){
+  .buttons button{
+    padding:5px 8px;
+    font-size:12px;           /* ainda menor em telas muito estreitas */
+  }
 }
