@@ -1,4 +1,4 @@
-/************ CONFIG ************/
+/************ CONFIG VISUAL + FÍSICA ************/
 const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 const MAX_BUBBLES = 120;
 const HEADER_SAFE = 84;
@@ -25,13 +25,13 @@ const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
 const radiusFor = (chg, vol) => {
   const v = Math.max(1, Number(vol)||1);
-  const volScale = Math.log10(v+10)*3;
+  const volScale = Math.log10(v+10)*3;      // comprime volumes grandes
   const varScale = Math.min(8, Math.abs(Number(chg)||0));
   const base = 22;
-  return clamp(base + varScale*3 + volScale, 22, 90);
+  return clamp(base + varScale*3 + volScale, 24, 90);
 };
 
-/************ CATEGORY MAP ************/
+/************ MAPA DE FONTES (ENDPOINTS CORRETOS) ************/
 const SOURCES = {
   acoes: {
     url: () => `https://brapi.dev/api/quote/list?token=${TOKEN}&limit=${MAX_BUBBLES}`,
@@ -44,60 +44,68 @@ const SOURCES = {
     })
   },
   criptos: {
-    url: () => `https://brapi.dev/api/crypto?token=${TOKEN}`,
+    // ✅ endpoint correto para cripto
+    url: () => `https://brapi.dev/api/quote/crypto?token=${TOKEN}&limit=${MAX_BUBBLES}`,
     pickArray: j => j.coins || j.results || [],
     norm: it => ({
-      symbol: (it.coin || it.symbol || "").toUpperCase(),
+      symbol: (it.symbol || it.coin || it.name || "").toUpperCase(),
       price: pickNum(it.regularMarketPrice, it.price, it.lastPrice),
       changePct: pickNum(it.regularMarketChangePercent, it.change24h, it.change, it.pctChange),
       volume: pickNum(it.volume24h, it.totalVolume, it.volume)
     })
   },
   commodities: {
+    // ✅ endpoint correto para commodities
     url: () => `https://brapi.dev/api/quote/commodities?token=${TOKEN}`,
-    pickArray: j => j.results || j.stocks || [],
+    pickArray: j => j.results || j.stocks || j.data || [],
     norm: it => ({
       symbol: it.symbol || it.code,
-      price: pickNum(it.regularMarketPrice, it.price, it.last),
-      changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change),
+      price: pickNum(it.regularMarketPrice, it.price, it.last, it.close),
+      changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
       volume: pickNum(it.regularMarketVolume, it.volume)
     })
   },
   opcoes: {
-    // Sem um endpoint público único de opções listadas; usamos as ações como proxy
-    url: () => `https://brapi.dev/api/quote/list?token=${TOKEN}&limit=${MAX_BUBBLES}&sortBy=volume_desc`,
-    pickArray: j => j.stocks || [],
+    // ✅ opções listadas (se o provedor retornar)
+    url: () => `https://brapi.dev/api/quote/options?token=${TOKEN}&limit=${MAX_BUBBLES}`,
+    pickArray: j => j.results || j.options || j.stocks || [],
     norm: it => ({
-      symbol: it.symbol || it.stock,
-      price: pickNum(it.regularMarketPrice, it.close),
-      changePct: pickNum(it.regularMarketChangePercent, it.change),
-      volume: pickNum(it.regularMarketVolume, it.volume)
+      symbol: it.symbol || it.ticker || it.code,
+      price: pickNum(it.regularMarketPrice, it.price, it.lastPrice),
+      changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
+      volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
     })
   },
   frequencia: {
-    // “Frequência” como os mais negociados (maior volume)
-    url: () => `https://brapi.dev/api/quote/list?token=${TOKEN}&limit=${MAX_BUBBLES}&sortBy=volume_desc`,
+    // ✅ “frequência de mercado” = mais negociados (por volume)
+    url: () => `https://brapi.dev/api/quote/list?token=${TOKEN}&limit=${MAX_BUBBLES}&sortBy=volume&sortOrder=desc`,
     pickArray: j => j.stocks || [],
     norm: it => ({
       symbol: it.symbol || it.stock,
-      price: pickNum(it.regularMarketPrice, it.close),
+      price: pickNum(it.regularMarketPrice, it.close, it.price),
       changePct: pickNum(it.regularMarketChangePercent, it.change),
       volume: pickNum(it.regularMarketVolume, it.volume)
     })
   }
 };
 
-/************ DATA FETCH ************/
+/************ BUSCA E NORMALIZAÇÃO ************/
 async function fetchData(){
   const src = SOURCES[category] || SOURCES.acoes;
-  const res = await fetch(src.url());
-  const json = await res.json();
-  const arr = src.pickArray(json);
-  return arr.map(src.norm)
-    .filter(x => x.symbol && x.price !== null && x.changePct !== null)
-    .slice(0, MAX_BUBBLES);
+  let data = [];
+  try{
+    const res = await fetch(src.url());
+    const json = await res.json();
+    const arr = src.pickArray(json) || [];
+    data = arr.map(src.norm)
+      .filter(x => x && x.symbol && x.price !== null && x.changePct !== null);
+  }catch(e){
+    console.error("Erro buscando", category, e);
+  }
+  return data.slice(0, MAX_BUBBLES);
 }
 
+/************ CONSTRUÇÃO DAS BOLHAS ************/
 function createBubbles(data){
   bubbles = data.map(d => {
     const r = radiusFor(d.changePct, d.volume);
@@ -116,7 +124,7 @@ function createBubbles(data){
   for (let k=0;k<3;k++) resolveCollisions(true); // afastamento inicial
 }
 
-/************ FÍSICA ************/
+/************ FÍSICA: COLISÃO E PAREDES ************/
 function resolveCollisions(init=false){
   for (let i=0;i<bubbles.length;i++){
     for (let j=i+1;j<bubbles.length;j++){
@@ -145,7 +153,7 @@ function wallConstraints(p){
   if(p.y<T){p.y=T;p.vy=Math.abs(p.vy);} if(p.y>B){p.y=B;p.vy=-Math.abs(p.vy);}
 }
 
-/************ DESENHO ************/
+/************ DESENHO (3D, contorno e texto) ************/
 function drawBubble(b){
   // base
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
@@ -185,21 +193,16 @@ function step(){
   requestAnimationFrame(step);
 }
 
-/************ PÚBLICO ************/
+/************ PÚBLICO (botões) ************/
 async function setCategory(cat){
   category = cat;
-  try{
-    const data = await fetchData();
-    createBubbles(data);
-  }catch(e){
-    console.error("Erro ao carregar",cat,e);
-    bubbles = []; draw();
-  }
+  const data = await fetchData();
+  createBubbles(data);
 }
 
 /************ START ************/
 setCategory("acoes");
 step();
 
-// Atualização periódica (mantém cotações vivas)
+// Atualiza periodicamente a categoria visível
 setInterval(()=>setCategory(category), 30000);
