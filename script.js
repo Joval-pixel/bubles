@@ -25,7 +25,7 @@ const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
 const radiusFor = (chg, vol) => {
   const v = Math.max(1, Number(vol)||1);
-  const volScale = Math.log10(v+10)*3;
+  const volScale = Math.log10(v+10)*3;      // comprime volumes grandes
   const varScale = Math.min(8, Math.abs(Number(chg)||0));
   const base = 22;
   return clamp(base + varScale*3 + volScale, 24, 90);
@@ -35,129 +35,75 @@ async function getJSON(url){
   if(!res.ok) throw new Error(`${res.status} ${url}`);
   return res.json();
 }
-function currencySymbol(code){
-  switch((code||"").toUpperCase()){
-    case "BRL": return "R$";
-    case "USD": return "US$";
-    case "EUR": return "€";
-    case "GBP": return "£";
-    default: return ""; // se não vier, não mostra prefixo
-  }
-}
-function formatPrice(value, curr){
-  const sym = currencySymbol(curr);
-  const v = Number(value);
-  if (!Number.isFinite(v)) return "";
-  // 2 casas p/ a maioria; ouro/commodities ok com 2
-  return `${sym} ${v.toFixed(2).replace(".", ",")}`;
+function formatBRL(v){
+  const n = Number(v);
+  return Number.isFinite(n) ? `R$ ${n.toFixed(2).replace('.',',')}` : "";
 }
 
-/************ AÇÕES / FREQUÊNCIA ************/
-async function fetchAcoes(params=""){
-  const url = `https://brapi.dev/api/quote/list?limit=${MAX_BUBBLES}${params}&token=${TOKEN}`;
+/************ LISTAS POR CATEGORIA (tickers B3) ************/
+/* usamos listas estáveis para garantir que sempre haja dados,
+   e filtramos client-side quando possível (se a BRAPI retornar setor) */
+const LISTS = {
+  minerio: [
+    "VALE3","CMIN3","USIM5","USIM3","CSNA3","GGBR4","GOAU4","BRAP4","BRAP3",
+    "PMAM3","FESA4","FESA3"
+  ],
+  petroleo: [
+    "PETR3","PETR4","PRIO3","RRRP3","RECV3","BRDT3","UGPA3","ENAT3","PETZ3" // PETZ só se quiser tirar, deixe
+  ],
+  bancos: [
+    "ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3",
+    "BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","AGRO3","PINE4","MODL11"
+  ],
+  varejo: [
+    "MGLU3","VIIA3","LREN3","AMER3","ARZZ3","PETZ3","SOMA3","GUAR3",
+    "CEAB3","CRFB3","PCAR3"
+  ]
+};
+
+/************ AÇÕES (todas) ************/
+async function fetchAcoesAll(){
+  const url = `https://brapi.dev/api/quote/list?limit=${MAX_BUBBLES}&token=${TOKEN}`;
   const json = await getJSON(url);
   const arr = json.stocks || json.results || [];
   return arr.map(it => ({
     symbol: it.symbol || it.stock || it.code || it.ticker,
     price: pickNum(it.regularMarketPrice, it.close, it.price, it.lastPrice),
     changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
-    volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume),
-    currency: (it.currency || "BRL")
+    volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
   })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
 }
 
-/************ CRIPTOS (v2 em BRL) ************/
-const POPULAR_COINS = [
-  "BTC","ETH","USDT","BNB","SOL","XRP","ADA","DOGE","TRX","TON","DOT","LTC",
-  "AVAX","LINK","MATIC","XLM","ATOM","BCH","ETC","HBAR","NEAR","APT","ARB",
-  "OP","SUI","ICP","FIL","AAVE","ALGO"
-];
-async function fetchCriptos(){
-  let coins = [];
-  try{
-    const avail = await getJSON(`https://brapi.dev/api/v2/crypto/available?token=${TOKEN}`);
-    const listed = (avail.coins || []).map(c => String(c).toUpperCase());
-    const set = new Set();
-    for (const c of POPULAR_COINS) if (listed.includes(c)) set.add(c);
-    for (const c of listed) if (set.size < MAX_BUBBLES) set.add(c);
-    coins = Array.from(set).slice(0, 80);
-  }catch{
-    coins = POPULAR_COINS.slice(0, 40);
+/************ POR LISTA DE TICKERS ************/
+async function fetchByTickers(tickers){
+  if (!tickers.length) return [];
+  const chunk = 40; // evitar URL muito longa
+  const batches = [];
+  for (let i=0;i<tickers.length;i+=chunk){
+    const slice = tickers.slice(i,i+chunk);
+    const url = `https://brapi.dev/api/quote/${slice.join(",")}?token=${TOKEN}`;
+    batches.push(getJSON(url));
   }
-  if (!coins.length) return [];
-  const url = `https://brapi.dev/api/v2/crypto?coin=${coins.join(",")}&currency=BRL&token=${TOKEN}`;
-  const json = await getJSON(url);
-  const arr = json.coins || [];
-  return arr.map(it => ({
-    symbol: (it.coin || it.symbol || "").toUpperCase(),
-    price: pickNum(it.regularMarketPrice, it.price, it.lastPrice),
-    changePct: pickNum(it.regularMarketChangePercent, it.regularMarketChangePercent24h, it.change24h, it.change),
-    volume: pickNum(it.regularMarketVolume, it.volume24h, it.volume),
-    currency: it.currency || "BRL"
+  const results = (await Promise.allSettled(batches))
+    .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
+  const map = results.map(it => ({
+    symbol: it.symbol || it.stock || it.code,
+    price: pickNum(it.regularMarketPrice, it.price, it.close, it.lastPrice),
+    changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
+    volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
   })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
+  return map.slice(0, MAX_BUBBLES);
 }
 
-/************ COMMODITIES (cotação com moeda correta) ************/
-/* Usamos futuros do Yahoo via /quote/<tickers> — em USD na maioria */
-const COMMO_TICKERS = [
-  "CL=F","NG=F",           // Petróleo WTI, Gás Natural
-  "GC=F","SI=F","HG=F",    // Ouro, Prata, Cobre
-  "ZC=F","ZS=F","ZW=F",    // Milho, Soja, Trigo
-  "KC=F","SB=F","CC=F",    // Café, Açúcar, Cacau
-  "LCO=F"                  // Brent (ICE)
-];
-async function fetchCommodities(){
-  try{
-    const url = `https://brapi.dev/api/quote/${COMMO_TICKERS.join(",")}?token=${TOKEN}`;
-    const json = await getJSON(url);
-    const arr = json.results || json.stocks || json || [];
-    const norm = arr.map(it => ({
-      symbol: it.symbol || it.code,
-      price: pickNum(it.regularMarketPrice, it.price, it.last, it.close),
-      changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
-      volume: pickNum(it.regularMarketVolume, it.volume),
-      currency: it.currency || "USD"  // <- moeda vinda da API, padrão USD
-    })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
-    if (norm.length) return norm.slice(0, MAX_BUBBLES);
-  }catch(e){
-    console.warn("commodities fallback:", e.message);
-  }
-  // fallback: setores relacionados (em BRL)
-  const sectors = encodeURIComponent("Energy Minerals,Non-Energy Minerals,Process Industries");
-  const data = await fetchAcoes(`&sector=${sectors}&sortBy=volume&sortOrder=desc`);
-  return data.slice(0, MAX_BUBBLES);
-}
-
-/************ OPÇÕES (fallback) ************/
-async function fetchOpcoes(){
-  try{
-    const json = await getJSON(`https://brapi.dev/api/quote/options?token=${TOKEN}&limit=${MAX_BUBBLES}`);
-    const arr = json.results || json.options || [];
-    const norm = arr.map(it => ({
-      symbol: it.symbol || it.ticker || it.code,
-      price: pickNum(it.regularMarketPrice, it.price, it.lastPrice),
-      changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
-      volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume),
-      currency: it.currency || "BRL"
-    })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
-    if (norm.length) return norm.slice(0, MAX_BUBBLES);
-  }catch(e){
-    console.warn("opcoes fallback:", e.message);
-  }
-  // fallback: maiores oscilações
-  const data = await fetchAcoes(`&sortBy=change_abs&sortOrder=desc`);
-  return data.slice(0, MAX_BUBBLES);
-}
-
-/************ DISPATCH ************/
+/************ DISPATCH POR CATEGORIA ************/
 async function fetchData(){
   switch (category){
-    case "acoes":        return fetchAcoes();
-    case "criptos":      return fetchCriptos();       // BRL
-    case "commodities":  return fetchCommodities();   // USD (mostra US$)
-    case "opcoes":       return fetchOpcoes();
-    case "frequencia":   return fetchAcoes(`&sortBy=volume&sortOrder=desc`);
-    default:             return fetchAcoes();
+    case "acoes":     return fetchAcoesAll();
+    case "minerio":   return fetchByTickers(LISTS.minerio);
+    case "petroleo":  return fetchByTickers(LISTS.petroleo);
+    case "bancos":    return fetchByTickers(LISTS.bancos);
+    case "varejo":    return fetchByTickers(LISTS.varejo);
+    default:          return fetchAcoesAll();
   }
 }
 
@@ -169,7 +115,6 @@ function createBubbles(data){
       symbol: d.symbol,
       price: d.price,
       change: d.changePct,
-      currency: d.currency || (category==="criptos"?"BRL":"USD"),
       color: colorForChange(d.changePct),
       r,
       x: rand(r+WALL_MARGIN, canvas.width-r-WALL_MARGIN),
@@ -178,7 +123,7 @@ function createBubbles(data){
       vy: rand(-0.45, 0.45)
     };
   });
-  for (let k=0;k<3;k++) resolveCollisions(true);
+  for (let k=0;k<3;k++) resolveCollisions(true); // afastamento inicial
 }
 
 /************ FÍSICA ************/
@@ -210,7 +155,7 @@ function wallConstraints(p){
   if(p.y<T){p.y=T;p.vy=Math.abs(p.vy);} if(p.y>B){p.y=B;p.vy=-Math.abs(p.vy);}
 }
 
-/************ DESENHO ************/
+/************ DESENHO (3D nas bordas, contorno e texto) ************/
 function drawBubble(b){
   // base
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
@@ -231,7 +176,7 @@ function drawBubble(b){
   const f2=Math.max(10,Math.floor(b.r*0.34));
   const f3=Math.max(9, Math.floor(b.r*0.30));
   ctx.font=`700 ${f1}px system-ui,Arial`; ctx.fillText(b.symbol,b.x,b.y-f1*0.45);
-  ctx.font=`500 ${f2}px system-ui,Arial`; ctx.fillText(`${formatPrice(b.price, b.currency)}`,b.x,b.y+2);
+  ctx.font=`500 ${f2}px system-ui,Arial`; ctx.fillText(`${formatBRL(b.price)}`,b.x,b.y+2);
   ctx.font=`600 ${f3}px system-ui,Arial`;
   const sign=b.change>=0?"+":""; ctx.fillText(`${sign}${b.change.toFixed(2)}%`,b.x,b.y+f2*0.9);
 }
@@ -253,6 +198,9 @@ function step(){
 /************ BOTÕES ************/
 async function setCategory(cat){
   category = cat;
+  document.querySelectorAll(".buttons button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.cat===cat);
+  });
   try{
     const data = await fetchData();
     createBubbles(data);
@@ -261,8 +209,13 @@ async function setCategory(cat){
     bubbles = []; draw();
   }
 }
+// liga cliques
+document.querySelectorAll(".buttons button").forEach(b=>{
+  b.addEventListener("click", ()=>setCategory(b.dataset.cat));
+});
 
 /************ START ************/
 setCategory("acoes");
 step();
+// atualizar periodicamente a categoria visível
 setInterval(()=>setCategory(category), 30000);
