@@ -37,7 +37,7 @@ const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 const rand  = (a,b)=>Math.random()*(b-a)+a;
 const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
-const formatBRL = v => Number.isFinite(Number(v)) ? `R$ ${Number(v).toFixed(2).replace('.',',')}` : "";
+const formatBRL = v => Number.isFinite(Number(v)) ? `R$ ${Number(v).toFixed(2).replace('.',',')}` : "—";
 
 /* raio proporcional à variação + volume */
 function radiusFor(changePct, volume){
@@ -50,16 +50,13 @@ function radiusFor(changePct, volume){
 
 /************ LISTAS ************/
 const LISTS = {
-  minerio: [
-    "VALE3","CMIN3","CSNA3",
-    "GGBR4","GGBR3","GOAU4","GOAU3",
-    "BRAP4","BRAP3",
-    "USIM5","USIM3",
-    "FESA4","FESA3",
-    "CBAV3","PMAM3",
-    "PATI4","PATI3",
-    "EALT4","EALT3",
-    "MGEL4","AURA33"
+  // ordem de prioridade no Minério — estas aparecem SEMPRE (cinza se sem preço)
+  minerioMandatory: ["VALE3","CMIN3","CSNA3","GGBR4","GOAU4","USIM5"],
+  // demais papéis do segmento
+  minerioAll: [
+    "VALE3","CMIN3","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3",
+    "USIM5","USIM3","FESA4","FESA3","CBAV3","PMAM3","PATI4","PATI3",
+    "EALT4","EALT3","MGEL4","AURA33"
   ],
   petroleo:["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
   bancos:  ["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
@@ -69,7 +66,7 @@ const LISTS = {
 /************ FETCH HELPERS ************/
 function mapQuote(it){
   return {
-    symbol: it.symbol || it.stock || it.code || it.ticker,
+    symbol: (it.symbol || it.stock || it.code || it.ticker || "").toUpperCase(),
     price:  pickNum(it.regularMarketPrice, it.price, it.close, it.lastPrice),
     changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
     volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
@@ -77,7 +74,13 @@ function mapQuote(it){
 }
 const valid = q => q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct);
 
-/* Ações TOP por volume (geral) */
+async function getJSON(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`${res.status} ${url}`);
+  return res.json();
+}
+
+/* Ações por volume (geral) */
 async function fetchAcoesTop(){
   const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
   const json = await getJSON(url);
@@ -87,8 +90,8 @@ async function fetchAcoesTop(){
   return norm.slice(0, TOP_N);
 }
 
-/* Múltiplos tickers com fallback de campos */
-async function fetchByTickersLive(tickers){
+/* Múltiplos tickers */
+async function fetchByTickers(tickers){
   if (!tickers.length) return [];
   const chunk = 40;
   const batches = [];
@@ -98,29 +101,55 @@ async function fetchByTickersLive(tickers){
   }
   const results = (await Promise.allSettled(batches))
     .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
-  const mapped = results.map(mapQuote).filter(valid);
-  mapped.sort((a,b)=>(b.volume||0)-(a.volume||0));
-  return mapped;
+  return results.map(mapQuote);
 }
 
-async function getJSON(url){
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(`${res.status} ${url}`);
-  return res.json();
+/************ MINÉRIO (nunca vazio, até 20) ************/
+async function fetchMinerioAlways20(){
+  const MAX_MINERIO = 20;
+  // 1) busca todos
+  const allTickers = Array.from(new Set(LISTS.minerioAll));
+  const live = await fetchByTickers(allTickers);
+
+  // 2) cria map por ticker
+  const bySym = new Map(live.map(q => [q.symbol, q]));
+
+  // 3) começa garantindo os obrigatórios (com cinza se sem preço)
+  const out = [];
+  for (const t of LISTS.minerioMandatory){
+    const q = bySym.get(t) || { symbol:t, price: NaN, changePct: 0, volume: 0 };
+    out.push(q);
+  }
+
+  // 4) completa com os demais que ESTÃO válidos (preço & var reais)
+  const restValid = live.filter(q => valid(q) && !LISTS.minerioMandatory.includes(q.symbol));
+  restValid.sort((a,b)=>(b.volume||0)-(a.volume||0));
+  for (const q of restValid){
+    if (out.length >= MAX_MINERIO) break;
+    out.push(q);
+  }
+
+  // 5) se ainda faltar, completa com placeholders dos que sobraram
+  if (out.length < MAX_MINERIO){
+    for (const t of allTickers){
+      if (out.length >= MAX_MINERIO) break;
+      if (out.some(x => x.symbol === t)) continue;
+      out.push({ symbol:t, price: NaN, changePct: 0, volume: 0 });
+    }
+  }
+
+  // 6) respeita TOP_N do dispositivo (mas teto 20)
+  return out.slice(0, Math.min(MAX_MINERIO, TOP_N));
 }
 
 /************ DISPATCH ************/
 async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
-    case "minerio": { // ✅ apenas os que estiverem cotando (sem placeholders)
-      const data = await fetchByTickersLive(LISTS.minerio);
-      // teto 20 no minério
-      return data.slice(0, Math.min(20, TOP_N));
-    }
-    case "petroleo":  return (await fetchByTickersLive(LISTS.petroleo)).slice(0, TOP_N);
-    case "bancos":    return (await fetchByTickersLive(LISTS.bancos)).slice(0, TOP_N);
-    case "varejo":    return (await fetchByTickersLive(LISTS.varejo)).slice(0, TOP_N);
+    case "minerio":   return fetchMinerioAlways20();
+    case "petroleo":  return (await fetchByTickers(LISTS.petroleo)).filter(valid).slice(0, TOP_N);
+    case "bancos":    return (await fetchByTickers(LISTS.bancos)).filter(valid).slice(0, TOP_N);
+    case "varejo":    return (await fetchByTickers(LISTS.varejo)).filter(valid).slice(0, TOP_N);
     default:          return fetchAcoesTop();
   }
 }
@@ -197,8 +226,9 @@ function drawBubble(b){
   ctx.fillText(`${formatBRL(b.price)}`, b.x, b.y);
 
   ctx.font=`600 ${f3}px Arial`;
-  const sign=b.change>=0?"+":"";
-  ctx.fillText(`${sign}${b.change.toFixed(2)}%`, b.x, b.y + b.r*0.3);
+  const pctValid = Number.isFinite(b.change);
+  const sign = pctValid && b.change>=0 ? "+" : "";
+  ctx.fillText(`${pctValid ? sign+ b.change.toFixed(2) : "0.00"}%`, b.x, b.y + b.r*0.3);
 }
 
 function draw(){
@@ -223,7 +253,7 @@ function step(now = performance.now()){
     p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
     p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
 
-    // puxar levemente ao centro para não “fugir”
+    // puxar levemente ao centro
     p.vx += (canvas.width*0.5  - p.x) * CENTER_PULL * s;
     p.vy += (canvas.height*0.55 - p.y) * CENTER_PULL * s;
 
