@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BUBLES – Ações ao Vivo</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <img src="logo.png" alt="Logo BUBLES" />
+  <header class="topbar">
     <h1>BUBLES – Ações ao Vivo</h1>
-    <div class="buttons">
-      <button onclick="loadBubbles('acoes')">Ações</button>
-      <button onclick="loadBubbles('criptos')">Criptos</button>
-      <button onclick="loadBubbles('commodities')">Commodities</button>
-      <button onclick="loadBubbles('opcoes')">Opções</button>
-      <button onclick="loadBubbles('frequencia')">Frequência de Mercado</button>
-    </div>
+    <nav class="buttons">
+      <button onclick="setCategory('acoes')">Ações</button>
+      <button onclick="setCategory('criptos')">Criptos</button>
+      <button onclick="setCategory('commodities')">Commodities</button>
+      <button onclick="setCategory('opcoes')">Opções</button>
+      <button onclick="setCategory('frequencia')">Frequência de Mercado</button>
+    </nav>
   </header>
+
   <canvas id="bubbleCanvas"></canvas>
+
   <script src="script.js"></script>
 </body>
 </html>
