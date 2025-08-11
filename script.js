@@ -30,17 +30,14 @@ const radiusFor = (chg, vol) => {
   const base = 22;
   return clamp(base + varScale*3 + volScale, 24, 90);
 };
-
-/************ FETCH HELPERS ************/
 async function getJSON(url){
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if(!res.ok) throw new Error(`${res.status} ${url}`);
   return res.json();
 }
 
-/************ FONTES (AÇÕES / FREQUÊNCIA) ************/
+/************ AÇÕES / FREQUÊNCIA (sempre funciona) ************/
 async function fetchAcoes(params=""){
-  // Lista geral de cotações da B3
   const url = `https://brapi.dev/api/quote/list?limit=${MAX_BUBBLES}${params}&token=${TOKEN}`;
   const json = await getJSON(url);
   const arr = json.stocks || json.results || [];
@@ -52,29 +49,26 @@ async function fetchAcoes(params=""){
   })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
 }
 
-/************ CRIPTOS ************/
-// A brapi exige passar as coins no /api/v2/crypto?coin=... (em BRL por padrão).
-// Vamos buscar uma lista “popular” e, se falhar, usar um fallback fixo.
+/************ CRIPTOS (v2) ************/
 const POPULAR_COINS = [
   "BTC","ETH","USDT","BNB","SOL","XRP","ADA","DOGE","TRX","TON","DOT","LTC",
   "AVAX","LINK","MATIC","XLM","ATOM","BCH","ETC","HBAR","NEAR","APT","ARB",
   "OP","SUI","ICP","FIL","AAVE","EGLD","ALGO"
 ];
-
 async function fetchCriptos(){
+  // tenta descobrir as disponíveis
   let coins = [];
-  try {
+  try{
     const avail = await getJSON(`https://brapi.dev/api/v2/crypto/available?token=${TOKEN}`);
     const listed = (avail.coins || []).map(c => String(c).toUpperCase());
-    // prioriza as populares e completa com as demais
     const set = new Set();
-    for (const c of POPULAR_COINS) if (listed.includes(c)) set.add(c);
-    for (const c of listed) if (set.size < MAX_BUBBLES) set.add(c);
-    coins = Array.from(set).slice(0, 80); // bom para performance
-  } catch {
+    for(const c of POPULAR_COINS) if (listed.includes(c)) set.add(c);
+    for(const c of listed) if (set.size < MAX_BUBBLES) set.add(c);
+    coins = Array.from(set).slice(0, 80);
+  }catch{
     coins = POPULAR_COINS.slice(0, 40);
   }
-  if (!coins.length) return [];
+  if(!coins.length) return [];
 
   const url = `https://brapi.dev/api/v2/crypto?coin=${coins.join(",")}&currency=BRL&token=${TOKEN}`;
   const json = await getJSON(url);
@@ -87,49 +81,59 @@ async function fetchCriptos(){
   })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
 }
 
-/************ COMMODITIES ************/
-// Tenta endpoint dedicado; se não houver dados, usa proxy por setores ligados a commodities (ações).
+/************ COMMODITIES (fallback sem 404) ************/
+/* BRAPI free nem sempre tem endpoint de commodities.
+   Solução: usamos /quote/ com tickers de futuros do Yahoo (que a BRAPI resolve). */
+const COMMO_TICKERS = [
+  "CL=F","NG=F",    // Petróleo, Gás
+  "GC=F","SI=F","HG=F", // Ouro, Prata, Cobre
+  "ZC=F","ZS=F","ZW=F", // Milho, Soja, Trigo
+  "KC=F","SB=F","CC=F", // Café, Açúcar, Cacau
+  "LCO=F"           // Brent
+];
 async function fetchCommodities(){
-  // tentativa 1: endpoint de commodities (se disponível no seu plano)
-  try {
-    const json = await getJSON(`https://brapi.dev/api/quote/commodities?token=${TOKEN}`);
-    const arr = json.results || json.stocks || [];
-    const norm = arr.map(it => ({
+  try{
+    const url = `https://brapi.dev/api/quote/${COMMO_TICKERS.join(",")}?token=${TOKEN}`;
+    const json = await getJSON(url);
+    const arr = json.results || json.stocks || json || [];
+    const out = arr.map(it => ({
       symbol: it.symbol || it.code,
       price: pickNum(it.regularMarketPrice, it.price, it.last, it.close),
       changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
       volume: pickNum(it.regularMarketVolume, it.volume)
     })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
-    if (norm.length) return norm.slice(0, MAX_BUBBLES);
-  } catch {/* cai no fallback */}
-
-  // fallback: ações de setores de commodities (energia/mineração/processo)
+    if(out.length) return out.slice(0, MAX_BUBBLES);
+  }catch(e){
+    console.warn("commodities fallback:", e.message);
+  }
+  // fallback final: ações relacionadas a commodities (energia/mineração/processo)
   const sectors = encodeURIComponent("Energy Minerals,Non-Energy Minerals,Process Industries");
   const data = await fetchAcoes(`&sector=${sectors}&sortBy=volume&sortOrder=desc`);
   return data.slice(0, MAX_BUBBLES);
 }
 
-/************ OPÇÕES ************/
-// Se a API de opções não estiver habilitada, usamos os ativos mais voláteis como “proxy”.
+/************ OPÇÕES (fallback sem 404) ************/
+/* Muitos planos não expõem /quote/options: usamos fallback com papéis mais voláteis. */
 async function fetchOpcoes(){
-  try {
+  try{
     const json = await getJSON(`https://brapi.dev/api/quote/options?token=${TOKEN}&limit=${MAX_BUBBLES}`);
     const arr = json.results || json.options || [];
-    const norm = arr.map(it => ({
+    const out = arr.map(it => ({
       symbol: it.symbol || it.ticker || it.code,
       price: pickNum(it.regularMarketPrice, it.price, it.lastPrice),
       changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
       volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
     })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
-    if (norm.length) return norm.slice(0, MAX_BUBBLES);
-  } catch {/* fallback abaixo */}
-
-  // fallback: “opções” = papéis com maior variação absoluta (efeito visual)
+    if(out.length) return out.slice(0, MAX_BUBBLES);
+  }catch(e){
+    console.warn("opcoes fallback:", e.message);
+  }
+  // fallback: “opções” = maiores oscilações
   const data = await fetchAcoes(`&sortBy=change_abs&sortOrder=desc`);
   return data.slice(0, MAX_BUBBLES);
 }
 
-/************ DISPATCH POR CATEGORIA ************/
+/************ DISPATCH ************/
 async function fetchData(){
   switch (category){
     case "acoes":        return fetchAcoes();
@@ -160,7 +164,7 @@ function createBubbles(data){
   for (let k=0;k<3;k++) resolveCollisions(true); // afastamento inicial
 }
 
-/************ FÍSICA: COLISÃO E PAREDES ************/
+/************ FÍSICA ************/
 function resolveCollisions(init=false){
   for (let i=0;i<bubbles.length;i++){
     for (let j=i+1;j<bubbles.length;j++){
@@ -189,7 +193,7 @@ function wallConstraints(p){
   if(p.y<T){p.y=T;p.vy=Math.abs(p.vy);} if(p.y>B){p.y=B;p.vy=-Math.abs(p.vy);}
 }
 
-/************ DESENHO (3D, contorno e texto) ************/
+/************ DESENHO ************/
 function drawBubble(b){
   // base
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
