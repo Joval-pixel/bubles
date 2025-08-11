@@ -3,10 +3,10 @@ const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
-const TOP_N = IS_MOBILE ? 25 : 100;
+const TOP_N = IS_MOBILE ? 30 : 100;
 
-/* Física mais suave no celular */
-const HEADER_SAFE     = 54;
+/* Física mais suave no celular + bolhas menores */
+const HEADER_SAFE     = 84;
 const WALL_MARGIN     = IS_MOBILE ? 18 : 10;
 const FRICTION        = IS_MOBILE ? 0.998 : 0.985;
 const MAX_SPEED       = IS_MOBILE ? 0.12  : 0.90;
@@ -15,7 +15,7 @@ const REPULSE         = IS_MOBILE ? 0.65  : 0.40;
 const BORDER_WIDTH    = 2.5;
 const COLLISION_PASSES= IS_MOBILE ? 5 : 1;
 
-const MAX_RADIUS      = IS_MOBILE ? 46 : 80; // 🔹 Menor no celular
+const MAX_RADIUS      = IS_MOBILE ? 46 : 80; // menor no celular
 const CENTER_PULL     = IS_MOBILE ? 0.0015 : 0.0008;
 
 const WOBBLE_STRENGTH = IS_MOBILE ? 0.010 : 0.01;
@@ -45,7 +45,6 @@ function radiusFor(changePct, volume){
   const base = 16;
   return clamp(base + varScale*3 + volScale, 18, MAX_RADIUS);
 }
-
 async function getJSON(url){
   const res = await fetch(url);
   if(!res.ok) throw new Error(`${res.status} ${url}`);
@@ -56,21 +55,29 @@ const formatBRL = v => {
   return Number.isFinite(n) ? `R$ ${n.toFixed(2).replace('.',',')}` : "";
 };
 
-/************ LISTAS ************/
+/************ LISTAS (Minério atualizado com sua relação) ************/
 const LISTS = {
-  minerio: ["VALE3","CMIN3","USIM5","USIM3","USIM6","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3","FESA4","FESA3","PMAM3"],
+  minerio: [
+    // BDRs/DRCs de mineração & metais
+    "RIOT34","N1EM34","FCXO34","N1UE34","G1FI34","ARMT34","TXSA34","S1BS34",
+    "AURA33","S2GM34",
+    // B3 mineração/metais
+    "VALE3","CMIN3","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3",
+    "USIM5","USIM3","FESA4","FESA3","CBAV3","PATI4","PATI3","EALT4","EALT3",
+    "PMAM3","MGEL4"
+  ],
   petroleo:["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
   bancos:  ["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
   varejo:  ["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
 };
 
-/************ FETCH ************/
+/************ AÇÕES TOP (por volume) ************/
 async function fetchAcoesTop(){
   const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
   const json = await getJSON(url);
   const arr = json.stocks || json.results || [];
   const norm = arr.map(it => ({
-    symbol: it.symbol || it.stock,
+    symbol: it.symbol || it.stock || it.code || it.ticker,
     price: pickNum(it.regularMarketPrice, it.close, it.price, it.lastPrice),
     changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
     volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
@@ -79,6 +86,7 @@ async function fetchAcoesTop(){
   return norm.slice(0, TOP_N);
 }
 
+/************ POR LISTA + TOP (por volume) ************/
 async function fetchByTickersTop(tickers){
   if (!tickers.length) return [];
   const chunk = 40;
@@ -90,7 +98,7 @@ async function fetchByTickersTop(tickers){
   const results = (await Promise.allSettled(batches))
     .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
   const mapped = results.map(it => ({
-    symbol: it.symbol || it.stock,
+    symbol: it.symbol || it.stock || it.code,
     price: pickNum(it.regularMarketPrice, it.price, it.close, it.lastPrice),
     changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
     volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
@@ -99,6 +107,7 @@ async function fetchByTickersTop(tickers){
   return mapped.slice(0, TOP_N);
 }
 
+/************ DISPATCH ************/
 async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
@@ -124,10 +133,12 @@ function createBubbles(data){
     vy: rand(-START_VEL, START_VEL),
     phase: Math.random()*Math.PI*2
   }));
+  // afastamento inicial
+  for (let k=0;k<3;k++) resolveCollisions(true);
 }
 
 /************ FÍSICA ************/
-function resolveCollisions(){
+function resolveCollisions(init=false){
   for (let i=0;i<bubbles.length;i++){
     for (let j=i+1;j<bubbles.length;j++){
       const a=bubbles[i], b=bubbles[j];
@@ -139,6 +150,11 @@ function resolveCollisions(){
         const overlap=(min-dist)*0.6;
         a.x -= nx*overlap/2; a.y -= ny*overlap/2;
         b.x += nx*overlap/2; b.y += ny*overlap/2;
+        if(!init){
+          const push = REPULSE*0.5;
+          a.vx -= nx*push; a.vy -= ny*push;
+          b.vx += nx*push; b.vy += ny*push;
+        }
       }
     }
   }
@@ -165,7 +181,8 @@ function drawBubble(b){
   ctx.font=`500 ${Math.max(10,Math.floor(b.r*0.3))}px Arial`;
   ctx.fillText(`${formatBRL(b.price)}`, b.x, b.y);
   ctx.font=`600 ${Math.max(9,Math.floor(b.r*0.25))}px Arial`;
-  ctx.fillText(`${b.change.toFixed(2)}%`, b.x, b.y + b.r*0.3);
+  const sign=b.change>=0?"+":"";
+  ctx.fillText(`${sign}${b.change.toFixed(2)}%`, b.x, b.y + b.r*0.3);
 }
 
 function draw(){
@@ -173,7 +190,7 @@ function draw(){
   for(const b of bubbles) drawBubble(b);
 }
 
-/************ LOOP ************/
+/************ LOOP (delta-time + wobble nas bolhas) ************/
 function step(now = performance.now()){
   let dt = now - lastTime;
   lastTime = now;
@@ -184,12 +201,14 @@ function step(now = performance.now()){
     const t = now * WOBBLE_FREQ + p.phase;
     p.vx += Math.sin(t) * WOBBLE_STRENGTH * s;
     p.vy += Math.cos(t) * WOBBLE_STRENGTH * s;
+
     p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
     p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
     p.x  += p.vx * s; p.y  += p.vy * s;
+
     wallConstraints(p);
   }
-  resolveCollisions();
+  for(let k=0;k<COLLISION_PASSES;k++) resolveCollisions();
   draw();
   requestAnimationFrame(step);
 }
@@ -197,8 +216,16 @@ function step(now = performance.now()){
 /************ BOTÕES ************/
 async function setCategory(cat){
   category = cat;
-  const data = await fetchData();
-  createBubbles(data);
+  document.querySelectorAll(".buttons button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.cat===cat);
+  });
+  try{
+    const data = await fetchData();
+    createBubbles(data);
+  }catch(e){
+    console.error("Erro ao carregar", cat, e);
+    bubbles = []; draw();
+  }
 }
 document.querySelectorAll(".buttons button").forEach(b=>{
   b.addEventListener("click", ()=>setCategory(b.dataset.cat));
