@@ -6,18 +6,19 @@ const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
 /* Quantidade de bolhas por botão (top por volume) */
-const TOP_N = IS_MOBILE ? 50 : 100;
+const TOP_N = IS_MOBILE ? 40 : 100;
 
-/* Física – mobile MUITO mais suave/lento */
-const HEADER_SAFE   = 84;
-const WALL_MARGIN   = IS_MOBILE ? 16 : 10;
-const FRICTION      = IS_MOBILE ? 0.994 : 0.985;
-const MAX_SPEED     = IS_MOBILE ? 0.38  : 0.90;
-const START_VEL     = IS_MOBILE ? 0.16  : 0.45;
-const REPULSE       = IS_MOBILE ? 0.65  : 0.40;
-const BORDER_WIDTH  = 2.5;
-const COLLISION_PASSES = IS_MOBILE ? 4 : 1;  // mais colisões por frame
-const MAX_RADIUS    = IS_MOBILE ? 72 : 90;
+/* Física – mobile BEM mais suave/lento */
+const HEADER_SAFE     = 84;
+const WALL_MARGIN     = IS_MOBILE ? 18 : 10;
+const FRICTION        = IS_MOBILE ? 0.996 : 0.985; // + atrito
+const MAX_SPEED       = IS_MOBILE ? 0.22  : 0.90;  // - vel. máx
+const START_VEL       = IS_MOBILE ? 0.08  : 0.45;  // - vel. inicial
+const REPULSE         = IS_MOBILE ? 0.70  : 0.40;  // + repulsão
+const BORDER_WIDTH    = 2.5;
+const COLLISION_PASSES= IS_MOBILE ? 5 : 1;         // mais colisões por frame
+const MAX_RADIUS      = IS_MOBILE ? 70 : 90;
+const CENTER_PULL     = IS_MOBILE ? 0.0020 : 0.0008; // força de centro
 
 /************ CANVAS ************/
 const canvas = document.getElementById("bubbleCanvas");
@@ -28,6 +29,7 @@ addEventListener("resize", resize); resize();
 /************ STATE ************/
 let category = "acoes";
 let bubbles = [];
+let lastTime = performance.now();
 
 /************ UTILS ************/
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -124,7 +126,7 @@ function createBubbles(data){
       vy: rand(-START_VEL, START_VEL)
     };
   });
-  // afastamento inicial (mais forte)
+  // afastamento inicial (mais forte no início)
   for (let k=0;k<4;k++) resolveCollisions(true);
 }
 
@@ -182,12 +184,27 @@ function drawBubble(b){
 }
 function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); for(const b of bubbles) drawBubble(b); }
 
-/************ LOOP ************/
-function step(){
+/************ LOOP (com delta-time) ************/
+function step(now = performance.now()){
+  let dt = now - lastTime;
+  lastTime = now;
+  // evita saltos quando troca de aba (clamp em 32ms) e normaliza para 16ms
+  dt = Math.min(32, Math.max(8, dt));
+  const s = dt / 16; // escala temporal
+
   for(const p of bubbles){
-    p.vx = clamp(p.vx*FRICTION, -MAX_SPEED, MAX_SPEED);
-    p.vy = clamp(p.vy*FRICTION, -MAX_SPEED, MAX_SPEED);
-    p.x += p.vx; p.y += p.vy;
+    // puxa levemente para o centro (suaviza “corridas”)
+    const cx = (canvas.width  * 0.5 - p.x) * CENTER_PULL;
+    const cy = (canvas.height * 0.55 - p.y) * CENTER_PULL;
+    p.vx += cx * s;
+    p.vy += cy * s;
+
+    // suaviza e limita
+    p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
+    p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
+    p.x  += p.vx * s;
+    p.y  += p.vy * s;
+
     wallConstraints(p);
   }
   for(let k=0;k<COLLISION_PASSES;k++) resolveCollisions();
@@ -215,5 +232,5 @@ document.querySelectorAll(".buttons button").forEach(b=>{
 
 /************ START ************/
 setCategory("acoes");
-step();
+requestAnimationFrame(step);
 setInterval(()=>setCategory(category), 30000);
