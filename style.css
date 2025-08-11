@@ -36,6 +36,7 @@ button{
   cursor:pointer;
   font-weight:600;
 }
+button.active{outline:2px solid #888}
 button:hover{filter:brightness(1.15)}
 #bubbleCanvas{
   position:fixed;
