@@ -3,7 +3,7 @@ const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
-const TOP_N = IS_MOBILE ? 30 : 100;
+const TOP_N = IS_MOBILE ? 25 : 100;
 
 /* Física mais suave no celular + bolhas menores */
 const HEADER_SAFE     = 84;
