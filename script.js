@@ -1,22 +1,23 @@
-/************ CONFIG BÁSICA ************/
+/************ CONFIG ************/
 const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 
-// === MODO MOBILE (detecta tela pequena ou ponteiro grosso) ===
+/* Detecta mobile (tela pequena ou toque) */
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
-                  (window.navigator.maxTouchPoints || 0) > 0;
+                  (navigator.maxTouchPoints || 0) > 0;
 
-// Quantidade de bolhas por categoria (top N por volume)
-const TOP_N = IS_MOBILE ? 70 : 100;
+/* Quantidade de bolhas por botão (top por volume) */
+const TOP_N = IS_MOBILE ? 50 : 100;
 
-// Física (mobile mais “pesada”, mais lenta)
-const HEADER_SAFE = 84;
-const WALL_MARGIN = IS_MOBILE ? 14 : 10;
-const FRICTION    = IS_MOBILE ? 0.992 : 0.985;   // + atrito
-const MAX_SPEED   = IS_MOBILE ? 0.55  : 0.90;    // - velocidade máx
-const START_VEL   = IS_MOBILE ? 0.25  : 0.45;    // - velocidade inicial
-const REPULSE     = IS_MOBILE ? 0.55  : 0.40;    // + repulsão
-const BORDER_WIDTH= 2.5;
-const COLLISION_PASSES = IS_MOBILE ? 3 : 1;      // mais iterações por frame
+/* Física – mobile MUITO mais suave/lento */
+const HEADER_SAFE   = 84;
+const WALL_MARGIN   = IS_MOBILE ? 16 : 10;
+const FRICTION      = IS_MOBILE ? 0.994 : 0.985;
+const MAX_SPEED     = IS_MOBILE ? 0.38  : 0.90;
+const START_VEL     = IS_MOBILE ? 0.16  : 0.45;
+const REPULSE       = IS_MOBILE ? 0.65  : 0.40;
+const BORDER_WIDTH  = 2.5;
+const COLLISION_PASSES = IS_MOBILE ? 4 : 1;  // mais colisões por frame
+const MAX_RADIUS    = IS_MOBILE ? 72 : 90;
 
 /************ CANVAS ************/
 const canvas = document.getElementById("bubbleCanvas");
@@ -33,24 +34,25 @@ const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 const rand  = (a,b)=>Math.random()*(b-a)+a;
 const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
-const radiusFor = (chg, vol) => {
-  const v = Math.max(1, Number(vol)||1);
+
+function radiusFor(changePct, volume){
+  const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
-  const varScale = Math.min(8, Math.abs(Number(chg)||0));
+  const varScale = Math.min(8, Math.abs(Number(changePct)||0));
   const base = 22;
-  return clamp(base + varScale*3 + volScale, 24, IS_MOBILE ? 80 : 90);
-};
+  return clamp(base + varScale*3 + volScale, 24, MAX_RADIUS);
+}
 async function getJSON(url){
   const res = await fetch(url);
   if(!res.ok) throw new Error(`${res.status} ${url}`);
   return res.json();
 }
-function formatBRL(v){
+const formatBRL = v => {
   const n = Number(v);
   return Number.isFinite(n) ? `R$ ${n.toFixed(2).replace('.',',')}` : "";
-}
+};
 
-/************ LISTAS POR SEGMENTO (ajuste à vontade) ************/
+/************ LISTAS POR SEGMENTO ************/
 const LISTS = {
   minerio: ["VALE3","CMIN3","USIM5","USIM3","USIM6","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3","FESA4","FESA3","PMAM3"],
   petroleo:["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
@@ -58,7 +60,7 @@ const LISTS = {
   varejo:  ["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
 };
 
-/************ AÇÕES TOP 100 POR VOLUME ************/
+/************ AÇÕES TOP (por volume) ************/
 async function fetchAcoesTop(){
   const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
   const json = await getJSON(url);
@@ -73,7 +75,7 @@ async function fetchAcoesTop(){
   return norm.slice(0, TOP_N);
 }
 
-/************ POR LISTA + TOP 100 POR VOLUME ************/
+/************ POR LISTA + TOP (por volume) ************/
 async function fetchByTickersTop(tickers){
   if (!tickers.length) return [];
   const chunk = 40;
@@ -122,8 +124,8 @@ function createBubbles(data){
       vy: rand(-START_VEL, START_VEL)
     };
   });
-  // afasta as que nascem coladas
-  for (let k=0;k<3;k++) resolveCollisions(true);
+  // afastamento inicial (mais forte)
+  for (let k=0;k<4;k++) resolveCollisions(true);
 }
 
 /************ FÍSICA ************/
@@ -157,17 +159,15 @@ function wallConstraints(p){
 
 /************ DESENHO ************/
 function drawBubble(b){
-  // base
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
   ctx.fillStyle=b.color; ctx.fill();
 
-  // brilho de borda
+  // brilho nas bordas (sem luz no centro)
   const ring=ctx.createRadialGradient(b.x,b.y,b.r*0.72,b.x,b.y,b.r);
   ring.addColorStop(0,"rgba(255,255,255,0)");
   ring.addColorStop(1,"rgba(255,255,255,0.85)");
   ctx.fillStyle=ring; ctx.fill();
 
-  // contorno
   ctx.lineWidth=BORDER_WIDTH; ctx.strokeStyle="#fff"; ctx.stroke();
 
   // texto
@@ -185,13 +185,11 @@ function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); for(const b of b
 /************ LOOP ************/
 function step(){
   for(const p of bubbles){
-    // suaviza e limita
     p.vx = clamp(p.vx*FRICTION, -MAX_SPEED, MAX_SPEED);
     p.vy = clamp(p.vy*FRICTION, -MAX_SPEED, MAX_SPEED);
     p.x += p.vx; p.y += p.vy;
     wallConstraints(p);
   }
-  // mais passes de colisão em mobile
   for(let k=0;k<COLLISION_PASSES;k++) resolveCollisions();
   draw();
   requestAnimationFrame(step);
@@ -218,5 +216,4 @@ document.querySelectorAll(".buttons button").forEach(b=>{
 /************ START ************/
 setCategory("acoes");
 step();
-// atualiza periodicamente
 setInterval(()=>setCategory(category), 30000);
