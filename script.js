@@ -11,14 +11,14 @@ const TOP_N = IS_MOBILE ? 30 : 100;
 /* Física – mobile BEM mais suave/lento */
 const HEADER_SAFE     = 84;
 const WALL_MARGIN     = IS_MOBILE ? 18 : 10;
-const FRICTION        = IS_MOBILE ? 0.996 : 0.985; // + atrito
-const MAX_SPEED       = IS_MOBILE ? 0.22  : 0.90;  // - vel. máx
-const START_VEL       = IS_MOBILE ? 0.08  : 0.45;  // - vel. inicial
+const FRICTION        = IS_MOBILE ? 0.996 : 0.985; // + atrito no mobile
+const MAX_SPEED       = IS_MOBILE ? 0.20  : 0.90;  // 🔹 mais lento no mobile
+const START_VEL       = IS_MOBILE ? 0.07  : 0.45;  // 🔹 menor no mobile
 const REPULSE         = IS_MOBILE ? 0.70  : 0.40;  // + repulsão
 const BORDER_WIDTH    = 2.5;
-const COLLISION_PASSES= IS_MOBILE ? 5 : 1;         // mais colisões por frame
-const MAX_RADIUS      = IS_MOBILE ? 70 : 90;
-const CENTER_PULL     = IS_MOBILE ? 0.0020 : 0.0008; // força p/ centro
+const COLLISION_PASSES= IS_MOBILE ? 5 : 1;         // + colisões por quadro
+const MAX_RADIUS      = IS_MOBILE ? 55 : 90;       // 🔹 bolhas menores no mobile
+const CENTER_PULL     = IS_MOBILE ? 0.0020 : 0.0008; // puxa levemente ao centro
 
 /************ CANVAS ************/
 const canvas = document.getElementById("bubbleCanvas");
@@ -41,8 +41,8 @@ function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
   const varScale = Math.min(8, Math.abs(Number(changePct)||0));
-  const base = 22;
-  return clamp(base + varScale*3 + volScale, 24, MAX_RADIUS);
+  const base = 18; // 🔹 reduzido p/ bolhas menores no celular
+  return clamp(base + varScale*3 + volScale, 20, MAX_RADIUS);
 }
 async function getJSON(url){
   const res = await fetch(url);
@@ -103,7 +103,7 @@ async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
     case "minerio":   return fetchByTickersTop(LISTS.minerio);
-    case "petroleo":  return fetchByTickersTop(LISTS.petroloeo || LISTS.petroleo);
+    case "petroleo":  return fetchByTickersTop(LISTS.petroleo);
     case "bancos":    return fetchByTickersTop(LISTS.bancos);
     case "varejo":    return fetchByTickersTop(LISTS.varejo);
     default:          return fetchAcoesTop();
@@ -126,7 +126,8 @@ function createBubbles(data){
       vy: rand(-START_VEL, START_VEL)
     };
   });
-  for (let k=0;k<4;k++) resolveCollisions(true); // afastamento inicial
+  // afastamento inicial mais forte
+  for (let k=0;k<4;k++) resolveCollisions(true);
 }
 
 /************ FÍSICA ************/
@@ -191,7 +192,7 @@ function step(now = performance.now()){
   const s = dt / 16;
 
   for(const p of bubbles){
-    // puxa levemente para o centro
+    // puxa levemente para o centro (evita correr para as bordas)
     const cx = (canvas.width  * 0.5 - p.x) * CENTER_PULL;
     const cy = (canvas.height * 0.55 - p.y) * CENTER_PULL;
     p.vx += cx * s; p.vy += cy * s;
