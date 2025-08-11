@@ -3,10 +3,10 @@ const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
-const TOP_N = IS_MOBILE ? 30 : 100;
+const TOP_N = IS_MOBILE ? 20 : 100;
 
 /* Física mais suave no celular */
-const HEADER_SAFE     = 84;
+const HEADER_SAFE     = 74;
 const WALL_MARGIN     = IS_MOBILE ? 18 : 10;
 const FRICTION        = IS_MOBILE ? 0.998 : 0.985;
 const MAX_SPEED       = IS_MOBILE ? 0.12  : 0.90;
