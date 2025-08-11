@@ -6,7 +6,7 @@ const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
 /* Quantidade de bolhas por botão (top por volume) */
-const TOP_N = IS_MOBILE ? 30 : 100;
+const TOP_N = IS_MOBILE ? 25 : 100;
 
 /* Física – mobile BEM mais suave/lento */
 const HEADER_SAFE     = 84;
