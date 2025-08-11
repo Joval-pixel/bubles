@@ -31,83 +31,119 @@ const radiusFor = (chg, vol) => {
   return clamp(base + varScale*3 + volScale, 24, 90);
 };
 
-/************ MAPA DE FONTES (ENDPOINTS CORRETOS) ************/
-const SOURCES = {
-  acoes: {
-    url: () => `https://brapi.dev/api/quote/list?token=${TOKEN}&limit=${MAX_BUBBLES}`,
-    pickArray: j => j.stocks || j.results || [],
-    norm: it => ({
-      symbol: it.symbol || it.stock || it.code || it.ticker,
-      price: pickNum(it.regularMarketPrice, it.close, it.price, it.lastPrice),
-      changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
-      volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
-    })
-  },
-  criptos: {
-    // ✅ endpoint correto para cripto
-    url: () => `https://brapi.dev/api/quote/crypto?token=${TOKEN}&limit=${MAX_BUBBLES}`,
-    pickArray: j => j.coins || j.results || [],
-    norm: it => ({
-      symbol: (it.symbol || it.coin || it.name || "").toUpperCase(),
-      price: pickNum(it.regularMarketPrice, it.price, it.lastPrice),
-      changePct: pickNum(it.regularMarketChangePercent, it.change24h, it.change, it.pctChange),
-      volume: pickNum(it.volume24h, it.totalVolume, it.volume)
-    })
-  },
-  commodities: {
-    // ✅ endpoint correto para commodities
-    url: () => `https://brapi.dev/api/quote/commodities?token=${TOKEN}`,
-    pickArray: j => j.results || j.stocks || j.data || [],
-    norm: it => ({
+/************ FETCH HELPERS ************/
+async function getJSON(url){
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+/************ FONTES (AÇÕES / FREQUÊNCIA) ************/
+async function fetchAcoes(params=""){
+  // Lista geral de cotações da B3
+  const url = `https://brapi.dev/api/quote/list?limit=${MAX_BUBBLES}${params}&token=${TOKEN}`;
+  const json = await getJSON(url);
+  const arr = json.stocks || json.results || [];
+  return arr.map(it => ({
+    symbol: it.symbol || it.stock || it.code || it.ticker,
+    price: pickNum(it.regularMarketPrice, it.close, it.price, it.lastPrice),
+    changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
+    volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
+  })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
+}
+
+/************ CRIPTOS ************/
+// A brapi exige passar as coins no /api/v2/crypto?coin=... (em BRL por padrão).
+// Vamos buscar uma lista “popular” e, se falhar, usar um fallback fixo.
+const POPULAR_COINS = [
+  "BTC","ETH","USDT","BNB","SOL","XRP","ADA","DOGE","TRX","TON","DOT","LTC",
+  "AVAX","LINK","MATIC","XLM","ATOM","BCH","ETC","HBAR","NEAR","APT","ARB",
+  "OP","SUI","ICP","FIL","AAVE","EGLD","ALGO"
+];
+
+async function fetchCriptos(){
+  let coins = [];
+  try {
+    const avail = await getJSON(`https://brapi.dev/api/v2/crypto/available?token=${TOKEN}`);
+    const listed = (avail.coins || []).map(c => String(c).toUpperCase());
+    // prioriza as populares e completa com as demais
+    const set = new Set();
+    for (const c of POPULAR_COINS) if (listed.includes(c)) set.add(c);
+    for (const c of listed) if (set.size < MAX_BUBBLES) set.add(c);
+    coins = Array.from(set).slice(0, 80); // bom para performance
+  } catch {
+    coins = POPULAR_COINS.slice(0, 40);
+  }
+  if (!coins.length) return [];
+
+  const url = `https://brapi.dev/api/v2/crypto?coin=${coins.join(",")}&currency=BRL&token=${TOKEN}`;
+  const json = await getJSON(url);
+  const arr = json.coins || [];
+  return arr.map(it => ({
+    symbol: (it.coin || it.symbol || "").toUpperCase(),
+    price: pickNum(it.regularMarketPrice, it.price, it.lastPrice),
+    changePct: pickNum(it.regularMarketChangePercent, it.regularMarketChangePercent24h, it.change24h, it.change),
+    volume: pickNum(it.regularMarketVolume, it.volume24h, it.volume)
+  })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
+}
+
+/************ COMMODITIES ************/
+// Tenta endpoint dedicado; se não houver dados, usa proxy por setores ligados a commodities (ações).
+async function fetchCommodities(){
+  // tentativa 1: endpoint de commodities (se disponível no seu plano)
+  try {
+    const json = await getJSON(`https://brapi.dev/api/quote/commodities?token=${TOKEN}`);
+    const arr = json.results || json.stocks || [];
+    const norm = arr.map(it => ({
       symbol: it.symbol || it.code,
       price: pickNum(it.regularMarketPrice, it.price, it.last, it.close),
       changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
       volume: pickNum(it.regularMarketVolume, it.volume)
-    })
-  },
-  opcoes: {
-    // ✅ opções listadas (se o provedor retornar)
-    url: () => `https://brapi.dev/api/quote/options?token=${TOKEN}&limit=${MAX_BUBBLES}`,
-    pickArray: j => j.results || j.options || j.stocks || [],
-    norm: it => ({
+    })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
+    if (norm.length) return norm.slice(0, MAX_BUBBLES);
+  } catch {/* cai no fallback */}
+
+  // fallback: ações de setores de commodities (energia/mineração/processo)
+  const sectors = encodeURIComponent("Energy Minerals,Non-Energy Minerals,Process Industries");
+  const data = await fetchAcoes(`&sector=${sectors}&sortBy=volume&sortOrder=desc`);
+  return data.slice(0, MAX_BUBBLES);
+}
+
+/************ OPÇÕES ************/
+// Se a API de opções não estiver habilitada, usamos os ativos mais voláteis como “proxy”.
+async function fetchOpcoes(){
+  try {
+    const json = await getJSON(`https://brapi.dev/api/quote/options?token=${TOKEN}&limit=${MAX_BUBBLES}`);
+    const arr = json.results || json.options || [];
+    const norm = arr.map(it => ({
       symbol: it.symbol || it.ticker || it.code,
       price: pickNum(it.regularMarketPrice, it.price, it.lastPrice),
       changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
       volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
-    })
-  },
-  frequencia: {
-    // ✅ “frequência de mercado” = mais negociados (por volume)
-    url: () => `https://brapi.dev/api/quote/list?token=${TOKEN}&limit=${MAX_BUBBLES}&sortBy=volume&sortOrder=desc`,
-    pickArray: j => j.stocks || [],
-    norm: it => ({
-      symbol: it.symbol || it.stock,
-      price: pickNum(it.regularMarketPrice, it.close, it.price),
-      changePct: pickNum(it.regularMarketChangePercent, it.change),
-      volume: pickNum(it.regularMarketVolume, it.volume)
-    })
-  }
-};
+    })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
+    if (norm.length) return norm.slice(0, MAX_BUBBLES);
+  } catch {/* fallback abaixo */}
 
-/************ BUSCA E NORMALIZAÇÃO ************/
-async function fetchData(){
-  const src = SOURCES[category] || SOURCES.acoes;
-  let data = [];
-  try{
-    const res = await fetch(src.url());
-    const json = await res.json();
-    const arr = src.pickArray(json) || [];
-    data = arr.map(src.norm)
-      .filter(x => x && x.symbol && x.price !== null && x.changePct !== null);
-  }catch(e){
-    console.error("Erro buscando", category, e);
-  }
+  // fallback: “opções” = papéis com maior variação absoluta (efeito visual)
+  const data = await fetchAcoes(`&sortBy=change_abs&sortOrder=desc`);
   return data.slice(0, MAX_BUBBLES);
 }
 
-/************ CONSTRUÇÃO DAS BOLHAS ************/
+/************ DISPATCH POR CATEGORIA ************/
+async function fetchData(){
+  switch (category){
+    case "acoes":        return fetchAcoes();
+    case "criptos":      return fetchCriptos();
+    case "commodities":  return fetchCommodities();
+    case "opcoes":       return fetchOpcoes();
+    case "frequencia":   return fetchAcoes(`&sortBy=volume&sortOrder=desc`);
+    default:             return fetchAcoes();
+  }
+}
+
+/************ BUILD BUBBLES ************/
 function createBubbles(data){
-  bubbles = data.map(d => {
+  bubbles = data.slice(0, MAX_BUBBLES).map(d => {
     const r = radiusFor(d.changePct, d.volume);
     return {
       symbol: d.symbol,
@@ -196,8 +232,13 @@ function step(){
 /************ PÚBLICO (botões) ************/
 async function setCategory(cat){
   category = cat;
-  const data = await fetchData();
-  createBubbles(data);
+  try{
+    const data = await fetchData();
+    createBubbles(data);
+  }catch(e){
+    console.error("Erro ao carregar", cat, e);
+    bubbles = []; draw();
+  }
 }
 
 /************ START ************/
