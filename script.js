@@ -52,12 +52,12 @@ async function getJSON(url){
 }
 const formatBRL = v => {
   const n = Number(v);
-  return Number.isFinite(n) ? `R$ ${n.toFixed(2).replace('.',',')}` : "";
+  if (!Number.isFinite(n)) return "—"; // 🔹 placeholder quando não houver preço
+  return `R$ ${n.toFixed(2).replace('.',',')}`;
 };
 
 /************ LISTAS ************/
 const LISTS = {
-  // Minério: B3 estáveis + AURA33 (se cotar)
   minerio: [
     "VALE3","CMIN3","CSNA3",
     "GGBR4","GGBR3","GOAU4","GOAU3",
@@ -85,7 +85,7 @@ function mapQuote(it){
 }
 function valid(q){ return q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct); }
 
-/* Ações por volume (fallback geral) */
+/* Ações por volume (geral) */
 async function fetchAcoesTop(){
   const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
   const json = await getJSON(url);
@@ -106,32 +106,65 @@ async function fetchByTickersLive(tickers){
   }
   const results = (await Promise.allSettled(batches))
     .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
-  const mapped = results.map(mapQuote).filter(valid);
+  const mapped = results.map(mapQuote);
   mapped.sort((a,b)=>(b.volume||0)-(a.volume||0));
-  return mapped.slice(0, TOP_N);
+  return mapped;
 }
 
-/* Minério “à prova de tela preta” */
-async function fetchMinerioSmart(){
-  // 1) tenta pelos tickers de Minério
-  let data = await fetchByTickersLive(LISTS.minerio);
-  if (data.length > 0) return data.slice(0, Math.min(TOP_N, data.length));
+/* Minério com “até 20” SEM ficar vazio */
+async function fetchMinerioUpTo20(){
+  const MAX_MINERIO = 20;
+  // 1) pega tudo que a API retornar (até com preço nulo)
+  const liveAll = await fetchByTickersLive(LISTS.minerio);
 
-  // 2) fallback: pega ações por volume e filtra pelos tickers de Minério que estiverem cotando
-  const top = await fetchAcoesTop();
-  const set = new Set(LISTS.minerio);
-  const filtered = top.filter(q => set.has((q.symbol||"").toUpperCase()));
-  return filtered.slice(0, Math.min(TOP_N, filtered.length));
+  // 2) separa válidos e inválidos
+  const good = liveAll.filter(valid);
+  const bad  = liveAll.filter(q => !valid(q));
+
+  // 3) começa com os válidos
+  let out = good.slice(0, MAX_MINERIO);
+
+  // 4) se faltou, preenche com placeholders dos “bad”
+  if (out.length < MAX_MINERIO) {
+    const rest = MAX_MINERIO - out.length;
+    out = out.concat(
+      bad.slice(0, rest).map(q => ({
+        symbol: (q.symbol || "").toUpperCase(),
+        price:  NaN,            // aparece “—”
+        changePct: 0,           // cinza
+        volume: 0
+      }))
+    );
+  }
+
+  // 5) se ainda faltou, adiciona tickers que nem voltaram na API
+  if (out.length < MAX_MINERIO) {
+    const present = new Set(liveAll.map(q => (q.symbol||"").toUpperCase()));
+    const missingTickers = LISTS.minerio.filter(t => !present.has(t));
+    const rest2 = MAX_MINERIO - out.length;
+    out = out.concat(
+      missingTickers.slice(0, rest2).map(t => ({
+        symbol: t,
+        price:  NaN,  // “—”
+        changePct: 0,
+        volume: 0
+      }))
+    );
+  }
+
+  // 6) respeita o TOP_N do dispositivo, mas com teto 20
+  const cap = Math.min(MAX_MINERIO, TOP_N);
+  return out.slice(0, cap);
 }
 
 /************ DISPATCH ************/
 async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
-    case "minerio":   return fetchMinerioSmart();
-    case "petroleo":  return fetchByTickersLive(LISTS.petroleo);
-    case "bancos":    return fetchByTickersLive(LISTS.bancos);
-    case "varejo":    return fetchByTickersLive(LISTS.varejo);
+    case "minerio":   return fetchMinerioUpTo20();
+    case "petroleo":  return (await fetchByTickersLive(LISTS.petroleo)).filter(valid).slice(0, TOP_N);
+    case "bancos":    return (await fetchByTickersLive(LISTS.bancos)).filter(valid).slice(0, TOP_N);
+    case "varejo":    return (await fetchByTickersLive(LISTS.varejo)).filter(valid).slice(0, TOP_N);
     default:          return fetchAcoesTop();
   }
 }
@@ -192,14 +225,22 @@ function drawBubble(b){
   ring.addColorStop(1,"rgba(255,255,255,0.85)");
   ctx.fillStyle=ring; ctx.fill();
   ctx.lineWidth=BORDER_WIDTH; ctx.strokeStyle="#fff"; ctx.stroke();
+
   ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle";
-  ctx.font=`700 ${Math.max(11,Math.floor(b.r*0.4))}px Arial`;
+  const f1=Math.max(11,Math.floor(b.r*0.4));
+  const f2=Math.max(10,Math.floor(b.r*0.3));
+  const f3=Math.max(9, Math.floor(b.r*0.25));
+
+  ctx.font=`700 ${f1}px Arial`;
   ctx.fillText(b.symbol, b.x, b.y - b.r*0.3);
-  ctx.font=`500 ${Math.max(10,Math.floor(b.r*0.3))}px Arial`;
+
+  ctx.font=`500 ${f2}px Arial`;
   ctx.fillText(`${formatBRL(b.price)}`, b.x, b.y);
-  ctx.font=`600 ${Math.max(9,Math.floor(b.r*0.25))}px Arial`;
-  const sign=b.change>=0?"+":"";
-  ctx.fillText(`${sign}${b.change.toFixed(2)}%`, b.x, b.y + b.r*0.3);
+
+  ctx.font=`600 ${f3}px Arial`;
+  const sign = Number.isFinite(b.change) && b.change>=0 ? "+" : "";
+  const pct  = Number.isFinite(b.change) ? `${sign}${b.change.toFixed(2)}%` : "0,00%";
+  ctx.fillText(pct, b.x, b.y + b.r*0.3);
 }
 
 function draw(){
