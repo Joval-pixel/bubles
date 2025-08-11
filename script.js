@@ -12,12 +12,12 @@ const TOP_N = IS_MOBILE ? 30 : 100;
 const HEADER_SAFE     = 84;
 const WALL_MARGIN     = IS_MOBILE ? 18 : 10;
 const FRICTION        = IS_MOBILE ? 0.996 : 0.985; // + atrito no mobile
-const MAX_SPEED       = IS_MOBILE ? 0.20  : 0.90;  // 🔹 mais lento no mobile
-const START_VEL       = IS_MOBILE ? 0.07  : 0.45;  // 🔹 menor no mobile
+const MAX_SPEED       = IS_MOBILE ? 0.20  : 0.90;  // mais lento no mobile
+const START_VEL       = IS_MOBILE ? 0.07  : 0.45;  // velocidade inicial menor
 const REPULSE         = IS_MOBILE ? 0.70  : 0.40;  // + repulsão
 const BORDER_WIDTH    = 2.5;
 const COLLISION_PASSES= IS_MOBILE ? 5 : 1;         // + colisões por quadro
-const MAX_RADIUS      = IS_MOBILE ? 55 : 90;       // 🔹 bolhas menores no mobile
+const MAX_RADIUS      = IS_MOBILE ? 55 : 90;       // bolhas menores no mobile
 const CENTER_PULL     = IS_MOBILE ? 0.0020 : 0.0008; // puxa levemente ao centro
 
 /************ CANVAS ************/
@@ -41,7 +41,7 @@ function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
   const varScale = Math.min(8, Math.abs(Number(changePct)||0));
-  const base = 18; // 🔹 reduzido p/ bolhas menores no celular
+  const base = 18; // reduzido p/ bolhas menores no celular
   return clamp(base + varScale*3 + volScale, 20, MAX_RADIUS);
 }
 async function getJSON(url){
@@ -159,7 +159,7 @@ function wallConstraints(p){
   if(p.y<T){p.y=T;p.vy=Math.abs(p.vy);} if(p.y>B){p.y=B;p.vy=-Math.abs(p.vy);}
 }
 
-/************ DESENHO ************/
+/************ DESENHO — preço menor e com leve movimento em “Ações” ************/
 function drawBubble(b){
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
   ctx.fillStyle=b.color; ctx.fill();
@@ -172,16 +172,33 @@ function drawBubble(b){
 
   ctx.lineWidth=BORDER_WIDTH; ctx.strokeStyle="#fff"; ctx.stroke();
 
+  // tamanhos base
+  let f1=Math.max(11,Math.floor(b.r*0.42)); // símbolo
+  let f2=Math.max(10,Math.floor(b.r*0.34)); // preço
+  let f3=Math.max(9, Math.floor(b.r*0.30)); // %
+
+  // em "Ações": preço um pouco menor e balançando levemente
+  let priceDx = 0, priceDy = 0;
+  if (category === "acoes") {
+    f2 = Math.floor(f2 * 0.85); // preço menor
+    const t = performance.now() * 0.003;   // velocidade do balanço
+    priceDx = Math.sin(t + b.x*0.01) * 2.2;
+    priceDy = Math.cos(t + b.y*0.01) * 1.6;
+  }
+
   // texto
   ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle";
-  const f1=Math.max(11,Math.floor(b.r*0.42));
-  const f2=Math.max(10,Math.floor(b.r*0.34));
-  const f3=Math.max(9, Math.floor(b.r*0.30));
-  ctx.font=`700 ${f1}px system-ui,Arial`; ctx.fillText(b.symbol,b.x,b.y-f1*0.45);
-  ctx.font=`500 ${f2}px system-ui,Arial`; ctx.fillText(`${formatBRL(b.price)}`,b.x,b.y+2);
+  ctx.font=`700 ${f1}px system-ui,Arial`;
+  ctx.fillText(b.symbol, b.x, b.y - f1*0.45);
+
+  ctx.font=`500 ${f2}px system-ui,Arial`;
+  ctx.fillText(`${formatBRL(b.price)}`, b.x + priceDx, b.y + 2 + priceDy);
+
   ctx.font=`600 ${f3}px system-ui,Arial`;
-  const sign=b.change>=0?"+":""; ctx.fillText(`${sign}${b.change.toFixed(2)}%`,b.x,b.y+f2*0.9);
+  const sign=b.change>=0?"+":"";
+  ctx.fillText(`${sign}${b.change.toFixed(2)}%`, b.x, b.y + f2*0.9);
 }
+
 function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); for(const b of bubbles) drawBubble(b); }
 
 /************ LOOP (delta-time) ************/
@@ -192,7 +209,7 @@ function step(now = performance.now()){
   const s = dt / 16;
 
   for(const p of bubbles){
-    // puxa levemente para o centro (evita correr para as bordas)
+    // puxa levemente para o centro (evita correr p/ bordas)
     const cx = (canvas.width  * 0.5 - p.x) * CENTER_PULL;
     const cy = (canvas.height * 0.55 - p.y) * CENTER_PULL;
     p.vx += cx * s; p.vy += cy * s;
