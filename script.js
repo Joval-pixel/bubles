@@ -55,16 +55,21 @@ const formatBRL = v => {
   return Number.isFinite(n) ? `R$ ${n.toFixed(2).replace('.',',')}` : "";
 };
 
-/************ LISTAS (Minério atualizado com sua relação) ************/
+/************ LISTAS (Minério revertido p/ B3 estáveis) ************/
 const LISTS = {
+  // ✅ Apenas tickers da B3 que costumam cotar bem na BRAPI
   minerio: [
-    // BDRs/DRCs de mineração & metais
-    "RIOT34","N1EM34","FCXO34","N1UE34","G1FI34","ARMT34","TXSA34","S1BS34",
-    "AURA33","S2GM34",
-    // B3 mineração/metais
-    "VALE3","CMIN3","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3",
-    "USIM5","USIM3","FESA4","FESA3","CBAV3","PATI4","PATI3","EALT4","EALT3",
-    "PMAM3","MGEL4"
+    "VALE3","CMIN3","CSNA3",
+    "GGBR4","GGBR3","GOAU4","GOAU3",
+    "BRAP4","BRAP3",
+    "USIM5","USIM3",
+    "FESA4","FESA3",
+    "CBAV3","PMAM3",
+    "PATI4","PATI3",
+    "EALT4","EALT3",
+    "MGEL4",
+    // Se AURA33 estiver cotando bem para você, pode manter:
+    "AURA33"
   ],
   petroleo:["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
   bancos:  ["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
