@@ -6,7 +6,7 @@ const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
 /* Quantidade de bolhas por botão (top por volume) */
-const TOP_N = IS_MOBILE ? 40 : 100;
+const TOP_N = IS_MOBILE ? 30 : 100;
 
 /* Física – mobile BEM mais suave/lento */
 const HEADER_SAFE     = 84;
@@ -18,7 +18,7 @@ const REPULSE         = IS_MOBILE ? 0.70  : 0.40;  // + repulsão
 const BORDER_WIDTH    = 2.5;
 const COLLISION_PASSES= IS_MOBILE ? 5 : 1;         // mais colisões por frame
 const MAX_RADIUS      = IS_MOBILE ? 70 : 90;
-const CENTER_PULL     = IS_MOBILE ? 0.0020 : 0.0008; // força de centro
+const CENTER_PULL     = IS_MOBILE ? 0.0020 : 0.0008; // força p/ centro
 
 /************ CANVAS ************/
 const canvas = document.getElementById("bubbleCanvas");
@@ -103,7 +103,7 @@ async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
     case "minerio":   return fetchByTickersTop(LISTS.minerio);
-    case "petroleo":  return fetchByTickersTop(LISTS.petroleo);
+    case "petroleo":  return fetchByTickersTop(LISTS.petroloeo || LISTS.petroleo);
     case "bancos":    return fetchByTickersTop(LISTS.bancos);
     case "varejo":    return fetchByTickersTop(LISTS.varejo);
     default:          return fetchAcoesTop();
@@ -126,8 +126,7 @@ function createBubbles(data){
       vy: rand(-START_VEL, START_VEL)
     };
   });
-  // afastamento inicial (mais forte no início)
-  for (let k=0;k<4;k++) resolveCollisions(true);
+  for (let k=0;k<4;k++) resolveCollisions(true); // afastamento inicial
 }
 
 /************ FÍSICA ************/
@@ -184,26 +183,23 @@ function drawBubble(b){
 }
 function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); for(const b of bubbles) drawBubble(b); }
 
-/************ LOOP (com delta-time) ************/
+/************ LOOP (delta-time) ************/
 function step(now = performance.now()){
   let dt = now - lastTime;
   lastTime = now;
-  // evita saltos quando troca de aba (clamp em 32ms) e normaliza para 16ms
-  dt = Math.min(32, Math.max(8, dt));
-  const s = dt / 16; // escala temporal
+  dt = Math.min(32, Math.max(8, dt)); // 8–32ms
+  const s = dt / 16;
 
   for(const p of bubbles){
-    // puxa levemente para o centro (suaviza “corridas”)
+    // puxa levemente para o centro
     const cx = (canvas.width  * 0.5 - p.x) * CENTER_PULL;
     const cy = (canvas.height * 0.55 - p.y) * CENTER_PULL;
-    p.vx += cx * s;
-    p.vy += cy * s;
+    p.vx += cx * s; p.vy += cy * s;
 
     // suaviza e limita
     p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
     p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
-    p.x  += p.vx * s;
-    p.y  += p.vy * s;
+    p.x  += p.vx * s; p.y  += p.vy * s;
 
     wallConstraints(p);
   }
