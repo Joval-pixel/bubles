@@ -1,6 +1,6 @@
 /************ CONFIG VISUAL + FÍSICA ************/
 const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
-const MAX_BUBBLES = 120;
+const TOP_N = 100;               // quantidade exibida por botão
 const HEADER_SAFE = 84;
 const WALL_MARGIN = 10;
 const FRICTION = 0.985;
@@ -40,42 +40,45 @@ function formatBRL(v){
   return Number.isFinite(n) ? `R$ ${n.toFixed(2).replace('.',',')}` : "";
 }
 
-/************ LISTAS POR CATEGORIA (tickers B3) ************/
-/* usamos listas estáveis para garantir que sempre haja dados,
-   e filtramos client-side quando possível (se a BRAPI retornar setor) */
+/************ LISTAS ABRANGENTES POR SEGMENTO ************/
+/* Você pode ajustar/expandir a qualquer momento. */
 const LISTS = {
   minerio: [
-    "VALE3","CMIN3","USIM5","USIM3","CSNA3","GGBR4","GOAU4","BRAP4","BRAP3",
-    "PMAM3","FESA4","FESA3"
+    "VALE3","CMIN3","USIM5","USIM3","USIM6","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3",
+    "BRAP4","BRAP3","FESA4","FESA3","PMAM3","RRRP3" // incluo PMAM (ferro) e RRRP (ligado a O&G; pode remover)
   ],
   petroleo: [
-    "PETR3","PETR4","PRIO3","RRRP3","RECV3","BRDT3","UGPA3","ENAT3","PETZ3" // PETZ só se quiser tirar, deixe
+    "PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"
   ],
   bancos: [
-    "ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3",
-    "BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","AGRO3","PINE4","MODL11"
+    "ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4",
+    "BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BBRK3","BPAC11"
   ],
   varejo: [
-    "MGLU3","VIIA3","LREN3","AMER3","ARZZ3","PETZ3","SOMA3","GUAR3",
-    "CEAB3","CRFB3","PCAR3"
+    "MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3",
+    "PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"
   ]
 };
 
-/************ AÇÕES (todas) ************/
-async function fetchAcoesAll(){
-  const url = `https://brapi.dev/api/quote/list?limit=${MAX_BUBBLES}&token=${TOKEN}`;
+/************ AÇÕES (top 100 por volume) ************/
+async function fetchAcoesTop(){
+  // a BRAPI limita 'limit', então pegamos 300 e cortamos para 100
+  const url = `https://brapi.dev/api/quote/list?limit=300&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
   const json = await getJSON(url);
   const arr = json.stocks || json.results || [];
-  return arr.map(it => ({
+  const norm = arr.map(it => ({
     symbol: it.symbol || it.stock || it.code || it.ticker,
     price: pickNum(it.regularMarketPrice, it.close, it.price, it.lastPrice),
     changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
     volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
   })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
+  // já vem ordenado, mas garantimos:
+  norm.sort((a,b)=>(b.volume||0)-(a.volume||0));
+  return norm.slice(0, TOP_N);
 }
 
-/************ POR LISTA DE TICKERS ************/
-async function fetchByTickers(tickers){
+/************ GENÉRICO: BUSCA POR LISTA DE TICKERS E ORDENA POR VOLUME ************/
+async function fetchByTickersTop(tickers){
   if (!tickers.length) return [];
   const chunk = 40; // evitar URL muito longa
   const batches = [];
@@ -86,30 +89,32 @@ async function fetchByTickers(tickers){
   }
   const results = (await Promise.allSettled(batches))
     .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
-  const map = results.map(it => ({
+  const mapped = results.map(it => ({
     symbol: it.symbol || it.stock || it.code,
     price: pickNum(it.regularMarketPrice, it.price, it.close, it.lastPrice),
     changePct: pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange),
     volume: pickNum(it.regularMarketVolume, it.volume, it.totalVolume)
   })).filter(x => x.symbol && x.price !== null && x.changePct !== null);
-  return map.slice(0, MAX_BUBBLES);
+
+  mapped.sort((a,b)=>(b.volume||0)-(a.volume||0));
+  return mapped.slice(0, TOP_N);
 }
 
-/************ DISPATCH POR CATEGORIA ************/
+/************ DISPATCH POR BOTÃO ************/
 async function fetchData(){
   switch (category){
-    case "acoes":     return fetchAcoesAll();
-    case "minerio":   return fetchByTickers(LISTS.minerio);
-    case "petroleo":  return fetchByTickers(LISTS.petroleo);
-    case "bancos":    return fetchByTickers(LISTS.bancos);
-    case "varejo":    return fetchByTickers(LISTS.varejo);
-    default:          return fetchAcoesAll();
+    case "acoes":     return fetchAcoesTop();
+    case "minerio":   return fetchByTickersTop(LISTS.minerio);
+    case "petroleo":  return fetchByTickersTop(LISTS.petroleo);
+    case "bancos":    return fetchByTickersTop(LISTS.bancos);
+    case "varejo":    return fetchByTickersTop(LISTS.varejo);
+    default:          return fetchAcoesTop();
   }
 }
 
 /************ BUILD BUBBLES ************/
 function createBubbles(data){
-  bubbles = data.slice(0, MAX_BUBBLES).map(d => {
+  bubbles = data.map(d => {
     const r = radiusFor(d.changePct, d.volume);
     return {
       symbol: d.symbol,
@@ -123,7 +128,8 @@ function createBubbles(data){
       vy: rand(-0.45, 0.45)
     };
   });
-  for (let k=0;k<3;k++) resolveCollisions(true); // afastamento inicial
+  // afasta as que nascem coladas
+  for (let k=0;k<3;k++) resolveCollisions(true);
 }
 
 /************ FÍSICA ************/
@@ -217,5 +223,5 @@ document.querySelectorAll(".buttons button").forEach(b=>{
 /************ START ************/
 setCategory("acoes");
 step();
-// atualizar periodicamente a categoria visível
+// atualiza periodicamente a categoria visível
 setInterval(()=>setCategory(category), 30000);
