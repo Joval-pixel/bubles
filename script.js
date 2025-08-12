@@ -1,306 +1,497 @@
-/************ CONFIG ************/
-console.log("Bubles JS v-anti-cluster");
-const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
-const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
-                  (navigator.maxTouchPoints || 0) > 0;
+/**
+ * Bubble3D - Sistema de visualização 3D para dados financeiros
+ * Compatível com bubles.com.br
+ */
 
-const TOP_N = IS_MOBILE ? 30 : 250;
-
-/* Física (mobile mais lento) */
-const HEADER_SAFE      = 84;
-const WALL_MARGIN      = IS_MOBILE ? 18 : 10;
-const FRICTION         = IS_MOBILE ? 0.698 : 0.685;
-const MAX_SPEED        = IS_MOBILE ? 0.12  : 0.90;
-const START_VEL        = IS_MOBILE ? 0.05  : 0.15;
-const REPULSE_COLLIDE  = IS_MOBILE ? 0.90  : 0.50; // choque imediato
-const BORDER_WIDTH     = 2.5;
-const COLLISION_PASSES = IS_MOBILE ? 5 : 2;
-
-const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;     // normal
-const CENTER_PULL      = IS_MOBILE ? 0.20 : 0.10;
-
-/* Anti-agrupamento (repulsão de longo alcance) */
-const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.40 : 0.30;   // força
-const NEIGHBOR_RANGE_MULT   = 1.6; // alcance ~1.6x (r1+r2)
-
-/* Vento/drift para flutuar */
-const DRIFT_STRENGTH  = IS_MOBILE ? 0.60 : 0.40;
-const DRIFT_FREQ      = 0.40;
-
-/* Wobble leve */
-const WOBBLE_STRENGTH = IS_MOBILE ? 0.10 : 0.10;
-const WOBBLE_FREQ     = 0.30;
-
-/************ CANVAS ************/
-const canvas = document.getElementById("bubbleCanvas");
-const ctx = canvas.getContext("2d");
-function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
-addEventListener("resize", resize); resize();
-
-/************ STATE ************/
-let category = "acoes";
-let bubbles = [];
-let lastTime = performance.now();
-
-/************ UTILS ************/
-const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-const rand  = (a,b)=>Math.random()*(b-a)+a;
-const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
-const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
-const formatBRL = v => Number.isFinite(Number(v)) ? `R$ ${Number(v).toFixed(2).replace('.',',')}` : "";
-
-/* Raio: 3× MAIOR no CELULAR somente para estas categorias */
-function radiusFor(changePct, volume){
-  const v = Math.max(1, Number(volume)||1);
-  const volScale = Math.log10(v+10)*3;
-  const varScale = Math.min(8, Math.abs(Number(changePct)||0));
-  const base = 16;
-
-  let r = base + varScale*3 + volScale;
-
-  const bigCats = ["minerio","petroleo","bancos","varejo"];
-  const isBig = IS_MOBILE && bigCats.includes(category);
-  const minR = 18;
-  const maxR = isBig ? MAX_RADIUS_BASE*3 : MAX_RADIUS_BASE;
-
-  if (isBig) r *= 3;
-  return clamp(r, minR, maxR);
-}
-
-async function getJSON(url){
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(`${res.status} ${url}`);
-  return res.json();
-}
-
-/************ LISTAS ************/
-const LISTS = {
-  Principais Ações: ["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3""VALE3","CMIN3","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3","USIM5","USIM3","FESA4","FESA3","CBAV3","PMAM3","PATI4","PATI3","EALT4","EALT3","MGEL4","AURA33""ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11""MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"],
-};
-
-/************ MAP + VALID ************/
-function mapQuote(it){
-  const symbol = (it.symbol || it.stock || it.code || it.ticker || "").toUpperCase();
-  const price  = pickNum(it.regularMarketPrice, it.price, it.close, it.lastPrice);
-  let changePct = pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange);
-  if (!Number.isFinite(changePct)) {
-    const prev = pickNum(it.regularMarketPreviousClose, it.previousClose, it.prevClose);
-    if (Number.isFinite(price) && Number.isFinite(prev) && prev !== 0) {
-      changePct = ((price / prev) - 1) * 100;
+class Bubble3D {
+    constructor(containerId, options = {}) {
+        this.containerId = containerId;
+        this.container = document.getElementById(containerId);
+        
+        // Configurações padrão
+        this.options = {
+            autoRotate: true,
+            autoRotateSpeed: 0.5,
+            enableControls: true,
+            enablePhysics: true,
+            backgroundColor: 0x0a0a0a,
+            cameraDistance: 200,
+            ...options
+        };
+        
+        // Variáveis da cena
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.bubbles = [];
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        
+        // Estado
+        this.isInitialized = false;
+        this.selectedBubble = null;
+        this.hoveredBubble = null;
+        
+        this.init();
     }
-  }
-  const volume = pickNum(it.regularMarketVolume, it.volume, it.totalVolume);
-  return { symbol, price, changePct, volume };
-}
-const valid = q => q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct);
-
-/************ FETCHERS ************/
-async function fetchAcoesTop(){
-  const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
-  const json = await getJSON(url);
-  const arr = json.stocks || json.results || [];
-  const norm = arr.map(mapQuote).filter(valid);
-  norm.sort((a,b)=>(b.volume||0)-(a.volume||0));
-  return norm.slice(0, TOP_N);
-}
-
-async function fetchByTickers(tickers){
-  if (!tickers.length) return [];
-  const chunk = 40;
-  const batches = [];
-  for (let i=0;i<tickers.length;i+=chunk){
-    const slice = tickers.slice(i,i+chunk);
-    batches.push(getJSON(`https://brapi.dev/api/quote/${slice.join(",")}?token=${TOKEN}`));
-  }
-  const results = (await Promise.allSettled(batches))
-    .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
-  const mapped = results.map(mapQuote).filter(valid);
-  mapped.sort((a,b)=>(b.volume||0)-(a.volume||0));
-  return mapped;
-}
-
-/* Minério real — até 20, sem placeholders */
-async function fetchMinerioReal(){
-  const data = await fetchByTickers(LISTS.minerio);
-  return data.slice(0, Math.min(20, data.length));
-}
-
-/************ DISPATCH ************/
-async function fetchData(){
-  switch (category){
-    case "acoes":     return fetchAcoesTop();
-    case "minerio":   return (await fetchByTickers(LISTS.minerio)).slice(0, TOP_N);
-    case "petroleo":  return (await fetchByTickers(LISTS.petroleo)).slice(0, TOP_N);
-    case "bancos":    return (await fetchByTickers(LISTS.bancos)).slice(0, TOP_N);
-    case "varejo":    return (await fetchByTickers(LISTS.varejo)).slice(0, TOP_N);
-    default:          return fetchAcoesTop();
-  }
-}
-
-/************ BOLHAS ************/
-function createBubbles(data){
-  bubbles = data.map(d => ({
-    symbol: d.symbol,
-    price: d.price,
-    change: d.changePct,
-    color: colorForChange(d.changePct),
-    r: radiusFor(d.changePct, d.volume),
-    x: rand(50, canvas.width-50),
-    y: rand(100, canvas.height-50),
-    vx: rand(-START_VEL, START_VEL),
-    vy: rand(-START_VEL, START_VEL),
-    phase: Math.random()*Math.PI*2
-  }));
-  for (let k=0;k<3;k++) resolveCollisions(true); // afastamento inicial
-}
-
-/************ FÍSICA ************/
-function softSeparationForces(dtNow){
-  // repulsão de longo alcance (anti-agrupamento)
-  for (let i=0;i<bubbles.length;i++){
-    for (let j=i+1;j<bubbles.length;j++){
-      const a=bubbles[i], b=bubbles[j];
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const dist = Math.hypot(dx,dy);
-      if (!dist) continue;
-      const want = (a.r + b.r) * NEIGHBOR_RANGE_MULT;
-      if (dist < want){
-        const nx = dx/dist, ny = dy/dist;
-        // força decresce com a distância (mais forte quando muito perto)
-        const k = (1 - dist/want) * SOFT_REPULSE_STRENGTH;
-        a.vx -= nx * k; a.vy -= ny * k;
-        b.vx += nx * k; b.vy += ny * k;
-      }
-    }
-  }
-}
-
-function resolveCollisions(init=false){
-  for (let i=0;i<bubbles.length;i++){
-    for (let j=i+1;j<bubbles.length;j++){
-      const a=bubbles[i], b=bubbles[j];
-      const dx=b.x-a.x, dy=b.y-a.y;
-      const dist=Math.hypot(dx,dy);
-      const min=a.r+b.r+BORDER_WIDTH;
-      if (dist < min && dist>0){
-        const nx=dx/dist, ny=dy/dist;
-        const overlap=(min-dist)*0.6;
-        a.x -= nx*overlap/2; a.y -= ny*overlap/2;
-        b.x += nx*overlap/2; b.y += ny*overlap/2;
-        if(!init){
-          const push = REPULSE_COLLIDE*0.9;
-          a.vx -= nx*push; a.vy -= ny*push;
-          b.vx += nx*push; b.vy += ny*push;
+    
+    init() {
+        if (!this.container) {
+            console.error('Container não encontrado:', this.containerId);
+            return;
         }
-      }
+        
+        this.setupScene();
+        this.setupLighting();
+        this.setupControls();
+        this.setupEventListeners();
+        
+        this.isInitialized = true;
+        this.animate();
     }
-  }
+    
+    setupScene() {
+        // Cena
+        this.scene = new THREE.Scene();
+        
+        // Câmera
+        const aspect = this.container.clientWidth / this.container.clientHeight;
+        this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+        this.camera.position.z = this.options.cameraDistance;
+        
+        // Renderer
+        this.renderer = new THREE.WebGLRenderer({ 
+            antialias: true, 
+            alpha: true,
+            powerPreference: "high-performance"
+        });
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.setClearColor(this.options.backgroundColor, 1);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        this.container.appendChild(this.renderer.domElement);
+    }
+    
+    setupLighting() {
+        // Luz ambiente
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+        this.scene.add(ambientLight);
+        
+        // Luz direcional principal
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(100, 100, 50);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        this.scene.add(directionalLight);
+        
+        // Luz pontual para destaque
+        const pointLight = new THREE.PointLight(0x4080ff, 0.3, 300);
+        pointLight.position.set(-50, 50, 100);
+        this.scene.add(pointLight);
+        
+        // Luz de preenchimento
+        const fillLight = new THREE.DirectionalLight(0x8080ff, 0.2);
+        fillLight.position.set(-100, -100, -50);
+        this.scene.add(fillLight);
+    }
+    
+    setupControls() {
+        if (!this.options.enableControls) return;
+        
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.enableZoom = true;
+        this.controls.autoRotate = this.options.autoRotate;
+        this.controls.autoRotateSpeed = this.options.autoRotateSpeed;
+        this.controls.maxDistance = 500;
+        this.controls.minDistance = 50;
+    }
+    
+    setupEventListeners() {
+        window.addEventListener('resize', () => this.onWindowResize());
+        this.renderer.domElement.addEventListener('mousemove', (e) => this.onMouseMove(e));
+        this.renderer.domElement.addEventListener('click', (e) => this.onMouseClick(e));
+    }
+    
+    createBubble(data) {
+        const radius = this.calculateBubbleSize(data);
+        const geometry = new THREE.SphereGeometry(radius, 32, 32);
+        
+        // Material com gradiente baseado na variação
+        const material = this.createBubbleMaterial(data);
+        const mesh = new THREE.Mesh(geometry, material);
+        
+        // Posição inicial
+        const position = this.calculateBubblePosition(data, this.bubbles.length);
+        mesh.position.copy(position);
+        
+        // Propriedades de física
+        const velocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.2,
+            (Math.random() - 0.5) * 0.2,
+            (Math.random() - 0.5) * 0.1
+        );
+        
+        // Sombra
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        
+        // Label HTML
+        const label = this.createBubbleLabel(data, radius);
+        
+        const bubble = {
+            mesh,
+            label,
+            data,
+            velocity,
+            originalPosition: position.clone(),
+            radius,
+            id: data.symbol || `bubble_${this.bubbles.length}`
+        };
+        
+        this.bubbles.push(bubble);
+        this.scene.add(mesh);
+        
+        return bubble;
+    }
+    
+    calculateBubbleSize(data) {
+        // Tamanho baseado no volume ou market cap
+        const baseSize = 15;
+        const maxSize = 50;
+        const minSize = 8;
+        
+        let size = baseSize;
+        if (data.size) {
+            size = data.size / 2;
+        } else if (data.marketCap) {
+            // Normalizar market cap para tamanho
+            size = Math.log(data.marketCap) * 3;
+        } else if (data.volume) {
+            size = Math.log(data.volume) * 2;
+        }
+        
+        return Math.max(minSize, Math.min(maxSize, size));
+    }
+    
+    createBubbleMaterial(data) {
+        const isPositive = (data.change || 0) >= 0;
+        const intensity = Math.min(Math.abs(data.change || 0) / 5, 1);
+        
+        let color;
+        if (isPositive) {
+            // Verde com intensidade baseada na variação
+            color = new THREE.Color().setHSL(0.33, 0.8, 0.3 + intensity * 0.4);
+        } else {
+            // Vermelho com intensidade baseada na variação
+            color = new THREE.Color().setHSL(0, 0.8, 0.3 + intensity * 0.4);
+        }
+        
+        return new THREE.MeshPhongMaterial({
+            color: color,
+            shininess: 100,
+            specular: 0x222222,
+            transparent: true,
+            opacity: 0.9,
+            side: THREE.DoubleSide
+        });
+    }
+    
+    calculateBubblePosition(data, index) {
+        // Distribuição em espiral ou circular
+        const angle = (index / Math.max(1, this.bubbles.length)) * Math.PI * 2;
+        const distance = 60 + Math.random() * 80;
+        
+        return new THREE.Vector3(
+            Math.cos(angle) * distance,
+            Math.sin(angle) * distance,
+            (Math.random() - 0.5) * 100
+        );
+    }
+    
+    createBubbleLabel(data, radius) {
+        const label = document.createElement('div');
+        label.className = 'bubble-label';
+        
+        const fontSize = Math.max(10, radius / 3);
+        const changeClass = (data.change || 0) >= 0 ? 'positive' : 'negative';
+        
+        label.innerHTML = `
+            <div class="symbol" style="font-size: ${fontSize}px;">
+                ${data.symbol || data.name || 'N/A'}
+            </div>
+            <div class="change ${changeClass}" style="font-size: ${fontSize * 0.8}px;">
+                ${data.change >= 0 ? '+' : ''}${(data.change || 0).toFixed(1)}%
+            </div>
+        `;
+        
+        this.container.appendChild(label);
+        return label;
+    }
+    
+    updateBubbles() {
+        this.bubbles.forEach(bubble => {
+            if (this.options.enablePhysics) {
+                this.updateBubblePhysics(bubble);
+            }
+            
+            this.updateBubbleRotation(bubble);
+            this.updateBubbleLabel(bubble);
+        });
+    }
+    
+    updateBubblePhysics(bubble) {
+        // Movimento baseado na velocidade
+        bubble.mesh.position.add(bubble.velocity);
+        
+        // Limites da área (bounce)
+        const bounds = 150;
+        if (Math.abs(bubble.mesh.position.x) > bounds) {
+            bubble.velocity.x *= -0.8;
+        }
+        if (Math.abs(bubble.mesh.position.y) > bounds) {
+            bubble.velocity.y *= -0.8;
+        }
+        if (Math.abs(bubble.mesh.position.z) > 80) {
+            bubble.velocity.z *= -0.8;
+        }
+        
+        // Força de atração ao centro
+        const centerForce = bubble.mesh.position.clone().multiplyScalar(-0.001);
+        bubble.velocity.add(centerForce);
+        
+        // Damping
+        bubble.velocity.multiplyScalar(0.99);
+        
+        // Repulsão entre bolhas
+        this.bubbles.forEach(otherBubble => {
+            if (bubble !== otherBubble) {
+                const distance = bubble.mesh.position.distanceTo(otherBubble.mesh.position);
+                const minDistance = bubble.radius + otherBubble.radius + 5;
+                
+                if (distance < minDistance) {
+                    const repulsion = bubble.mesh.position.clone()
+                        .sub(otherBubble.mesh.position)
+                        .normalize()
+                        .multiplyScalar(0.1);
+                    bubble.velocity.add(repulsion);
+                }
+            }
+        });
+    }
+    
+    updateBubbleRotation(bubble) {
+        bubble.mesh.rotation.x += 0.005;
+        bubble.mesh.rotation.y += 0.01;
+    }
+    
+    updateBubbleLabel(bubble) {
+        const vector = bubble.mesh.position.clone();
+        vector.project(this.camera);
+        
+        const x = (vector.x * 0.5 + 0.5) * this.container.clientWidth;
+        const y = (vector.y * -0.5 + 0.5) * this.container.clientHeight;
+        
+        bubble.label.style.left = (x - 30) + 'px';
+        bubble.label.style.top = (y - 15) + 'px';
+        
+        // Ocultar labels que estão atrás ou muito longe
+        const isVisible = vector.z < 1 && vector.z > -1;
+        bubble.label.style.display = isVisible ? 'block' : 'none';
+        bubble.label.style.opacity = isVisible ? (1 - Math.abs(vector.z)) : 0;
+    }
+    
+    onMouseMove(event) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        // Raycast para hover
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.bubbles.map(b => b.mesh));
+        
+        // Reset hover anterior
+        if (this.hoveredBubble) {
+            this.hoveredBubble.mesh.material.emissive.setHex(0x000000);
+            this.hoveredBubble = null;
+        }
+        
+        // Novo hover
+        if (intersects.length > 0) {
+            const bubble = this.bubbles.find(b => b.mesh === intersects[0].object);
+            if (bubble) {
+                this.hoveredBubble = bubble;
+                bubble.mesh.material.emissive.setHex(0x333333);
+                this.showTooltip(bubble, event);
+            }
+        } else {
+            this.hideTooltip();
+        }
+        
+        // Efeito de repulsão do mouse
+        if (this.options.enablePhysics) {
+            const mouseWorld = new THREE.Vector3(this.mouse.x * 100, this.mouse.y * 100, 0);
+            this.bubbles.forEach(bubble => {
+                const distance = bubble.mesh.position.distanceTo(mouseWorld);
+                if (distance < 50) {
+                    const repulsion = bubble.mesh.position.clone()
+                        .sub(mouseWorld)
+                        .normalize()
+                        .multiplyScalar(0.5);
+                    bubble.velocity.add(repulsion);
+                }
+            });
+        }
+    }
+    
+    onMouseClick(event) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.bubbles.map(b => b.mesh));
+        
+        if (intersects.length > 0) {
+            const bubble = this.bubbles.find(b => b.mesh === intersects[0].object);
+            if (bubble) {
+                this.selectBubble(bubble);
+            }
+        }
+    }
+    
+    selectBubble(bubble) {
+        // Reset seleção anterior
+        if (this.selectedBubble) {
+            this.selectedBubble.mesh.material.emissive.setHex(0x000000);
+        }
+        
+        this.selectedBubble = bubble;
+        bubble.mesh.material.emissive.setHex(0x666666);
+        
+        // Callback personalizado
+        if (this.options.onBubbleSelect) {
+            this.options.onBubbleSelect(bubble.data);
+        }
+        
+        console.log('Bolha selecionada:', bubble.data);
+    }
+    
+    showTooltip(bubble, event) {
+        let tooltip = document.getElementById('bubble-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'bubble-tooltip';
+            tooltip.className = 'bubble-tooltip';
+            document.body.appendChild(tooltip);
+        }
+        
+        tooltip.innerHTML = `
+            <div class="tooltip-symbol">${bubble.data.symbol || bubble.data.name}</div>
+            <div class="tooltip-value">Variação: ${bubble.data.change >= 0 ? '+' : ''}${bubble.data.change?.toFixed(2) || 0}%</div>
+            <div class="tooltip-value">Valor: R$ ${bubble.data.value?.toFixed(2) || 'N/A'}</div>
+            ${bubble.data.marketCap ? `<div class="tooltip-value">Market Cap: ${this.formatCurrency(bubble.data.marketCap)}</div>` : ''}
+        `;
+        
+        tooltip.style.left = event.clientX + 10 + 'px';
+        tooltip.style.top = event.clientY - 10 + 'px';
+        tooltip.style.display = 'block';
+    }
+    
+    hideTooltip() {
+        const tooltip = document.getElementById('bubble-tooltip');
+        if (tooltip) {
+            tooltip.style.display = 'none';
+        }
+    }
+    
+    formatCurrency(value) {
+        if (value >= 1e9) return (value / 1e9).toFixed(1) + 'B';
+        if (value >= 1e6) return (value / 1e6).toFixed(1) + 'M';
+        if (value >= 1e3) return (value / 1e3).toFixed(1) + 'K';
+        return value.toString();
+    }
+    
+    onWindowResize() {
+        if (!this.isInitialized) return;
+        
+        const width = this.container.clientWidth;
+        const height = this.container.clientHeight;
+        
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(width, height);
+    }
+    
+    animate() {
+        if (!this.isInitialized) return;
+        
+        requestAnimationFrame(() => this.animate());
+        
+        // Atualizar controles
+        if (this.controls) {
+            this.controls.update();
+        }
+        
+        // Atualizar bolhas
+        this.updateBubbles();
+        
+        // Render
+        this.renderer.render(this.scene, this.camera);
+    }
+    
+    // Métodos públicos para integração
+    addBubble(data) {
+        return this.createBubble(data);
+    }
+    
+    removeBubble(id) {
+        const index = this.bubbles.findIndex(b => b.id === id);
+        if (index !== -1) {
+            const bubble = this.bubbles[index];
+            this.scene.remove(bubble.mesh);
+            bubble.label.remove();
+            this.bubbles.splice(index, 1);
+        }
+    }
+    
+    updateBubbleData(id, newData) {
+        const bubble = this.bubbles.find(b => b.id === id);
+        if (bubble) {
+            bubble.data = { ...bubble.data, ...newData };
+            bubble.mesh.material = this.createBubbleMaterial(bubble.data);
+            bubble.label.innerHTML = this.createBubbleLabel(bubble.data, bubble.radius).innerHTML;
+        }
+    }
+    
+    clearBubbles() {
+        this.bubbles.forEach(bubble => {
+            this.scene.remove(bubble.mesh);
+            bubble.label.remove();
+        });
+        this.bubbles = [];
+    }
+    
+    setAutoRotate(enabled) {
+        if (this.controls) {
+            this.controls.autoRotate = enabled;
+        }
+    }
+    
+    destroy() {
+        this.clearBubbles();
+        if (this.renderer) {
+            this.container.removeChild(this.renderer.domElement);
+            this.renderer.dispose();
+        }
+        this.isInitialized = false;
+    }
 }
-function wallConstraints(p){
-  const L=p.r+WALL_MARGIN, R=canvas.width-p.r-WALL_MARGIN;
-  const T=HEADER_SAFE+p.r, B=canvas.height-p.r-WALL_MARGIN;
-  if(p.x<L){p.x=L;p.vx=Math.abs(p.vx);} if(p.x>R){p.x=R;p.vx=-Math.abs(p.vx);}
-  if(p.y<T){p.y=T;p.vy=Math.abs(p.vy);} if(p.y>B){p.y=B;p.vy=-Math.abs(p.vy);}
-}
 
-/************ DESENHO ************/
-function drawBubble(b){
-  ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-  ctx.fillStyle=b.color; ctx.fill();
-
-  // brilho nas bordas (sem luz no centro)
-  const ring=ctx.createRadialGradient(b.x,b.y,b.r*0.75,b.x,b.y,b.r);
-  ring.addColorStop(0,"rgba(255,255,255,0)");
-  ring.addColorStop(1,"rgba(255,255,255,0.85)");
-  ctx.fillStyle=ring; ctx.fill();
-
-  ctx.lineWidth=BORDER_WIDTH; ctx.strokeStyle="#fff"; ctx.stroke();
-
-  // textos
-  ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle";
-  const f1=Math.max(11,Math.floor(b.r*0.4));
-  const f2=Math.max(10,Math.floor(b.r*0.3));
-  const f3=Math.max(9, Math.floor(b.r*0.25));
-
-  ctx.font=`700 ${f1}px Arial`;
-  ctx.fillText(b.symbol, b.x, b.y - b.r*0.3);
-
-  ctx.font=`500 ${f2}px Arial`;
-  ctx.fillText(`${formatBRL(b.price)}`, b.x, b.y);
-
-  ctx.font=`600 ${f3}px Arial`;
-  const sign=b.change>=0?"+":"";
-  ctx.fillText(`${sign}${b.change.toFixed(2)}%`, b.x, b.y + b.r*0.3);
-}
-
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(const b of bubbles) drawBubble(b);
-}
-
-/************ LOOP ************/
-function step(now = performance.now()){
-  let dt = now - lastTime;
-  lastTime = now;
-  dt = Math.min(32, Math.max(8, dt));
-  const s = dt / 16;
-
-  // vento/drift global para flutuar
-  const windX = Math.sin(now * DRIFT_FREQ) * DRIFT_STRENGTH;
-  const windY = Math.cos(now * DRIFT_FREQ * 0.9) * DRIFT_STRENGTH;
-
-  // repulsão suave (anti-agrupamento)
-  softSeparationForces(now);
-
-  for(const p of bubbles){
-    // leve “wobble”
-    const t = now * WOBBLE_FREQ + p.phase;
-    p.vx += Math.sin(t) * WOBBLE_STRENGTH * s;
-    p.vy += Math.cos(t) * WOBBLE_STRENGTH * s;
-
-    // vento
-    p.vx += windX * s;
-    p.vy += windY * s;
-
-    // puxar muito levemente ao centro (quase nada)
-    p.vx += (canvas.width*0.5  - p.x) * CENTER_PULL * s;
-    p.vy += (canvas.height*0.55 - p.y) * CENTER_PULL * s;
-
-    // atrito e limites
-    p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
-    p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
-
-    // integrar
-    p.x  += p.vx * s; p.y  += p.vy * s;
-
-    wallConstraints(p);
-  }
-
-  for(let k=0;k<COLLISION_PASSES;k++) resolveCollisions();
-
-  draw();
-  requestAnimationFrame(step);
-}
-
-/************ BOTÕES ************/
-async function setCategory(cat){
-  category = cat;
-  document.querySelectorAll(".buttons button").forEach(b=>{
-    b.classList.toggle("active", b.dataset.cat===cat);
-  });
-  try{
-    const data = await fetchData();
-    createBubbles(data);
-  }catch(e){
-    console.error("Erro ao carregar", cat, e);
-    bubbles = []; draw();
-  }
-}
-document.querySelectorAll(".buttons button").forEach(b=>{
-  b.addEventListener("click", ()=>setCategory(b.dataset.cat));
-});
-
-/************ START ************/
-setCategory("acoes");
-requestAnimationFrame(step);
-setInterval(()=>setCategory(category), 30000);
+// Exportar para uso global
+window.Bubble3D = Bubble3D;
