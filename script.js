@@ -12,7 +12,7 @@ const WALL_MARGIN      = IS_MOBILE ? 18 : 10;
 const FRICTION         = IS_MOBILE ? 0.698 : 0.685;
 const MAX_SPEED        = IS_MOBILE ? 0.12  : 0.90;
 const START_VEL        = IS_MOBILE ? 0.05  : 0.15;
-const REPULSE_COLLIDE  = IS_MOBILE ? 0.40  : 0.20; // choque imediato
+const REPULSE_COLLIDE  = IS_MOBILE ? 0.90  : 0.50; // choque imediato
 const BORDER_WIDTH     = 2.5;
 const COLLISION_PASSES = IS_MOBILE ? 5 : 2;
 
