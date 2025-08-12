@@ -75,20 +75,10 @@ async function getJSON(url){
 
 /************ LISTAS ************/
 const LISTS = {
-  minerio: [
-    "VALE3","CMIN3","CSNA3",
-    "GGBR4","GGBR3","GOAU4","GOAU3",
-    "BRAP4","BRAP3",
-    "USIM5","USIM3",
-    "FESA4","FESA3",
-    "CBAV3","PMAM3",
-    "PATI4","PATI3",
-    "EALT4","EALT3",
-    "MGEL4","AURA33"
-  ],
-  petroleo:["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
-  bancos:  ["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
-  varejo:  ["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
+  petroleo: ["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
+  minerio: ["VALE3","CMIN3","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3","USIM5","USIM3","FESA4","FESA3","CBAV3","PMAM3","PATI4","PATI3","EALT4","EALT3","MGEL4","AURA33"],
+  bancos: ["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
+  varejo: ["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
 };
 
 /************ MAP + VALID ************/
@@ -142,7 +132,7 @@ async function fetchMinerioReal(){
 async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
-    case "minerio":   return fetchMinerioReal();
+    case "minerio":   return (await fetchByTickers(LISTS.minerio)).slice(0, TOP_N);
     case "petroleo":  return (await fetchByTickers(LISTS.petroleo)).slice(0, TOP_N);
     case "bancos":    return (await fetchByTickers(LISTS.bancos)).slice(0, TOP_N);
     case "varejo":    return (await fetchByTickers(LISTS.varejo)).slice(0, TOP_N);
@@ -201,7 +191,7 @@ function resolveCollisions(init=false){
         a.x -= nx*overlap/2; a.y -= ny*overlap/2;
         b.x += nx*overlap/2; b.y += ny*overlap/2;
         if(!init){
-          const push = REPULSE_COLLIDE*0.5;
+          const push = REPULSE_COLLIDE*0.9;
           a.vx -= nx*push; a.vy -= ny*push;
           b.vx += nx*push; b.vy += ny*push;
         }
