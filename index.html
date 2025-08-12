@@ -1,27 +1,50 @@
-<!-- ... seu head e body ... -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUBLES – Ações ao Vivo (com Bolhas 3D)</title>
+    
+    <!-- Estilos das Bolhas 3D -->
+    <link rel="stylesheet" href="bubble_3d_styles.css">
+    
+    <!-- Seus estilos CSS existentes (se houver) -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Container onde as bolhas 3D serão renderizadas -->
+    <div id="bubbles-container" class="bubbles-3d-container">
+        <!-- Controles opcionais -->
+        <div class="bubble-controls">
+            <h3>Bolhas 3D</h3>
+            <p>Clique e arraste para rotacionar</p>
+            <p>Scroll para zoom</p>
+        </div>
+    </div>
 
-<!-- Dependências do Three.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Dependências do Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Script da classe Bubble3D -->
+    <script src="bubble_3d_script.js"></script>
 
-<!-- Script da classe Bubble3D -->
-<script src="bubble_3d_script.js"></script>
+    <script>
+        // Inicializa a instância de Bubble3D e a torna globalmente acessível
+        window.bubble3D = new Bubble3D("bubbles-container", {
+            autoRotate: true,
+            autoRotateSpeed: 0.5,
+            enableControls: true,
+            enablePhysics: true,
+            backgroundColor: 0x0a0a0a,
+            onBubbleSelect: (data ) => {
+                console.log("Ação selecionada:", data);
+                // Você pode adicionar aqui a lógica para exibir detalhes da ação, etc.
+            }
+        });
+    </script>
 
-<script>
-    // Inicializa a instância de Bubble3D e a torna globalmente acessível
-    window.bubble3D = new Bubble3D("bubbles-container", {
-        autoRotate: true,
-        autoRotateSpeed: 0.5,
-        enableControls: true,
-        enablePhysics: true,
-        backgroundColor: 0x0a0a0a,
-        onBubbleSelect: (data ) => {
-            console.log("Ação selecionada:", data);
-        }
-    });
-</script>
-
-<!-- SEU SCRIPT.JS (este arquivo que te enviei agora) -->
-<script src="script.js"></script>
-
-<!-- ... restante do seu body e html ... -->
+    <!-- Seu script que busca os dados da Brapi -->
+    <script src="script.js"></script>
+</body>
+</html>
