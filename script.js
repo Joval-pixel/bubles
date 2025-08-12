@@ -20,16 +20,16 @@ const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;     // normal
 const CENTER_PULL      = IS_MOBILE ? 0.20 : 0.10;
 
 /* Anti-agrupamento (repulsão de longo alcance) */
-const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.004 : 0.003;   // força
+const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.40 : 0.30;   // força
 const NEIGHBOR_RANGE_MULT   = 1.6; // alcance ~1.6x (r1+r2)
 
 /* Vento/drift para flutuar */
-const DRIFT_STRENGTH  = IS_MOBILE ? 0.006 : 0.004;
-const DRIFT_FREQ      = 0.0018;
+const DRIFT_STRENGTH  = IS_MOBILE ? 0.60 : 0.40;
+const DRIFT_FREQ      = 0.40;
 
 /* Wobble leve */
-const WOBBLE_STRENGTH = IS_MOBILE ? 0.010 : 0.01;
-const WOBBLE_FREQ     = 0.0025;
+const WOBBLE_STRENGTH = IS_MOBILE ? 0.10 : 0.10;
+const WOBBLE_FREQ     = 0.30;
 
 /************ CANVAS ************/
 const canvas = document.getElementById("bubbleCanvas");
