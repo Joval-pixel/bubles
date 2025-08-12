@@ -17,7 +17,7 @@ const BORDER_WIDTH     = 2.5;
 const COLLISION_PASSES = IS_MOBILE ? 5 : 2;
 
 const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;     // normal
-const CENTER_PULL      = IS_MOBILE ? 0.0010 : 0.0010; // quase zero agora
+const CENTER_PULL      = IS_MOBILE ? 0.20 : 0.10;
 
 /* Anti-agrupamento (repulsão de longo alcance) */
 const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.004 : 0.003;   // força
