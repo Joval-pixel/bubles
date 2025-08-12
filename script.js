@@ -1,25 +1,33 @@
 /************ CONFIG ************/
-console.log("Bubles JS v-mult-3x-cats");
+console.log("Bubles JS v-anti-cluster");
 const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
 const TOP_N = IS_MOBILE ? 30 : 200;
 
-/* Física suave (mobile mais lento) */
-const HEADER_SAFE     = 84;
-const WALL_MARGIN     = IS_MOBILE ? 18 : 10;
-const FRICTION        = IS_MOBILE ? 0.998 : 0.985;
-const MAX_SPEED       = IS_MOBILE ? 0.12  : 0.90;
-const START_VEL       = IS_MOBILE ? 0.05  : 0.45;
-const REPULSE         = IS_MOBILE ? 0.65  : 0.40;
-const BORDER_WIDTH    = 2.5;
-const COLLISION_PASSES= IS_MOBILE ? 5 : 1;
+/* Física (mobile mais lento) */
+const HEADER_SAFE      = 84;
+const WALL_MARGIN      = IS_MOBILE ? 18 : 10;
+const FRICTION         = IS_MOBILE ? 0.998 : 0.985;
+const MAX_SPEED        = IS_MOBILE ? 0.12  : 0.90;
+const START_VEL        = IS_MOBILE ? 0.05  : 0.45;
+const REPULSE_COLLIDE  = IS_MOBILE ? 0.55  : 0.40; // choque imediato
+const BORDER_WIDTH     = 2.5;
+const COLLISION_PASSES = IS_MOBILE ? 5 : 1;
 
-const MAX_RADIUS_BASE = IS_MOBILE ? 46 : 80;   // normal
-const MAX_RADIUS_BIG  = MAX_RADIUS_BASE * 3;   // 3x para categorias especiais
-const CENTER_PULL     = IS_MOBILE ? 0.0015 : 0.0008;
+const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;     // normal
+const CENTER_PULL      = IS_MOBILE ? 0.0002 : 0.0001; // quase zero agora
 
+/* Anti-agrupamento (repulsão de longo alcance) */
+const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.004 : 0.003;   // força
+const NEIGHBOR_RANGE_MULT   = 1.6; // alcance ~1.6x (r1+r2)
+
+/* Vento/drift para flutuar */
+const DRIFT_STRENGTH  = IS_MOBILE ? 0.006 : 0.004;
+const DRIFT_FREQ      = 0.0018;
+
+/* Wobble leve */
 const WOBBLE_STRENGTH = IS_MOBILE ? 0.010 : 0.01;
 const WOBBLE_FREQ     = 0.0025;
 
@@ -41,24 +49,22 @@ const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
 const formatBRL = v => Number.isFinite(Number(v)) ? `R$ ${Number(v).toFixed(2).replace('.',',')}` : "";
 
-/* raio proporcional à variação + volume
-   — e 3× maior em minerio/petroleo/bancos/varejo */
+/* Raio: 3× MAIOR no CELULAR somente para estas categorias */
 function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
   const varScale = Math.min(8, Math.abs(Number(changePct)||0));
   const base = 16;
+
   let r = base + varScale*3 + volScale;
 
   const bigCats = ["minerio","petroleo","bancos","varejo"];
-  const isBig = bigCats.includes(category);
-
+  const isBig = IS_MOBILE && bigCats.includes(category);
   const minR = 18;
-  const maxR = isBig ? MAX_RADIUS_BIG : MAX_RADIUS_BASE;
-  r = clamp(r, minR, maxR);
+  const maxR = isBig ? MAX_RADIUS_BASE*3 : MAX_RADIUS_BASE;
 
-  if (isBig) r = Math.min(r * 3, MAX_RADIUS_BIG); // multiplicador 3x + teto
-  return r;
+  if (isBig) r *= 3;
+  return clamp(r, minR, maxR);
 }
 
 async function getJSON(url){
@@ -162,6 +168,26 @@ function createBubbles(data){
 }
 
 /************ FÍSICA ************/
+function softSeparationForces(dtNow){
+  // repulsão de longo alcance (anti-agrupamento)
+  for (let i=0;i<bubbles.length;i++){
+    for (let j=i+1;j<bubbles.length;j++){
+      const a=bubbles[i], b=bubbles[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dist = Math.hypot(dx,dy);
+      if (!dist) continue;
+      const want = (a.r + b.r) * NEIGHBOR_RANGE_MULT;
+      if (dist < want){
+        const nx = dx/dist, ny = dy/dist;
+        // força decresce com a distância (mais forte quando muito perto)
+        const k = (1 - dist/want) * SOFT_REPULSE_STRENGTH;
+        a.vx -= nx * k; a.vy -= ny * k;
+        b.vx += nx * k; b.vy += ny * k;
+      }
+    }
+  }
+}
+
 function resolveCollisions(init=false){
   for (let i=0;i<bubbles.length;i++){
     for (let j=i+1;j<bubbles.length;j++){
@@ -175,7 +201,7 @@ function resolveCollisions(init=false){
         a.x -= nx*overlap/2; a.y -= ny*overlap/2;
         b.x += nx*overlap/2; b.y += ny*overlap/2;
         if(!init){
-          const push = REPULSE*0.5;
+          const push = REPULSE_COLLIDE*0.5;
           a.vx -= nx*push; a.vy -= ny*push;
           b.vx += nx*push; b.vy += ny*push;
         }
@@ -232,22 +258,39 @@ function step(now = performance.now()){
   dt = Math.min(32, Math.max(8, dt));
   const s = dt / 16;
 
+  // vento/drift global para flutuar
+  const windX = Math.sin(now * DRIFT_FREQ) * DRIFT_STRENGTH;
+  const windY = Math.cos(now * DRIFT_FREQ * 0.9) * DRIFT_STRENGTH;
+
+  // repulsão suave (anti-agrupamento)
+  softSeparationForces(now);
+
   for(const p of bubbles){
+    // leve “wobble”
     const t = now * WOBBLE_FREQ + p.phase;
     p.vx += Math.sin(t) * WOBBLE_STRENGTH * s;
     p.vy += Math.cos(t) * WOBBLE_STRENGTH * s;
 
-    p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
-    p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
+    // vento
+    p.vx += windX * s;
+    p.vy += windY * s;
 
-    // puxar levemente ao centro
+    // puxar muito levemente ao centro (quase nada)
     p.vx += (canvas.width*0.5  - p.x) * CENTER_PULL * s;
     p.vy += (canvas.height*0.55 - p.y) * CENTER_PULL * s;
 
+    // atrito e limites
+    p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
+    p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
+
+    // integrar
     p.x  += p.vx * s; p.y  += p.vy * s;
+
     wallConstraints(p);
   }
+
   for(let k=0;k<COLLISION_PASSES;k++) resolveCollisions();
+
   draw();
   requestAnimationFrame(step);
 }
