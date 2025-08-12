@@ -14,10 +14,10 @@ const MAX_SPEED        = IS_MOBILE ? 0.12  : 0.90;
 const START_VEL        = IS_MOBILE ? 0.05  : 0.15;
 const REPULSE_COLLIDE  = IS_MOBILE ? 0.40  : 0.20; // choque imediato
 const BORDER_WIDTH     = 2.5;
-const COLLISION_PASSES = IS_MOBILE ? 5 : 1;
+const COLLISION_PASSES = IS_MOBILE ? 5 : 2;
 
 const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;     // normal
-const CENTER_PULL      = IS_MOBILE ? 0.0002 : 0.0001; // quase zero agora
+const CENTER_PULL      = IS_MOBILE ? 0.0010 : 0.0010; // quase zero agora
 
 /* Anti-agrupamento (repulsão de longo alcance) */
 const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.004 : 0.003;   // força
