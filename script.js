@@ -1,12 +1,10 @@
-/************ BUBLES — script.js (corrige cotações BRAPI e mantém seu visual/UX) ************/
-console.log("Bubles JS v2025-08-13 fix-quote-only");
-
-// ====== CONFIG ======
 console.log("Bubles JS v2025-08-13 (retina+padding+anti-clip)");
 const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
-const IS_MOBILE = matchMedia("(max-width: 820px)").matches || (navigator.maxTouchPoints || 0) > 0;
-const TOP_N = IS_MOBILE ? 30 : 200; // Ações: top por volume (mobile 30, desktop 200)
-const REFRESH_MS = 30000;
+const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
+                  (navigator.maxTouchPoints || 0) > 0;
+
+const TOP_N = IS_MOBILE ? 35 : 200;
+
 
 // ====== FÍSICA / MOVIMENTO (mantém o que você aprovou) ======
 const HEADER_SAFE      = 84;
