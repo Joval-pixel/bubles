@@ -1,11 +1,13 @@
-/************ BUBLES — script.js (corrigido BRAPI + anti-cluster + mobile 3×) ************/
-console.log("Bubles JS v2025-08-13 brapi-fix + anti-cluster + 3x-mobile");
-const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
+/************ BUBLES — script.js (robusto + fallback) ************/
+console.log("Bubles JS v2025-08-13b brapi-robust + anti-cluster + 3x-mobile");
+
+// ====== CONFIG GERAL ======
+const TOKEN = "5bTDfSmR2ieax6y7JUqDAD"; // troque se precisar
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches || (navigator.maxTouchPoints || 0) > 0;
+const TOP_N = IS_MOBILE ? 30 : 80;          // menos papéis para evitar rate-limit
+const REFRESH_MS = 60_000;                  // 60s
 
-const TOP_N = IS_MOBILE ? 30 : 100;                 // Ações: top por volume (mobile 30, desktop 100)
-
-/* Física (mobile mais lento) */
+// ====== FÍSICA ======
 const HEADER_SAFE      = 84;
 const WALL_MARGIN      = IS_MOBILE ? 18 : 10;
 const FRICTION         = IS_MOBILE ? 0.998 : 0.985;
@@ -15,36 +17,52 @@ const REPULSE_COLLIDE  = IS_MOBILE ? 0.55  : 0.40;
 const BORDER_WIDTH     = 2.5;
 const COLLISION_PASSES = IS_MOBILE ? 5 : 1;
 
-const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;       // base desktop/mobile
-const CENTER_PULL      = 0;                         // ❌ sem puxão ao centro
+const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;
+const CENTER_PULL      = 0;
 
-/* Anti-agrupamento (repulsão de longo alcance) */
 const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.005 : 0.0035;
-const NEIGHBOR_RANGE_MULT   = 1.7;                  // alcance ~1.7× (r1+r2)
+const NEIGHBOR_RANGE_MULT   = 1.7;
 
-/* “Buraco” central + órbita (empurra para fora e faz circular) */
-const CENTER_HOLE_RADIUS_FACTOR = IS_MOBILE ? 0.32 : 0.28; // fração do menor lado
+const CENTER_HOLE_RADIUS_FACTOR = IS_MOBILE ? 0.32 : 0.28;
 const CENTER_HOLE_STRENGTH      = IS_MOBILE ? 0.012 : 0.008;
 const ORBIT_STRENGTH            = IS_MOBILE ? 0.009 : 0.006;
 
-/* Vento/drift + wobble */
 const DRIFT_BASE        = IS_MOBILE ? 0.004 : 0.003;
 const DRIFT_FREQ        = 0.0018;
 const WOBBLE_STRENGTH   = IS_MOBILE ? 0.010 : 0.010;
 const WOBBLE_FREQ       = 0.0025;
 
-/************ CANVAS ************/
+// ====== CANVAS ======
 const canvas = document.getElementById("bubbleCanvas");
 const ctx = canvas.getContext("2d");
 function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
 addEventListener("resize", resize); resize();
 
-/************ STATE ************/
+// ====== UI STATUS ======
+const statusBox = document.getElementById("statusBox") || (() => {
+  const el = document.createElement("div");
+  el.id = "statusBox";
+  el.style.cssText = "position:fixed;left:12px;bottom:12px;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font:500 12px/1.2 Arial;z-index:9999;pointer-events:none;opacity:.0;transition:opacity .25s";
+  document.body.appendChild(el);
+  return el;
+})();
+function showStatus(msg, kind="info") {
+  statusBox.textContent = msg;
+  statusBox.style.background = kind==="error" ? "rgba(180,20,20,.75)" :
+                               kind==="warn"  ? "rgba(200,140,0,.75)" :
+                                                "rgba(0,0,0,.55)";
+  statusBox.style.opacity = "1";
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(()=>statusBox.style.opacity="0", 3500);
+}
+
+// ====== STATE ======
 let category = "acoes";
 let bubbles = [];
 let lastTime = performance.now();
+let refreshTimer = null;
 
-/************ UTILS ************/
+// ====== UTILS ======
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 const rand  = (a,b)=>Math.random()*(b-a)+a;
 const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
@@ -54,8 +72,14 @@ function formatMoney(v, currency="BRL"){
   const prefix = (currency || "BRL").toUpperCase()==="USD" ? "US$ " : "R$ ";
   return prefix + Number(v).toFixed(2).replace(".", ",");
 }
+function withTimeout(promise, ms=10000){
+  return Promise.race([
+    promise,
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")), ms))
+  ]);
+}
 
-/* Raio: 3× MAIOR no CELULAR para minerio/petroleo/bancos/varejo */
+// raio (3× no mobile em minerio/petroleo/bancos/varejo)
 function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
@@ -73,12 +97,12 @@ function radiusFor(changePct, volume){
 }
 
 async function getJSON(url){
-  const res = await fetch(url);
+  const res = await withTimeout(fetch(url), 10000);
   if(!res.ok) throw new Error(`${res.status} ${url}`);
   return res.json();
 }
 
-/************ LISTAS ************/
+// ====== LISTAS ======
 const LISTS = {
   minerio: [
     "VALE3","CMIN3","CSNA3",
@@ -95,30 +119,32 @@ const LISTS = {
   bancos:  ["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
   varejo:  ["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
 };
+// Fallback IBOV amplo (amostra) — use só se /quote/list falhar
+const IBOV_FALLBACK = [
+  "VALE3","PETR4","PETR3","ITUB4","BBDC4","BBAS3","ELET3","ELET6","ABEV3","WEGE3","RAIL3","PRIO3",
+  "RENT3","EQTL3","SUZB3","JBSS3","CSNA3","GGBR4","GOAU4","USIM5","VBBR3","UGPA3","CMIN3","RRRP3",
+  "LREN3","B3SA3","BRFS3","EMBR3","BRAP4","NTCO3","CASH3","GMAT3","BRKM5","CRFB3","ASAI3","PCAR3",
+  "ITSA4","BBSE3","BBDC3","SANB11","BPAC11","ABCB4","BMGB4","BRSR6"
+];
 
-/************ MAP + VALID (padronizado para /quote/{tickers}) ************/
+// ====== MAP + VALID ======
 function mapQuote(it){
   const symbol = (it.symbol || it.stock || it.code || it.ticker || "").toUpperCase();
-
   const price = Number(it.regularMarketPrice);
   let changePct = Number(it.regularMarketChangePercent);
-
-  // fallback confiável quando a API não mandar % (usa previousClose)
   if (!Number.isFinite(changePct)) {
     const prev = Number(it.regularMarketPreviousClose);
     if (Number.isFinite(price) && Number.isFinite(prev) && prev !== 0) {
       changePct = ((price / prev) - 1) * 100;
     }
   }
-
   const volume = Number(it.regularMarketVolume ?? it.volume ?? it.totalVolume);
   const currency = (it.currency || "BRL").toUpperCase();
-
   return { symbol, price, changePct, volume, currency };
 }
 const valid = q => q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct);
 
-/************ FETCHERS ************/
+// ====== FETCHERS ======
 async function fetchByTickers(tickers){
   if (!tickers.length) return [];
   const chunk = 40;
@@ -127,46 +153,50 @@ async function fetchByTickers(tickers){
     const slice = tickers.slice(i,i+chunk);
     batches.push(getJSON(`https://brapi.dev/api/quote/${slice.join(",")}?token=${TOKEN}`));
   }
-  const results = (await Promise.allSettled(batches))
-    .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
+  const settled = await Promise.allSettled(batches);
+  const results = settled.flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
   const mapped = results.map(mapQuote).filter(valid);
   mapped.sort((a,b)=>(b.volume||0)-(a.volume||0));
   return mapped;
 }
 
-/* AÇÕES — ranqueia pelo /quote/list (volume) e reidrata com /quote/{tickers} */
 async function fetchAcoesTop(){
-  // 1) pega muitos para ranquear por volume
-  const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
-  const json = await getJSON(url);
-  const arr = (json.stocks || json.results || []).filter(x => x.stock);
-  // 2) símbolos (folga)
-  const symbols = arr.map(x => x.stock.toUpperCase()).slice(0, TOP_N*2);
-  // 3) reidrata com os campos corretos (price, change%, volume)
-  const hydrated = await fetchByTickers(symbols);
-  // 4) ordena por volume e limita ao TOP_N
-  hydrated.sort((a,b) => (b.volume||0) - (a.volume||0));
-  return hydrated.slice(0, TOP_N);
+  try{
+    // 1) usa /quote/list só para RANQUEAR (volume)
+    const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
+    const json = await getJSON(url);
+    const arr = (json.stocks || json.results || []).filter(x => x.stock);
+    const symbols = arr.map(x => x.stock.toUpperCase()).slice(0, TOP_N*2);
+    // 2) reidrata com /quote/{tickers}
+    const hydrated = await fetchByTickers(symbols);
+    hydrated.sort((a,b) => (b.volume||0)-(a.volume||0));
+    return hydrated.slice(0, TOP_N);
+  }catch(err){
+    console.warn("Falha no /quote/list, usando fallback IBOV:", err.message);
+    showStatus("BRAPI instável — usando fallback IBOV", "warn");
+    const hydrated = await fetchByTickers(IBOV_FALLBACK);
+    hydrated.sort((a,b) => (b.volume||0)-(a.volume||0));
+    return hydrated.slice(0, TOP_N);
+  }
 }
 
-/* Minério — até 20 que estiverem cotando (sem placeholder) */
 async function fetchMinerioReal(){
   const data = await fetchByTickers(LISTS.minerio);
   return data.slice(0, Math.min(20, data.length));
 }
-
 async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
     case "minerio":   return fetchMinerioReal();
-    case "petroleo":  return (await fetchByTickers(LISTS.petroleo)).slice(0, TOP_N);
+    case "petroleo":  return (await fetchByTickers(LISTS.p
+etroleo)).slice(0, TOP_N);
     case "bancos":    return (await fetchByTickers(LISTS.bancos)).slice(0, TOP_N);
     case "varejo":    return (await fetchByTickers(LISTS.varejo)).slice(0, TOP_N);
     default:          return fetchAcoesTop();
   }
 }
 
-/************ BOLHAS ************/
+// ====== BOLHAS ======
 function createBubbles(data){
   bubbles = data.map(d => ({
     symbol: d.symbol,
@@ -182,10 +212,10 @@ function createBubbles(data){
     phase: Math.random()*Math.PI*2,
     driftSeed: Math.random()*Math.PI*2
   }));
-  for (let k=0;k<3;k++) resolveCollisions(true); // afastamento inicial
+  for (let k=0;k<3;k++) resolveCollisions(true);
 }
 
-/************ FÍSICA ************/
+// ====== FÍSICA ======
 function softSeparationForces(){
   for (let i=0;i<bubbles.length;i++){
     for (let j=i+1;j<bubbles.length;j++){
@@ -203,7 +233,6 @@ function softSeparationForces(){
     }
   }
 }
-
 function resolveCollisions(init=false){
   for (let i=0;i<bubbles.length;i++){
     for (let j=i+1;j<bubbles.length;j++){
@@ -225,7 +254,6 @@ function resolveCollisions(init=false){
     }
   }
 }
-
 function wallConstraints(p){
   const L=p.r+WALL_MARGIN, R=canvas.width-p.r-WALL_MARGIN;
   const T=HEADER_SAFE+p.r, B=canvas.height-p.r-WALL_MARGIN;
@@ -233,12 +261,11 @@ function wallConstraints(p){
   if(p.y<T){p.y=T;p.vy=Math.abs(p.vy);} if(p.y>B){p.y=B;p.vy=-Math.abs(p.vy);}
 }
 
-/************ DESENHO ************/
+// ====== DESENHO ======
 function drawBubble(b){
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
   ctx.fillStyle=b.color; ctx.fill();
 
-  // brilho 3D nas bordas (nada no centro)
   const ring=ctx.createRadialGradient(b.x,b.y,b.r*0.75,b.x,b.y,b.r);
   ring.addColorStop(0,"rgba(255,255,255,0)");
   ring.addColorStop(1,"rgba(255,255,255,0.85)");
@@ -246,7 +273,6 @@ function drawBubble(b){
 
   ctx.lineWidth=BORDER_WIDTH; ctx.strokeStyle="#fff"; ctx.stroke();
 
-  // textos
   ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle";
   const f1=Math.max(11,Math.floor(b.r*0.4));
   const f2=Math.max(10,Math.floor(b.r*0.3));
@@ -262,37 +288,32 @@ function drawBubble(b){
   const sign=b.change>=0?"+":"";
   ctx.fillText(`${sign}${b.change.toFixed(2)}%`, b.x, b.y + b.r*0.3);
 }
-
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   for(const b of bubbles) drawBubble(b);
 }
 
-/************ LOOP ************/
+// ====== LOOP ======
 function step(now = performance.now()){
-  let dt = now - lastTime;
-  lastTime = now;
+  let dt = now - lastTime; lastTime = now;
   dt = Math.min(32, Math.max(8, dt));
   const s = dt / 16;
 
   softSeparationForces();
 
   const cx = canvas.width * 0.5;
-  const cy = canvas.height * 0.52; // levemente abaixo
+  const cy = canvas.height * 0.52;
   const holeR = Math.min(canvas.width, canvas.height) * CENTER_HOLE_RADIUS_FACTOR;
 
   for(const p of bubbles){
-    // wobble
     const t = now * WOBBLE_FREQ + p.phase;
     p.vx += Math.sin(t) * WOBBLE_STRENGTH * s;
     p.vy += Math.cos(t) * WOBBLE_STRENGTH * s;
 
-    // vento
     const w = now * DRIFT_FREQ + p.driftSeed;
     p.vx += Math.sin(w*0.9) * DRIFT_BASE * s;
     p.vy += Math.cos(w*1.1) * DRIFT_BASE * s;
 
-    // “buraco” central (empurra pra fora)
     const dx = p.x - cx, dy = p.y - cy;
     const dist = Math.hypot(dx, dy);
     if (dist < holeR && dist > 0.0001){
@@ -300,8 +321,6 @@ function step(now = performance.now()){
       const k = (1 - dist / holeR) * CENTER_HOLE_STRENGTH;
       p.vx += nx * k * s; p.vy += ny * k * s;
     }
-
-    // órbita (perpendicular ao vetor centro→bolha)
     if (dist > 0.0001){
       const nx = dx / dist, ny = dy / dist;
       const tx = -ny, ty = nx;
@@ -309,11 +328,8 @@ function step(now = performance.now()){
       p.vx += tx * orb * s; p.vy += ty * orb * s;
     }
 
-    // atrito + limites
     p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
     p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
-
-    // integra
     p.x  += p.vx * s; p.y  += p.vy * s;
 
     wallConstraints(p);
@@ -324,17 +340,25 @@ function step(now = performance.now()){
   requestAnimationFrame(step);
 }
 
-/************ BOTÕES ************/
+// ====== BOTÕES ======
 async function setCategory(cat){
   category = cat;
   document.querySelectorAll(".buttons button").forEach(b=>{
     b.classList.toggle("active", b.dataset.cat===cat);
   });
+  showStatus("Carregando cotações…");
   try{
     const data = await fetchData();
+    if (!data.length){
+      showStatus("Sem dados para esta categoria agora.", "warn");
+      bubbles = []; draw();
+      return;
+    }
     createBubbles(data);
+    showStatus(`Carregado: ${data.length} papéis`);
   }catch(e){
     console.error("Erro ao carregar", cat, e);
+    showStatus("Erro na API de cotações", "error");
     bubbles = []; draw();
   }
 }
@@ -342,7 +366,8 @@ document.querySelectorAll(".buttons button").forEach(b=>{
   b.addEventListener("click", ()=>setCategory(b.dataset.cat));
 });
 
-/************ START ************/
+// ====== START ======
 setCategory("acoes");
 requestAnimationFrame(step);
-setInterval(()=>setCategory(category), 30000);
+clearInterval(refreshTimer);
+refreshTimer = setInterval(()=>setCategory(category), REFRESH_MS);
