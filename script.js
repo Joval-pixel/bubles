@@ -1,13 +1,12 @@
-/************ CONFIG ************/
-console.log("Bubles JS v2025-08-13 (retina+padding+anti-clip)");
+/************ BUBLES — script.js (corrigido BRAPI + anti-cluster + mobile 3×) ************/
+console.log("Bubles JS v2025-08-13 brapi-fix + anti-cluster + 3x-mobile");
 const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
-const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
-                  (navigator.maxTouchPoints || 0) > 0;
+const IS_MOBILE = matchMedia("(max-width: 820px)").matches || (navigator.maxTouchPoints || 0) > 0;
 
-const TOP_N = IS_MOBILE ? 35 : 200;
+const TOP_N = IS_MOBILE ? 30 : 100;                 // Ações: top por volume (mobile 30, desktop 100)
 
 /* Física (mobile mais lento) */
-const DEFAULT_HEADER_SAFE = 84;
+const HEADER_SAFE      = 84;
 const WALL_MARGIN      = IS_MOBILE ? 18 : 10;
 const FRICTION         = IS_MOBILE ? 0.998 : 0.985;
 const MAX_SPEED        = IS_MOBILE ? 0.12  : 0.90;
@@ -16,12 +15,12 @@ const REPULSE_COLLIDE  = IS_MOBILE ? 0.55  : 0.40;
 const BORDER_WIDTH     = 2.5;
 const COLLISION_PASSES = IS_MOBILE ? 5 : 1;
 
-const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;     // base
-const CENTER_PULL      = 0;                       // sem puxão ao centro
+const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;       // base desktop/mobile
+const CENTER_PULL      = 0;                         // ❌ sem puxão ao centro
 
 /* Anti-agrupamento (repulsão de longo alcance) */
 const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.005 : 0.0035;
-const NEIGHBOR_RANGE_MULT   = 1.7; // alcance ~1.7x (r1+r2)
+const NEIGHBOR_RANGE_MULT   = 1.7;                  // alcance ~1.7× (r1+r2)
 
 /* “Buraco” central + órbita (empurra para fora e faz circular) */
 const CENTER_HOLE_RADIUS_FACTOR = IS_MOBILE ? 0.32 : 0.28; // fração do menor lado
@@ -34,60 +33,29 @@ const DRIFT_FREQ        = 0.0018;
 const WOBBLE_STRENGTH   = IS_MOBILE ? 0.010 : 0.010;
 const WOBBLE_FREQ       = 0.0025;
 
-/************ CANVAS (retina) ************/
+/************ CANVAS ************/
 const canvas = document.getElementById("bubbleCanvas");
 const ctx = canvas.getContext("2d");
-
-function resize(){
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-
-  // tamanho visual
-  canvas.style.width = w + "px";
-  canvas.style.height = h + "px";
-
-  // tamanho real
-  canvas.width  = Math.floor(w * dpr);
-  canvas.height = Math.floor(h * dpr);
-
-  // Desenhar em coordenadas de CSS px (1 unidade = 1 px CSS)
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-addEventListener("resize", resize);
-addEventListener("orientationchange", () => setTimeout(resize, 200));
-resize();
+function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+addEventListener("resize", resize); resize();
 
 /************ STATE ************/
 let category = "acoes";
 let bubbles = [];
 let lastTime = performance.now();
 
-/************ DOM helpers ************/
-const headerEl = document.querySelector(".header");
-function headerHeight(){
-  // altura real do header em px CSS
-  try { return Math.ceil(headerEl?.getBoundingClientRect().height || DEFAULT_HEADER_SAFE); }
-  catch { return DEFAULT_HEADER_SAFE; }
-}
-function stageSize(){
-  return { w: canvas.clientWidth || window.innerWidth, h: canvas.clientHeight || window.innerHeight };
-}
-function boundsPad(){
-  // folga extra inclui stroke e brilho
-  return WALL_MARGIN + Math.max(8, BORDER_WIDTH * 1.25);
-}
-const statusBar = document.getElementById("statusBar");
-const setStatus = (t)=> statusBar && (statusBar.textContent = t || "");
-
 /************ UTILS ************/
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 const rand  = (a,b)=>Math.random()*(b-a)+a;
 const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
-const formatBRL = v => Number.isFinite(Number(v)) ? `R$ ${Number(v).toFixed(2).replace('.',',')}` : "";
+function formatMoney(v, currency="BRL"){
+  if (!Number.isFinite(Number(v))) return "";
+  const prefix = (currency || "BRL").toUpperCase()==="USD" ? "US$ " : "R$ ";
+  return prefix + Number(v).toFixed(2).replace(".", ",");
+}
 
-/* Raio: 1× MAIOR no CELULAR para minerio/petroleo/bancos/varejo */
+/* Raio: 3× MAIOR no CELULAR para minerio/petroleo/bancos/varejo */
 function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
@@ -128,32 +96,29 @@ const LISTS = {
   varejo:  ["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
 };
 
-/************ MAP + VALID ************/
+/************ MAP + VALID (padronizado para /quote/{tickers}) ************/
 function mapQuote(it){
   const symbol = (it.symbol || it.stock || it.code || it.ticker || "").toUpperCase();
-  const price  = pickNum(it.regularMarketPrice, it.price, it.close, it.lastPrice);
-  let changePct = pickNum(it.regularMarketChangePercent, it.change_percent, it.change, it.pctChange);
+
+  const price = Number(it.regularMarketPrice);
+  let changePct = Number(it.regularMarketChangePercent);
+
+  // fallback confiável quando a API não mandar % (usa previousClose)
   if (!Number.isFinite(changePct)) {
-    const prev = pickNum(it.regularMarketPreviousClose, it.previousClose, it.prevClose);
+    const prev = Number(it.regularMarketPreviousClose);
     if (Number.isFinite(price) && Number.isFinite(prev) && prev !== 0) {
       changePct = ((price / prev) - 1) * 100;
     }
   }
-  const volume = pickNum(it.regularMarketVolume, it.volume, it.totalVolume);
-  return { symbol, price, changePct, volume };
+
+  const volume = Number(it.regularMarketVolume ?? it.volume ?? it.totalVolume);
+  const currency = (it.currency || "BRL").toUpperCase();
+
+  return { symbol, price, changePct, volume, currency };
 }
 const valid = q => q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct);
 
 /************ FETCHERS ************/
-async function fetchAcoesTop(){
-  const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
-  const json = await getJSON(url);
-  const arr = json.stocks || json.results || [];
-  const norm = arr.map(mapQuote).filter(valid);
-  norm.sort((a,b)=>(b.volume||0)-(a.volume||0));
-  return norm.slice(0, TOP_N);
-}
-
 async function fetchByTickers(tickers){
   if (!tickers.length) return [];
   const chunk = 40;
@@ -169,13 +134,27 @@ async function fetchByTickers(tickers){
   return mapped;
 }
 
-/* Minério real — até 20, sem placeholders */
+/* AÇÕES — ranqueia pelo /quote/list (volume) e reidrata com /quote/{tickers} */
+async function fetchAcoesTop(){
+  // 1) pega muitos para ranquear por volume
+  const url = `https://brapi.dev/api/quote/list?limit=${TOP_N*3}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
+  const json = await getJSON(url);
+  const arr = (json.stocks || json.results || []).filter(x => x.stock);
+  // 2) símbolos (folga)
+  const symbols = arr.map(x => x.stock.toUpperCase()).slice(0, TOP_N*2);
+  // 3) reidrata com os campos corretos (price, change%, volume)
+  const hydrated = await fetchByTickers(symbols);
+  // 4) ordena por volume e limita ao TOP_N
+  hydrated.sort((a,b) => (b.volume||0) - (a.volume||0));
+  return hydrated.slice(0, TOP_N);
+}
+
+/* Minério — até 20 que estiverem cotando (sem placeholder) */
 async function fetchMinerioReal(){
   const data = await fetchByTickers(LISTS.minerio);
   return data.slice(0, Math.min(20, data.length));
 }
 
-/************ DISPATCH ************/
 async function fetchData(){
   switch (category){
     case "acoes":     return fetchAcoesTop();
@@ -189,33 +168,25 @@ async function fetchData(){
 
 /************ BOLHAS ************/
 function createBubbles(data){
-  const { w, h } = stageSize();
-  const pad = boundsPad();
-  const hh  = headerHeight();
-
   bubbles = data.map(d => ({
     symbol: d.symbol,
     price: d.price,
     change: d.changePct,
+    currency: d.currency,
     color: colorForChange(d.changePct),
     r: radiusFor(d.changePct, d.volume),
-
-    // spawn respeitando header e margens REAIS
-    x: rand(pad + 50,  w - pad - 50),
-    y: rand(hh + pad + 20,  h - pad - 50),
-
+    x: rand(50, canvas.width-50),
+    y: rand(HEADER_SAFE + 20, canvas.height-50),
     vx: rand(-START_VEL, START_VEL),
     vy: rand(-START_VEL, START_VEL),
     phase: Math.random()*Math.PI*2,
     driftSeed: Math.random()*Math.PI*2
   }));
-
-  for (let k=0;k<(IS_MOBILE?5:3);k++) resolveCollisions(true); // afastamento inicial mais forte no mobile
+  for (let k=0;k<3;k++) resolveCollisions(true); // afastamento inicial
 }
 
 /************ FÍSICA ************/
 function softSeparationForces(){
-  // repulsão de longo alcance (anti-agrupamento)
   for (let i=0;i<bubbles.length;i++){
     for (let j=i+1;j<bubbles.length;j++){
       const a=bubbles[i], b=bubbles[j];
@@ -256,19 +227,10 @@ function resolveCollisions(init=false){
 }
 
 function wallConstraints(p){
-  const { w, h } = stageSize();
-  const pad = boundsPad();
-  const hh  = headerHeight();
-
-  const L = p.r + pad;
-  const R = w - p.r - pad;
-  const T = hh + p.r + pad;
-  const B = h - p.r - pad;
-
-  if(p.x < L){ p.x = L; p.vx = Math.abs(p.vx); }
-  if(p.x > R){ p.x = R; p.vx = -Math.abs(p.vx); }
-  if(p.y < T){ p.y = T; p.vy = Math.abs(p.vy); }
-  if(p.y > B){ p.y = B; p.vy = -Math.abs(p.vy); }
+  const L=p.r+WALL_MARGIN, R=canvas.width-p.r-WALL_MARGIN;
+  const T=HEADER_SAFE+p.r, B=canvas.height-p.r-WALL_MARGIN;
+  if(p.x<L){p.x=L;p.vx=Math.abs(p.vx);} if(p.x>R){p.x=R;p.vx=-Math.abs(p.vx);}
+  if(p.y<T){p.y=T;p.vy=Math.abs(p.vy);} if(p.y>B){p.y=B;p.vy=-Math.abs(p.vy);}
 }
 
 /************ DESENHO ************/
@@ -276,7 +238,7 @@ function drawBubble(b){
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
   ctx.fillStyle=b.color; ctx.fill();
 
-  // brilho nas bordas (sem luz no centro)
+  // brilho 3D nas bordas (nada no centro)
   const ring=ctx.createRadialGradient(b.x,b.y,b.r*0.75,b.x,b.y,b.r);
   ring.addColorStop(0,"rgba(255,255,255,0)");
   ring.addColorStop(1,"rgba(255,255,255,0.85)");
@@ -294,7 +256,7 @@ function drawBubble(b){
   ctx.fillText(b.symbol, b.x, b.y - b.r*0.3);
 
   ctx.font=`500 ${f2}px Arial`;
-  ctx.fillText(`${formatBRL(b.price)}`, b.x, b.y);
+  ctx.fillText(formatMoney(b.price, b.currency), b.x, b.y);
 
   ctx.font=`600 ${f3}px Arial`;
   const sign=b.change>=0?"+":"";
@@ -313,14 +275,11 @@ function step(now = performance.now()){
   dt = Math.min(32, Math.max(8, dt));
   const s = dt / 16;
 
-  // repulsão suave entre vizinhos
   softSeparationForces();
 
-  // centro (buraco + órbita)
-  const { w, h } = stageSize();
-  const cx = w * 0.5;
-  const cy = h * 0.52; // levemente abaixo
-  const holeR = Math.min(w, h) * CENTER_HOLE_RADIUS_FACTOR;
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.52; // levemente abaixo
+  const holeR = Math.min(canvas.width, canvas.height) * CENTER_HOLE_RADIUS_FACTOR;
 
   for(const p of bubbles){
     // wobble
@@ -328,31 +287,29 @@ function step(now = performance.now()){
     p.vx += Math.sin(t) * WOBBLE_STRENGTH * s;
     p.vy += Math.cos(t) * WOBBLE_STRENGTH * s;
 
-    // vento individual
-    const wv = now * DRIFT_FREQ + p.driftSeed;
-    p.vx += Math.sin(wv*0.9) * DRIFT_BASE * s;
-    p.vy += Math.cos(wv*1.1) * DRIFT_BASE * s;
+    // vento
+    const w = now * DRIFT_FREQ + p.driftSeed;
+    p.vx += Math.sin(w*0.9) * DRIFT_BASE * s;
+    p.vy += Math.cos(w*1.1) * DRIFT_BASE * s;
 
-    // buraco central
+    // “buraco” central (empurra pra fora)
     const dx = p.x - cx, dy = p.y - cy;
     const dist = Math.hypot(dx, dy);
     if (dist < holeR && dist > 0.0001){
       const nx = dx / dist, ny = dy / dist;
       const k = (1 - dist / holeR) * CENTER_HOLE_STRENGTH;
-      p.vx += nx * k * s;
-      p.vy += ny * k * s;
+      p.vx += nx * k * s; p.vy += ny * k * s;
     }
 
-    // órbita (perpendicular)
+    // órbita (perpendicular ao vetor centro→bolha)
     if (dist > 0.0001){
       const nx = dx / dist, ny = dy / dist;
-      const tx = -ny, ty = nx; // perpendicular
+      const tx = -ny, ty = nx;
       const orb = ORBIT_STRENGTH * (holeR / (holeR + dist));
-      p.vx += tx * orb * s;
-      p.vy += ty * orb * s;
+      p.vx += tx * orb * s; p.vy += ty * orb * s;
     }
 
-    // atrito e limites
+    // atrito + limites
     p.vx = clamp(p.vx * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
     p.vy = clamp(p.vy * Math.pow(FRICTION, s), -MAX_SPEED, MAX_SPEED);
 
@@ -374,13 +331,10 @@ async function setCategory(cat){
     b.classList.toggle("active", b.dataset.cat===cat);
   });
   try{
-    setStatus("Carregando cotações...");
     const data = await fetchData();
     createBubbles(data);
-    setStatus(`Exibindo ${data.length} • ${cat.toUpperCase()}`);
   }catch(e){
     console.error("Erro ao carregar", cat, e);
-    setStatus("Erro ao carregar dados.");
     bubbles = []; draw();
   }
 }
@@ -391,23 +345,4 @@ document.querySelectorAll(".buttons button").forEach(b=>{
 /************ START ************/
 setCategory("acoes");
 requestAnimationFrame(step);
-
-// Atualiza dados a cada 30s sem “teleportar” bolhas
-setInterval(async ()=>{
-  try{
-    const data = await fetchData();
-    // Atualiza apenas preço/variação/volume e raio, mantendo posição/velocidade
-    const bySym = new Map(data.map(d => [d.symbol, d]));
-    for (const p of bubbles){
-      const d = bySym.get(p.symbol);
-      if (!d) continue;
-      p.price  = d.price;
-      p.change = d.changePct;
-      p.color  = colorForChange(d.changePct);
-      p.r      = radiusFor(d.changePct, d.volume);
-    }
-    setStatus(`Atualizado • ${new Date().toLocaleTimeString()}`);
-  }catch(e){
-    console.warn("Falha ao atualizar:", e?.message || e);
-  }
-}, 30000);
+setInterval(()=>setCategory(category), 30000);
