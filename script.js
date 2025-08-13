@@ -4,7 +4,7 @@ const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
-const TOP_N = IS_MOBILE ? 30 : 180;
+const TOP_N = IS_MOBILE ? 35 : 200;
 
 /* Física (mobile mais lento) */
 const DEFAULT_HEADER_SAFE = 84;
@@ -87,7 +87,7 @@ const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=> { for (const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
 const formatBRL = v => Number.isFinite(Number(v)) ? `R$ ${Number(v).toFixed(2).replace('.',',')}` : "";
 
-/* Raio: 2× MAIOR no CELULAR para minerio/petroleo/bancos/varejo */
+/* Raio: 1× MAIOR no CELULAR para minerio/petroleo/bancos/varejo */
 function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
