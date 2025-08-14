@@ -2,8 +2,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 
-/* fundo no tom do CryptoBubbles */
-body {
+body{
   margin:0;
   background:#2b2f37;
   color:#e8e8e8;
@@ -36,19 +35,19 @@ body {
 /* ---- 3D das bolhas ---- */
 .bubble { filter: drop-shadow(0 10px 24px rgba(0,0,0,.55)); }
 
-/* aro principal (borda) */
-.rim { stroke-width: 3.2; fill: none; }
+/* aro principal */
+.rim { stroke-width: 3.8; fill: none; }           /* + mais espesso */
 
-/* halo externo (glow) */
-.outer-glow { fill: none; stroke-linecap: round; opacity: .32; }
+/* halo/glow */
+.outer-glow { fill: none; stroke-linecap: round; opacity: .44; } /* + forte */
 
 /* sombra interna */
 .has-inner-shadow { filter: url(#innerShadow); }
 
-/* brilho/gloss no topo */
-.gloss { fill: url(#glossGrad); opacity: .28; }
+/* brilho/gloss */
+.gloss { fill: url(#glossGrad); opacity: .34; }   /* + intenso */
 
-/* gradientes do disco (paradas de cor) */
+/* discos: paradas do gradiente */
 .grad-pos-0{ stop-color:#0d4026; }
 .grad-pos-1{ stop-color:#133f2b; }
 .grad-pos-2{ stop-color:#1fc879; }
@@ -64,27 +63,23 @@ body {
 .grad-neu-2{ stop-color:#aeb6c4; }
 .grad-neu-3{ stop-color:#2a2f37; }
 
-/* aro iluminado (cores) — ids dos gradients são definidos no SVG defs */
 .rim-pos { stroke: url(#rimGradPos); }
 .rim-neg { stroke: url(#rimGradNeg); }
 .rim-neu { stroke: url(#rimGradNeu); }
 
-/* halo externo acompanha a cor */
 .glow-pos { stroke: #25e38f; }
 .glow-neg { stroke: #ff7780; }
 .glow-neu { stroke: #b9c2d3; }
 
 /* textos */
 .ticker, .price, .pct {
-  paint-order: stroke;
-  stroke:#000; stroke-width:4px;
-  fill:#fff; text-anchor:middle;
+  paint-order: stroke; stroke:#000; stroke-width:4px; fill:#fff; text-anchor:middle;
 }
 .ticker{ font-weight:900; letter-spacing:.5px; }
 .price { font-weight:800; }
 .pct   { font-weight:900; }
 
-/* fallback quando não tem logo */
+/* fallback do logo */
 .logo-fallback{ fill:rgba(255,255,255,.06); }
 
 /* modal */
