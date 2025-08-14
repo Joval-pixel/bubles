@@ -1,74 +1,33 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BUBLES — Ações em Bolhas</title>
-  <link rel="stylesheet" href="./style.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>BUBLES — Ações ao Vivo</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <span class="led"></span>
-    <strong class="brand">BUBLES</strong>
+  <!-- Header / Controles -->
+  <header class="header">
+    <div class="brand">
+      <span class="dot"></span>
+      <strong>BUBLES</strong> — Ações ao Vivo
+    </div>
+
+    <div class="buttons" role="tablist" aria-label="Categorias">
+      <button type="button" class="btn active" data-cat="acoes">Ações</button>
+      <button type="button" class="btn" data-cat="petroleo">Petróleo</button>
+      <button type="button" class="btn" data-cat="bancos">Bancos</button>
+      <button type="button" class="btn" data-cat="varejo">Varejo</button>
+      <button type="button" class="btn" data-cat="minerio">Minério</button>
+    </div>
+
+    <div id="statusBar" class="status">Carregando…</div>
   </header>
 
-  <section class="controls">
-    <div class="row">
-      <input id="search-input" class="input" placeholder="Buscar por ticker" aria-label="Buscar por ticker" />
+  <!-- Palco das bolhas -->
+  <canvas id="bubbleCanvas" aria-hidden="true"></canvas>
 
-      <select id="type-select" class="select" aria-label="Filtrar por tipo">
-        <option value="">Todos os tipos</option>
-      </select>
-
-      <select id="sector-select" class="select" aria-label="Filtrar por setor">
-        <option value="">Todos os setores</option>
-      </select>
-
-      <select id="range-select" class="select w-compact" aria-label="Quantidade">
-        <option>1-30</option>
-        <option>1-100</option>
-        <option selected>1-200</option>
-      </select>
-
-      <select id="metric-select" class="select w-compact" aria-label="Métrica do tamanho">
-        <option value="volume" selected>Volume</option>
-        <option value="market-cap">Valor de mercado</option>
-        <option value="price">Preço</option>
-      </select>
-
-      <select id="market-select" class="select w-compact" aria-label="Mercado">
-        <option value="brazilian" selected>Brasil</option>
-        <option value="american">EUA</option>
-      </select>
-
-      <button id="settings" class="btn icon" title="Configurações">⚙️</button>
-    </div>
-
-    <div class="tabs" role="tablist" aria-label="Período">
-      <button class="tab period-btn" data-period="hour">Hora</button>
-      <button class="tab period-btn active" data-period="day">Dia</button>
-      <button class="tab period-btn" data-period="week">Semana</button>
-      <button class="tab period-btn" data-period="month">Mês</button>
-      <button class="tab period-btn" data-period="year">Ano</button>
-    </div>
-
-    <div class="status"><span id="stock-counter">Carregando…</span></div>
-  </section>
-
-  <main class="stage">
-    <svg id="bubble-chart" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet"></svg>
-  </main>
-
-  <div id="settings-modal" class="modal hidden" aria-hidden="true">
-    <div class="modal-card">
-      <div class="modal-head">
-        <strong>Configurações</strong>
-        <button id="close-modal" class="btn small" aria-label="Fechar">✖</button>
-      </div>
-      <div class="modal-body">Ajustes adicionais em breve.</div>
-    </div>
-  </div>
-
-  <script src="./script.js"></script>
+  <script src="/script.js"></script>
 </body>
 </html>
