@@ -1,85 +1,450 @@
-/* Reset básico e fonte */
-* { box-sizing: border-box; }
-html, body { height: 100%; }
+/* Reset e base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  color: #fff;
-  background: #000;
-  overflow-x: hidden;   /* NÃO esconda o eixo Y para não “cortar” nada */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #000000;
+    color: #ffffff;
+    overflow-x: hidden;
+    min-height: 100vh;
 }
 
-/* Header fixo no topo */
+/* Header - Otimizado para mobile */
 .header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #121212;
-  border-bottom: 1px solid #2a2a2a;
-  padding: 10px 12px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-}
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  letter-spacing: .3px;
-  white-space: nowrap;
-}
-.brand span { font-size: 15px; }
-
-/* Botões de categorias */
-.buttons {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 2px;
-}
-.buttons button {
-  background: #242424;
-  color: #cfcfcf;
-  border: 1px solid #2e2e2e;
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.buttons button:hover { background: #2a2a2a; }
-.buttons button.active {
-  background: #0b73ff;
-  color: #fff;
-  border-color: #0b73ff;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 10px 15px;
 }
 
-/* Canvas ocupa a janela toda (fica atrás do header) */
-#bubbleCanvas {
-  position: fixed;
-  inset: 0;
-  display: block;
+/* Logo */
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
 }
 
-/* Barra de status no rodapé (opcional) */
-.status {
-  position: fixed;
-  left: 12px;
-  bottom: 12px;
-  z-index: 11;
-  background: rgba(20,20,20,.8);
-  border: 1px solid #333;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  color: #d0d0d0;
-  backdrop-filter: blur(4px);
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-/* Mobile */
+.logo-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 1px;
+}
+
+/* Controles principais - Layout mobile */
+.main-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+/* Linha 1: Busca e Range */
+.search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-container {
+    position: relative;
+    flex: 1;
+}
+
+.search-input {
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 12px 12px 12px 40px;
+    color: #ffffff;
+    font-size: 16px; /* Evita zoom no iOS */
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    border-color: #22c55e;
+}
+
+.search-input::placeholder {
+    color: #888;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    pointer-events: none;
+}
+
+.range-select {
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 12px;
+    color: #ffffff;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    min-width: 80px;
+}
+
+/* Linha 2: Botões de período */
+.period-row {
+    display: flex;
+    justify-content: center;
+}
+
+.period-buttons {
+    display: flex;
+    gap: 4px;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    padding: 4px;
+    overflow-x: auto;
+    min-width: 100%;
+}
+
+.period-btn {
+    background: none;
+    border: none;
+    color: #888;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.period-btn:hover {
+    color: #ffffff;
+    background-color: #3a3a3a;
+}
+
+.period-btn.active {
+    background-color: #ef4444;
+    color: #ffffff;
+}
+
+/* Linha 3: Métrica e Configurações */
+.bottom-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.metric-select {
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 12px;
+    color: #ffffff;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    flex: 1;
+}
+
+.settings-btn {
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 12px;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+}
+
+.settings-btn:hover {
+    background-color: #3a3a3a;
+    color: #ffffff;
+}
+
+/* Container principal */
+.main-container {
+    padding: 0;
+    background-color: #000000;
+    min-height: calc(100vh - 200px);
+}
+
+/* Gráfico de bolhas - Otimizado para mobile */
+.bubble-chart-container {
+    width: 100%;
+    height: calc(100vh - 220px);
+    min-height: 400px;
+    position: relative;
+    overflow: hidden;
+    padding: 10px;
+}
+
+.bubble-chart {
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    border-radius: 8px;
+}
+
+/* Estilos das bolhas - Otimizado para mobile */
+.bubble {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.bubble:hover {
+    stroke-width: 3 !important;
+    filter: brightness(1.1);
+}
+
+.bubble-text {
+    pointer-events: none;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
+    fill: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.bubble-symbol {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.bubble-change {
+    font-size: 10px;
+    font-weight: 600;
+}
+
+/* Cores das bolhas */
+.bubble-positive {
+    fill: #22c55e;
+    stroke: #16a34a;
+}
+
+.bubble-negative {
+    fill: #ef4444;
+    stroke: #dc2626;
+}
+
+.bubble-neutral {
+    fill: #6b7280;
+    stroke: #4b5563;
+}
+
+/* Modal - Otimizado para mobile */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.modal-header h2 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    color: #ffffff;
+    background-color: #2a2a2a;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.setting-group {
+    margin-bottom: 20px;
+}
+
+.setting-group label {
+    display: block;
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.setting-group select {
+    width: 100%;
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 12px;
+    color: #ffffff;
+    font-size: 16px; /* Evita zoom no iOS */
+    outline: none;
+}
+
+/* Contador de ações */
+.stock-counter {
+    text-align: center;
+    padding: 10px;
+    color: #888;
+    font-size: 14px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+}
+
+/* Responsividade específica */
 @media (max-width: 480px) {
-  .brand span { font-size: 14px; }
-  .buttons button { font-size: 12px; padding: 7px 10px; }
+    .header {
+        padding: 8px 12px;
+    }
+    
+    .search-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .range-select {
+        width: 100%;
+    }
+    
+    .period-buttons {
+        justify-content: flex-start;
+        padding: 2px;
+    }
+    
+    .period-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    
+    .bubble-chart-container {
+        height: calc(100vh - 240px);
+        padding: 5px;
+    }
+    
+    .bubble-symbol {
+        font-size: 10px;
+    }
+    
+    .bubble-change {
+        font-size: 8px;
+    }
+}
+
+/* Landscape mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+    .header {
+        padding: 5px 12px;
+    }
+    
+    .main-controls {
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .bubble-chart-container {
+        height: calc(100vh - 140px);
+    }
+}
+
+/* Animações */
+@keyframes bubbleAppear {
+    from {
+        opacity: 0;
+        transform: scale(0);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.bubble {
+    animation: bubbleAppear 0.6s ease-out;
+}
+
+/* Loading state */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #888;
+    font-size: 16px;
+}
+
+/* Touch improvements */
+.bubble {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button, select, input {
+    -webkit-tap-highlight-color: transparent;
 }
