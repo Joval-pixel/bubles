@@ -12,41 +12,55 @@
     <div class="brand">BUBLES</div>
   </header>
 
-  <div class="toolbar">
-    <input id="search-input" class="input" placeholder="Buscar ações..." />
-    <select id="range-select" title="quantidade">
-      <option>1-30</option>
-      <option>1-100</option>
-      <option selected>1-200</option>
-    </select>
-    <select id="metric-select" title="métrica">
-      <option value="market-cap" selected>Valor de Mercado</option>
-      <option value="volume">Volume</option>
-      <option value="price">Preço</option>
-    </select>
-    <select id="market-select" title="mercado">
-      <option value="brazilian" selected>Brasil</option>
-      <option value="american">EUA</option>
-    </select>
-    <button id="settings" class="btn">⚙️</button>
-  </div>
+  <!-- CONTROLES (estilo brapi.dev/quotes) -->
+  <section class="controls">
+    <div class="control-line">
+      <input id="search-input" class="input" placeholder="Buscar por ticker" />
+      <select id="type-select" class="select">
+        <option value="">Todos os tipos</option>
+      </select>
+      <select id="sector-select" class="select">
+        <option value="">Todos os setores</option>
+      </select>
 
-  <div class="tabs">
-    <button class="tab period-btn active" data-period="hour">Hora</button>
-    <button class="tab period-btn" data-period="day">Dia</button>
-    <button class="tab period-btn" data-period="week">Semana</button>
-    <button class="tab period-btn" data-period="month">Mês</button>
-    <button class="tab period-btn" data-period="year">Ano</button>
-  </div>
+      <select id="range-select" class="select w-compact" title="quantidade">
+        <option>1-30</option>
+        <option>1-100</option>
+        <option selected>1-200</option>
+      </select>
 
-  <div class="status">
-    <div id="stock-counter">Carregando…</div>
-  </div>
+      <select id="metric-select" class="select w-compact" title="métrica">
+        <option value="market-cap" selected>Valor de Mercado</option>
+        <option value="volume">Volume</option>
+        <option value="price">Preço</option>
+      </select>
+
+      <select id="market-select" class="select w-compact" title="mercado">
+        <option value="brazilian" selected>Brasil</option>
+        <option value="american">EUA</option>
+      </select>
+
+      <button id="settings" class="btn icon" title="Configurações">⚙️</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab period-btn active" data-period="hour">Hora</button>
+      <button class="tab period-btn" data-period="day">Dia</button>
+      <button class="tab period-btn" data-period="week">Semana</button>
+      <button class="tab period-btn" data-period="month">Mês</button>
+      <button class="tab period-btn" data-period="year">Ano</button>
+    </div>
+
+    <div class="status">
+      <div id="stock-counter">Carregando…</div>
+    </div>
+  </section>
 
   <main class="chart-wrap">
     <svg id="bubble-chart" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet"></svg>
   </main>
 
+  <!-- Modal (opcional/futuro) -->
   <div id="settings-modal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
