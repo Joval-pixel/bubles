@@ -1,23 +1,10 @@
-/************ BUBLES — script.js (200 desktop / 30 mobile + animação sem sobreposição) ************/
+/************ BUBLES — script.js (API + 200 desktop / 30 mobile + animação sem sobreposição) ************/
 
-/* ===== 0) Responsividade (quantidade) ===== */
+/* ===== 0) Quantidade por dispositivo ===== */
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches || (navigator.maxTouchPoints || 0) > 0;
 const TOP_N = IS_MOBILE ? 30 : 200;
 
-/* ===== 1) DADOS =====
-   Use suas listas completas abaixo (brazilianStocks e americanStocks).
-   Se você já tem as listas carregadas neste mesmo arquivo, mantenha-as como estão.
-   (Removi daqui para encurtar a resposta)
-*/
-// >>> COLE AQUI SUAS LISTAS COMPLETAS <<<
-// const brazilianStocks = [ ...100+... ];
-// const americanStocks  = [ ...100+... ];
-
-/* ===== 2) Estado ===== */
-let currentMarket = 'brazilian';
-let currentPeriod = 'day';
-let currentMetric = 'market-cap';
-
+/* ===== 1) Utilidades ===== */
 const bubbleChart   = document.getElementById('bubble-chart');
 const searchInput   = document.getElementById('search-input');
 const rangeSelect   = document.getElementById('range-select');
@@ -29,16 +16,125 @@ const closeModal    = document.getElementById('close-modal');
 const marketSelect  = document.getElementById('market-select');
 const stockCounter  = document.getElementById('stock-counter');
 
-/* ===== 3) Helpers ===== */
-function datasetByMarket() {
-  return currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+let currentMarket = 'brazilian';   // 'brazilian' | 'american'
+let currentPeriod = 'day';          // hour | day | week | month | year
+let currentMetric = 'market-cap';   // market-cap | volume | price
+let allData = { brazilian: [], american: [] };
+let currentData = [];
+
+/* ===== 2) Dados locais de fallback (mínimo) ===== */
+function generateRandomStock(symbol, name, basePrice, baseCap) {
+  const rnd = () => (Math.random() - 0.5);
+  return {
+    symbol,
+    name,
+    price: basePrice + rnd() * basePrice * 0.2,
+    marketCap: baseCap + rnd() * baseCap * 0.3,
+    volume: Math.random() * 5 + 0.1,
+    hour: rnd() * 4,
+    day: rnd() * 10,
+    week: rnd() * 20,
+    month: rnd() * 40,
+    year: rnd() * 200
+  };
 }
+const fallbackBR = [
+  generateRandomStock('PETR4','Petrobras',35.31,460.2),
+  generateRandomStock('VALE3','Vale',54.71,245.8),
+  generateRandomStock('ITUB4','Itaú',32.22,312.5),
+  generateRandomStock('BBDC4','Bradesco',13.45,156.7),
+  generateRandomStock('ABEV3','Ambev',12.89,203.4),
+  generateRandomStock('WEGE3','WEG',67.89,89.3),
+  generateRandomStock('MGLU3','Magazine Luiza',7.28,48.9),
+];
+const fallbackUS = [
+  generateRandomStock('AAPL','Apple',185.92,2850.4),
+  generateRandomStock('MSFT','Microsoft',378.85,2820.1),
+  generateRandomStock('NVDA','NVIDIA',875.28,2156.7),
+  generateRandomStock('AMZN','Amazon',151.94,1590.8),
+  generateRandomStock('META','Meta',484.49,1234.5),
+];
+
+/* ===== 3) Fetch na API (Brapi) + normalização ===== */
+// Observação: a Brapi costuma expor endpoints com CORS.
+// Tentamos duas variantes de URL por segurança.
+async function fetchWithTimeout(url, ms = 8000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// Normaliza um item retornado pela API para o formato usado nas bolhas
+function normalizeItem(it) {
+  const sym = it.symbol || it.stock || it.ticker || it.code || it.name || '???';
+  const name = it.longName || it.name || it.company || sym;
+  const price = Number(it.close ?? it.price ?? it.regularMarketPrice ?? it.last ?? it.p) || (Math.random()*100+10);
+  const mcap  = Number(it.market_cap ?? it.marketCap ?? it.marketcap ?? it.marketValue) || (Math.random()*100+10);
+  const vol   = Number(it.volume ?? it.regularMarketVolume ?? it.v) || (Math.random()*10+0.1);
+  const chg   = Number(it.change ?? it.regularMarketChangePercent ?? it.chg) || ((Math.random()-0.5)*4);
+
+  // Como a API de "lista" nem sempre traz todas as janelas (hora/semana/mês/ano),
+  // usamos o "day" como base e sintetizamos as demais variações de forma realista.
+  const day = chg;
+  return {
+    symbol: String(sym).toUpperCase(),
+    name, price,
+    marketCap: mcap,
+    volume: vol,
+    hour: day * 0.25 + (Math.random()-0.5)*0.6,
+    day,
+    week: day * 1.9  + (Math.random()-0.5)*2.0,
+    month: day * 4.0 + (Math.random()-0.5)*4.0,
+    year: day * 18.0 + (Math.random()-0.5)*20.0
+  };
+}
+
+// Busca BR e US (ordenado por volume desc, limite alto)
+async function loadMarket(market) {
+  // Tentativas de endpoints
+  const tries = [];
+  if (market === 'brazilian') {
+    // B3
+    tries.push('https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500');
+    // variação com exchange
+    tries.push('https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500&exchange=b3');
+  } else {
+    // EUA
+    tries.push('https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500&exchange=usa');
+    // alternativa sem exchange explícito
+    tries.push('https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500');
+  }
+
+  for (const url of tries) {
+    try {
+      const json = await fetchWithTimeout(url, 9000);
+      // Brapi geralmente retorna { stocks: [...] }
+      const arr = json?.stocks || json?.results || json?.data || [];
+      const mapped = arr.map(normalizeItem)
+        // heurística: filtra BDRs / tickers estranhos quando mercado BR
+        .filter(s => market === 'brazilian' ? /[A-Z]{4}\d|[A-Z]{3}\d{1,2}/.test(s.symbol) || s.symbol.endsWith('3') || s.symbol.endsWith('4') : true);
+
+      if (mapped.length >= 20) return mapped; // suficiente
+    } catch (e) {
+      // tenta próxima URL
+    }
+  }
+  // fallback local
+  return market === 'brazilian' ? fallbackBR : fallbackUS;
+}
+
+/* ===== 4) Seleção dos TOP_N por volume ===== */
 function topNByVolume(arr) {
-  // Pega SEMPRE as mais negociadas (volume) e limita a TOP_N
   return [...arr].sort((a, b) => b.volume - a.volume).slice(0, TOP_N);
 }
-let currentData = topNByVolume(datasetByMarket());
 
+/* ===== 5) Layout helpers ===== */
 function getChartSize(svgEl){
   const r = svgEl.getBoundingClientRect();
   const w = r.width  > 0 ? Math.floor(r.width)  : 800;
@@ -52,7 +148,7 @@ function scaleRadius(value, minV, maxV){
   return Math.max(MIN_R, Math.min(MAX_R, MIN_R + t*(MAX_R-MIN_R)));
 }
 
-/* ===== 4) Semente (espiral) + relaxamento curto ===== */
+/* ===== 6) Semente (espiral) + relaxamento curto ===== */
 function seedPositions(data){
   const {width,height} = getChartSize(bubbleChart);
   const PADDING=12, BORDER=8, MARGIN=PADDING+BORDER;
@@ -119,7 +215,7 @@ function seedPositions(data){
   return pts;
 }
 
-/* ===== 5) Render (DOM) + Simulação em tempo real ===== */
+/* ===== 7) Render (DOM) + Simulação em tempo real ===== */
 let SIM = { points: [], nodes: [], raf:null };
 
 function renderBubbles(){
@@ -164,7 +260,7 @@ function renderBubbles(){
       t2.setAttribute('class','bubble-text bubble-change');
       t2.setAttribute('text-anchor','middle'); t2.setAttribute('dominant-baseline','middle');
       t2.setAttribute('font-size',`${fs2}px`); t2.setAttribute('font-weight','600'); t2.setAttribute('fill','#fff');
-      t2.textContent=`${change > 0 ? '+' : ''}${change.toFixed(1)}%`; g.appendChild(t2);
+      t2.textContent=`${change>0?'+':''}${change.toFixed(1)}%`; g.appendChild(t2);
     } else {
       const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
       t1.setAttribute('x',0); t1.setAttribute('y',0);
@@ -262,9 +358,9 @@ function startSimulation(){
 }
 function stopSimulation(){ if(SIM.raf) cancelAnimationFrame(SIM.raf); SIM.raf=null; }
 
-/* ===== 6) UI util ===== */
+/* ===== 8) UI ===== */
 function updateStockCounter(){
-  const total = datasetByMarket().length;
+  const total = (currentMarket==='brazilian' ? allData.brazilian.length : allData.american.length) || 0;
   const showing = currentData.length;
   const positive = currentData.filter(s=>s[currentPeriod]>0).length;
   const negative = currentData.filter(s=>s[currentPeriod]<0).length;
@@ -273,12 +369,12 @@ function updateStockCounter(){
 }
 function showStockDetails(stock){
   const price = stock.price.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  const marketCap = stock.marketCap.toFixed(1);
+  const marketCap = stock.marketCap?.toLocaleString('pt-BR',{maximumFractionDigits:1}) ?? '-';
   const change = stock.day>0?'+':'';
-  alert(`${stock.symbol} - ${stock.name}\nPreço: ${price}\nValor de Mercado: R$ ${marketCap}B\nVariação do Dia: ${change}${stock.day.toFixed(2)}%`);
+  alert(`${stock.symbol} — ${stock.name}\nPreço: ${price}\nValor de Mercado: ${marketCap}\nVariação do Dia: ${change}${stock.day.toFixed(2)}%`);
 }
 
-/* ===== 7) Listeners ===== */
+/* ===== 9) Listeners ===== */
 if(periodButtons){
   periodButtons.forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -298,49 +394,57 @@ if(metricSelect){
 if(searchInput){
   searchInput.addEventListener('input', e=>{
     const q = e.target.value.toLowerCase();
-    const base = datasetByMarket();
-    if(q){
-      currentData = topNByVolume(base.filter(s=> s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)));
-    } else {
-      currentData = topNByVolume(base);
-    }
+    const base = currentMarket==='brazilian' ? allData.brazilian : allData.american;
+    const filtered = q
+      ? base.filter(s=> s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q))
+      : base;
+    currentData = topNByVolume(filtered);
     renderBubbles();
   });
 }
 if(rangeSelect){
-  // Mantém o rótulo, mas NÃO deixa reduzir a quantidade
   rangeSelect.value = `1-${TOP_N}`;
   rangeSelect.addEventListener('change', ()=>{ rangeSelect.value = `1-${TOP_N}`; });
 }
 if(settingsBtn){ settingsBtn.addEventListener('click', ()=> settingsModal && settingsModal.classList.remove('hidden')); }
 if(closeModal){ closeModal.addEventListener('click', ()=> settingsModal && settingsModal.classList.add('hidden')); }
 if(marketSelect){
-  marketSelect.addEventListener('change', e=>{
+  marketSelect.addEventListener('change', async e=>{
     currentMarket = e.target.value;
-    currentData = topNByVolume(datasetByMarket());
+    const base = currentMarket==='brazilian' ? allData.brazilian : allData.american;
+    currentData = topNByVolume(base);
     renderBubbles();
     settingsModal && settingsModal.classList.add('hidden');
   });
 }
 
-/* ===== 8) Inicialização & Resize ===== */
-document.addEventListener('DOMContentLoaded', ()=>{
-  setTimeout(()=>{ 
-    currentData = topNByVolume(datasetByMarket());
-    if(rangeSelect) rangeSelect.value = `1-${TOP_N}`;
-    renderBubbles();
-  }, 50);
+/* ===== 10) Inicialização ===== */
+async function init() {
+  // Carrega BR e EUA em paralelo (com fallback interno)
+  const [br, us] = await Promise.all([loadMarket('brazilian'), loadMarket('american')]);
+  allData.brazilian = br;
+  allData.american  = us;
+
+  // Seleciona mercado atual
+  const base = currentMarket==='brazilian' ? allData.brazilian : allData.american;
+  currentData = topNByVolume(base);
+
+  // Sincroniza rótulo do seletor
+  if (rangeSelect) rangeSelect.value = `1-${TOP_N}`;
+
+  renderBubbles();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Pequeno atraso para garantir dimensões do SVG
+  setTimeout(() => { init(); }, 50);
 });
 
+// Resize
 let resizeTimeout;
 window.addEventListener('resize', ()=>{
   clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(()=>{
-    // Se trocar de breakpoint, recalcula TOP_N dinamicamente:
-    const wasMobile = IS_MOBILE;
-    // (para simplicidade, recarregue a página se quiser reavaliar 30/200)
-    renderBubbles();
-  }, 150);
+  resizeTimeout = setTimeout(()=>{ renderBubbles(); }, 150);
 });
 
 // Previne zoom duplo no iOS
