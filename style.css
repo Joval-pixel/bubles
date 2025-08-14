@@ -14,7 +14,7 @@ body { margin:0; background:#000; color:#e8e8e8; font:14px/1.4 Inter, system-ui,
 .input,.select,.btn{ background:#13151b; color:#d7dce3; border:1px solid #232631; border-radius:10px; padding:10px 12px; outline:none; }
 .input{ flex:1; min-width:230px; }
 .select.w-compact{ min-width:150px; }
-.btn.icon{ padding:10px 12px; }
+.btn.icon{ padding:10px 12px; cursor:pointer; }
 
 .tabs{ display:flex; gap:8px; padding:8px 16px; border-top:1px solid #13151b; }
 .tab{ padding:8px 10px; border-radius:8px; background:#13151b; border:1px solid #232631; cursor:pointer; pointer-events:auto; }
