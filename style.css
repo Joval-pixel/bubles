@@ -1,23 +1,58 @@
-/* --- 3D layers --- */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
+/* fundo no tom do CryptoBubbles */
+body {
+  margin:0;
+  background:#2b2f37;
+  color:#e8e8e8;
+  font:14px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+/* topo */
+.topbar{ position:sticky; top:0; z-index:10; display:flex; gap:8px; align-items:center; padding:12px 16px; background:#0f1115; border-bottom:1px solid #1b1d24; }
+.led{ width:10px;height:10px;border-radius:50%;background:#23c061;box-shadow:0 0 10px 3px rgba(35,192,97,.7); }
+.brand{ letter-spacing:.4px; }
+
+/* controles */
+.controls{ background:#0b0d12; border-bottom:1px solid #1b1d24; }
+.controls .row{ display:flex; gap:10px; padding:12px 16px; flex-wrap:wrap; align-items:center; }
+.input,.select,.btn{ background:#13151b; color:#d7dce3; border:1px solid #232631; border-radius:10px; padding:10px 12px; outline:none; }
+.input{ flex:1; min-width:230px; }
+.select.w-compact{ min-width:150px; }
+.btn.icon{ padding:10px 12px; cursor:pointer; }
+
+.tabs{ display:flex; gap:8px; padding:8px 16px; border-top:1px solid #13151b; }
+.tab{ padding:8px 10px; border-radius:8px; background:#13151b; border:1px solid #232631; cursor:pointer; pointer-events:auto; }
+.tab.active{ background:#0f172a; border-color:#334155; color:#cbe1ff; }
+
+.status{ padding:8px 16px; color:#99a0a8; }
+
+/* palco */
+.stage{ position:relative; }
+#bubble-chart{ width:100%; height:calc(100vh - 260px); display:block; }
+
+/* ---- 3D das bolhas ---- */
 .bubble { filter: drop-shadow(0 10px 24px rgba(0,0,0,.55)); }
 
 /* aro principal (borda) */
 .rim { stroke-width: 3.2; fill: none; }
 
-/* halo externo grande (glow suave do crypto bubbles) */
+/* halo externo (glow) */
 .outer-glow { fill: none; stroke-linecap: round; opacity: .32; }
 
-/* sombra interna (reforça 3D) aplicada via filter */
+/* sombra interna */
 .has-inner-shadow { filter: url(#innerShadow); }
 
-/* highlight/gloss no topo */
+/* brilho/gloss no topo */
 .gloss { fill: url(#glossGrad); opacity: .28; }
 
-/* gradientes de cor */
-.grad-pos-0{ stop-color:#0d4026; }  /* fundo escuro externo */
-.grad-pos-1{ stop-color:#133f2b; }  /* anel */
-.grad-pos-2{ stop-color:#1fc879; }  /* borda clara */
-.grad-pos-3{ stop-color:#12271c; }  /* centro escurecido (3D) */
+/* gradientes do disco (paradas de cor) */
+.grad-pos-0{ stop-color:#0d4026; }
+.grad-pos-1{ stop-color:#133f2b; }
+.grad-pos-2{ stop-color:#1fc879; }
+.grad-pos-3{ stop-color:#12271c; }
 
 .grad-neg-0{ stop-color:#3f1316; }
 .grad-neg-1{ stop-color:#3f1b1d; }
@@ -29,7 +64,7 @@
 .grad-neu-2{ stop-color:#aeb6c4; }
 .grad-neu-3{ stop-color:#2a2f37; }
 
-/* aro iluminado (verde/vermelho) */
+/* aro iluminado (cores) — os ids dos gradients são definidos no SVG defs */
 .rim-pos { stroke: url(#rimGradPos); }
 .rim-neg { stroke: url(#rimGradNeg); }
 .rim-neu { stroke: url(#rimGradNeu); }
@@ -39,7 +74,25 @@
 .glow-neg { stroke: #ff7780; }
 .glow-neu { stroke: #b9c2d3; }
 
-/* textos um pouco maiores para as bolhas grandes */
+/* textos */
+.ticker, .price, .pct {
+  paint-order: stroke; stroke:#000; stroke-width:4px; fill:#fff; text-anchor:middle;
+}
 .ticker{ font-weight:900; letter-spacing:.5px; }
-.pct{ font-weight:900; }
-.price{ font-weight:800; }
+.price { font-weight:800; }
+.pct   { font-weight:900; }
+
+/* fallback quando não tem logo */
+.logo-fallback{ fill:rgba(255,255,255,.06); }
+
+/* modal */
+.modal.hidden{ display:none; }
+.modal{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; }
+.modal-card{ width:min(560px,90vw); background:#121418; border:1px solid #232631; border-radius:12px; overflow:hidden; }
+.modal-head{ display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #232631; }
+.modal-body{ padding:14px; }
+
+@media (max-width:820px){
+  #bubble-chart{ height:calc(100vh - 300px); }
+  .select.w-compact{ min-width:128px; }
+}
