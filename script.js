@@ -3,15 +3,19 @@
 /* >>> Coloque seu token da Brapi aqui (ou deixe vazio) <<< */
 const BRAPI_TOKEN = ""; // ex.: "5bTDfSmR2ieax6y7JUqDAD"
 
-/* === MODO CRYPTOBUBBLES === */
-const MODE_CRYPTO = true;   // liga layout igual ao Crypto
-const SHOW_PRICE  = false;  // Crypto não mostra preço nas bolhas
+/* modo/layout */
+const MODE_CRYPTO = true;   // mantém layout tipo CryptoBubbles
+const SHOW_PRICE  = false;  // preço oculto nas bolhas (Crypto não mostra)
 
-/* config */
+/* ambiente */
 const IS_MOBILE  = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0) > 0;
 const TOP_N      = IS_MOBILE ? 30 : 200;
 const REFRESH_MS = 15000;
 const MORPH_MS   = 900;
+
+/* densidade alvo (área ocupada / área da tela) */
+const PACK_DENSITY = IS_MOBILE ? 0.46 : 0.52;
+const clamp = (min, v, max) => Math.max(min, Math.min(max, v));
 
 /* DOM */
 const svg          = document.getElementById('bubble-chart');
@@ -56,14 +60,14 @@ const toPT = s => SECTOR_PT[s] || s || 'Desconhecido';
 function inferType(sym,t){ const raw=(t||'').toLowerCase(); if(/etf/.test(raw)) return 'ETF'; if(t) return t; if(/11$/.test(sym)) return 'FII/Units'; if(/3[45]$/.test(sym)) return 'BDR'; return 'Ação'; }
 function pickLogo(d){ return d.logo || d.logourl || d.logoUrl || d.image || null; }
 
-/* ===== Escala de raio com curva power (igual “vibe” Crypto) ===== */
+/* ===== Escala de raio com curva power (contraste de tamanhos) ===== */
 function scaleR(v, vmin, vmax){
   const n = TOP_N;
-  const Rmax = n > 150 ? 90 : n > 80 ? 110 : 130;   // maiores mesmo com 200
+  const Rmax = n > 150 ? 90 : n > 80 ? 110 : 130;   // grandes, mas cabem
   const Rmin = n > 150 ? 26 : n > 80 ? 28 : 32;
   if (!(vmax > vmin)) return (Rmax + Rmin) / 2;
   let t = (v - vmin) / (vmax - vmin);
-  t = Math.pow(Math.max(0, Math.min(1, t)), 0.55);   // power curve
+  t = Math.pow(Math.max(0, Math.min(1, t)), 0.55);
   return Rmin + t * (Rmax - Rmin);
 }
 
@@ -73,7 +77,6 @@ async function fetchWithTimeout(url,ms=10000){
   try{ const r=await fetch(url,{signal:c.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); }
   finally{ clearTimeout(t); }
 }
-
 function normalize(it){
   const symbol=String(it.symbol||it.stock||it.ticker||it.code||it.name||'').toUpperCase();
   const name=it.longName||it.name||it.company||symbol;
@@ -99,7 +102,6 @@ function normalize(it){
     logo: pickLogo(it)
   };
 }
-
 async function loadMarket(market){
   const baseBR = `https://brapi.dev/api/quote/list?limit=500`;
   const baseUS = `https://brapi.dev/api/quote/list?limit=500&exchange=usa`;
@@ -140,16 +142,27 @@ function populateFilterOptions(){
   if([...sectorSelect.options].some(o=>o.value===sSel)) sectorSelect.value=sSel;
 }
 
-/* layout */
+/* layout & escala por área */
 function setView(){ const {w,h}=SZ(); svg.setAttribute('viewBox',`0 0 ${w} ${h}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); return {w,h}; }
 function baseRadInfo(list){ const key=metricKey(); const vmax=Math.max(...list.map(s=>s[key]??0)); const vmin=Math.min(...list.map(s=>s[key]??0)); return {key,vmin,vmax}; }
+
+function scaleTargetsToFit(targetRadii){
+  const {w,h}=SZ();
+  const targetArea = PACK_DENSITY * w * h;
+  const sumArea = targetRadii.reduce((a,r)=>a + Math.PI*r*r, 0);
+  const sf = sumArea > 0 ? Math.min(1, Math.sqrt(targetArea / sumArea)) : 1;
+  return sf;
+}
 function seed(list){
-  const {w,h}=SZ(); const PAD=20; const {key,vmin,vmax}=baseRadInfo(list);
-  return list.map(s=>{
-    const r=scaleR(s[key]??0, vmin, vmax);
-    const x=PAD+r+Math.random()*(w-2*(PAD+r));
-    const y=PAD+r+Math.random()*(h-2*(PAD+r));
-    return {x,y, r, rv:r, s};
+  const {w,h}=SZ(); const PAD=20; 
+  const {key,vmin,vmax}=baseRadInfo(list);
+  const raw = list.map(s => ({ s, r: scaleR(s[key]??0, vmin, vmax) }));
+  const sf = scaleTargetsToFit(raw.map(o=>o.r));
+  return raw.map(o=>{
+    const r = o.r * sf;
+    const x = PAD+r+Math.random()*(w-2*(PAD+r));
+    const y = PAD+r+Math.random()*(h-2*(PAD+r));
+    return {x,y, r, rv:r, s:o.s};
   });
 }
 
@@ -167,7 +180,7 @@ function ensureGlobalDefs(defs){
       lg.appendChild(a); lg.appendChild(b);
       defs.appendChild(lg);
     };
-    // tons iguais ao crypto
+    // tons estilo crypto
     mk('rimGradPos','#e9fff6','#54f7a5');
     mk('rimGradNeg','#ffe9eb','#ff6571');
     mk('rimGradNeu','#eef2f8','#b9c2d3');
@@ -177,7 +190,6 @@ function ensureGlobalDefs(defs){
     f.setAttribute('id','innerShadow');
     f.setAttribute('x','-50%'); f.setAttribute('y','-50%');
     f.setAttribute('width','200%'); f.setAttribute('height','200%');
-    // sombra interna mais marcada
     f.innerHTML = `
       <feOffset dx="0" dy="2" result="off"/>
       <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur"/>
@@ -221,6 +233,13 @@ function render(){
         next.push({x,y, r, rv:12, targetR:r, s});
       }
     });
+    // aplica escala global por área
+    const targets = next.map(p => (p.targetR ?? p.r));
+    const sf = scaleTargetsToFit(targets);
+    next.forEach(p => {
+      p.targetR = (p.targetR ?? p.r) * sf;
+      if (p.rv && p.rv < p.targetR*0.6) p.rv *= sf;
+    });
     sim.pts=next;
   }
 
@@ -236,7 +255,7 @@ function render(){
     const isPos = chg>0, isNeg = chg<0;
     const r = p.rv || p.r;
 
-    // gradiente do disco (4 paradas para 3D)
+    // gradiente do disco
     const discId = `disc-${i}-${s.symbol}`;
     const discGrad = document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
     discGrad.setAttribute('id', discId);
@@ -252,12 +271,12 @@ function render(){
     g.setAttribute('transform',`translate(${p.x},${p.y})`);
     g.style.cursor='pointer';
 
-    // halo externo grosso (igual crypto)
+    // halo externo
     const outer=document.createElementNS('http://www.w3.org/2000/svg','circle');
     outer.setAttribute('class', `outer-glow ${isPos?'glow-pos':isNeg?'glow-neg':'glow-neu'}`);
     outer.setAttribute('cx',0); outer.setAttribute('cy',0);
     outer.setAttribute('r', r*1.07);
-    outer.setAttribute('stroke-width', Math.max(12, r*0.34));
+    outer.setAttribute('stroke-width', Math.max(10, r*0.26));  // mais fino
     g.appendChild(outer);
 
     // disco com sombra interna
@@ -298,28 +317,25 @@ function render(){
       inner.setAttribute('cx',0); inner.setAttribute('cy',0); inner.setAttribute('r',r-4); inner.setAttribute('class','logo-fallback'); g.appendChild(inner);
     }
 
-    /* ==== TIPOGRAFIA MODO CRYPTO ==== */
-    // % — embaixo do centro
+    /* tipografia central */
     const pct=document.createElementNS('http://www.w3.org/2000/svg','text');
     pct.setAttribute('class','pct'); pct.setAttribute('x',0);
     pct.setAttribute('y',  r * 0.28);
-    pct.setAttribute('font-size', Math.max(22, Math.min(40, r * 0.62)));
+    pct.setAttribute('font-size', clamp(16, r*0.42, 28));
     pct.textContent=`${(chg>0?'+':'')}${(chg||0).toFixed(2)}%`;
     g.appendChild(pct);
 
-    // TICKER — centro gigante
     const tik=document.createElementNS('http://www.w3.org/2000/svg','text');
     tik.setAttribute('class','ticker'); tik.setAttribute('x',0); tik.setAttribute('y', 0);
-    tik.setAttribute('font-size', Math.max(26, Math.min(72, r * 0.95)));
+    tik.setAttribute('font-size', clamp(18, r*0.82, 64));
     tik.textContent=s.symbol; g.appendChild(tik);
 
-    // PREÇO — opcional (Crypto não mostra)
     let price=null;
     if (SHOW_PRICE) {
       price=document.createElementNS('http://www.w3.org/2000/svg','text');
       price.setAttribute('class','price'); price.setAttribute('x',0);
       price.setAttribute('y',  r * 0.60);
-      price.setAttribute('font-size', Math.max(12, Math.min(18, r * 0.32)));
+      price.setAttribute('font-size', clamp(12, r*0.30, 18));
       price.textContent=money(s.price,currentMarket);
       g.appendChild(price);
     }
@@ -346,18 +362,18 @@ function updateCounter(){
   stockCounter.textContent=`Exibindo ${showing} de ${total} ações • 🟢 ${pos} Alta • 🔴 ${neg} Baixa`;
 }
 
-/* === Física com mais espaço e sem sobreposição === */
+/* === Física estável e espaçada === */
 function startPhysics(){
   cancelAnimationFrame(sim.raf);
-  const DAMP=0.988,
-        NOISE=IS_MOBILE?0.020:0.022,
-        CENTER=0.00011,
-        EDGE=0.16,
-        PASSES=3,
-        REACH=180,
-        REP=1.8,
-        SEP=12,
-        FILL=0.92;
+  const DAMP=0.985,
+        NOISE=IS_MOBILE?0.016:0.018,
+        CENTER=0.00014,
+        EDGE=0.18,
+        PASSES=4,
+        REACH=220,
+        REP=2.0,
+        SEP=14,
+        FILL=0.90;
 
   const step=()=>{
     const {w,h}=SZ(); const CX=w/2, CY=h/2, targetR=Math.min(w,h)*FILL/2;
@@ -413,15 +429,15 @@ function startPhysics(){
       n.disc.setAttribute('r', r);
       n.rim.setAttribute('r', r-1.6);
       n.outer.setAttribute('r', r*1.07);
-      n.outer.setAttribute('stroke-width', Math.max(12, r*0.34));
+      n.outer.setAttribute('stroke-width', Math.max(10, r*0.26));
       n.clipCircle.setAttribute('r', r-4);
-      n.tik.setAttribute('font-size', Math.max(26, Math.min(72, r * 0.95)));
+      n.tik.setAttribute('font-size', clamp(18, r*0.82, 64));
       n.tik.setAttribute('y', 0);
-      n.pct.setAttribute('font-size', Math.max(22, Math.min(40, r * 0.62)));
+      n.pct.setAttribute('font-size', clamp(16, r*0.42, 28));
       n.pct.setAttribute('y', r * 0.28);
       if(n.price){
         n.price.setAttribute('y',  r * 0.60);
-        n.price.setAttribute('font-size', Math.max(12, Math.min(18, r * 0.32)));
+        n.price.setAttribute('font-size', clamp(12, r*0.30, 18));
       }
     }
 
@@ -430,16 +446,20 @@ function startPhysics(){
   sim.raf=requestAnimationFrame(step);
 }
 
-/* morph */
+/* morph com escala global por área */
 function morphRadii(){
   const {key,vmin,vmax}=baseRadInfo(current);
+  const targetsRaw = sim.pts.map(p => scaleR(p.s[key]??0, vmin, vmax));
+  const sf = scaleTargetsToFit(targetsRaw);
   const t0=performance.now();
+
   (function loop(ts){
     const t=Math.min(1,(ts-t0)/MORPH_MS);
-    sim.pts.forEach(p=>{
-      const target=scaleR(p.s[key]??0, vmin, vmax);
+    for (let i=0;i<sim.pts.length;i++){
+      const p = sim.pts[i];
+      const target = targetsRaw[i] * sf;
       p.rv = (p.rv??p.r) + (target - (p.rv??p.r))*0.18;
-    });
+    }
     if(t<1) requestAnimationFrame(loop);
   })(t0);
 }
