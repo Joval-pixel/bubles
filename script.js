@@ -3,18 +3,15 @@
 /* >>> Coloque seu token da Brapi aqui (ou deixe vazio) <<< */
 const BRAPI_TOKEN = ""; // ex.: "5bTDfSmR2ieax6y7JUqDAD"
 
-/* modo/layout */
-const MODE_CRYPTO = true;   // mantém layout tipo CryptoBubbles
-const SHOW_PRICE  = false;  // preço oculto nas bolhas (Crypto não mostra)
+/* layout */
+const SHOW_PRICE  = false;  // preço oculto (como Crypto)
+const IS_MOBILE   = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0) > 0;
+const TOP_N       = IS_MOBILE ? 30 : 200;
+const REFRESH_MS  = 15000;
+const MORPH_MS    = 900;
 
-/* ambiente */
-const IS_MOBILE  = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0) > 0;
-const TOP_N      = IS_MOBILE ? 30 : 200;
-const REFRESH_MS = 15000;
-const MORPH_MS   = 900;
-
-/* densidade alvo (área ocupada / área da tela) */
-const PACK_DENSITY = IS_MOBILE ? 0.46 : 0.52;
+/* densidade-alvo (preenchimento) — MENOR = mais espaço */
+const PACK_DENSITY = IS_MOBILE ? 0.40 : 0.44;
 const clamp = (min, v, max) => Math.max(min, Math.min(max, v));
 
 /* DOM */
@@ -43,7 +40,7 @@ const topN=a=>[...a].sort((x,y)=>(y.volume??0)-(x.volume??0)).slice(0,TOP_N);
 const metricKey=()=> currentMetric==='market-cap' ? 'marketCap' : currentMetric==='price' ? 'price' : 'volume';
 const qToken = BRAPI_TOKEN ? `&token=${encodeURIComponent(BRAPI_TOKEN)}` : "";
 
-/* tradução de setores */
+/* setores PT */
 const SECTOR_PT = {
   "Commercial Services":"Serviços Comerciais","Communications":"Comunicações",
   "Consumer Durables":"Bens de Consumo Duráveis","Consumer Non-Durables":"Bens de Consumo Não Duráveis",
@@ -56,18 +53,19 @@ const SECTOR_PT = {
   "Transportation":"Transporte","Utilities":"Utilidades","Unknown":"Desconhecido","Desconhecido":"Desconhecido"
 };
 const toPT = s => SECTOR_PT[s] || s || 'Desconhecido';
-
 function inferType(sym,t){ const raw=(t||'').toLowerCase(); if(/etf/.test(raw)) return 'ETF'; if(t) return t; if(/11$/.test(sym)) return 'FII/Units'; if(/3[45]$/.test(sym)) return 'BDR'; return 'Ação'; }
 function pickLogo(d){ return d.logo || d.logourl || d.logoUrl || d.image || null; }
 
-/* ===== Escala de raio com curva power (contraste de tamanhos) ===== */
+/* ===== Escala de raio =====
+   - Rmax menor e Rmin um pouco maior => equilíbrio
+*/
 function scaleR(v, vmin, vmax){
   const n = TOP_N;
-  const Rmax = n > 150 ? 90 : n > 80 ? 110 : 130;   // grandes, mas cabem
-  const Rmin = n > 150 ? 26 : n > 80 ? 28 : 32;
+  const Rmax = n > 150 ? 78 : n > 80 ? 96 : 120;
+  const Rmin = n > 150 ? 24 : n > 80 ? 26 : 30;
   if (!(vmax > vmin)) return (Rmax + Rmin) / 2;
   let t = (v - vmin) / (vmax - vmin);
-  t = Math.pow(Math.max(0, Math.min(1, t)), 0.55);
+  t = Math.pow(clamp(0,t,1), 0.58);
   return Rmin + t * (Rmax - Rmin);
 }
 
@@ -142,14 +140,16 @@ function populateFilterOptions(){
   if([...sectorSelect.options].some(o=>o.value===sSel)) sectorSelect.value=sSel;
 }
 
-/* layout & escala por área */
+/* layout & escala por área (considera margem para separar) */
 function setView(){ const {w,h}=SZ(); svg.setAttribute('viewBox',`0 0 ${w} ${h}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); return {w,h}; }
 function baseRadInfo(list){ const key=metricKey(); const vmax=Math.max(...list.map(s=>s[key]??0)); const vmin=Math.min(...list.map(s=>s[key]??0)); return {key,vmin,vmax}; }
 
 function scaleTargetsToFit(targetRadii){
   const {w,h}=SZ();
   const targetArea = PACK_DENSITY * w * h;
-  const sumArea = targetRadii.reduce((a,r)=>a + Math.PI*r*r, 0);
+  // infla o raio para simular margem de separação
+  const SEP_MARGIN = 0.6 * 16; // 16 é nosso SEP base
+  const sumArea = targetRadii.reduce((a,r)=>a + Math.PI*Math.pow(r + SEP_MARGIN, 2), 0);
   const sf = sumArea > 0 ? Math.min(1, Math.sqrt(targetArea / sumArea)) : 1;
   return sf;
 }
@@ -166,7 +166,7 @@ function seed(list){
   });
 }
 
-/* defs 3D: aro, sombra interna, gloss */
+/* defs (aro, sombra interna, gloss) */
 function ensureGlobalDefs(defs){
   if(!document.getElementById('rimGradPos')){
     const mk=(id,c1,c2)=>{
@@ -275,8 +275,8 @@ function render(){
     const outer=document.createElementNS('http://www.w3.org/2000/svg','circle');
     outer.setAttribute('class', `outer-glow ${isPos?'glow-pos':isNeg?'glow-neg':'glow-neu'}`);
     outer.setAttribute('cx',0); outer.setAttribute('cy',0);
-    outer.setAttribute('r', r*1.07);
-    outer.setAttribute('stroke-width', Math.max(10, r*0.26));  // mais fino
+    outer.setAttribute('r', r*1.06);
+    outer.setAttribute('stroke-width', Math.max(9, r*0.24));
     g.appendChild(outer);
 
     // disco com sombra interna
@@ -366,14 +366,14 @@ function updateCounter(){
 function startPhysics(){
   cancelAnimationFrame(sim.raf);
   const DAMP=0.985,
-        NOISE=IS_MOBILE?0.016:0.018,
-        CENTER=0.00014,
-        EDGE=0.18,
-        PASSES=4,
-        REACH=220,
-        REP=2.0,
-        SEP=14,
-        FILL=0.90;
+        NOISE=IS_MOBILE?0.014:0.016,
+        CENTER=0.00012,
+        EDGE=0.22,
+        PASSES=5,
+        REACH=260,
+        REP=2.4,
+        SEP=16,
+        FILL=0.88;
 
   const step=()=>{
     const {w,h}=SZ(); const CX=w/2, CY=h/2, targetR=Math.min(w,h)*FILL/2;
@@ -393,7 +393,7 @@ function startPhysics(){
       p.vx+=(CX-p.x)*CENTER; p.vy+=(CY-p.y)*CENTER;
 
       const dx=p.x-CX, dy=p.y-CY, d=Math.hypot(dx,dy)||1e-6, press=(targetR-d)/targetR;
-      p.vx+=(dx/d)*press*0.0028; p.vy+=(dy/d)*press*0.0028;
+      p.vx+=(dx/d)*press*0.0026; p.vy+=(dy/d)*press*0.0026;
 
       const pad=16, r=(p.rv||p.r);
       if(p.x - r < pad) p.vx+=EDGE; if(p.x + r > w - pad) p.vx-=EDGE;
@@ -428,8 +428,8 @@ function startPhysics(){
       n.g.setAttribute('transform',`translate(${p.x},${p.y})`);
       n.disc.setAttribute('r', r);
       n.rim.setAttribute('r', r-1.6);
-      n.outer.setAttribute('r', r*1.07);
-      n.outer.setAttribute('stroke-width', Math.max(10, r*0.26));
+      n.outer.setAttribute('r', r*1.06);
+      n.outer.setAttribute('stroke-width', Math.max(9, r*0.24));
       n.clipCircle.setAttribute('r', r-4);
       n.tik.setAttribute('font-size', clamp(18, r*0.82, 64));
       n.tik.setAttribute('y', 0);
