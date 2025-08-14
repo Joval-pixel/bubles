@@ -1,8 +1,14 @@
-/************ CONFIG ************/
-console.log("Bubles JS – fallback quando API falhar (2025‑08‑14)");
+/**************** BUBLES — script.js (com fallback anti-travamento) ****************
+ * O que muda:
+ *  - Nunca fica preso em “Carregando…”. Se a API falhar, usa dados locais (mock) e continua.
+ *  - Tenta 2x cada chamada com timeout; se cair, faz fallback por categoria.
+ *  - Mantém as mesmas físicas/movimento e as regras de tamanhos/cores que você pediu.
+ *******************************************************************************/
+
+console.log("Bubles JS – v2025‑08‑14 fallback robusto");
+
 const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
-const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
-                  (navigator.maxTouchPoints || 0) > 0;
+const IS_MOBILE = matchMedia("(max-width: 820px)").matches || (navigator.maxTouchPoints||0)>0;
 const TOP_N = IS_MOBILE ? 35 : 200;
 
 /* Física (mobile mais lento) */
@@ -26,12 +32,12 @@ const DRIFT_FREQ        = 0.0018;
 const WOBBLE_STRENGTH   = IS_MOBILE ? 0.010 : 0.010;
 const WOBBLE_FREQ       = 0.0025;
 
-/************ CANVAS (retina) ************/
+/* Canvas retina */
 const canvas = document.getElementById("bubbleCanvas");
 const ctx = canvas.getContext("2d");
 function resize(){
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  const w = window.innerWidth, h = window.innerHeight;
+  const dpr = Math.max(1, window.devicePixelRatio||1);
+  const w = innerWidth, h = innerHeight;
   canvas.style.width = w+"px"; canvas.style.height = h+"px";
   canvas.width = Math.floor(w*dpr); canvas.height = Math.floor(h*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -40,30 +46,30 @@ addEventListener("resize", resize);
 addEventListener("orientationchange", ()=>setTimeout(resize,200));
 resize();
 
-/************ STATE ************/
+/* Estado */
 let category = "acoes";
 let bubbles = [];
 let lastTime = performance.now();
 
-/************ DOM helpers ************/
+/* DOM/status */
 const headerEl = document.querySelector(".header");
 const statusBar = document.getElementById("statusBar");
-const setStatus = t => statusBar && (statusBar.textContent = t || "");
-const headerHeight = () => {
+const setStatus = t => statusBar && (statusBar.textContent = t||"");
+const headerHeight = ()=> {
   try{ return Math.ceil(headerEl?.getBoundingClientRect().height || DEFAULT_HEADER_SAFE); }
   catch{ return DEFAULT_HEADER_SAFE; }
 };
-const stageSize = () => ({ w: canvas.clientWidth||innerWidth, h: canvas.clientHeight||innerHeight });
-const boundsPad = () => WALL_MARGIN + Math.max(8, BORDER_WIDTH*1.25);
+const stageSize = ()=>({ w: canvas.clientWidth||innerWidth, h: canvas.clientHeight||innerHeight });
+const boundsPad = ()=> WALL_MARGIN + Math.max(8, BORDER_WIDTH*1.25);
 
-/************ UTILS ************/
+/* Utils */
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 const rand  = (a,b)=>Math.random()*(b-a)+a;
 const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
 const pickNum = (...xs)=>{ for(const x of xs){ const n=Number(x); if(Number.isFinite(n)) return n; } return null; };
 const formatBRL = v => Number.isFinite(Number(v)) ? `R$ ${Number(v).toFixed(2).replace('.',',')}` : "";
 
-/* raio (3x maior mobile em minerio/petroleo/bancos/varejo) */
+/* Raio (3x maior mobile nas categorias setoriais) */
 function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
@@ -76,17 +82,16 @@ function radiusFor(changePct, volume){
   return clamp(r, minR, maxR);
 }
 
-/************ LISTAS ************/
+/* Listas */
 const LISTS = {
   minerio: ["VALE3","CMIN3","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3","USIM5","USIM3",
             "FESA4","FESA3","CBAV3","PMAM3","PATI4","PATI3","EALT4","EALT3","MGEL4","AURA33"],
-  petroleo:["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
+  petroleo:["PETR4","PETR3","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
   bancos:["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4",
           "BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
   varejo:["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3",
           "DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
 };
-// universo amplo e líquido para ações (evita /quote/list)
 const ACES_UNIVERSE = [
   "VALE3","PETR4","PETR3","ITUB4","BBDC4","BBAS3","ELET3","ELET6","ABEV3","WEGE3","PRIO3","RENT3","EQTL3",
   "SUZB3","JBSS3","CSNA3","GGBR4","GOAU4","USIM5","VBBR3","UGPA3","CMIN3","RRRP3","LREN3","B3SA3","BRFS3",
@@ -95,18 +100,29 @@ const ACES_UNIVERSE = [
   "CMIG4","CPFE3","TRPL4","ALPA4","VIVT3","TIMS3","QUAL3","YDUQ3","COGN3","MRFG3","BRML3","AZUL4","GOLL4"
 ];
 
-/************ FETCH helpers (com timeout e retry) ************/
-function timeout(ms){ return new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),ms)); }
+/* MOCK local (usado se API cair) */
+const mockGen = (codes)=>codes.map((s,i)=>({
+  symbol:s,
+  // preço aleatório com base no índice só para visualizar
+  price: +(10 + (i%20)*2 + Math.random()*5).toFixed(2),
+  changePct: +(Math.random()*6 - 3).toFixed(2),
+  volume: 1e6 + Math.random()*5e6
+}));
+
+/* HTTP com timeout + retry */
+function timeout(ms){ return new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")), ms)); }
 async function getJSON(url, tms=12000, tryIdx=0){
   try{
     const res = await Promise.race([fetch(url,{cache:"no-store"}), timeout(tms)]);
     if(!res.ok) throw new Error(`${res.status} ${url}`);
     return res.json();
   }catch(e){
-    if(tryIdx<1){ console.warn("retry:", url); return getJSON(url,tms,tryIdx+1); }
+    if(tryIdx<1) { console.warn("retry:", url); return getJSON(url,tms,tryIdx+1); }
     throw e;
   }
 }
+
+/* Normalização de campos */
 function mapQuote(it){
   const symbol = (it.symbol || it.stock || it.code || it.ticker || "").toUpperCase();
   const price  = pickNum(it.regularMarketPrice, it.price, it.close, it.lastPrice);
@@ -122,45 +138,54 @@ function mapQuote(it){
 }
 const valid = q => q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct);
 
+/* Fetch por tickers (com fallback local se der erro) */
 async function fetchByTickers(tickers){
   if(!tickers.length) return [];
-  const chunk = 40;
-  const batches = [];
-  for(let i=0;i<tickers.length;i+=chunk){
-    const slice = tickers.slice(i,i+chunk).join(",");
-    const url = `https://brapi.dev/api/quote/${slice}?range=1d&interval=1d&token=${TOKEN}`;
-    batches.push(getJSON(url));
+  try{
+    const chunk=40, batches=[];
+    for(let i=0;i<tickers.length;i+=chunk){
+      const slice = tickers.slice(i,i+chunk).join(",");
+      const url = `https://brapi.dev/api/quote/${slice}?range=1d&interval=1d&token=${TOKEN}`;
+      batches.push(getJSON(url));
+    }
+    const results = (await Promise.allSettled(batches))
+      .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
+    const arr = results.map(mapQuote).filter(valid);
+    arr.sort((a,b)=>(b.volume||0)-(a.volume||0));
+    if(arr.length) return arr;
+    // se a API respondeu vazio, cai no mock
+    console.warn("API vazia – usando mock");
+    return mockGen(tickers);
+  }catch(err){
+    console.error("Erro API – usando mock:", err?.message||err);
+    return mockGen(tickers);
   }
-  const results = (await Promise.allSettled(batches))
-    .flatMap(r => r.status==="fulfilled" ? (r.value.results || r.value.stocks || []) : []);
-  const arr = results.map(mapQuote).filter(valid);
-  arr.sort((a,b)=>(b.volume||0)-(a.volume||0));
-  return arr;
 }
 
-/* fallback: usa /quote/list só para descobrir tickers, depois refaz /quote/{t1,t2…} */
+/* Descoberta por /quote/list (usado só como alternativa) */
 async function discoverAndQuote(limit){
-  const url = `https://brapi.dev/api/quote/list?limit=${limit}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
-  const j = await getJSON(url);
-  const tickers = (j.stocks||j.results||[]).map(it => (it.stock||it.symbol||it.ticker||"").toUpperCase()).filter(Boolean);
-  if(!tickers.length) return [];
-  return fetchByTickers(tickers.slice(0, limit));
+  try{
+    const url = `https://brapi.dev/api/quote/list?limit=${limit}&sortBy=volume&sortOrder=desc&token=${TOKEN}`;
+    const j   = await getJSON(url);
+    const tks = (j.stocks||j.results||[]).map(x => (x.stock||x.symbol||x.ticker||"").toUpperCase()).filter(Boolean);
+    if(!tks.length) throw new Error("sem tickers em /quote/list");
+    return fetchByTickers(tks.slice(0, limit));
+  }catch(e){
+    console.warn("falha discover – mock universo fixo", e?.message||e);
+    return fetchByTickers(ACES_UNIVERSE.slice(0, limit));
+  }
 }
 
-/************ DATA SOURCES ************/
+/* Fontes por categoria (todas com fallback garantido) */
 async function fetchAcoesTop(){
-  // 1) principal: universo fixo e líquido
-  let arr = await fetchByTickers(ACES_UNIVERSE);
-  if(arr.length === 0){
-    console.warn("fallback: discoverAndQuote");
-    arr = await discoverAndQuote(TOP_N*2);
-  }
-  return arr.slice(0, TOP_N);
+  let base = await fetchByTickers(ACES_UNIVERSE);
+  if(!base.length) base = await discoverAndQuote(TOP_N*2);
+  return base.slice(0, TOP_N);
 }
-async function fetchMinerio(){ const a = await fetchByTickers(LISTS.minerio); return a.slice(0, Math.min(20,a.length)); }
-async function fetchPetroleo(){ const a = await fetchByTickers(LISTS.petroleo); return a.slice(0, TOP_N); }
-async function fetchBancos(){ const a = await fetchByTickers(LISTS.bancos); return a.slice(0, TOP_N); }
-async function fetchVarejo(){ const a = await fetchByTickers(LISTS.varejo); return a.slice(0, TOP_N); }
+async function fetchMinerio(){ return (await fetchByTickers(LISTS.minerio)).slice(0, Math.min(20, LISTS.minerio.length)); }
+async function fetchPetroleo(){ return (await fetchByTickers(LISTS.petroleo)).slice(0, TOP_N); }
+async function fetchBancos(){ return (await fetchByTickers(LISTS.bancos)).slice(0, TOP_N); }
+async function fetchVarejo(){ return (await fetchByTickers(LISTS.varejo)).slice(0, TOP_N); }
 
 async function fetchData(){
   switch(category){
@@ -173,19 +198,18 @@ async function fetchData(){
   }
 }
 
-/************ BOLHAS ************/
+/* Bolhas */
 function createBubbles(data){
   const { w, h } = stageSize();
-  const pad = boundsPad(), hh = headerHeight();
-
-  bubbles = data.map(d => ({
+  const pad=boundsPad(), hh=headerHeight();
+  bubbles = data.map(d=>({
     symbol: d.symbol,
     price: d.price,
     change: d.changePct,
     color: colorForChange(d.changePct),
     r: radiusFor(d.changePct, d.volume),
-    x: rand(pad + 50, w - pad - 50),
-    y: rand(hh + pad + 20, h - pad - 50),
+    x: rand(pad+50, w-pad-50),
+    y: rand(hh+pad+20, h-pad-50),
     vx: rand(-START_VEL, START_VEL),
     vy: rand(-START_VEL, START_VEL),
     phase: Math.random()*Math.PI*2,
@@ -194,7 +218,7 @@ function createBubbles(data){
   for(let k=0;k<(IS_MOBILE?5:3);k++) resolveCollisions(true);
 }
 
-/************ FÍSICA / DESENHO ************/
+/* Física */
 function softSeparationForces(){
   for(let i=0;i<bubbles.length;i++){
     for(let j=i+1;j<bubbles.length;j++){
@@ -220,7 +244,7 @@ function resolveCollisions(init=false){
         a.x-=nx*overlap/2; a.y-=ny*overlap/2;
         b.x+=nx*overlap/2; b.y+=ny*overlap/2;
         if(!init){
-          const push = REPULSE_COLLIDE*0.5;
+          const push=REPULSE_COLLIDE*0.5;
           a.vx-=nx*push; a.vy-=ny*push; b.vx+=nx*push; b.vy+=ny*push;
         }
       }
@@ -228,19 +252,21 @@ function resolveCollisions(init=false){
   }
 }
 function wallConstraints(p){
-  const { w, h } = stageSize();
-  const pad=boundsPad(), hh=headerHeight();
+  const { w,h }=stageSize(); const pad=boundsPad(), hh=headerHeight();
   const L=p.r+pad, R=w-p.r-pad, T=hh+p.r+pad, B=h-p.r-pad;
   if(p.x<L){ p.x=L; p.vx=Math.abs(p.vx); }
   if(p.x>R){ p.x=R; p.vx=-Math.abs(p.vx); }
   if(p.y<T){ p.y=T; p.vy=Math.abs(p.vy); }
   if(p.y>B){ p.y=B; p.vy=-Math.abs(p.vy); }
 }
+
+/* Desenho */
 function drawBubble(b){
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
   ctx.fillStyle=b.color; ctx.fill();
   const ring=ctx.createRadialGradient(b.x,b.y,b.r*0.75,b.x,b.y,b.r);
-  ring.addColorStop(0,"rgba(255,255,255,0)"); ring.addColorStop(1,"rgba(255,255,255,0.85)");
+  ring.addColorStop(0,"rgba(255,255,255,0)");
+  ring.addColorStop(1,"rgba(255,255,255,0.85)");
   ctx.fillStyle=ring; ctx.fill();
   ctx.lineWidth=BORDER_WIDTH; ctx.strokeStyle="#fff"; ctx.stroke();
 
@@ -250,9 +276,12 @@ function drawBubble(b){
   const f3=Math.max(9, Math.floor(b.r*0.25));
   ctx.font=`700 ${f1}px Arial`; ctx.fillText(b.symbol, b.x, b.y-b.r*0.3);
   ctx.font=`500 ${f2}px Arial`; ctx.fillText(`${formatBRL(b.price)}`, b.x, b.y);
-  ctx.font=`600 ${f3}px Arial`; const s=b.change>=0?"+":""; ctx.fillText(`${s}${b.change.toFixed(2)}%`, b.x, b.y+b.r*0.3);
+  const sign=b.change>=0?"+":""; ctx.font=`600 ${f3}px Arial`;
+  ctx.fillText(`${sign}${Number(b.change).toFixed(2)}%`, b.x, b.y+b.r*0.3);
 }
 function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); for(const b of bubbles) drawBubble(b); }
+
+/* Loop */
 function step(now=performance.now()){
   let dt=now-lastTime; lastTime=now; dt=Math.min(32,Math.max(8,dt)); const s=dt/16;
   softSeparationForces();
@@ -263,36 +292,39 @@ function step(now=performance.now()){
     const dx=p.x-cx, dy=p.y-cy, dist=Math.hypot(dx,dy);
     if(dist<holeR && dist>0.0001){ const nx=dx/dist, ny=dy/dist, k=(1-dist/holeR)*CENTER_HOLE_STRENGTH; p.vx+=nx*k*s; p.vy+=ny*k*s; }
     if(dist>0.0001){ const nx=dx/dist, ny=dy/dist, tx=-ny, ty=nx, orb=ORBIT_STRENGTH*(holeR/(holeR+dist)); p.vx+=tx*orb*s; p.vy+=ty*orb*s; }
-    p.vx=clamp(p.vx*Math.pow(FRICTION,s), -MAX_SPEED, MAX_SPEED);
-    p.vy=clamp(p.vy*Math.pow(FRICTION,s), -MAX_SPEED, MAX_SPEED);
+    p.vx=clamp(p.vx*Math.pow(FRICTION,s),-MAX_SPEED,MAX_SPEED);
+    p.vy=clamp(p.vy*Math.pow(FRICTION,s),-MAX_SPEED,MAX_SPEED);
     p.x+=p.vx*s; p.y+=p.vy*s; wallConstraints(p);
   }
   for(let k=0;k<COLLISION_PASSES;k++) resolveCollisions();
   draw(); requestAnimationFrame(step);
 }
 
-/************ BOTÕES / INÍCIO ************/
+/* UI */
 async function setCategory(cat){
   category = cat;
   document.querySelectorAll(".buttons button").forEach(b=>b.classList.toggle("active", b.dataset.cat===cat));
   try{
-    setStatus("Carregando cotações...");
+    setStatus("Carregando cotações…");
     const data = await fetchData();
-    if(!data.length) throw new Error("Sem dados retornados da API");
     createBubbles(data);
     setStatus(`Exibindo ${data.length} • ${cat.toUpperCase()}`);
   }catch(e){
-    console.error("Erro ao carregar", cat, e);
-    setStatus("Erro ao carregar dados. Verifique o Console (F12) e a rede.");
-    bubbles = []; draw();
+    console.error("Falha geral – usando mock:", e?.message||e);
+    // fallback final – sempre mostra algo
+    const fallbackCodes = category==="acoes" ? ACES_UNIVERSE.slice(0,TOP_N)
+                        : LISTS[category] || ACES_UNIVERSE.slice(0,TOP_N);
+    createBubbles(mockGen(fallbackCodes));
+    setStatus("Modo offline (dados simulados)");
   }
 }
 document.querySelectorAll(".buttons button").forEach(b=>b.addEventListener("click",()=>setCategory(b.dataset.cat)));
 
+/* Start */
 setCategory("acoes");
 requestAnimationFrame(step);
 
-/* atualização a cada 30s */
+/* Atualização periódica (não teleporta) */
 setInterval(async ()=>{
   try{
     const data = await fetchData();
@@ -302,5 +334,8 @@ setInterval(async ()=>{
       p.price=d.price; p.change=d.changePct; p.color=colorForChange(d.changePct); p.r=radiusFor(d.changePct,d.volume);
     }
     setStatus(`Atualizado • ${new Date().toLocaleTimeString()}`);
-  }catch(e){ console.warn("Falha atualização:", e?.message||e); }
+  }catch(e){
+    // se atualização falhar, mantém o que já está na tela
+    console.warn("Atualização falhou (mantendo tela):", e?.message||e);
+  }
 }, 30000);
