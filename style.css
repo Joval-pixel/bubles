@@ -24,7 +24,7 @@ body {
 .btn.icon{ padding:10px 12px; cursor:pointer; }
 
 .tabs{ display:flex; gap:8px; padding:8px 16px; border-top:1px solid #13151b; }
-.tab{ padding:8px 10px; border-radius:8px; background:#13151b; border:1px solid #232631; cursor:pointer; pointer-events:auto; }
+.tab{ padding:8px 10px; border-radius:8px; background:#13151b; border:1px solid #232631; cursor:pointer; }
 .tab.active{ background:#0f172a; border-color:#334155; color:#cbe1ff; }
 
 .status{ padding:8px 16px; color:#99a0a8; }
@@ -64,7 +64,7 @@ body {
 .grad-neu-2{ stop-color:#aeb6c4; }
 .grad-neu-3{ stop-color:#2a2f37; }
 
-/* aro iluminado (cores) — os ids dos gradients são definidos no SVG defs */
+/* aro iluminado (cores) — ids dos gradients são definidos no SVG defs */
 .rim-pos { stroke: url(#rimGradPos); }
 .rim-neg { stroke: url(#rimGradNeg); }
 .rim-neu { stroke: url(#rimGradNeu); }
@@ -76,7 +76,9 @@ body {
 
 /* textos */
 .ticker, .price, .pct {
-  paint-order: stroke; stroke:#000; stroke-width:4px; fill:#fff; text-anchor:middle;
+  paint-order: stroke;
+  stroke:#000; stroke-width:4px;
+  fill:#fff; text-anchor:middle;
 }
 .ticker{ font-weight:900; letter-spacing:.5px; }
 .price { font-weight:800; }
