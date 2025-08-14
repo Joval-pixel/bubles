@@ -3,18 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BUBLES — Ações</title>
+  <title>BUBLES — Bolhas</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header class="topbar">
     <span class="led"></span>
-    <div class="brand">BUBLES</div>
+    <strong class="brand">BUBLES</strong>
   </header>
 
-  <!-- CONTROLES (estilo brapi.dev/quotes) -->
   <section class="controls">
-    <div class="control-line">
+    <div class="row">
       <input id="search-input" class="input" placeholder="Buscar por ticker" />
       <select id="type-select" class="select">
         <option value="">Todos os tipos</option>
@@ -30,8 +29,8 @@
       </select>
 
       <select id="metric-select" class="select w-compact" title="métrica">
-        <option value="market-cap" selected>Valor de Mercado</option>
-        <option value="volume">Volume</option>
+        <option value="volume" selected>Volume</option>
+        <option value="market-cap">Valor de Mercado</option>
         <option value="price">Preço</option>
       </select>
 
@@ -44,32 +43,27 @@
     </div>
 
     <div class="tabs">
-      <button class="tab period-btn active" data-period="hour">Hora</button>
-      <button class="tab period-btn" data-period="day">Dia</button>
+      <button class="tab period-btn active" data-period="day">Dia</button>
+      <button class="tab period-btn" data-period="hour">Hora</button>
       <button class="tab period-btn" data-period="week">Semana</button>
       <button class="tab period-btn" data-period="month">Mês</button>
       <button class="tab period-btn" data-period="year">Ano</button>
     </div>
 
-    <div class="status">
-      <div id="stock-counter">Carregando…</div>
-    </div>
+    <div class="status"><span id="stock-counter">Carregando…</span></div>
   </section>
 
-  <main class="chart-wrap">
+  <main class="stage">
     <svg id="bubble-chart" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet"></svg>
   </main>
 
-  <!-- Modal (opcional/futuro) -->
   <div id="settings-modal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
         <strong>Configurações</strong>
         <button id="close-modal" class="btn small">✖</button>
       </div>
-      <div class="modal-body">
-        <p>Em breve: opções avançadas.</p>
-      </div>
+      <div class="modal-body">Em breve.</div>
     </div>
   </div>
 
