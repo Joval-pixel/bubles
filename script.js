@@ -1,4 +1,4 @@
-/* ====== BUBLES — CryptoBubbles-like ====== */
+/* ====== BUBLES — CryptoBubbles-like (bolhas maiores + botões corrigidos) ====== */
 
 /* config */
 const IS_MOBILE  = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0) > 0;
@@ -15,7 +15,7 @@ const rangeSelect  = document.getElementById('range-select');
 const metricSelect = document.getElementById('metric-select');
 const marketSelect = document.getElementById('market-select');
 const stockCounter = document.getElementById('stock-counter');
-const periodBtns   = document.querySelectorAll('.period-btn');
+const tabsBar      = document.querySelector('.tabs'); // delegação de eventos
 const settingsBtn  = document.getElementById('settings');
 const settingsModal= document.getElementById('settings-modal');
 const closeModal   = document.getElementById('close-modal');
@@ -31,11 +31,14 @@ const money=(n, mkt)=> (n!=null) ? n.toLocaleString('pt-BR',{style:'currency', c
 const topN=a=>[...a].sort((x,y)=>(y.volume??0)-(x.volume??0)).slice(0,TOP_N);
 const metricKey=()=> currentMetric==='market-cap' ? 'marketCap' : currentMetric==='price' ? 'price' : 'volume';
 
-/* raios: mais “gordinhos” como CryptoBubbles */
+/* raios: MUITO maiores */
 function scaleR(v, vmin, vmax){
-  const n=TOP_N; const Rmax=n>150?34: n>80?44:56, Rmin=n>150?13: n>80?15:19;
-  if(!(vmax>vmin)) return (Rmax+Rmin)/2;
-  const t=(v-vmin)/(vmax-vmin); return Rmin + t*(Rmax-Rmin);
+  const n = TOP_N;
+  const Rmax = n > 150 ? 54 : n > 80 ? 64 : 74;  // ↑ maiores
+  const Rmin = n > 150 ? 22 : n > 80 ? 24 : 28;
+  if (!(vmax > vmin)) return (Rmax + Rmin) / 2;
+  const t = (v - vmin) / (vmax - vmin);
+  return Rmin + t * (Rmax - Rmin);
 }
 
 /* normalização BRAPI */
@@ -171,7 +174,7 @@ function render(){
     disc.setAttribute('fill',`url(#${gid})`); disc.setAttribute('class','ring');
     g.appendChild(disc);
 
-    // highlight (brilho no topo) – pequeno arco branco transparente
+    // brilho topo
     const halo=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
     const r=p.rv||p.r; halo.setAttribute('cx',0); halo.setAttribute('cy',-r*0.35); halo.setAttribute('rx',r*0.6); halo.setAttribute('ry',r*0.25);
     halo.setAttribute('fill','rgba(255,255,255,.16)'); g.appendChild(halo);
@@ -191,19 +194,19 @@ function render(){
       inner.setAttribute('cx',0); inner.setAttribute('cy',0); inner.setAttribute('r',r-4); inner.setAttribute('class','logo-fallback'); g.appendChild(inner);
     }
 
-    // textos — idêntico ao CryptoBubbles: % grande centro, ticker topo, preço base
+    // textos — %. ticker, preço (maiores)
     const pct=document.createElementNS('http://www.w3.org/2000/svg','text');
     pct.setAttribute('class','pct'); pct.setAttribute('x',0); pct.setAttribute('y',4);
-    pct.setAttribute('font-size', Math.max(12, Math.min(22, r*0.44)));
+    pct.setAttribute('font-size', Math.max(14, Math.min(26, r * 0.52)));
     pct.textContent=`${chg>0?'+':''}${(chg||0).toFixed(2)}%`; g.appendChild(pct);
 
     const tik=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tik.setAttribute('class','ticker'); tik.setAttribute('x',0); tik.setAttribute('y', -r*0.52);
-    tik.setAttribute('font-size', Math.max(10, Math.min(16, r*0.32))); tik.textContent=s.symbol; g.appendChild(tik);
+    tik.setAttribute('class','ticker'); tik.setAttribute('x',0); tik.setAttribute('y', -r * 0.56);
+    tik.setAttribute('font-size', Math.max(12, Math.min(18, r * 0.34))); tik.textContent=s.symbol; g.appendChild(tik);
 
     const price=document.createElementNS('http://www.w3.org/2000/svg','text');
-    price.setAttribute('class','price'); price.setAttribute('x',0); price.setAttribute('y', r*0.64);
-    price.setAttribute('font-size', Math.max(9, Math.min(14, r*0.28))); price.textContent=money(s.price,currentMarket); g.appendChild(price);
+    price.setAttribute('class','price'); price.setAttribute('x',0); price.setAttribute('y',  r * 0.70);
+    price.setAttribute('font-size', Math.max(11, Math.min(16, r * 0.30))); price.textContent=money(s.price,currentMarket); g.appendChild(price);
 
     g.addEventListener('click', ()=>{
       alert(`${s.symbol} — ${s.name}\nPreço: ${money(s.price,currentMarket)}\nTipo: ${s.type}\nSetor: ${s.sector}\nVariação (dia): ${(s.day??0).toFixed(2)}%`);
@@ -227,10 +230,12 @@ function updateCounter(){
   stockCounter.textContent=`Exibindo ${showing} de ${total} ações • 🟢 ${pos} Alta • 🔴 ${neg} Baixa`;
 }
 
-/* física (espalhamento e movimento suave) */
+/* física (mais espaço | mais repulsão) */
 function startPhysics(){
   cancelAnimationFrame(sim.raf);
-  const DAMP=0.986, NOISE=IS_MOBILE?0.028:0.05, CENTER=0.00010, EDGE=0.12, PASSES=2, REACH=90, REP=1.18, SEP=6, FILL=0.82;
+  const DAMP=0.986, NOISE=IS_MOBILE?0.028:0.05, CENTER=0.00010, EDGE=0.12,
+        PASSES=2, REACH=110, REP=1.25, SEP=8, FILL=0.88; // ← ajustado
+
   const step=()=>{
     const {w,h}=SZ(); const CX=w/2, CY=h/2, targetR=Math.min(w,h)*FILL/2;
     // grid
@@ -282,9 +287,9 @@ function startPhysics(){
       const n=sim.nodes[i];
       n.g.setAttribute('transform',`translate(${p.x},${p.y})`);
       n.disc.setAttribute('r',r); n.clipCircle.setAttribute('r',r-4);
-      n.tik.setAttribute('y', -r*0.52);
-      n.price.setAttribute('y',  r*0.64);
-      n.pct.setAttribute('font-size', Math.max(12, Math.min(22, r*0.44)));
+      n.tik.setAttribute('y', -r * 0.56);
+      n.price.setAttribute('y',  r * 0.70);
+      n.pct.setAttribute('font-size', Math.max(14, Math.min(26, r * 0.52)));
     }
 
     sim.raf=requestAnimationFrame(step);
@@ -307,9 +312,16 @@ function morphRadii(){
 }
 
 /* eventos UI */
-periodBtns.forEach(b=>b.addEventListener('click',()=>{
-  periodBtns.forEach(x=>x.classList.remove('active')); b.classList.add('active'); currentPeriod=b.dataset.period; render();
-}));
+// Delegação para os botões de período — garante funcionamento mesmo após re-render
+tabsBar.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.period-btn');
+  if (!btn) return;
+  document.querySelectorAll('.period-btn').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  currentPeriod = btn.dataset.period;   // hour|day|week|month|year
+  render();
+});
+
 metricSelect.addEventListener('change',()=>{ currentMetric=metricSelect.value; morphRadii(); });
 marketSelect.addEventListener('change',()=>{ currentMarket=marketSelect.value; populateFilterOptions(); applyFilters(); });
 searchInput.addEventListener('input',applyFilters);
