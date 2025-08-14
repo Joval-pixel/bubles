@@ -1,351 +1,503 @@
-/******************* BUBLES — script.js (BRAPI fix, 10s refresh, mobile tuned) *******************
- * Botões: Ações, Minério, Petróleo, Bancos, Varejo
- * Fonte: BRAPI /quote/{TICKERS}  (evita /quote/list)
- * Ações: TOP 100 (desktop) / TOP 30 (mobile)
- * Minério / Petróleo / Bancos / Varejo: mesmas listas filtradas
- * Bolhas maiores nesses filtros (no MOBILE), menores em Ações
- * Movimento livre, anti-aglomeração, sem “ímã” no centro
- *************************************************************************************************/
-
-console.log("Bubles JS v2025-08-13 prod-10s");
-
-// ===== CONFIG =====
-const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
-const IS_MOBILE  = matchMedia("(max-width: 820px)").matches || (navigator.maxTouchPoints || 0) > 0;
-const TOP_N      = IS_MOBILE ? 30 : 100;   // Ações
-const REFRESH_MS = 10_000;                 // 10 segundos
-
-// ===== FÍSICA / MOVIMENTO =====
-const HEADER_SAFE      = 84;
-const WALL_MARGIN      = IS_MOBILE ? 18 : 10;
-const FRICTION         = IS_MOBILE ? 0.998 : 0.985;
-const MAX_SPEED        = IS_MOBILE ? 0.11  : 0.90;
-const START_VEL        = IS_MOBILE ? 0.045 : 0.45;
-const REPULSE_COLLIDE  = IS_MOBILE ? 0.55  : 0.40;
-const BORDER_WIDTH     = 2.5;
-const COLLISION_PASSES = IS_MOBILE ? 5 : 1;
-
-const MAX_RADIUS_BASE  = IS_MOBILE ? 44 : 80;         // Ações
-const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.005 : 0.0035;
-const NEIGHBOR_RANGE_MULT   = 1.7;
-
-// “vazio” central (anti-aglomeração)
-const CENTER_HOLE_RADIUS_FACTOR = IS_MOBILE ? 0.34 : 0.30;
-const CENTER_HOLE_STRENGTH      = IS_MOBILE ? 0.014 : 0.010;
-const ORBIT_STRENGTH            = IS_MOBILE ? 0.009 : 0.006;
-
-const DRIFT_BASE  = IS_MOBILE ? 0.004 : 0.003;
-const DRIFT_FREQ  = 0.0018;
-const WOBBLE_STRENGTH = 0.010;
-const WOBBLE_FREQ = 0.0025;
-
-// ===== CANVAS =====
-const canvas = document.getElementById("bubbleCanvas");
-const ctx = canvas.getContext("2d");
-function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
-addEventListener("resize", resize); resize();
-
-// ===== STATUS (discreto) =====
-function status(msg, ms=2500){
-  let el = document.getElementById("statusBox");
-  if(!el){
-    el = document.createElement("div");
-    el.id = "statusBox";
-    el.style.cssText = "position:fixed;left:12px;bottom:12px;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font:500 12px/1.2 Arial;z-index:9999;pointer-events:none;opacity:0;transition:opacity .2s";
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.opacity = "1";
-  clearTimeout(el._t);
-  el._t = setTimeout(()=>el.style.opacity="0", ms);
+// Função para gerar dados aleatórios realistas
+function generateRandomStock(symbol, name, basePrice, baseCap) {
+    const hourChange = (Math.random() - 0.5) * 4;
+    const dayChange = (Math.random() - 0.5) * 10;
+    const weekChange = (Math.random() - 0.5) * 20;
+    const monthChange = (Math.random() - 0.5) * 40;
+    const yearChange = (Math.random() - 0.5) * 200;
+    
+    return {
+        symbol,
+        name,
+        price: basePrice + (Math.random() - 0.5) * basePrice * 0.2,
+        marketCap: baseCap + (Math.random() - 0.5) * baseCap * 0.3,
+        volume: Math.random() * 5 + 0.1,
+        hour: hourChange,
+        day: dayChange,
+        week: weekChange,
+        month: monthChange,
+        year: yearChange
+    };
 }
 
-// ===== ESTADO =====
-let category = "acoes";
-let bubbles  = [];
-let lastTime = performance.now();
-
-// ===== UTILS =====
-const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-const rand  = (a,b)=>Math.random()*(b-a)+a;
-const colorForChange = ch => ch>0 ? "#0a8f1f" : ch<0 ? "#b31212" : "#4a4a4a";
-
-function formatMoney(v, currency="BRL"){
-  if (!Number.isFinite(Number(v))) return "";
-  const pre = (currency||"BRL").toUpperCase()==="USD" ? "US$ " : "R$ ";
-  return pre + Number(v).toFixed(2).replace(".", ",");
-}
-
-// raio: filtros setoriais ficam 3× no MOBILE
-function radiusFor(changePct, volume){
-  const v = Math.max(1, Number(volume)||1);
-  const volScale = Math.log10(v+10)*3;
-  const varScale = Math.min(8, Math.abs(Number(changePct)||0));
-  const base = 14; // um pouco menor no mobile para ações
-  let r = base + varScale*3 + volScale;
-
-  const bigCats = ["minerio","petroleo","bancos","varejo"];
-  const isBig = IS_MOBILE && bigCats.includes(category);
-  const minR = isBig ? 22 : 16;
-  const maxR = isBig ? MAX_RADIUS_BASE*3 : MAX_RADIUS_BASE;
-
-  if (isBig) r *= 3;
-  return clamp(r, minR, maxR);
-}
-
-// ===== LISTAS =====
-const ACES_UNIVERSE = [
-  "VALE3","PETR4","PETR3","ITUB4","BBDC4","BBAS3","ELET3","ELET6","ABEV3","WEGE3","PRIO3","RENT3","EQTL3",
-  "SUZB3","JBSS3","CSNA3","GGBR4","GOAU4","USIM5","VBBR3","UGPA3","CMIN3","RRRP3","LREN3","B3SA3","BRFS3",
-  "EMBR3","BRAP4","NTCO3","CASH3","GMAT3","BRKM5","CRFB3","ASAI3","PCAR3","ITSA4","BBSE3","BBDC3","SANB11",
-  "BPAC11","ABCB4","BMGB4","BRSR6","RAIZ4","ENAT3","SBSP3","HAPV3","KLBN11","MULT3","CYRE3","EZTC3","MRVE3",
-  "CMIG4","CPFE3","TRPL4","ALPA4","VIVT3","TIMS3","QUAL3","YDUQ3","COGN3","MRFG3","BRML3","AZUL4","GOLL4"
+// Lista de ações brasileiras (100+)
+const brazilianStocks = [
+    generateRandomStock('PETR4', 'Petrobras', 35.31, 460.2),
+    generateRandomStock('VALE3', 'Vale', 54.71, 245.8),
+    generateRandomStock('ITUB4', 'Itaú Unibanco', 32.22, 312.5),
+    generateRandomStock('BBDC4', 'Bradesco', 13.45, 156.7),
+    generateRandomStock('ABEV3', 'Ambev', 12.89, 203.4),
+    generateRandomStock('WEGE3', 'WEG', 67.89, 89.3),
+    generateRandomStock('AZUL4', 'Azul', 6.62, 28.1),
+    generateRandomStock('MGLU3', 'Magazine Luiza', 7.28, 48.9),
+    generateRandomStock('AMBP3', 'Ambipar', 17.42, 12.5),
+    generateRandomStock('DASA3', 'Dasa', 1.46, 8.7),
+    generateRandomStock('VAMO3', 'Vamos', 1.31, 6.2),
+    generateRandomStock('POMO4', 'Marcopolo', 14.85, 9.8),
+    generateRandomStock('CPFE3', 'CPFL Energia', 37.41, 45.6),
+    generateRandomStock('FNAM11', 'FII Fator Verita', 8.26, 3.2),
+    generateRandomStock('IGTI11', 'Iguatemi', 21.06, 15.4),
+    generateRandomStock('BRFS3', 'BRF', 14.67, 23.8),
+    generateRandomStock('BBAS3', 'Banco do Brasil', 28.45, 98.7),
+    generateRandomStock('RENT3', 'Localiza', 45.67, 67.2),
+    generateRandomStock('LREN3', 'Lojas Renner', 23.12, 34.5),
+    generateRandomStock('JBSS3', 'JBS', 34.56, 78.9),
+    generateRandomStock('SUZB3', 'Suzano', 45.23, 62.1),
+    generateRandomStock('GGBR4', 'Gerdau', 18.90, 31.5),
+    generateRandomStock('USIM5', 'Usiminas', 7.65, 12.3),
+    generateRandomStock('CSNA3', 'CSN', 12.34, 18.7),
+    generateRandomStock('GOAU4', 'Metalúrgica Gerdau', 9.87, 15.2),
+    generateRandomStock('EMBR3', 'Embraer', 23.45, 42.8),
+    generateRandomStock('CCRO3', 'CCR', 14.56, 38.9),
+    generateRandomStock('EQTL3', 'Equatorial', 27.89, 45.6),
+    generateRandomStock('ELET3', 'Eletrobras', 39.12, 78.3),
+    generateRandomStock('ELET6', 'Eletrobras PNB', 41.23, 65.4),
+    generateRandomStock('CMIG4', 'Cemig', 8.76, 23.1),
+    generateRandomStock('TAEE11', 'Taesa', 32.45, 28.7),
+    generateRandomStock('CPLE6', 'Copel', 45.67, 34.2),
+    generateRandomStock('ENGI11', 'Energisa', 38.90, 29.8),
+    generateRandomStock('SBSP3', 'Sabesp', 67.23, 45.9),
+    generateRandomStock('SAPR11', 'Sanepar', 78.45, 32.1),
+    generateRandomStock('VIVT3', 'Telefônica Brasil', 43.21, 67.8),
+    generateRandomStock('TIMP3', 'TIM', 9.87, 21.4),
+    generateRandomStock('OIBR3', 'Oi', 2.34, 5.6),
+    generateRandomStock('QUAL3', 'Qualicorp', 12.56, 8.9),
+    generateRandomStock('RADL3', 'Raia Drogasil', 34.78, 56.2),
+    generateRandomStock('RAIA3', 'RaiaDrogasil', 23.45, 43.7),
+    generateRandomStock('PCAR3', 'P&G', 45.67, 32.8),
+    generateRandomStock('KLBN11', 'Klabin', 3.45, 19.6),
+    generateRandomStock('FIBR3', 'Fibria', 67.89, 28.3),
+    generateRandomStock('MRFG3', 'Marfrig', 8.90, 15.7),
+    generateRandomStock('BEEF3', 'Minerva', 12.34, 9.8),
+    generateRandomStock('JALL3', 'Jalles Machado', 23.45, 6.4),
+    generateRandomStock('HAPV3', 'Hapvida', 34.56, 42.1),
+    generateRandomStock('RDOR3', 'Rede D\'Or', 28.90, 58.7),
+    generateRandomStock('FLRY3', 'Fleury', 15.67, 12.3),
+    generateRandomStock('PARD3', 'Pardini', 19.45, 8.9),
+    generateRandomStock('ODPV3', 'Odontoprev', 11.23, 6.7),
+    generateRandomStock('GNDI3', 'NotreDame', 45.78, 34.2),
+    generateRandomStock('CSAN3', 'Cosan', 23.45, 28.9),
+    generateRandomStock('RAIZ4', 'Raízen', 3.67, 15.4),
+    generateRandomStock('UGPA3', 'Ultrapar', 18.90, 23.7),
+    generateRandomStock('BRDT3', 'Petrobras Distribuidora', 22.34, 19.8),
+    generateRandomStock('GRND3', 'Grendene', 5.67, 8.2),
+    generateRandomStock('ALPK3', 'Alpargatas', 12.45, 4.9),
+    generateRandomStock('SOMA3', 'Soma', 8.90, 3.6),
+    generateRandomStock('ARZZ3', 'Arezzo', 34.56, 7.8),
+    generateRandomStock('GUAR3', 'Guararapes', 15.23, 12.4),
+    generateRandomStock('HYPE3', 'Hypera', 23.78, 18.9),
+    generateRandomStock('PFRM3', 'Profarma', 9.45, 5.7),
+    generateRandomStock('BLAU3', 'Blau Farmacêutica', 6.78, 3.2),
+    generateRandomStock('MULT3', 'Multiplan', 45.67, 28.9),
+    generateRandomStock('BRML3', 'BR Malls', 12.34, 15.6),
+    generateRandomStock('ALUP11', 'Alupar', 23.45, 19.8),
+    generateRandomStock('TGMA3', 'Tegma', 34.67, 8.4),
+    generateRandomStock('LOGN3', 'Log-In', 18.90, 12.7),
+    generateRandomStock('RAIL3', 'Rumo', 15.67, 23.4),
+    generateRandomStock('ECOR3', 'EcoRodovias', 8.45, 6.9),
+    generateRandomStock('CYRE3', 'Cyrela', 12.78, 18.3),
+    generateRandomStock('MRVE3', 'MRV', 6.90, 9.7),
+    generateRandomStock('EVEN3', 'Even', 3.45, 4.2),
+    generateRandomStock('JHSF3', 'JHSF', 5.67, 3.8),
+    generateRandomStock('TCSA3', 'Tecnisa', 2.34, 1.9),
+    generateRandomStock('DIRR3', 'Direcional', 4.56, 2.7),
+    generateRandomStock('PLPL3', 'Plano&Plano', 8.90, 5.4),
+    generateRandomStock('MDIA3', 'M.Dias Branco', 23.45, 15.8),
+    generateRandomStock('SMTO3', 'São Martinho', 34.67, 12.9),
+    generateRandomStock('SLCE3', 'SLC Agrícola', 45.78, 18.6),
+    generateRandomStock('TTEN3', 'Três Tentos', 12.34, 7.3),
+    generateRandomStock('CAML3', 'Camil', 8.90, 4.7),
+    generateRandomStock('JOPA3', 'Josapar', 5.67, 2.8),
+    generateRandomStock('VULC3', 'Vulcabras', 3.45, 1.9),
+    generateRandomStock('CAMB3', 'Cambuci', 2.78, 1.2),
+    generateRandomStock('GFSA3', 'Gafisa', 1.23, 0.8),
+    generateRandomStock('PDGR3', 'PDG Realty', 2.45, 1.5),
+    generateRandomStock('BPAC11', 'BTG Pactual', 67.89, 89.4),
+    generateRandomStock('SANB11', 'Santander Brasil', 34.56, 67.2),
+    generateRandomStock('BPAN4', 'Banco Pan', 12.78, 8.9),
+    generateRandomStock('PINE4', 'Pine', 5.67, 3.4),
+    generateRandomStock('BMGB4', 'Banco BMG', 3.45, 2.1),
+    generateRandomStock('BMIN4', 'Banco Inter', 8.90, 6.7),
+    generateRandomStock('BIDI11', 'Banco Inter', 23.45, 15.8),
+    generateRandomStock('MODL11', 'Modelo', 34.67, 12.4),
+    generateRandomStock('CASH3', 'Méliuz', 2.34, 1.8),
+    generateRandomStock('PETZ3', 'Petz', 4.56, 3.2),
+    generateRandomStock('VVAR3', 'Via Varejo', 1.23, 2.1),
+    generateRandomStock('AMER3', 'Americanas', 0.89, 1.5),
+    generateRandomStock('LAME4', 'Lojas Americanas', 1.45, 2.8),
+    generateRandomStock('GMAT3', 'Grupo Mateus', 12.34, 8.9),
+    generateRandomStock('ASAI3', 'Assaí', 23.45, 34.7),
+    generateRandomStock('PCAR4', 'Grupo Carrefour', 15.67, 18.9),
+    generateRandomStock('SBFG3', 'Grupo SBF', 8.90, 6.4),
+    generateRandomStock('VIIA3', 'Via', 3.45, 4.2),
+    generateRandomStock('LWSA3', 'Locaweb', 2.78, 1.9),
+    generateRandomStock('MOVI3', 'Movida', 12.34, 7.8),
+    generateRandomStock('SIMH3', 'Simpar', 8.90, 5.6)
 ];
 
-const LISTS = {
-  minerio: ["VALE3","CMIN3","CSNA3","GGBR4","GGBR3","GOAU4","GOAU3","BRAP4","BRAP3","USIM5","USIM3","FESA4","FESA3","CBAV3","PMAM3","PATI4","PATI3","EALT4","EALT3","MGEL4","AURA33"],
-  petroleo:["PETR3","PETR4","PRIO3","RRRP3","RECV3","ENAT3","CSAN3","VBBR3","RAIZ4","UGPA3"],
-  bancos:  ["ITUB4","ITUB3","BBDC4","BBDC3","BBAS3","SANB11","SANB4","SANB3","BPAN4","ABCB4","BMGB4","BRSR6","BRSR3","PINE4","MODL11","MODL3","MODL4","BPAC11"],
-  varejo:  ["MGLU3","VIIA3","LREN3","AMER3","ARZZ3","SOMA3","PETZ3","GUAR3","CEAB3","CRFB3","PCAR3","SBFG3","DMVF3","CASH3","NTCO3","GMAT3","LJQQ3","DTCY3"]
-};
+// Lista de ações americanas (100+)
+const americanStocks = [
+    generateRandomStock('AAPL', 'Apple', 185.92, 2850.4),
+    generateRandomStock('MSFT', 'Microsoft', 378.85, 2820.1),
+    generateRandomStock('GOOGL', 'Alphabet', 142.56, 1780.3),
+    generateRandomStock('AMZN', 'Amazon', 151.94, 1590.8),
+    generateRandomStock('TSLA', 'Tesla', 248.42, 789.2),
+    generateRandomStock('META', 'Meta', 484.49, 1234.5),
+    generateRandomStock('NVDA', 'NVIDIA', 875.28, 2156.7),
+    generateRandomStock('NFLX', 'Netflix', 486.81, 215.4),
+    generateRandomStock('AMD', 'AMD', 142.37, 234.8),
+    generateRandomStock('INTC', 'Intel', 23.45, 98.7),
+    generateRandomStock('CRM', 'Salesforce', 267.89, 267.3),
+    generateRandomStock('ORCL', 'Oracle', 112.34, 312.1),
+    generateRandomStock('ADBE', 'Adobe', 567.23, 256.8),
+    generateRandomStock('PYPL', 'PayPal', 78.45, 89.2),
+    generateRandomStock('DIS', 'Disney', 98.76, 180.4),
+    generateRandomStock('UBER', 'Uber', 67.89, 145.6),
+    generateRandomStock('SPOT', 'Spotify', 234.56, 45.8),
+    generateRandomStock('ZOOM', 'Zoom', 89.12, 26.7),
+    generateRandomStock('SQ', 'Block', 123.45, 67.3),
+    generateRandomStock('SHOP', 'Shopify', 456.78, 58.9),
+    generateRandomStock('GOOG', 'Alphabet Class C', 140.23, 1750.2),
+    generateRandomStock('BRK.A', 'Berkshire Hathaway', 523456.78, 789.4),
+    generateRandomStock('BRK.B', 'Berkshire Hathaway B', 348.90, 785.6),
+    generateRandomStock('UNH', 'UnitedHealth', 512.34, 485.7),
+    generateRandomStock('JNJ', 'Johnson & Johnson', 167.89, 432.1),
+    generateRandomStock('V', 'Visa', 278.45, 598.3),
+    generateRandomStock('PG', 'Procter & Gamble', 156.78, 374.2),
+    generateRandomStock('JPM', 'JPMorgan Chase', 189.23, 567.8),
+    generateRandomStock('MA', 'Mastercard', 423.67, 398.4),
+    generateRandomStock('HD', 'Home Depot', 345.89, 356.7),
+    generateRandomStock('CVX', 'Chevron', 167.45, 312.9),
+    generateRandomStock('LLY', 'Eli Lilly', 789.23, 745.6),
+    generateRandomStock('ABBV', 'AbbVie', 178.90, 314.5),
+    generateRandomStock('AVGO', 'Broadcom', 1234.56, 567.8),
+    generateRandomStock('PEP', 'PepsiCo', 178.34, 245.7),
+    generateRandomStock('KO', 'Coca-Cola', 67.89, 289.4),
+    generateRandomStock('TMO', 'Thermo Fisher', 567.23, 223.8),
+    generateRandomStock('COST', 'Costco', 789.45, 345.6),
+    generateRandomStock('MRK', 'Merck', 123.45, 267.9),
+    generateRandomStock('ABT', 'Abbott', 112.78, 198.7),
+    generateRandomStock('ACN', 'Accenture', 345.67, 218.9),
+    generateRandomStock('CSCO', 'Cisco', 56.78, 234.5),
+    generateRandomStock('TXN', 'Texas Instruments', 189.23, 167.8),
+    generateRandomStock('DHR', 'Danaher', 267.89, 189.4),
+    generateRandomStock('VZ', 'Verizon', 45.67, 189.7),
+    generateRandomStock('WMT', 'Walmart', 167.89, 567.3),
+    generateRandomStock('QCOM', 'Qualcomm', 178.45, 198.6),
+    generateRandomStock('PFE', 'Pfizer', 34.56, 189.4),
+    generateRandomStock('NKE', 'Nike', 89.23, 134.7),
+    generateRandomStock('COP', 'ConocoPhillips', 123.45, 145.8),
+    generateRandomStock('NEE', 'NextEra Energy', 78.90, 167.9),
+    generateRandomStock('UPS', 'UPS', 134.56, 123.4),
+    generateRandomStock('RTX', 'Raytheon', 89.78, 134.6),
+    generateRandomStock('LOW', 'Lowe\'s', 234.56, 156.8),
+    generateRandomStock('LMT', 'Lockheed Martin', 456.78, 123.9),
+    generateRandomStock('AMGN', 'Amgen', 278.90, 145.7),
+    generateRandomStock('HON', 'Honeywell', 189.23, 134.8),
+    generateRandomStock('UNP', 'Union Pacific', 234.56, 145.9),
+    generateRandomStock('SBUX', 'Starbucks', 98.76, 112.4),
+    generateRandomStock('CAT', 'Caterpillar', 345.67, 178.9),
+    generateRandomStock('AXP', 'American Express', 189.45, 134.7),
+    generateRandomStock('GS', 'Goldman Sachs', 456.78, 156.8),
+    generateRandomStock('BA', 'Boeing', 178.90, 123.4),
+    generateRandomStock('IBM', 'IBM', 134.56, 123.7),
+    generateRandomStock('DE', 'Deere', 389.23, 123.8),
+    generateRandomStock('BLK', 'BlackRock', 789.45, 123.9),
+    generateRandomStock('MMM', '3M', 123.45, 67.8),
+    generateRandomStock('GILD', 'Gilead Sciences', 78.90, 89.4),
+    generateRandomStock('MDT', 'Medtronic', 89.23, 123.7),
+    generateRandomStock('ISRG', 'Intuitive Surgical', 456.78, 167.9),
+    generateRandomStock('SPGI', 'S&P Global', 423.67, 134.8),
+    generateRandomStock('NOW', 'ServiceNow', 678.90, 145.7),
+    generateRandomStock('INTU', 'Intuit', 567.23, 156.8),
+    generateRandomStock('TJX', 'TJX Companies', 123.45, 134.9),
+    generateRandomStock('BKNG', 'Booking Holdings', 3456.78, 145.6),
+    generateRandomStock('ADP', 'ADP', 267.89, 123.7),
+    generateRandomStock('VRTX', 'Vertex Pharmaceuticals', 456.78, 123.8),
+    generateRandomStock('SYK', 'Stryker', 345.67, 134.9),
+    generateRandomStock('LRCX', 'Lam Research', 789.23, 123.4),
+    generateRandomStock('AMAT', 'Applied Materials', 189.45, 167.8),
+    generateRandomStock('PANW', 'Palo Alto Networks', 345.67, 123.9),
+    generateRandomStock('MU', 'Micron Technology', 123.45, 134.7),
+    generateRandomStock('ADI', 'Analog Devices', 234.56, 123.8),
+    generateRandomStock('KLAC', 'KLA Corporation', 567.89, 145.9),
+    generateRandomStock('MRVL', 'Marvell Technology', 89.23, 78.4),
+    generateRandomStock('FTNT', 'Fortinet', 67.89, 56.7),
+    generateRandomStock('SNPS', 'Synopsys', 567.23, 89.4),
+    generateRandomStock('CDNS', 'Cadence Design', 345.67, 67.8),
+    generateRandomStock('CRWD', 'CrowdStrike', 234.56, 78.9),
+    generateRandomStock('ZS', 'Zscaler', 189.23, 45.6),
+    generateRandomStock('OKTA', 'Okta', 123.45, 23.4),
+    generateRandomStock('DDOG', 'Datadog', 134.56, 34.7),
+    generateRandomStock('SNOW', 'Snowflake', 189.78, 56.8),
+    generateRandomStock('NET', 'Cloudflare', 89.23, 23.4),
+    generateRandomStock('PLTR', 'Palantir', 23.45, 45.6),
+    generateRandomStock('RBLX', 'Roblox', 45.67, 23.8),
+    generateRandomStock('COIN', 'Coinbase', 178.90, 45.7),
+    generateRandomStock('HOOD', 'Robinhood', 12.34, 8.9),
+    generateRandomStock('SOFI', 'SoFi', 8.90, 6.7),
+    generateRandomStock('UPST', 'Upstart', 34.56, 12.3),
+    generateRandomStock('AFRM', 'Affirm', 23.78, 8.9),
+    generateRandomStock('ABNB', 'Airbnb', 123.45, 78.9),
+    generateRandomStock('DASH', 'DoorDash', 67.89, 23.4),
+    generateRandomStock('LYFT', 'Lyft', 45.67, 15.6),
+    generateRandomStock('GRUB', 'Grubhub', 23.45, 6.7),
+    generateRandomStock('ETSY', 'Etsy', 78.90, 12.3),
+    generateRandomStock('EBAY', 'eBay', 45.67, 23.4),
+    generateRandomStock('TGT', 'Target', 234.56, 123.4),
+    generateRandomStock('F', 'Ford', 12.34, 45.6),
+    generateRandomStock('GM', 'General Motors', 45.67, 67.8)
+];
 
-// ===== REDE (só /quote/{tickers}) =====
-async function getJSON(url, ms=12000){
-  const p = fetch(url).then(r=>{ if(!r.ok) throw new Error(`${r.status} ${url}`); return r.json(); });
-  return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")), ms))]);
+// Estado da aplicação
+let currentMarket = 'brazilian';
+let currentPeriod = 'day';
+let currentMetric = 'market-cap';
+let currentData = brazilianStocks.slice(0, 100);
+
+// Elementos DOM
+const bubbleChart = document.getElementById('bubble-chart');
+const searchInput = document.getElementById('search-input');
+const rangeSelect = document.getElementById('range-select');
+const periodButtons = document.querySelectorAll('.period-btn');
+const metricSelect = document.getElementById('metric-select');
+const settingsBtn = document.getElementById('settings');
+const settingsModal = document.getElementById('settings-modal');
+const closeModal = document.getElementById('close-modal');
+const marketSelect = document.getElementById('market-select');
+const stockCounter = document.getElementById('stock-counter');
+
+// Função para gerar posições das bolhas (otimizada para mobile)
+function generateBubblePositions(data) {
+    const positions = [];
+    const width = 400;
+    const height = 600;
+    const padding = 20;
+    
+    const sortedData = [...data].sort((a, b) => b.marketCap - a.marketCap);
+    
+    sortedData.forEach((stock, index) => {
+        let x, y, radius;
+        let attempts = 0;
+        const maxAttempts = 30;
+        
+        // Calcular raio menor para mobile
+        const maxValue = Math.max(...data.map(s => s[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price']));
+        const minValue = Math.min(...data.map(s => s[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price']));
+        const value = stock[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price'];
+        
+        // Raio otimizado para mobile: 12 a 35 pixels
+        radius = 12 + ((value - minValue) / (maxValue - minValue)) * 23;
+        
+        do {
+            if (index === 0) {
+                x = width / 2;
+                y = height / 2;
+            } else {
+                // Posicionamento em espiral otimizado para mobile
+                const angle = index * 0.8;
+                const distance = Math.sqrt(index) * 18;
+                x = width / 2 + Math.cos(angle) * distance;
+                y = height / 2 + Math.sin(angle) * distance;
+                
+                if (x < radius + padding || x > width - radius - padding || 
+                    y < radius + padding || y > height - radius - padding) {
+                    x = padding + radius + Math.random() * (width - 2 * (padding + radius));
+                    y = padding + radius + Math.random() * (height - 2 * (padding + radius));
+                }
+            }
+            
+            let collision = false;
+            for (let i = Math.max(0, positions.length - 15); i < positions.length; i++) {
+                const other = positions[i];
+                const distance = Math.sqrt((x - other.x) ** 2 + (y - other.y) ** 2);
+                const minDistance = radius + other.radius + 2;
+                
+                if (distance < minDistance) {
+                    collision = true;
+                    break;
+                }
+            }
+            
+            if (!collision) {
+                positions.push({ x, y, radius, stock, index });
+                break;
+            }
+            
+            attempts++;
+        } while (attempts < maxAttempts);
+        
+        if (attempts >= maxAttempts) {
+            positions.push({ x, y, radius, stock, index });
+        }
+    });
+    
+    return positions;
 }
 
-function mapQuote(it){
-  const symbol = (it.symbol || it.stock || it.code || it.ticker || "").toUpperCase();
-  const price  = Number(it.regularMarketPrice);
-  let changePct = Number(it.regularMarketChangePercent);
-  if (!Number.isFinite(changePct)) {
-    const prev = Number(it.regularMarketPreviousClose);
-    if (Number.isFinite(price) && Number.isFinite(prev) && prev !== 0) {
-      changePct = ((price / prev) - 1) * 100;
-    }
-  }
-  const volume   = Number(it.regularMarketVolume ?? it.volume ?? it.totalVolume);
-  const currency = (it.currency || "BRL").toUpperCase();
-  return { symbol, price, changePct, volume, currency };
-}
-const isValid = q => q && q.symbol && Number.isFinite(q.price) && Number.isFinite(q.changePct);
-
-async function fetchByTickers(tickers){
-  if (!tickers?.length) return [];
-  tickers = [...new Set(tickers.map(s => s.toUpperCase()))];
-  const chunk = 40, batches=[];
-  for (let i=0;i<tickers.length;i+=chunk){
-    const slice = tickers.slice(i,i+chunk);
-    const url = `https://brapi.dev/api/quote/${slice.join(",")}?token=${TOKEN}`;
-    batches.push(getJSON(url).catch(()=>null));
-  }
-  const settled = await Promise.all(batches);
-  const raw = settled.flatMap(x => x ? (x.results || x.stocks || []) : []);
-  const arr = raw.map(mapQuote).filter(isValid);
-  arr.sort((a,b)=>(b.volume||0)-(a.volume||0));
-  return arr;
-}
-
-// Ações: universo fixo (líquidos) ranqueado por volume real
-async function fetchAcoesTop(){
-  const data = await fetchByTickers(ACES_UNIVERSE);
-  return data.slice(0, TOP_N);
-}
-
-// Minério: até 20 (apenas os que estiverem cotando)
-async function fetchMinerio(){
-  const data = await fetchByTickers(LISTS.minerio);
-  return data.slice(0, Math.min(20, data.length));
-}
-
-async function fetchData(){
-  status("Carregando cotações…", 2000);
-  try{
-    switch(category){
-      case "acoes":    return await fetchAcoesTop();
-      case "minerio":  return await fetchMinerio();
-      case "petroleo": return (await fetchByTickers(LISTS.petroleo)).slice(0, TOP_N);
-      case "bancos":   return (await fetchByTickers(LISTS.bancos)).slice(0, TOP_N);
-      case "varejo":   return (await fetchByTickers(LISTS.varejo)).slice(0, TOP_N);
-      default:         return await fetchAcoesTop();
-    }
-  }catch(e){
-    console.error("fetchData:", e);
-    status("Erro ao buscar cotações", 2500);
-    return [];
-  }
+// Função para renderizar as bolhas (otimizada para mobile)
+function renderBubbles() {
+    const positions = generateBubblePositions(currentData);
+    bubbleChart.innerHTML = '';
+    
+    const fragment = document.createDocumentFragment();
+    
+    positions.forEach(({ x, y, radius, stock }) => {
+        const change = stock[currentPeriod];
+        let bubbleClass = 'bubble-neutral';
+        if (change > 0) bubbleClass = 'bubble-positive';
+        else if (change < 0) bubbleClass = 'bubble-negative';
+        
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', 'bubble');
+        group.setAttribute('data-symbol', stock.symbol);
+        
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', radius);
+        circle.setAttribute('class', bubbleClass);
+        circle.setAttribute('stroke-width', '1');
+        
+        // Texto otimizado para mobile
+        if (radius > 18) {
+            const symbolText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            symbolText.setAttribute('x', x);
+            symbolText.setAttribute('y', y - 3);
+            symbolText.setAttribute('class', 'bubble-text bubble-symbol');
+            symbolText.textContent = stock.symbol;
+            group.appendChild(symbolText);
+            
+            const changeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            changeText.setAttribute('x', x);
+            changeText.setAttribute('y', y + 7);
+            changeText.setAttribute('class', 'bubble-text bubble-change');
+            changeText.textContent = `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
+            group.appendChild(changeText);
+        } else if (radius > 12) {
+            const symbolText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            symbolText.setAttribute('x', x);
+            symbolText.setAttribute('y', y);
+            symbolText.setAttribute('class', 'bubble-text bubble-symbol');
+            symbolText.setAttribute('font-size', '9px');
+            symbolText.textContent = stock.symbol.substring(0, 4);
+            group.appendChild(symbolText);
+        }
+        
+        group.appendChild(circle);
+        
+        group.addEventListener('click', () => showStockDetails(stock));
+        
+        fragment.appendChild(group);
+    });
+    
+    bubbleChart.appendChild(fragment);
+    updateStockCounter();
 }
 
-// ===== BOLHAS =====
-function createBubbles(data){
-  bubbles = data.map(d => ({
-    symbol: d.symbol,
-    price: d.price,
-    change: d.changePct,
-    currency: d.currency,
-    color: colorForChange(d.changePct),
-    r: radiusFor(d.changePct, d.volume),
-    x: rand(50, canvas.width-50),
-    y: rand(HEADER_SAFE+20, canvas.height-50),
-    vx: rand(-START_VEL, START_VEL),
-    vy: rand(-START_VEL, START_VEL),
-    phase: Math.random()*Math.PI*2,
-    driftSeed: Math.random()*Math.PI*2
-  }));
-  for (let k=0;k<3;k++) resolveCollisions(true); // afastamento inicial
+// Função para atualizar contador
+function updateStockCounter() {
+    const total = currentMarket === 'brazilian' ? brazilianStocks.length : americanStocks.length;
+    const showing = currentData.length;
+    const positive = currentData.filter(s => s[currentPeriod] > 0).length;
+    const negative = currentData.filter(s => s[currentPeriod] < 0).length;
+    
+    stockCounter.textContent = `Exibindo ${showing} de ${total} ações • 🟢 ${positive} Alta • 🔴 ${negative} Baixa`;
 }
 
-function softSeparationForces(){
-  for (let i=0;i<bubbles.length;i++){
-    for (let j=i+1;j<bubbles.length;j++){
-      const a=bubbles[i], b=bubbles[j];
-      const dx=b.x-a.x, dy=b.y-a.y, dist=Math.hypot(dx,dy);
-      if (!dist) continue;
-      const want=(a.r+b.r)*NEIGHBOR_RANGE_MULT;
-      if (dist<want){
-        const nx=dx/dist, ny=dy/dist, k=(1-dist/want)*SOFT_REPULSE_STRENGTH;
-        a.vx-=nx*k; a.vy-=ny*k; b.vx+=nx*k; b.vy+=ny*k;
-      }
-    }
-  }
-}
-function resolveCollisions(init=false){
-  for (let i=0;i<bubbles.length;i++){
-    for (let j=i+1;j<bubbles.length;j++){
-      const a=bubbles[i], b=bubbles[j];
-      const dx=b.x-a.x, dy=b.y-a.y, dist=Math.hypot(dx,dy);
-      const min=a.r+b.r+BORDER_WIDTH;
-      if (dist<min && dist>0){
-        const nx=dx/dist, ny=dy/dist, overlap=(min-dist)*0.6;
-        a.x-=nx*overlap/2; a.y-=ny*overlap/2;
-        b.x+=nx*overlap/2; b.y+=ny*overlap/2;
-        if(!init){ const push=REPULSE_COLLIDE*0.5; a.vx-=nx*push; a.vy-=ny*push; b.vx+=nx*push; b.vy+=ny*push; }
-      }
-    }
-  }
-}
-function wallConstraints(p){
-  const L=p.r+WALL_MARGIN, R=canvas.width-p.r-WALL_MARGIN;
-  const T=HEADER_SAFE+p.r, B=canvas.height-p.r-WALL_MARGIN;
-  if(p.x<L){p.x=L;p.vx=Math.abs(p.vx);} if(p.x>R){p.x=R;p.vx=-Math.abs(p.vx);}
-  if(p.y<T){p.y=T;p.vy=Math.abs(p.vy);} if(p.y>B){p.y=B;p.vy=-Math.abs(p.vy);}
+// Função para mostrar detalhes da ação
+function showStockDetails(stock) {
+    const price = stock.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const marketCap = stock.marketCap.toFixed(1);
+    const change = stock.day > 0 ? '+' : '';
+    
+    alert(`${stock.symbol} - ${stock.name}\nPreço: ${price}\nValor de Mercado: R$ ${marketCap}B\nVariação do Dia: ${change}${stock.day.toFixed(2)}%`);
 }
 
-// ===== DESENHO =====
-function drawBubble(b){
-  ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-  ctx.fillStyle=b.color; ctx.fill();
-
-  // brilho nas bordas (3D sutil)
-  const ring=ctx.createRadialGradient(b.x,b.y,b.r*0.75,b.x,b.y,b.r);
-  ring.addColorStop(0,"rgba(255,255,255,0)");
-  ring.addColorStop(1,"rgba(255,255,255,0.85)");
-  ctx.fillStyle=ring; ctx.fill();
-
-  ctx.lineWidth=BORDER_WIDTH; ctx.strokeStyle="#fff"; ctx.stroke();
-
-  // textos
-  ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle";
-  const f1=Math.max(11,Math.floor(b.r*0.4));
-  const f2=Math.max(10,Math.floor(b.r*0.3));
-  const f3=Math.max(9, Math.floor(b.r*0.25));
-
-  ctx.font=`700 ${f1}px Arial`;
-  ctx.fillText(b.symbol, b.x, b.y - b.r*0.3);
-
-  ctx.font=`500 ${f2}px Arial`;
-  ctx.fillText(formatMoney(b.price, b.currency), b.x, b.y);
-
-  ctx.font=`600 ${f3}px Arial`;
-  const sign=b.change>=0?"+":"";
-  ctx.fillText(`${sign}${b.change.toFixed(2)}%`, b.x, b.y + b.r*0.3);
-}
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(const b of bubbles) drawBubble(b);
-}
-
-// ===== LOOP =====
-function step(now=performance.now()){
-  let dt = now - lastTime; lastTime = now;
-  dt = Math.min(32, Math.max(8, dt));
-  const s = dt/16;
-
-  softSeparationForces();
-
-  const cx = canvas.width*0.5, cy = canvas.height*0.52;
-  const holeR = Math.min(canvas.width, canvas.height)*CENTER_HOLE_RADIUS_FACTOR;
-
-  for(const p of bubbles){
-    const t = now*WOBBLE_FREQ + p.phase;
-    p.vx += Math.sin(t)*WOBBLE_STRENGTH*s;
-    p.vy += Math.cos(t)*WOBBLE_STRENGTH*s;
-
-    const w = now*DRIFT_FREQ + p.driftSeed;
-    p.vx += Math.sin(w*0.9)*DRIFT_BASE*s;
-    p.vy += Math.cos(w*1.1)*DRIFT_BASE*s;
-
-    // empurra para fora do centro se entrar no “vazio”
-    const dx=p.x-cx, dy=p.y-cy, dist=Math.hypot(dx,dy);
-    if(dist < holeR && dist>0.0001){
-      const nx=dx/dist, ny=dy/dist, k=(1-dist/holeR)*CENTER_HOLE_STRENGTH;
-      p.vx += nx*k*s; p.vy += ny*k*s;
-    }
-    if(dist>0.0001){
-      const nx=dx/dist, ny=dy/dist, tx=-ny, ty=nx;
-      const orb = ORBIT_STRENGTH*(holeR/(holeR+dist));
-      p.vx += tx*orb*s; p.vy += ty*orb*s;
-    }
-
-    p.vx = clamp(p.vx*Math.pow(FRICTION,s), -MAX_SPEED, MAX_SPEED);
-    p.vy = clamp(p.vy*Math.pow(FRICTION,s), -MAX_SPEED, MAX_SPEED);
-    p.x  += p.vx*s; p.y  += p.vy*s;
-
-    wallConstraints(p);
-  }
-  for(let k=0;k<COLLISION_PASSES;k++) resolveCollisions();
-  draw();
-  requestAnimationFrame(step);
-}
-
-// ===== BOTÕES =====
-async function setCategory(cat){
-  category = cat;
-  document.querySelectorAll(".buttons button").forEach(b=>{
-    b.classList.toggle("active", b.dataset.cat===cat);
-  });
-  const data = await fetchData();
-  bubbles = [];
-  if (data && data.length){
-    createBubbles(data);
-    status(`OK: ${data.length} papéis`);
-  }else{
-    status("Sem dados recebidos");
-  }
-}
-document.querySelectorAll(".buttons button").forEach(b=>{
-  b.addEventListener("click", ()=>setCategory(b.dataset.cat));
+// Event listeners
+periodButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        periodButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentPeriod = btn.dataset.period;
+        renderBubbles();
+    });
 });
 
-// (Opcional) clique na bolha → TradingView (se houver modal/iframe no HTML)
-canvas.addEventListener("click", (e)=>{
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left, y = e.clientY - rect.top;
-  for (const b of bubbles){
-    if (Math.hypot(x-b.x, y-b.y) <= b.r){
-      const modal = document.getElementById("chartModal");
-      const iframe = document.getElementById("tradingview-frame");
-      if (modal && iframe){
-        iframe.src = `https://s.tradingview.com/widgetembed/?symbol=BMFBOVESPA:${encodeURIComponent(b.symbol)}&interval=1&theme=dark&style=1&locale=br`;
-        modal.style.display = "block";
-      }
-      break;
-    }
-  }
+metricSelect.addEventListener('change', (e) => {
+    currentMetric = e.target.value;
+    renderBubbles();
 });
 
-// ===== START =====
-setCategory("acoes");
-requestAnimationFrame(step);
-setInterval(()=>setCategory(category), REFRESH_MS);
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+    
+    if (query) {
+        currentData = baseData.filter(stock => 
+            stock.symbol.toLowerCase().includes(query) || 
+            stock.name.toLowerCase().includes(query)
+        );
+    } else {
+        const range = rangeSelect.value;
+        const [start, end] = range.split('-').map(Number);
+        currentData = baseData.slice(start - 1, end);
+    }
+    renderBubbles();
+});
+
+rangeSelect.addEventListener('change', (e) => {
+    const range = e.target.value;
+    const [start, end] = range.split('-').map(Number);
+    const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+    currentData = baseData.slice(start - 1, end);
+    renderBubbles();
+});
+
+settingsBtn.addEventListener('click', () => {
+    settingsModal.classList.remove('hidden');
+});
+
+closeModal.addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+});
+
+marketSelect.addEventListener('change', (e) => {
+    currentMarket = e.target.value;
+    const range = rangeSelect.value;
+    const [start, end] = range.split('-').map(Number);
+    const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+    currentData = baseData.slice(start - 1, end);
+    renderBubbles();
+    settingsModal.classList.add('hidden');
+});
+
+settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+        settingsModal.classList.add('hidden');
+    }
+});
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    renderBubbles();
+});
+
+// Redimensionamento otimizado
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        renderBubbles();
+    }, 300);
+});
+
+// Prevenir zoom duplo toque no iOS
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (event) {
+    const now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+    }
+    lastTouchEnd = now;
+}, false);
