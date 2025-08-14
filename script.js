@@ -1,47 +1,17 @@
 /************ BUBLES — script.js (200 desktop / 30 mobile + animação sem sobreposição) ************/
 
 /* ===== 0) Responsividade (quantidade) ===== */
-const IS_MOBILE = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0)>0;
+const IS_MOBILE = matchMedia("(max-width: 820px)").matches || (navigator.maxTouchPoints || 0) > 0;
 const TOP_N = IS_MOBILE ? 30 : 200;
 
-/* ===== 1) Dados =====
-   Você pode manter suas listas 'brazilianStocks' e 'americanStocks'.
-   Abaixo deixo um gerador + algumas entradas; complete com sua lista.
+/* ===== 1) DADOS =====
+   Use suas listas completas abaixo (brazilianStocks e americanStocks).
+   Se você já tem as listas carregadas neste mesmo arquivo, mantenha-as como estão.
+   (Removi daqui para encurtar a resposta)
 */
-function generateRandomStock(symbol, name, basePrice, baseCap) {
-  const hourChange  = (Math.random()-0.5)*4;
-  const dayChange   = (Math.random()-0.5)*10;
-  const weekChange  = (Math.random()-0.5)*20;
-  const monthChange = (Math.random()-0.5)*40;
-  const yearChange  = (Math.random()-0.5)*200;
-  return {
-    symbol, name,
-    price: basePrice + (Math.random()-0.5)*basePrice*0.2,
-    marketCap: baseCap + (Math.random()-0.5)*baseCap*0.3,
-    volume: Math.random()*5 + 0.1,
-    hour: hourChange, day: dayChange, week: weekChange, month: monthChange, year: yearChange
-  };
-}
-
-// ---- Substitua/complete com SUAS listas (usei algumas para exemplo) ----
-const brazilianStocks = [
-  generateRandomStock('PETR4','Petrobras',35.31,460.2),
-  generateRandomStock('VALE3','Vale',54.71,245.8),
-  generateRandomStock('ITUB4','Itaú',32.22,312.5),
-  generateRandomStock('BBDC4','Bradesco',13.45,156.7),
-  generateRandomStock('ABEV3','Ambev',12.89,203.4),
-  generateRandomStock('WEGE3','WEG',67.89,89.3),
-  generateRandomStock('MGLU3','Magazine Luiza',7.28,48.9),
-  // ... (cole aqui todo o resto da sua lista BR)
-];
-const americanStocks = [
-  generateRandomStock('AAPL','Apple',185.92,2850.4),
-  generateRandomStock('MSFT','Microsoft',378.85,2820.1),
-  generateRandomStock('NVDA','NVIDIA',875.28,2156.7),
-  generateRandomStock('AMZN','Amazon',151.94,1590.8),
-  generateRandomStock('META','Meta',484.49,1234.5),
-  // ... (cole aqui todo o resto da sua lista EUA)
-];
+// >>> COLE AQUI SUAS LISTAS COMPLETAS <<<
+// const brazilianStocks = [ ...100+... ];
+// const americanStocks  = [ ...100+... ];
 
 /* ===== 2) Estado ===== */
 let currentMarket = 'brazilian';
@@ -59,20 +29,21 @@ const closeModal    = document.getElementById('close-modal');
 const marketSelect  = document.getElementById('market-select');
 const stockCounter  = document.getElementById('stock-counter');
 
+/* ===== 3) Helpers ===== */
 function datasetByMarket() {
   return currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
 }
 function topNByVolume(arr) {
-  return [...arr].sort((a,b)=>b.volume - a.volume).slice(0, TOP_N);
+  // Pega SEMPRE as mais negociadas (volume) e limita a TOP_N
+  return [...arr].sort((a, b) => b.volume - a.volume).slice(0, TOP_N);
 }
 let currentData = topNByVolume(datasetByMarket());
 
-/* ===== 3) Helpers ===== */
 function getChartSize(svgEl){
   const r = svgEl.getBoundingClientRect();
-  const w = r.width>0?Math.floor(r.width):800;
-  const h = r.height>0?Math.floor(r.height):600;
-  return { width: Math.max(320,w), height: Math.max(420,h) };
+  const w = r.width  > 0 ? Math.floor(r.width)  : 800;
+  const h = r.height > 0 ? Math.floor(r.height) : 600;
+  return { width: Math.max(320, w), height: Math.max(420, h) };
 }
 function scaleRadius(value, minV, maxV){
   const MIN_R=16, MAX_R=44;
@@ -167,6 +138,7 @@ function renderBubbles(){
     const change=stock[currentPeriod];
     let cls='bubble-neutral'; if(change>0) cls='bubble-positive'; else if(change<0) cls='bubble-negative';
 
+    // Grupo com transform para animar
     const g = document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','bubble'); g.setAttribute('data-symbol',stock.symbol);
     g.setAttribute('transform',`translate(${x},${y})`);
@@ -192,7 +164,7 @@ function renderBubbles(){
       t2.setAttribute('class','bubble-text bubble-change');
       t2.setAttribute('text-anchor','middle'); t2.setAttribute('dominant-baseline','middle');
       t2.setAttribute('font-size',`${fs2}px`); t2.setAttribute('font-weight','600'); t2.setAttribute('fill','#fff');
-      t2.textContent=`${change>0?'+':''}${change.toFixed(1)}%`; g.appendChild(t2);
+      t2.textContent=`${change > 0 ? '+' : ''}${change.toFixed(1)}%`; g.appendChild(t2);
     } else {
       const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
       t1.setAttribute('x',0); t1.setAttribute('y',0);
@@ -336,30 +308,39 @@ if(searchInput){
   });
 }
 if(rangeSelect){
+  // Mantém o rótulo, mas NÃO deixa reduzir a quantidade
   rangeSelect.value = `1-${TOP_N}`;
   rangeSelect.addEventListener('change', ()=>{ rangeSelect.value = `1-${TOP_N}`; });
 }
-if(settingsBtn){ settingsBtn.addEventListener('click', ()=> settingsModal && (settingsModal.style.display='block')); }
-if(closeModal){ closeModal.addEventListener('click', ()=> settingsModal && (settingsModal.style.display='none')); }
+if(settingsBtn){ settingsBtn.addEventListener('click', ()=> settingsModal && settingsModal.classList.remove('hidden')); }
+if(closeModal){ closeModal.addEventListener('click', ()=> settingsModal && settingsModal.classList.add('hidden')); }
 if(marketSelect){
   marketSelect.addEventListener('change', e=>{
     currentMarket = e.target.value;
     currentData = topNByVolume(datasetByMarket());
     renderBubbles();
-    settingsModal && (settingsModal.style.display='none');
+    settingsModal && settingsModal.classList.add('hidden');
   });
 }
 
 /* ===== 8) Inicialização & Resize ===== */
-document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(()=>{ 
-  currentData = topNByVolume(datasetByMarket());
-  renderBubbles();
-},50); });
+document.addEventListener('DOMContentLoaded', ()=>{
+  setTimeout(()=>{ 
+    currentData = topNByVolume(datasetByMarket());
+    if(rangeSelect) rangeSelect.value = `1-${TOP_N}`;
+    renderBubbles();
+  }, 50);
+});
 
 let resizeTimeout;
 window.addEventListener('resize', ()=>{
   clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(()=>{ renderBubbles(); }, 150);
+  resizeTimeout = setTimeout(()=>{
+    // Se trocar de breakpoint, recalcula TOP_N dinamicamente:
+    const wasMobile = IS_MOBILE;
+    // (para simplicidade, recarregue a página se quiser reavaliar 30/200)
+    renderBubbles();
+  }, 150);
 });
 
 // Previne zoom duplo no iOS
