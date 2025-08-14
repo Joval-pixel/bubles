@@ -75,8 +75,9 @@ function pickLogo(d){ return d.logo || d.logourl || d.logoUrl || d.image || null
 /* raios grandes */
 function scaleR(v, vmin, vmax){
   const n = TOP_N;
-  const Rmax = n > 150 ? 54 : n > 80 ? 64 : 74;
-  const Rmin = n > 150 ? 22 : n > 80 ? 24 : 28;
+  // bolhas maiores em todos os cenários
+  const Rmax = n > 150 ? 70 : n > 80 ? 86 : 100;  // antes: 54/64/74
+  const Rmin = n > 150 ? 28 : n > 80 ? 30 : 34;   // antes: 22/24/28
   if (!(vmax > vmin)) return (Rmax + Rmin) / 2;
   const t = (v - vmin) / (vmax - vmin);
   return Rmin + t * (Rmax - Rmin);
