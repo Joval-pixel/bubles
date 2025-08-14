@@ -1,4 +1,4 @@
-/* ====== BUBLES — CryptoBubbles-like (bolhas maiores + botões corrigidos) ====== */
+/* ====== BUBLES — estilo CryptoBubbles (PT-BR) ====== */
 
 /* config */
 const IS_MOBILE  = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0) > 0;
@@ -15,7 +15,7 @@ const rangeSelect  = document.getElementById('range-select');
 const metricSelect = document.getElementById('metric-select');
 const marketSelect = document.getElementById('market-select');
 const stockCounter = document.getElementById('stock-counter');
-const tabsBar      = document.querySelector('.tabs'); // delegação de eventos
+const tabsBar      = document.querySelector('.tabs');
 const settingsBtn  = document.getElementById('settings');
 const settingsModal= document.getElementById('settings-modal');
 const closeModal   = document.getElementById('close-modal');
@@ -31,10 +31,10 @@ const money=(n, mkt)=> (n!=null) ? n.toLocaleString('pt-BR',{style:'currency', c
 const topN=a=>[...a].sort((x,y)=>(y.volume??0)-(x.volume??0)).slice(0,TOP_N);
 const metricKey=()=> currentMetric==='market-cap' ? 'marketCap' : currentMetric==='price' ? 'price' : 'volume';
 
-/* raios: MUITO maiores */
+/* raios grandes */
 function scaleR(v, vmin, vmax){
   const n = TOP_N;
-  const Rmax = n > 150 ? 54 : n > 80 ? 64 : 74;  // ↑ maiores
+  const Rmax = n > 150 ? 54 : n > 80 ? 64 : 74;
   const Rmin = n > 150 ? 22 : n > 80 ? 24 : 28;
   if (!(vmax > vmin)) return (Rmax + Rmin) / 2;
   const t = (v - vmin) / (vmax - vmin);
@@ -126,7 +126,7 @@ function seed(list){
   });
 }
 
-/* render (gradiente, aro branco, logo, % grande) */
+/* render */
 function render(){
   setView(); svg.innerHTML='';
   if(!sim.pts.length) sim.pts=seed(current);
@@ -194,7 +194,7 @@ function render(){
       inner.setAttribute('cx',0); inner.setAttribute('cy',0); inner.setAttribute('r',r-4); inner.setAttribute('class','logo-fallback'); g.appendChild(inner);
     }
 
-    // textos — %. ticker, preço (maiores)
+    // textos — % grande no centro, ticker em cima, preço embaixo
     const pct=document.createElementNS('http://www.w3.org/2000/svg','text');
     pct.setAttribute('class','pct'); pct.setAttribute('x',0); pct.setAttribute('y',4);
     pct.setAttribute('font-size', Math.max(14, Math.min(26, r * 0.52)));
@@ -209,7 +209,7 @@ function render(){
     price.setAttribute('font-size', Math.max(11, Math.min(16, r * 0.30))); price.textContent=money(s.price,currentMarket); g.appendChild(price);
 
     g.addEventListener('click', ()=>{
-      alert(`${s.symbol} — ${s.name}\nPreço: ${money(s.price,currentMarket)}\nTipo: ${s.type}\nSetor: ${s.sector}\nVariação (dia): ${(s.day??0).toFixed(2)}%`);
+      alert(`${s.symbol} — ${s.name}\nPreço: ${money(s.price,currentMarket)}\nTipo: ${s.type}\nSetor: ${s.sector}\nVariação (${labelDoPeriodo()}): ${(s[currentPeriod]??0).toFixed(2)}%`);
     });
 
     frag.appendChild(g);
@@ -222,6 +222,11 @@ function render(){
   morphRadii();
 }
 
+/* label PT do período para o alerta */
+function labelDoPeriodo(){
+  return {hour:'hora',day:'dia',week:'semana',month:'mês',year:'ano'}[currentPeriod] || 'dia';
+}
+
 /* contador */
 function updateCounter(){
   const total=(master[currentMarket]||[]).length, showing=current.length;
@@ -230,11 +235,11 @@ function updateCounter(){
   stockCounter.textContent=`Exibindo ${showing} de ${total} ações • 🟢 ${pos} Alta • 🔴 ${neg} Baixa`;
 }
 
-/* física (mais espaço | mais repulsão) */
+/* física (espaço + repulsão) */
 function startPhysics(){
   cancelAnimationFrame(sim.raf);
   const DAMP=0.986, NOISE=IS_MOBILE?0.028:0.05, CENTER=0.00010, EDGE=0.12,
-        PASSES=2, REACH=110, REP=1.25, SEP=8, FILL=0.88; // ← ajustado
+        PASSES=2, REACH=110, REP=1.25, SEP=8, FILL=0.88;
 
   const step=()=>{
     const {w,h}=SZ(); const CX=w/2, CY=h/2, targetR=Math.min(w,h)*FILL/2;
@@ -297,7 +302,7 @@ function startPhysics(){
   sim.raf=requestAnimationFrame(step);
 }
 
-/* morph de raios (quando métrica muda/refresh) */
+/* morph de raios */
 function morphRadii(){
   const {key,vmin,vmax}=baseRadInfo(current);
   const t0=performance.now();
@@ -311,8 +316,7 @@ function morphRadii(){
   })(t0);
 }
 
-/* eventos UI */
-// Delegação para os botões de período — garante funcionamento mesmo após re-render
+/* eventos UI (delegação de eventos nos botões de período) */
 tabsBar.addEventListener('click', (e)=>{
   const btn = e.target.closest('.period-btn');
   if (!btn) return;
@@ -327,6 +331,7 @@ marketSelect.addEventListener('change',()=>{ currentMarket=marketSelect.value; p
 searchInput.addEventListener('input',applyFilters);
 typeSelect.addEventListener('change',applyFilters);
 sectorSelect.addEventListener('change',applyFilters);
+/* mantém o seletor de quantidade visual, mas TOP_N é automático (30/200) */
 if(rangeSelect){ rangeSelect.value=`1-${TOP_N}`; rangeSelect.addEventListener('change',()=>{ rangeSelect.value=`1-${TOP_N}`; }); }
 
 settingsBtn?.addEventListener('click',()=> settingsModal?.classList.remove('hidden'));
