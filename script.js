@@ -1,5 +1,8 @@
 /* ====== BUBLES — estilo CryptoBubbles (PT-BR, 3D) ====== */
 
+/* >>> Coloque seu token da Brapi aqui (ou deixe vazio) <<< */
+const BRAPI_TOKEN = ""; // exemplo: "5bTDfSmR2ieax6y7JUqDAD"
+
 /* config */
 const IS_MOBILE  = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0) > 0;
 const TOP_N      = IS_MOBILE ? 30 : 200;
@@ -25,13 +28,14 @@ let currentMarket='brazilian', currentPeriod='day', currentMetric='volume';
 let master={ brazilian:[], american:[] }, current=[];
 let sim={ pts:[], nodes:[], raf:null };
 
-/* util */
+/* utils */
 const SZ = ()=>{ const r=svg.getBoundingClientRect(); return {w:Math.max(320,Math.floor(r.width||800)), h:Math.max(420,Math.floor(r.height||600))} };
 const money=(n, mkt)=> (n!=null) ? n.toLocaleString('pt-BR',{style:'currency', currency:(mkt==='brazilian'?'BRL':'USD'), maximumFractionDigits:2}) : '-';
 const topN=a=>[...a].sort((x,y)=>(y.volume??0)-(x.volume??0)).slice(0,TOP_N);
 const metricKey=()=> currentMetric==='market-cap' ? 'marketCap' : currentMetric==='price' ? 'price' : 'volume';
+const qToken = BRAPI_TOKEN ? `&token=${encodeURIComponent(BRAPI_TOKEN)}` : "";
 
-/* tradução de tipos e setores */
+/* tradução de setores (Brapi → PT) */
 const SECTOR_PT = {
   "Commercial Services":"Serviços Comerciais",
   "Communications":"Comunicações",
@@ -79,9 +83,15 @@ function scaleR(v, vmin, vmax){
 }
 
 /* fetch/util */
-async function fetchWithTimeout(url,ms=9000){ const c=new AbortController(); const t=setTimeout(()=>c.abort(),ms);
-  try{ const r=await fetch(url,{signal:c.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); }
-  finally{ clearTimeout(t); } }
+async function fetchWithTimeout(url,ms=10000){
+  const c=new AbortController();
+  const t=setTimeout(()=>c.abort(),ms);
+  try{
+    const r=await fetch(url,{signal:c.signal});
+    if(!r.ok) throw new Error(r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
 
 function normalize(it){
   const symbol=String(it.symbol||it.stock||it.ticker||it.code||it.name||'').toUpperCase();
@@ -110,11 +120,17 @@ function normalize(it){
 }
 
 async function loadMarket(market){
+  const baseBR = `https://brapi.dev/api/quote/list?limit=500`;
+  const baseUS = `https://brapi.dev/api/quote/list?limit=500&exchange=usa`;
   const urls = (market==='brazilian')
-    ? ['https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500',
-       'https://brapi.dev/api/quote/list?sortBy=market_cap&sortOrder=desc&limit=500']
-    : ['https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500&exchange=usa',
-       'https://brapi.dev/api/quote/list?sortBy=market_cap&sortOrder=desc&limit=500&exchange=usa'];
+    ? [
+        `${baseBR}&sortBy=volume&sortOrder=desc${qToken}`,
+        `${baseBR}&sortBy=market_cap&sortOrder=desc${qToken}`
+      ]
+    : [
+        `${baseUS}&sortBy=volume&sortOrder=desc${qToken}`,
+        `${baseUS}&sortBy=market_cap&sortOrder=desc${qToken}`
+      ];
   for(const u of urls){
     try{
       const j=await fetchWithTimeout(u,10000);
@@ -161,9 +177,8 @@ function seed(list){
   });
 }
 
-/* render — com bolha 3D */
+/* defs globais (aro, sombra interna, gloss) */
 function ensureGlobalDefs(defs){
-  // gradientes do aro — definidos uma vez
   if(!document.getElementById('rimGradPos')){
     const mk=(id,c1,c2)=>{
       const lg = document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
@@ -180,7 +195,6 @@ function ensureGlobalDefs(defs){
     mk('rimGradNeg','#ffd8db','#ff6a73');
     mk('rimGradNeu','#e4e8f0','#a9b3c6');
   }
-  // filtro de sombra interna
   if(!document.getElementById('innerShadow')){
     const f = document.createElementNS('http://www.w3.org/2000/svg','filter');
     f.setAttribute('id','innerShadow');
@@ -199,7 +213,6 @@ function ensureGlobalDefs(defs){
     `;
     defs.appendChild(f);
   }
-  // gradiente do gloss
   if(!document.getElementById('glossGrad')){
     const gg = document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
     gg.setAttribute('id','glossGrad');
@@ -213,6 +226,7 @@ function ensureGlobalDefs(defs){
   }
 }
 
+/* render — com bolha 3D */
 function render(){
   setView(); svg.innerHTML='';
   if(!sim.pts.length) sim.pts=seed(current);
@@ -244,7 +258,7 @@ function render(){
     const isPos = chg>0, isNeg = chg<0;
     const r = p.rv || p.r;
 
-    // gradiente único do disco (4 paradas para 3D)
+    // gradiente do disco (4 paradas para 3D)
     const discId = `disc-${i}-${s.symbol}`;
     const discGrad = document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
     discGrad.setAttribute('id', discId);
@@ -354,7 +368,7 @@ function render(){
   morphRadii();
 }
 
-/* label PT do período para o alerta */
+/* label PT do período */
 function labelDoPeriodo(){
   return {hour:'hora',day:'dia',week:'semana',month:'mês',year:'ano'}[currentPeriod] || 'dia';
 }
@@ -367,7 +381,7 @@ function updateCounter(){
   stockCounter.textContent=`Exibindo ${showing} de ${total} ações • 🟢 ${pos} Alta • 🔴 ${neg} Baixa`;
 }
 
-/* física (espaço + repulsão) */
+/* física (sem sobrepor) */
 function startPhysics(){
   cancelAnimationFrame(sim.raf);
   const DAMP=0.986, NOISE=IS_MOBILE?0.028:0.05, CENTER=0.00010, EDGE=0.12,
@@ -423,15 +437,11 @@ function startPhysics(){
 
       const n=sim.nodes[i];
       n.g.setAttribute('transform',`translate(${p.x},${p.y})`);
-
-      // atualiza raios e camadas 3D
       n.disc.setAttribute('r', r);
       n.rim.setAttribute('r', r-1.6);
       n.outer.setAttribute('r', r*1.07);
       n.outer.setAttribute('stroke-width', Math.max(8, r*0.22));
       n.clipCircle.setAttribute('r', r-4);
-
-      // textos
       n.tik.setAttribute('y', -r * 0.58);
       n.price.setAttribute('y',  r * 0.72);
       n.pct.setAttribute('font-size', Math.max(16, Math.min(28, r * 0.54)));
@@ -456,7 +466,7 @@ function morphRadii(){
   })(t0);
 }
 
-/* eventos UI (delegação) */
+/* eventos UI */
 tabsBar.addEventListener('click', (e)=>{
   const btn = e.target.closest('.period-btn');
   if (!btn) return;
