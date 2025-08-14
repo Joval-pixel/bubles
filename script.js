@@ -1,4 +1,4 @@
-/* ============ CryptoBubbles-like bubbles (SVG + physics) ============ */
+/* ====== BUBLES — CryptoBubbles-like ====== */
 
 /* config */
 const IS_MOBILE  = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0) > 0;
@@ -26,19 +26,19 @@ let master={ brazilian:[], american:[] }, current=[];
 let sim={ pts:[], nodes:[], raf:null };
 
 /* util */
-const size = ()=>{ const r=svg.getBoundingClientRect(); return {w:Math.max(320,Math.floor(r.width||800)), h:Math.max(420,Math.floor(r.height||600))} };
+const SZ = ()=>{ const r=svg.getBoundingClientRect(); return {w:Math.max(320,Math.floor(r.width||800)), h:Math.max(420,Math.floor(r.height||600))} };
 const money=(n, mkt)=> (n!=null) ? n.toLocaleString('pt-BR',{style:'currency', currency:(mkt==='brazilian'?'BRL':'USD'), maximumFractionDigits:2}) : '-';
 const topN=a=>[...a].sort((x,y)=>(y.volume??0)-(x.volume??0)).slice(0,TOP_N);
 const metricKey=()=> currentMetric==='market-cap' ? 'marketCap' : currentMetric==='price' ? 'price' : 'volume';
 
-/* raios estilo CryptoBubbles: bem compactos, com escala por volume */
+/* raios: mais “gordinhos” como CryptoBubbles */
 function scaleR(v, vmin, vmax){
-  const n=TOP_N; const Rmax=n>150?32: n>80?42:52, Rmin=n>150?12: n>80?14:18;
+  const n=TOP_N; const Rmax=n>150?34: n>80?44:56, Rmin=n>150?13: n>80?15:19;
   if(!(vmax>vmin)) return (Rmax+Rmin)/2;
   const t=(v-vmin)/(vmax-vmin); return Rmin + t*(Rmax-Rmin);
 }
 
-/* heurísticas + normalização brapi */
+/* normalização BRAPI */
 function inferType(sym,t){ if(t) return t; if(/11$/.test(sym)) return 'FII/Units'; if(/3[45]$/.test(sym)) return 'BDR'; return 'Ação'; }
 function inferSector(s){ return s||'Desconhecido'; }
 function pickLogo(d){ return d.logo || d.logourl || d.logoUrl || d.image || null; }
@@ -111,10 +111,10 @@ function populateFilterOptions(){
 }
 
 /* layout base */
-function setView(){ const {w,h}=size(); svg.setAttribute('viewBox',`0 0 ${w} ${h}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); return {w,h}; }
+function setView(){ const {w,h}=SZ(); svg.setAttribute('viewBox',`0 0 ${w} ${h}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); return {w,h}; }
 function baseRadInfo(list){ const key=metricKey(); const vmax=Math.max(...list.map(s=>s[key]??0)); const vmin=Math.min(...list.map(s=>s[key]??0)); return {key,vmin,vmax}; }
 function seed(list){
-  const {w,h}=size(); const PAD=20; const {key,vmin,vmax}=baseRadInfo(list);
+  const {w,h}=SZ(); const PAD=20; const {key,vmin,vmax}=baseRadInfo(list);
   return list.map(s=>{
     const r=scaleR(s[key]??0, vmin, vmax);
     const x=PAD+r+Math.random()*(w-2*(PAD+r));
@@ -123,20 +123,19 @@ function seed(list){
   });
 }
 
-/* render */
+/* render (gradiente, aro branco, logo, % grande) */
 function render(){
   setView(); svg.innerHTML='';
   if(!sim.pts.length) sim.pts=seed(current);
   else {
     const map=new Map(sim.pts.map(p=>[p.s.symbol,p]));
-    const {key,vmin,vmax}=baseRadInfo(current);
-    const next=[];
+    const {key,vmin,vmax}=baseRadInfo(current); const next=[];
     current.forEach(s=>{
       const r=scaleR(s[key]??0, vmin, vmax);
       const old=map.get(s.symbol);
       if(old){ old.s=s; old.targetR=r; next.push(old); }
       else {
-        const {w,h}=size(); const PAD=20;
+        const {w,h}=SZ(); const PAD=20;
         const x=PAD+r+Math.random()*(w-2*(PAD+r)); const y=PAD+r+Math.random()*(h-2*(PAD+r));
         next.push({x,y, r, rv:12, targetR:r, s});
       }
@@ -153,74 +152,65 @@ function render(){
   sim.pts.forEach((p,i)=>{
     const s=p.s, chg = s[currentPeriod] ?? s.day ?? 0;
     const isPos = chg>0, isNeg = chg<0;
-    const gradId = `g-${i}-${s.symbol}`;
-    const grad = document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
-    grad.setAttribute('id', gradId);
-    grad.setAttribute('cx','50%'); grad.setAttribute('cy','40%'); grad.setAttribute('r','60%');
-    const stop1=document.createElementNS('http://www.w3.org/2000/svg','stop');
-    const stop2=document.createElementNS('http://www.w3.org/2000/svg','stop');
-    stop1.setAttribute('offset','0%');
-    stop2.setAttribute('offset','100%');
-    stop1.setAttribute('class', isPos?'bgrad-pos':isNeg?'bgrad-neg':'bgrad-neu');
-    stop2.setAttribute('class', isPos?'bgrad-pos2':isNeg?'bgrad-neg2':'bgrad-neu2');
-    grad.appendChild(stop1); grad.appendChild(stop2); defs.appendChild(grad);
+
+    // gradiente
+    const gid=`g-${i}-${s.symbol}`;
+    const grad=document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
+    grad.setAttribute('id',gid); grad.setAttribute('cx','50%'); grad.setAttribute('cy','40%'); grad.setAttribute('r','65%');
+    const st1=document.createElementNS('http://www.w3.org/2000/svg','stop'); st1.setAttribute('offset','0%'); st1.setAttribute('class',isPos?'grad-pos-1':isNeg?'grad-neg-1':'grad-neu-1');
+    const st2=document.createElementNS('http://www.w3.org/2000/svg','stop'); st2.setAttribute('offset','100%'); st2.setAttribute('class',isPos?'grad-pos-2':isNeg?'grad-neg-2':'grad-neu-2');
+    grad.appendChild(st1); grad.appendChild(st2); defs.appendChild(grad);
 
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','bubble'); g.setAttribute('transform',`translate(${p.x},${p.y})`);
+    g.setAttribute('class',`bubble ${isPos?'glow-pos':'glow-neg'}`); g.setAttribute('transform',`translate(${p.x},${p.y})`);
     g.style.cursor='pointer';
 
-    // disco principal (gradiente) + anel
-    const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    ring.setAttribute('cx',0); ring.setAttribute('cy',0); ring.setAttribute('r',p.rv||p.r);
-    ring.setAttribute('fill',`url(#${gradId})`);
-    ring.setAttribute('stroke-width','3');
-    ring.setAttribute('class', isPos?'bring-positive':isNeg?'bring-negative':'bring-neutral');
-    g.appendChild(ring);
+    // disco + anel branco
+    const disc=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    disc.setAttribute('cx',0); disc.setAttribute('cy',0); disc.setAttribute('r',p.rv||p.r);
+    disc.setAttribute('fill',`url(#${gid})`); disc.setAttribute('class','ring');
+    g.appendChild(disc);
 
-    // clip para logo
-    const clipId=`clip-${i}-${s.symbol}`;
-    const clip=document.createElementNS('http://www.w3.org/2000/svg','clipPath'); clip.setAttribute('id',clipId);
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('cx',0); c.setAttribute('cy',0); c.setAttribute('r',(p.rv||p.r)-3);
-    clip.appendChild(c); defs.appendChild(clip);
+    // highlight (brilho no topo) – pequeno arco branco transparente
+    const halo=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+    const r=p.rv||p.r; halo.setAttribute('cx',0); halo.setAttribute('cy',-r*0.35); halo.setAttribute('rx',r*0.6); halo.setAttribute('ry',r*0.25);
+    halo.setAttribute('fill','rgba(255,255,255,.16)'); g.appendChild(halo);
+
+    // clip/logo
+    const cid=`clip-${i}-${s.symbol}`; const cp=document.createElementNS('http://www.w3.org/2000/svg','clipPath'); cp.setAttribute('id',cid);
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('cx',0); c.setAttribute('cy',0); c.setAttribute('r',r-4);
+    cp.appendChild(c); defs.appendChild(cp);
 
     if(s.logo){
       const img=document.createElementNS('http://www.w3.org/2000/svg','image');
-      const size=(p.rv||p.r)*1.6; img.setAttributeNS('http://www.w3.org/1999/xlink','href',s.logo);
-      img.setAttribute('x',-size/2); img.setAttribute('y',-size/2); img.setAttribute('width',size); img.setAttribute('height',size);
-      img.setAttribute('opacity','0.22'); img.setAttribute('clip-path',`url(#${clipId})`);
-      g.appendChild(img);
+      const sz=r*1.4; img.setAttributeNS('http://www.w3.org/1999/xlink','href',s.logo);
+      img.setAttribute('x',-sz/2); img.setAttribute('y',-sz/2); img.setAttribute('width',sz); img.setAttribute('height',sz);
+      img.setAttribute('opacity','0.22'); img.setAttribute('clip-path',`url(#${cid})`); g.appendChild(img);
     }else{
       const inner=document.createElementNS('http://www.w3.org/2000/svg','circle');
-      inner.setAttribute('cx',0); inner.setAttribute('cy',0); inner.setAttribute('r',(p.rv||p.r)-3); inner.setAttribute('class','logo-fallback');
-      g.appendChild(inner);
+      inner.setAttribute('cx',0); inner.setAttribute('cy',0); inner.setAttribute('r',r-4); inner.setAttribute('class','logo-fallback'); g.appendChild(inner);
     }
 
-    // textos (CryptoBubbles layout): % grande no centro, ticker em cima, preço embaixo
-    const r=p.rv||p.r;
-    const tPct=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tPct.setAttribute('class','center'); tPct.setAttribute('x',0); tPct.setAttribute('y',4);
-    tPct.setAttribute('font-size', Math.max(12, Math.min(20, r*0.42)));
-    tPct.textContent=`${chg>0?'+':''}${(chg||0).toFixed(2)}%`;
-    g.appendChild(tPct);
+    // textos — idêntico ao CryptoBubbles: % grande centro, ticker topo, preço base
+    const pct=document.createElementNS('http://www.w3.org/2000/svg','text');
+    pct.setAttribute('class','pct'); pct.setAttribute('x',0); pct.setAttribute('y',4);
+    pct.setAttribute('font-size', Math.max(12, Math.min(22, r*0.44)));
+    pct.textContent=`${chg>0?'+':''}${(chg||0).toFixed(2)}%`; g.appendChild(pct);
 
-    const tSym=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tSym.setAttribute('class','label'); tSym.setAttribute('x',0); tSym.setAttribute('y', -r*0.45);
-    tSym.setAttribute('font-size', Math.max(10, Math.min(16, r*0.32)));
-    tSym.textContent=s.symbol;
-    g.appendChild(tSym);
+    const tik=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tik.setAttribute('class','ticker'); tik.setAttribute('x',0); tik.setAttribute('y', -r*0.52);
+    tik.setAttribute('font-size', Math.max(10, Math.min(16, r*0.32))); tik.textContent=s.symbol; g.appendChild(tik);
 
-    const tPrice=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tPrice.setAttribute('class','sub'); tPrice.setAttribute('x',0); tPrice.setAttribute('y', r*0.58);
-    tPrice.setAttribute('font-size', Math.max(9, Math.min(14, r*0.28)));
-    tPrice.textContent=money(s.price,currentMarket);
-    g.appendChild(tPrice);
+    const price=document.createElementNS('http://www.w3.org/2000/svg','text');
+    price.setAttribute('class','price'); price.setAttribute('x',0); price.setAttribute('y', r*0.64);
+    price.setAttribute('font-size', Math.max(9, Math.min(14, r*0.28))); price.textContent=money(s.price,currentMarket); g.appendChild(price);
 
     g.addEventListener('click', ()=>{
       alert(`${s.symbol} — ${s.name}\nPreço: ${money(s.price,currentMarket)}\nTipo: ${s.type}\nSetor: ${s.sector}\nVariação (dia): ${(s.day??0).toFixed(2)}%`);
     });
 
     frag.appendChild(g);
-    sim.nodes.push({ g, ring, tPct, tSym, tPrice, clipCircle:c });
+    sim.nodes.push({ g, disc, halo, pct, tik, price, clipCircle:c });
   });
 
   svg.appendChild(frag);
@@ -237,12 +227,12 @@ function updateCounter(){
   stockCounter.textContent=`Exibindo ${showing} de ${total} ações • 🟢 ${pos} Alta • 🔴 ${neg} Baixa`;
 }
 
-/* física (espalhamento estilo CryptoBubbles) */
+/* física (espalhamento e movimento suave) */
 function startPhysics(){
   cancelAnimationFrame(sim.raf);
-  const DAMP=0.986, NOISE=IS_MOBILE?0.03:0.06, CENTER=0.00012, EDGE=0.12, PASSES=2, REACH=70, REP=1.05, SEP=6, FILL=0.78;
+  const DAMP=0.986, NOISE=IS_MOBILE?0.028:0.05, CENTER=0.00010, EDGE=0.12, PASSES=2, REACH=90, REP=1.18, SEP=6, FILL=0.82;
   const step=()=>{
-    const {w,h}=size(); const CX=w/2, CY=h/2, targetR=Math.min(w,h)*FILL/2;
+    const {w,h}=SZ(); const CX=w/2, CY=h/2, targetR=Math.min(w,h)*FILL/2;
     // grid
     const cell=64, cols=Math.ceil(w/cell), rows=Math.ceil(h/cell);
     const grid=Array.from({length:cols*rows},()=>[]), key=(x,y)=>y*cols+x;
@@ -258,14 +248,14 @@ function startPhysics(){
       p.vx+=(CX-p.x)*CENTER; p.vy+=(CY-p.y)*CENTER;
 
       const dx=p.x-CX, dy=p.y-CY, d=Math.hypot(dx,dy)||1e-6, press=(targetR-d)/targetR;
-      p.vx+=(dx/d)*press*0.0030; p.vy+=(dy/d)*press*0.0030;
+      p.vx+=(dx/d)*press*0.0028; p.vy+=(dy/d)*press*0.0028;
 
       const pad=16, r=(p.rv||p.r);
       if(p.x - r < pad) p.vx+=EDGE; if(p.x + r > w - pad) p.vx-=EDGE;
       if(p.y - r < pad) p.vy+=EDGE; if(p.y + r > h - pad) p.vy-=EDGE;
     }
 
-    // repulsão contínua + anticolisão
+    // repulsão + anticolisão
     for(let pass=0; pass<PASSES; pass++){
       for(let i=0;i<sim.pts.length;i++){
         const p=sim.pts[i];
@@ -286,16 +276,15 @@ function startPhysics(){
     // integrar e DOM
     for(let i=0;i<sim.pts.length;i++){
       const p=sim.pts[i]; p.x+=p.vx; p.y+=p.vy; p.vx*=DAMP; p.vy*=DAMP;
-      const {w,h}=size(); const r=(p.rv||p.r);
+      const {w,h}=SZ(); const r=(p.rv||p.r);
       p.x=Math.max(r+2,Math.min(w-r-2,p.x)); p.y=Math.max(r+2,Math.min(h-r-2,p.y));
 
       const n=sim.nodes[i];
       n.g.setAttribute('transform',`translate(${p.x},${p.y})`);
-      n.ring.setAttribute('r',r); n.clipCircle.setAttribute('r',r-3);
-      // atualizar font positions
-      n.tSym.setAttribute('y', -r*0.45);
-      n.tPrice.setAttribute('y',  r*0.58);
-      n.tPct.setAttribute('font-size', Math.max(12, Math.min(20, r*0.42)));
+      n.disc.setAttribute('r',r); n.clipCircle.setAttribute('r',r-4);
+      n.tik.setAttribute('y', -r*0.52);
+      n.price.setAttribute('y',  r*0.64);
+      n.pct.setAttribute('font-size', Math.max(12, Math.min(22, r*0.44)));
     }
 
     sim.raf=requestAnimationFrame(step);
@@ -303,7 +292,7 @@ function startPhysics(){
   sim.raf=requestAnimationFrame(step);
 }
 
-/* morph de raio suave quando métrica muda/refresh */
+/* morph de raios (quando métrica muda/refresh) */
 function morphRadii(){
   const {key,vmin,vmax}=baseRadInfo(current);
   const t0=performance.now();
@@ -336,8 +325,7 @@ settingsModal?.addEventListener('click',e=>{ if(e.target===settingsModal) settin
 let timer=null;
 async function refresh(){
   const [br,us]=await Promise.all([loadMarket('brazilian'), loadMarket('american')]);
-  master.brazilian=br; master.american=us;
-  populateFilterOptions(); applyFilters();
+  master.brazilian=br; master.american=us; populateFilterOptions(); applyFilters();
 }
 function startAuto(){ if(timer) clearInterval(timer); timer=setInterval(refresh, REFRESH_MS); }
 
