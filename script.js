@@ -1,267 +1,361 @@
-/************ BUBLES — script.js (200 desktop / 30 mobile + auto-refresh 15s + espalhamento total) ************/
+/************ BUBLES — completo: filtros estilo brapi + logos + preço + % nas bolhas ************/
 
 /* ===== Config ===== */
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches || (navigator.maxTouchPoints || 0) > 0;
 const TOP_N      = IS_MOBILE ? 30 : 200;
 const REFRESH_MS = 15000;   // auto-refresh
-const MORPH_MS   = 900;     // morph de raio/texto
+const MORPH_MS   = 900;     // morph visual
 
 /* ===== DOM ===== */
-const bubbleChart   = document.getElementById('bubble-chart');
-const searchInput   = document.getElementById('search-input');
-const rangeSelect   = document.getElementById('range-select');
-const periodButtons = document.querySelectorAll('.period-btn');
-const metricSelect  = document.getElementById('metric-select');
-const settingsBtn   = document.getElementById('settings');
-const settingsModal = document.getElementById('settings-modal');
-const closeModal    = document.getElementById('close-modal');
-const marketSelect  = document.getElementById('market-select');
-const stockCounter  = document.getElementById('stock-counter');
+const svg          = document.getElementById('bubble-chart');
+const searchInput  = document.getElementById('search-input');
+const typeSelect   = document.getElementById('type-select');
+const sectorSelect = document.getElementById('sector-select');
+const rangeSelect  = document.getElementById('range-select');
+const periodBtns   = document.querySelectorAll('.period-btn');
+const metricSelect = document.getElementById('metric-select');
+const marketSelect = document.getElementById('market-select');
+const settingsBtn  = document.getElementById('settings');
+const settingsModal= document.getElementById('settings-modal');
+const closeModal   = document.getElementById('close-modal');
+const stockCounter = document.getElementById('stock-counter');
 
 /* ===== Estado ===== */
-let currentMarket = 'brazilian';
-let currentPeriod = 'hour';
+let currentMarket = 'brazilian'; // 'brazilian' | 'american'
+let currentPeriod = 'hour';      // hour | day | week | month | year
 let currentMetric = 'market-cap';
-let allData = { brazilian: [], american: [] };
-let currentData = [];
+let master = { brazilian: [], american: [] }; // todos os papéis carregados
+let current = [];                              // coleção filtrada
+let sim = { pts: [], nodes: [], raf:null };
 
-/* ===== Fallback local ===== */
-function gen(symbol, name, basePrice, baseCap) {
-  const r = () => (Math.random()-0.5);
-  return { symbol, name,
-    price: basePrice + r()*basePrice*0.2,
-    marketCap: baseCap + r()*baseCap*0.3,
-    volume: Math.random()*5 + 0.1,
-    hour: r()*4, day: r()*10, week: r()*20, month: r()*40, year: r()*200 };
+/* ===== Util ===== */
+function getSize(){ const r=svg.getBoundingClientRect(); return {w:Math.max(320,Math.floor(r.width||800)), h:Math.max(420,Math.floor(r.height||600))}; }
+function fmtPrice(n, mkt){ const cur = mkt==='brazilian' ? 'BRL' : 'USD'; return n!=null ? n.toLocaleString('pt-BR',{style:'currency',currency:cur,maximumFractionDigits:2}) : '-'; }
+function metricKey(){ return currentMetric==='market-cap' ? 'marketCap' : currentMetric==='volume' ? 'volume' : 'price'; }
+function topN(arr){ return [...arr].sort((a,b)=> (b.volume??0)-(a.volume??0)).slice(0, TOP_N); }
+
+/* ===== Raio adaptado ao nº de bolhas ===== */
+function scaleR(v, vmin, vmax){
+  const n=TOP_N; const Rmax = n>150?30: n>80?36:44, Rmin = n>150?10: n>80?12:16;
+  if(!(vmax>vmin)) return (Rmax+Rmin)/2;
+  const t=(v-vmin)/(vmax-vmin); return Rmin + t*(Rmax-Rmin);
 }
-const fallbackBR = [ gen('PETR4','Petrobras',35.31,460.2), gen('VALE3','Vale',54.71,245.8),
-  gen('ITUB4','Itaú',32.22,312.5), gen('BBDC4','Bradesco',13.45,156.7), gen('ABEV3','Ambev',12.89,203.4),
-  gen('WEGE3','WEG',67.89,89.3), gen('MGLU3','Magazine Luiza',7.28,48.9) ];
-const fallbackUS = [ gen('AAPL','Apple',185.92,2850.4), gen('MSFT','Microsoft',378.85,2820.1),
-  gen('NVDA','NVIDIA',875.28,2156.7), gen('AMZN','Amazon',151.94,1590.8), gen('META','Meta',484.49,1234.5) ];
+
+/* ===== Heurísticas de tipo/sector e logo ===== */
+function inferType(sym, typeRaw){
+  if (typeRaw) return typeRaw;
+  if (/11$/.test(sym)) return 'FII/Units';
+  if (/34$|35$/.test(sym)) return 'BDR';
+  return 'Ação';
+}
+function inferSector(sectorRaw){ return sectorRaw || 'Desconhecido'; }
+function pickLogo(d){
+  // brapi costuma trazer logo em alguns endpoints. Tentamos vários campos.
+  return d.logo || d.logourl || d.logoUrl || d.image || null;
+}
 
 /* ===== API (brapi) ===== */
-async function fetchWithTimeout(url, ms = 8000) {
-  const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), ms);
-  try { const res = await fetch(url, { signal: ctrl.signal }); if(!res.ok) throw new Error(`HTTP ${res.status}`); return await res.json(); }
-  finally { clearTimeout(t); }
+async function fetchWithTimeout(url, ms=9000){
+  const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(), ms);
+  try{ const res=await fetch(url,{signal:ctrl.signal}); if(!res.ok) throw new Error(res.status); return await res.json(); }
+  finally{ clearTimeout(t); }
 }
-function normalizeItem(it) {
-  const sym = it.symbol || it.stock || it.ticker || it.code || it.name || '???';
-  const name = it.longName || it.name || it.company || sym;
-  const price = Number(it.close ?? it.price ?? it.regularMarketPrice ?? it.last ?? it.p) || (Math.random()*100+10);
-  const mcap  = Number(it.market_cap ?? it.marketCap ?? it.marketcap ?? it.marketValue) || (Math.random()*100+10);
-  const vol   = Number(it.volume ?? it.regularMarketVolume ?? it.v) || (Math.random()*10+0.1);
-  const chg   = Number(it.change ?? it.regularMarketChangePercent ?? it.chg) || ((Math.random()-0.5)*4);
-  const day = chg;
-  return { symbol:String(sym).toUpperCase(), name, price, marketCap:mcap, volume:vol,
-    hour: day*0.25 + (Math.random()-0.5)*0.6, day, week: day*1.9 + (Math.random()-0.5)*2.0,
-    month: day*4.0 + (Math.random()-0.5)*4.0, year: day*18.0 + (Math.random()-0.5)*20.0 };
+function normalize(item){
+  const sym=String(item.symbol||item.stock||item.ticker||item.code||item.name||'').toUpperCase();
+  const name=item.longName||item.name||item.company||sym;
+  const price=Number(item.close ?? item.price ?? item.regularMarketPrice ?? item.last ?? item.p);
+  const mcap =Number(item.market_cap ?? item.marketCap ?? item.marketcap ?? item.marketValue);
+  const vol  =Number(item.volume ?? item.regularMarketVolume ?? item.v);
+  const pct  =Number(item.change ?? item.regularMarketChangePercent ?? item.chg);
+  // períodos derivados (placeholder coerente)
+  const day=pct ?? ((Math.random()-0.5)*4);
+  return {
+    symbol:sym, name, price:isFinite(price)?price:null, marketCap:isFinite(mcap)?mcap:null,
+    volume:isFinite(vol)?vol:Math.random()*1e6,
+    hour: day*0.25 + (Math.random()-0.5)*0.6,
+    day,
+    week: day*1.8 + (Math.random()-0.5)*2.0,
+    month: day*4   + (Math.random()-0.5)*4.0,
+    year: day*18   + (Math.random()-0.5)*20.0,
+    type: inferType(sym, item.type),
+    sector: inferSector(item.sector),
+    logo: pickLogo(item)
+  };
 }
-async function loadMarket(market) {
-  const tries = (market==='brazilian')
-    ? ['https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500',
-       'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500&exchange=b3']
-    : ['https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500&exchange=usa',
-       'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500'];
-  for(const url of tries){
+
+/* Lista por mercado: trazemos bastante coisa e filtramos localmente */
+async function loadMarket(market){
+  const urls = (market==='brazilian')
+    ? [
+        // mais negociadas (BR)
+        'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500',
+        // fallback (mesmo endpoint)
+        'https://brapi.dev/api/quote/list?sortBy=market_cap&sortOrder=desc&limit=500'
+      ]
+    : [
+        // EUA
+        'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500&exchange=usa',
+        'https://brapi.dev/api/quote/list?sortBy=market_cap&sortOrder=desc&limit=500&exchange=usa'
+      ];
+  for(const u of urls){
     try{
-      const j = await fetchWithTimeout(url, 9000);
+      const j = await fetchWithTimeout(u, 10000);
       const arr = j?.stocks || j?.results || j?.data || [];
-      const mapped = arr.map(normalizeItem).filter(s => market==='brazilian'
-        ? /[A-Z]{4}\d|[A-Z]{3}\d{1,2}/.test(s.symbol) || /[34]$/.test(s.symbol)
-        : true);
-      if(mapped.length>=20) return mapped;
+      const mapped = arr.map(normalize).filter(x=>x.symbol);
+      if(mapped.length>20) return mapped;
     }catch{}
   }
-  return market==='brazilian' ? fallbackBR : fallbackUS;
+  // fallback mínimo se tudo falhar
+  return [
+    normalize({symbol:'PETR4', name:'Petrobras', price:35.2, market_cap:460, volume:5e6, change:1.2}),
+    normalize({symbol:'VALE3', name:'Vale', price:54.7, market_cap:245, volume:4e6, change:-0.8}),
+    normalize({symbol:'ITUB4', name:'Itaú', price:32.2, market_cap:312, volume:3.8e6, change:0.5}),
+  ];
 }
 
-/* ===== Helpers ===== */
-function datasetByMarket(){ return currentMarket==='brazilian' ? allData.brazilian : allData.american; }
-function topNByVolume(a){ return [...a].sort((x,y)=>y.volume-x.volume).slice(0, TOP_N); }
-function getChartSize(svg){ const r=svg.getBoundingClientRect(); const w=r.width>0?Math.floor(r.width):800; const h=r.height>0?Math.floor(r.height):600; return {width:Math.max(320,w), height:Math.max(420,h)}; }
-function metricKeyOf(){ return currentMetric==='market-cap' ? 'marketCap' : currentMetric==='volume' ? 'volume' : 'price'; }
-/* raios adaptados ao número de bolhas */
-function scaleRadius(v, minV, maxV){
-  const n=TOP_N; const MAX_R = n>150 ? 30 : n>80 ? 36 : 44; const MIN_R = n>150 ? 10 : n>80 ? 12 : 16;
-  if(maxV===minV) return (MIN_R+MAX_R)/2;
-  const t=(v-minV)/(maxV-minV); return MIN_R + t*(MAX_R-MIN_R);
+/* ===== Filtros ===== */
+function applyFilters(){
+  const base = master[currentMarket] || [];
+  const q = (searchInput.value||'').trim().toLowerCase();
+  const typeVal   = typeSelect.value || '';
+  const sectorVal = sectorSelect.value || '';
+
+  let out = base;
+  if(q) out = out.filter(s => s.symbol.toLowerCase().includes(q) || (s.name||'').toLowerCase().includes(q));
+  if(typeVal) out = out.filter(s => s.type === typeVal);
+  if(sectorVal) out = out.filter(s => s.sector === sectorVal);
+
+  current = topN(out);
+  render();
 }
 
-/* ===== Seed aleatório (preenche a área útil) ===== */
-function seedPositions(data){
-  const {width,height} = getChartSize(bubbleChart);
+function populateFilterOptions(){
+  const set = new Set(), setSec = new Set();
+  (master[currentMarket]||[]).forEach(s => { set.add(s.type); setSec.add(s.sector); });
+
+  const typeCur = typeSelect.value, sectorCur = sectorSelect.value;
+  typeSelect.innerHTML   = `<option value="">Todos os tipos</option>` + [...set].sort().map(v=>`<option>${v}</option>`).join('');
+  sectorSelect.innerHTML = `<option value="">Todos os setores</option>` + [...setSec].sort().map(v=>`<option>${v}</option>`).join('');
+  // restaura seleção anterior
+  if([...typeSelect.options].some(o=>o.value===typeCur)) typeSelect.value=typeCur;
+  if([...sectorSelect.options].some(o=>o.value===sectorCur)) sectorSelect.value=sectorCur;
+}
+
+/* ===== Layout & Simulação ===== */
+function sizeAndViewBox(){
+  const {w,h} = getSize();
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+  return {w,h};
+}
+function baseRadiusInfo(list){
+  const key = metricKey();
+  const vmax = Math.max(...list.map(s=> s[key]??0));
+  const vmin = Math.min(...list.map(s=> s[key]??0));
+  return {key, vmin, vmax};
+}
+
+function seedRandom(list){
+  const {w,h} = getSize();
   const PAD = 20;
-  const metricKey = metricKeyOf();
-  const maxV=Math.max(...data.map(s=>s[metricKey]));
-  const minV=Math.min(...data.map(s=>s[metricKey]));
+  const {key,vmin,vmax} = baseRadiusInfo(list);
   const pts=[];
-  for(const s of data){
-    const r=scaleRadius(s[metricKey],minV,maxV);
-    const x = PAD + r + Math.random()*(width  - 2*(PAD+r));
-    const y = PAD + r + Math.random()*(height - 2*(PAD+r));
-    pts.push({ x,y, radius:r, radiusVis:r, stock:s, vx:0, vy:0 });
-  }
+  list.forEach(s=>{
+    const r = scaleR(s[key]??0, vmin, vmax);
+    const x = PAD + r + Math.random()*(w - 2*(PAD+r));
+    const y = PAD + r + Math.random()*(h - 2*(PAD+r));
+    pts.push({x,y, r, rv:r, sx:s});
+  });
   return pts;
 }
 
-/* ===== Render inicial ===== */
-let SIM = { points: [], nodes: [], raf:null, symbolMap:new Map() };
+function render(){
+  sizeAndViewBox();
+  svg.innerHTML='';
+  // pontos iniciais (se já existe simulação, mantém posição; senão semente)
+  if(!sim.pts.length){
+    sim.pts = seedRandom(current);
+  }else{
+    // reconciliação simples por símbolo (mantém posição se continuar no TOP_N)
+    const mapOld = new Map(sim.pts.map(p=>[p.sx.symbol,p]));
+    const {key,vmin,vmax} = baseRadiusInfo(current);
+    const next = [];
+    current.forEach(s=>{
+      const r = scaleR(s[key]??0, vmin, vmax);
+      const old = mapOld.get(s.symbol);
+      if(old){
+        old.sx = s;
+        old.targetR = r;
+        next.push(old);
+      }else{
+        // novo: semente aleatória
+        const {w,h} = getSize();
+        const PAD=20;
+        const x = PAD + r + Math.random()*(w - 2*(PAD+r));
+        const y = PAD + r + Math.random()*(h - 2*(PAD+r));
+        next.push({x,y, r, rv:10, targetR:r, sx:s}); // rv=10 para morph
+      }
+    });
+    sim.pts = next;
+  }
 
-function renderBubbles(){
-  const {width,height} = getChartSize(bubbleChart);
-  bubbleChart.setAttribute('viewBox', `0 0 ${width} ${height}`);
-  bubbleChart.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-  bubbleChart.innerHTML='';
+  // desenhar nós
+  sim.nodes=[];
 
-  const positions = seedPositions(currentData);
-  SIM.points = positions; SIM.nodes=[]; SIM.symbolMap.clear();
-
-  const frag=document.createDocumentFragment();
-  positions.forEach(({x,y,radius,stock}, idx)=>{
-    const change=stock[currentPeriod];
-    const cls = change>0 ? 'bubble-positive' : change<0 ? 'bubble-negative' : 'bubble-neutral';
+  const frag = document.createDocumentFragment();
+  sim.pts.forEach((p, i)=>{
+    const s = p.sx;
+    const change = s[currentPeriod] ?? s.day ?? 0;
+    const ringClass = change>0 ? 'bubble-ring-positive' : change<0 ? 'bubble-ring-negative' : 'bubble-ring-neutral';
 
     const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','bubble'); g.setAttribute('data-symbol',stock.symbol);
-    g.setAttribute('transform',`translate(${x},${y})`);
+    g.setAttribute('transform',`translate(${p.x},${p.y})`);
+    g.setAttribute('class','bubble');
+    g.dataset.symbol = s.symbol;
 
-    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx',0); c.setAttribute('cy',0); c.setAttribute('r',radius);
-    c.setAttribute('class',cls); c.setAttribute('stroke-width','2'); g.appendChild(c);
+    // anel externo (cor do market move)
+    const outer = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    outer.setAttribute('cx',0); outer.setAttribute('cy',0); outer.setAttribute('r',p.rv||p.r);
+    outer.setAttribute('class', ringClass);
+    outer.setAttribute('stroke-width','3');
+    g.appendChild(outer);
 
-    const fs1=Math.max(10, Math.min(16, radius*.36));
-    const fs2=Math.max(9 , Math.min(14, radius*.30));
+    // clip + logo
+    const clipId = `clip-${s.symbol}-${i}`;
+    const clip = document.createElementNS('http://www.w3.org/2000/svg','clipPath');
+    clip.setAttribute('id', clipId);
+    const cclip = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    cclip.setAttribute('cx',0); cclip.setAttribute('cy',0); cclip.setAttribute('r',(p.rv||p.r)-2);
+    clip.appendChild(cclip);
+    svg.appendChild(clip);
 
-    let t1,t2;
-    if(radius>=18){
-      t1=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t1.setAttribute('x',0); t1.setAttribute('y', radius>=26?-5:-3);
-      t1.setAttribute('class','bubble-text bubble-symbol');
-      t1.setAttribute('text-anchor','middle'); t1.setAttribute('dominant-baseline','middle');
-      t1.setAttribute('font-size',`${fs1}px`); t1.setAttribute('font-weight','700');
-      t1.textContent=stock.symbol; g.appendChild(t1);
-
-      t2=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t2.setAttribute('x',0); t2.setAttribute('y', radius>=26?9:7);
-      t2.setAttribute('class','bubble-text bubble-change');
-      t2.setAttribute('text-anchor','middle'); t2.setAttribute('dominant-baseline','middle');
-      t2.setAttribute('font-size',`${fs2}px`); t2.setAttribute('font-weight','600');
-      t2.textContent=`${change>0?'+':''}${change.toFixed(1)}%`; g.appendChild(t2);
+    if (s.logo) {
+      const img = document.createElementNS('http://www.w3.org/2000/svg','image');
+      const size = (p.rv||p.r)*1.6; // ligeiramente maior para preencher
+      img.setAttributeNS('http://www.w3.org/1999/xlink','href', s.logo);
+      img.setAttribute('x', -size/2); img.setAttribute('y', -size/2);
+      img.setAttribute('width', size); img.setAttribute('height', size);
+      img.setAttribute('clip-path', `url(#${clipId})`);
+      g.appendChild(img);
     } else {
-      t1=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t1.setAttribute('x',0); t1.setAttribute('y',0);
-      t1.setAttribute('class','bubble-text bubble-symbol');
-      t1.setAttribute('text-anchor','middle'); t1.setAttribute('dominant-baseline','middle');
-      t1.setAttribute('font-size',`${fs1-1}px`); t1.setAttribute('font-weight','700');
-      t1.textContent=stock.symbol.slice(0,5); g.appendChild(t1);
+      // fallback: disco interno
+      const inner = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      inner.setAttribute('cx',0); inner.setAttribute('cy',0); inner.setAttribute('r',(p.rv||p.r)-2);
+      inner.setAttribute('class','logo-fallback');
+      g.appendChild(inner);
     }
 
-    g.addEventListener('click', ()=> showStockDetails(stock));
+    // textos: símbolo, preço, %
+    const rVis = p.rv||p.r;
+    const tSym = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tSym.setAttribute('x',0); tSym.setAttribute('y', rVis>24? -rVis*0.15 : -rVis*0.12);
+    tSym.setAttribute('text-anchor','middle'); tSym.setAttribute('class','bubble-text bubble-symbol');
+    tSym.setAttribute('font-size', Math.max(10, Math.min(16, rVis*0.36)));
+    tSym.textContent = s.symbol;
+    g.appendChild(tSym);
+
+    const tPrice = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tPrice.setAttribute('x',0); tPrice.setAttribute('y', rVis*0.18);
+    tPrice.setAttribute('text-anchor','middle'); tPrice.setAttribute('class','bubble-text bubble-price');
+    tPrice.setAttribute('font-size', Math.max(9, Math.min(14, rVis*0.30)));
+    tPrice.textContent = fmtPrice(s.price, currentMarket);
+    g.appendChild(tPrice);
+
+    const tChg = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tChg.setAttribute('x',0); tChg.setAttribute('y', rVis*0.38);
+    tChg.setAttribute('text-anchor','middle'); tChg.setAttribute('class','bubble-text bubble-change');
+    tChg.setAttribute('font-size', Math.max(9, Math.min(13, rVis*0.28)));
+    tChg.textContent = `${change>0?'+':''}${(change||0).toFixed(2)}%`;
+    g.appendChild(tChg);
+
+    g.addEventListener('click', ()=> alert(
+      `${s.symbol} — ${s.name}\nPreço: ${fmtPrice(s.price,currentMarket)}\nTipo: ${s.type}\nSetor: ${s.sector}\nVariação (dia): ${(s.day??0).toFixed(2)}%`
+    ));
+
     frag.appendChild(g);
-    SIM.nodes.push({ g, c, t1, t2 });
-    SIM.symbolMap.set(stock.symbol, idx);
+    sim.nodes.push({g, outer, tSym, tPrice, tChg, clip: cclip});
   });
 
-  bubbleChart.appendChild(frag);
-  updateStockCounter();
-  startSimulation();
+  svg.appendChild(frag);
+  updateCounter();
+  startPhysics(); // inicia/atualiza simulação
+  startMorph();   // ajusta raios visuais até o alvo
 }
 
-/* ===== Simulação: repulsão contínua + pressão radial + bordas ===== */
-function startSimulation(){
-  stopSimulation();
-  let {width,height} = getChartSize(bubbleChart);
+function updateCounter(){
+  const total = (master[currentMarket]||[]).length;
+  const showing = current.length;
+  const pos = current.filter(s => (s[currentPeriod]??0) > 0).length;
+  const neg = current.filter(s => (s[currentPeriod]??0) < 0).length;
+  stockCounter.textContent = `Exibindo ${showing} de ${total} ações • 🟢 ${pos} Alta • 🔴 ${neg} Baixa`;
+}
 
-  // parâmetros de força
-  const DAMP      = 0.986;
-  const NOISE     = IS_MOBILE ? 0.03 : 0.06;
-  const CENTER    = 0.00015;            // bem fraco (só para estabilidade)
-  const EDGE_SPR  = 0.12;               // mola de borda
-  const PASS_COL  = 2;                  // passes de colisão
-  const INFL_PAD  = 60;                 // alcance extra de repulsão
-  const K_REP     = 0.9;                // intensidade da repulsão contínua
-  const SEP_ADD   = 6;                  // separação mínima adicional
-  const FILL      = 0.70;               // % do menor lado que o cluster deve ocupar
-  const OUT_RAD   = () => Math.min(width, height) * FILL / 2; // raio alvo
+/* ===== Física (repulsão contínua + pressão radial + bordas) ===== */
+function startPhysics(){
+  cancelAnimationFrame(sim.raf);
+  const DAMP=0.986, NOISE=IS_MOBILE?0.03:0.06, CENTER=0.00015, EDGE=0.12, PASSES=2, INFL=60, KREP=1.0, SEP=6, FILL=0.75;
 
-  function step(){
-    // tamanho pode mudar (resize)
-    ({width,height} = getChartSize(bubbleChart));
-    const CX=width/2, CY=height/2;
+  const step = ()=>{
+    const {w,h} = getSize();
+    svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+    const CX=w/2, CY=h/2, targetR=Math.min(w,h)*FILL/2;
 
     // grid
-    const cell=64, cols=Math.ceil(width/cell), rows=Math.ceil(height/cell);
+    const cell=64, cols=Math.ceil(w/cell), rows=Math.ceil(h/cell);
     const grid=Array.from({length:cols*rows},()=>[]);
     const key=(x,y)=>y*cols+x;
 
-    // inserir
-    for(let i=0;i<SIM.points.length;i++){
-      const p=SIM.points[i];
+    for(let i=0;i<sim.pts.length;i++){
+      const p=sim.pts[i];
       const gx=Math.max(0,Math.min(cols-1,Math.floor(p.x/cell)));
       const gy=Math.max(0,Math.min(rows-1,Math.floor(p.y/cell)));
-      (grid[key(gx,gy)]).push(i);
-      p._gx=gx; p._gy=gy;
+      grid[key(gx,gy)].push(i); p._gx=gx; p._gy=gy;
     }
-
-    const neighbors=(p)=>{
-      const out=[]; for(let gy=Math.max(0,p._gy-1); gy<=Math.min(rows-1,p._gy+1); gy++)
-        for(let gx=Math.max(0,p._gx-1); gx<=Math.min(cols-1,p._gx+1); gx++)
-          out.push(...grid[key(gx,gy)]);
-      return out;
-    };
+    const neigh=(p)=>{ const out=[]; for(let gy=Math.max(0,p._gy-1); gy<=Math.min(rows-1,p._gy+1); gy++) for(let gx=Math.max(0,p._gx-1); gx<=Math.min(cols-1,p._gx+1); gx++) out.push(...grid[key(gx,gy)]); return out; };
 
     // forças de campo
-    const targetR = OUT_RAD();
-    for(const p of SIM.points){
-      // leve ruído
-      p.vx += (Math.random()-0.5)*NOISE;
-      p.vy += (Math.random()-0.5)*NOISE;
+    for(const p of sim.pts){
+      p.vx = (p.vx||0) + (Math.random()-0.5)*NOISE;
+      p.vy = (p.vy||0) + (Math.random()-0.5)*NOISE;
 
-      // atração de estabilidade ao centro
+      // estabilidade
       p.vx += (CX - p.x)*CENTER;
       p.vy += (CY - p.y)*CENTER;
 
-      // pressão radial para ocupar a área (empurra para fora quando dentro do raio alvo)
+      // pressão radial (espalha)
       const dx=p.x-CX, dy=p.y-CY, d=Math.hypot(dx,dy)||1e-6;
-      const press = (targetR - d) / targetR; // positivo se está muito dentro
-      p.vx += (dx/d) * press * 0.0032;       // 0.0032 = intensidade radial
-      p.vy += (dy/d) * press * 0.0032;
+      const press = (targetR - d)/targetR;
+      p.vx += (dx/d)*press*0.0030;
+      p.vy += (dy/d)*press*0.0030;
 
-      // molas de borda (mantém tudo dentro)
+      // bordas
       const pad=16;
-      if(p.x - p.radius < pad) p.vx += EDGE_SPR;
-      if(p.x + p.radius > width - pad) p.vx -= EDGE_SPR;
-      if(p.y - p.radius < pad) p.vy += EDGE_SPR;
-      if(p.y + p.radius > height - pad) p.vy -= EDGE_SPR;
+      if(p.x - (p.rv||p.r) < pad) p.vx += EDGE;
+      if(p.x + (p.rv||p.r) > w - pad) p.vx -= EDGE;
+      if(p.y - (p.rv||p.r) < pad) p.vy += EDGE;
+      if(p.y + (p.rv||p.r) > h - pad) p.vy -= EDGE;
     }
 
-    // repulsão contínua + correção de colisão
-    for(let pass=0; pass<PASS_COL; pass++){
-      for(let i=0;i<SIM.points.length;i++){
-        const p=SIM.points[i];
-        for(const j of neighbors(p)){
+    // repulsão + correção
+    for(let pass=0; pass<PASSES; pass++){
+      for(let i=0;i<sim.pts.length;i++){
+        const p=sim.pts[i];
+        for(const j of neigh(p)){
           if(j<=i) continue;
-          const q=SIM.points[j];
-          const dx=p.x-q.x, dy=p.y-q.y;
-          const dist=Math.hypot(dx,dy) || 1e-6;
-          const ux=dx/dist,  uy=dy/dist;
+          const q=sim.pts[j];
+          const dx=p.x-q.x, dy=p.y-q.y, dist=Math.hypot(dx,dy)||1e-6;
+          const ux=dx/dist, uy=dy/dist;
+          const need = (p.rv||p.r) + (q.rv||q.r) + SEP;
 
-          const minSep = p.radius + q.radius + SEP_ADD;
-
-          // repulsão contínua (até um alcance extra)
-          const influence = minSep + INFL_PAD;
-          if(dist < influence){
-            const strength = K_REP * (1 - dist/influence); // decai com a distância
-            const f = strength * 0.6;
-            p.vx += ux * f; p.vy += uy * f;
-            q.vx -= ux * f; q.vy -= uy * f;
+          // influência contínua
+          const reach = need + INFL;
+          if(dist < reach){
+            const strength = KREP * (1 - dist/reach) * 0.7;
+            p.vx += ux*strength; p.vy += uy*strength;
+            q.vx -= ux*strength; q.vy -= uy*strength;
           }
-
-          // correção se encostou
-          if(dist < minSep){
-            const over = (minSep - dist) * 0.5;
+          if(dist < need){
+            const over=(need-dist)*0.5;
             p.x += ux*over; p.y += uy*over;
             q.x -= ux*over; q.y -= uy*over;
           }
@@ -269,171 +363,102 @@ function startSimulation(){
       }
     }
 
-    // integrar + atrito + DOM
-    for(let i=0;i<SIM.points.length;i++){
-      const p=SIM.points[i];
-      p.x += p.vx; p.y += p.vy; p.vx *= DAMP; p.vy *= DAMP;
+    // aplica e atualiza DOM
+    for(let i=0;i<sim.pts.length;i++){
+      const p=sim.pts[i];
+      p.x += p.vx; p.y += p.vy; p.vx*=DAMP; p.vy*=DAMP;
 
-      // clamp final
-      p.x = Math.max(p.radius+2, Math.min(width  - p.radius-2, p.x));
-      p.y = Math.max(p.radius+2, Math.min(height - p.radius-2, p.y));
+      // clamp
+      const r = (p.rv||p.r);
+      p.x = Math.max(r+2, Math.min(w-r-2, p.x));
+      p.y = Math.max(r+2, Math.min(h-r-2, p.y));
 
-      const node = SIM.nodes[i];
+      // DOM
+      const node = sim.nodes[i];
       node.g.setAttribute('transform',`translate(${p.x},${p.y})`);
-      node.c.setAttribute('r', p.radiusVis ?? p.radius);
+      node.outer.setAttribute('r', r);
+      node.clip.setAttribute('r', r-2);
+      // fontes/linhas se mudarem muito de tamanho
+      const fs1=Math.max(10, Math.min(16, r*0.36));
+      const fs2=Math.max(9,  Math.min(14, r*0.30));
+      const fs3=Math.max(9,  Math.min(13, r*0.28));
+      node.tSym.setAttribute('font-size', fs1);
+      node.tPrice.setAttribute('font-size', fs2);
+      node.tChg.setAttribute('font-size', fs3);
+      node.tSym.setAttribute('y', r>24? -r*0.15 : -r*0.12);
+      node.tPrice.setAttribute('y', r*0.18);
+      node.tChg.setAttribute('y', r*0.38);
     }
 
-    SIM.raf = requestAnimationFrame(step);
-  }
-
-  SIM.raf = requestAnimationFrame(step);
-}
-function stopSimulation(){ if(SIM.raf) cancelAnimationFrame(SIM.raf); SIM.raf=null; }
-
-/* ===== Reconciliação (morph suave) ===== */
-function metricKey(){ return metricKeyOf(); }
-function reconcileAndMorph(newTop){
-  const mKey = metricKey();
-  const maxV=Math.max(...newTop.map(s=>s[mKey])); const minV=Math.min(...newTop.map(s=>s[mKey]));
-  const mapNew = new Map(newTop.map(s=>[s.symbol,s]));
-
-  // atualiza existentes / remove que saíram
-  for(let i=0;i<SIM.points.length;i++){
-    const p=SIM.points[i]; const sNew = mapNew.get(p.stock.symbol);
-    if(sNew){
-      p.stock = sNew;
-      const r1 = scaleRadius(sNew[mKey],minV,maxV);
-      const node = SIM.nodes[i];
-      const change = sNew[currentPeriod];
-      const cls = change>0 ? 'bubble-positive' : change<0 ? 'bubble-negative' : 'bubble-neutral';
-      if(node.c.getAttribute('class')!==cls) node.c.setAttribute('class',cls);
-      if(node.t1) node.t1.textContent=sNew.symbol;
-      if(node.t2) node.t2.textContent=`${change>0?'+':''}${change.toFixed(1)}%`;
-      const r0 = p.radiusVis ?? p.radius; const t0=performance.now();
-      (function anim(ts){ const t=Math.min(1,(ts-t0)/MORPH_MS); p.radiusVis=r0+(r1-r0)*t; if(t<1) requestAnimationFrame(anim); })(t0);
-    }else{
-      // shrink + remove
-      const node = SIM.nodes[i];
-      const r0 = p.radiusVis ?? p.radius; const t0=performance.now();
-      (function anim(ts){
-        const t=Math.min(1,(ts-t0)/MORPH_MS); const val=r0*(1-t*0.8); p.radiusVis=val; node.g.style.opacity=String(1-t);
-        if(t>=1){ SIM.points.splice(i,1); SIM.nodes.splice(i,1); node.g.remove(); }
-      })(t0);
-    }
-  }
-
-  // adiciona novos
-  newTop.forEach(s=>{
-    if(!SIM.points.find(pt=>pt.stock.symbol===s.symbol)){
-      const {width,height} = getChartSize(bubbleChart);
-      const x = 20 + Math.random()*(width-40), y = 20 + Math.random()*(height-40);
-      const r0 = 10, r1 = scaleRadius(s[mKey],minV,maxV);
-      const p={ x,y, radius:r1, radiusVis:r0, stock:s, vx:0, vy:0 };
-      const change = s[currentPeriod];
-      const cls = change>0 ? 'bubble-positive' : change<0 ? 'bubble-negative' : 'bubble-neutral';
-
-      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-      g.setAttribute('class','bubble'); g.setAttribute('data-symbol',s.symbol); g.setAttribute('transform',`translate(${x},${y})`);
-      const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx',0); c.setAttribute('cy',0); c.setAttribute('r',r0); c.setAttribute('class',cls); c.setAttribute('stroke-width','2');
-      g.appendChild(c);
-
-      const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t1.setAttribute('x',0); t1.setAttribute('y',-3); t1.setAttribute('class','bubble-text bubble-symbol');
-      t1.setAttribute('text-anchor','middle'); t1.setAttribute('dominant-baseline','middle'); t1.setAttribute('font-size','10px'); t1.setAttribute('font-weight','700');
-      t1.textContent=s.symbol; g.appendChild(t1);
-
-      const t2=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t2.setAttribute('x',0); t2.setAttribute('y',7); t2.setAttribute('class','bubble-text bubble-change');
-      t2.setAttribute('text-anchor','middle'); t2.setAttribute('dominant-baseline','middle'); t2.setAttribute('font-size','9px'); t2.setAttribute('font-weight','600');
-      t2.textContent=`${change>0?'+':''}${change.toFixed(1)}%`; g.appendChild(t2);
-
-      g.addEventListener('click', ()=> showStockDetails(s));
-      bubbleChart.appendChild(g);
-
-      SIM.points.push(p); SIM.nodes.push({g,c,t1,t2});
-      const t0=performance.now(); (function anim(ts){ const t=Math.min(1,(ts-t0)/MORPH_MS); p.radiusVis=r0+(r1-r0)*t; if(t<1) requestAnimationFrame(anim); })(t0);
-    }
-  });
-
-  updateStockCounter();
+    sim.raf = requestAnimationFrame(step);
+  };
+  sim.raf = requestAnimationFrame(step);
 }
 
-/* ===== UI ===== */
-function updateStockCounter(){
-  const total = datasetByMarket().length || 0;
-  const showing = Math.min(SIM.points.length, TOP_N);
-  const positive = SIM.points.filter(pt=>pt.stock[currentPeriod]>0).length;
-  const negative = SIM.points.filter(pt=>pt.stock[currentPeriod]<0).length;
-  if(stockCounter) stockCounter.textContent = `Exibindo ${showing} de ${total} ações • 🟢 ${positive} Alta • 🔴 ${negative} Baixa`;
-}
-function showStockDetails(stock){
-  const price = stock.price.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  const marketCap = stock.marketCap?.toLocaleString('pt-BR',{maximumFractionDigits:1}) ?? '-';
-  const change = stock.day>0?'+':'';
-  alert(`${stock.symbol} — ${stock.name}\nPreço: ${price}\nValor de Mercado: ${marketCap}\nVariação do Dia: ${change}${stock.day.toFixed(2)}%`);
-}
-
-/* ===== Listeners ===== */
-if(periodButtons){
-  periodButtons.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      periodButtons.forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      currentPeriod = btn.dataset.period;
-      reconcileAndMorph(topNByVolume(datasetByMarket()));
+/* ===== Morph de raios quando métrica/período mudam ===== */
+function startMorph(){
+  const {key,vmin,vmax} = baseRadiusInfo(current);
+  const t0 = performance.now();
+  function tick(ts){
+    const t=Math.min(1,(ts-t0)/MORPH_MS);
+    sim.pts.forEach(p=>{
+      const rTarget = scaleR(p.sx[key]??0, vmin, vmax);
+      p.rv = p.rv + (rTarget - p.rv)*0.18; // ease
     });
-  });
-}
-if(metricSelect){
-  metricSelect.addEventListener('change', ()=>{
-    currentMetric = metricSelect.value;
-    reconcileAndMorph(topNByVolume(datasetByMarket()));
-  });
-}
-if(searchInput){
-  searchInput.addEventListener('input', e=>{
-    const q = e.target.value.toLowerCase();
-    const base = datasetByMarket();
-    const filtered = q ? base.filter(s=> s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)) : base;
-    currentData = topNByVolume(filtered);
-    renderBubbles();
-  });
-}
-if(rangeSelect){ rangeSelect.value=`1-${TOP_N}`; rangeSelect.addEventListener('change', ()=>{ rangeSelect.value=`1-${TOP_N}`; }); }
-if(settingsBtn){ settingsBtn.addEventListener('click', ()=> settingsModal && settingsModal.classList.remove('hidden')); }
-if(closeModal){ closeModal?.addEventListener('click', ()=> settingsModal?.classList.add('hidden')); }
-if(marketSelect){
-  marketSelect.addEventListener('change', ()=>{
-    currentMarket = marketSelect.value;
-    currentData = topNByVolume(datasetByMarket());
-    renderBubbles();
-    settingsModal && settingsModal.classList.add('hidden');
-  });
+    if(t<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
 }
 
-/* ===== Init + Auto-refresh ===== */
-let refreshTimer=null;
-async function refreshOnce(){
+/* ===== Eventos ===== */
+periodBtns.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    periodBtns.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = btn.dataset.period;
+    applyFilters(); // atualiza %/cores
+  });
+});
+metricSelect.addEventListener('change', ()=>{ currentMetric=metricSelect.value; startMorph(); });
+marketSelect.addEventListener('change', ()=>{
+  currentMarket = marketSelect.value;
+  populateFilterOptions();
+  applyFilters();
+});
+searchInput.addEventListener('input', applyFilters);
+typeSelect.addEventListener('change', applyFilters);
+sectorSelect.addEventListener('change', applyFilters);
+
+if (rangeSelect) { rangeSelect.value=`1-${TOP_N}`; rangeSelect.addEventListener('change', ()=>{ rangeSelect.value=`1-${TOP_N}`; }); }
+
+/* ===== Modal ===== */
+settingsBtn?.addEventListener('click', ()=> settingsModal?.classList.remove('hidden'));
+closeModal?.addEventListener('click', ()=> settingsModal?.classList.add('hidden'));
+settingsModal?.addEventListener('click', (e)=>{ if(e.target===settingsModal) settingsModal.classList.add('hidden'); });
+
+/* ===== Carregamento + refresh ===== */
+let timer=null;
+async function refresh(){
   const [br, us] = await Promise.all([loadMarket('brazilian'), loadMarket('american')]);
-  allData.brazilian=br; allData.american=us;
-  const nextTop = topNByVolume(datasetByMarket());
-  reconcileAndMorph(nextTop);
+  master.brazilian = br; master.american = us;
+  populateFilterOptions();
+  applyFilters();
 }
-function startAutoRefresh(){ if(refreshTimer) clearInterval(refreshTimer); refreshTimer = setInterval(refreshOnce, REFRESH_MS); }
+function startAuto(){ if(timer) clearInterval(timer); timer = setInterval(refresh, REFRESH_MS); }
+
 async function init(){
   const [br, us] = await Promise.all([loadMarket('brazilian'), loadMarket('american')]);
-  allData.brazilian=br; allData.american=us;
-  currentData = topNByVolume(datasetByMarket());
-  if(rangeSelect) rangeSelect.value=`1-${TOP_N}`;
-  renderBubbles();
-  startAutoRefresh();
+  master.brazilian=br; master.american=us;
+  populateFilterOptions();
+  applyFilters();
+  startAuto();
 }
-document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(()=>init(), 50); });
+document.addEventListener('DOMContentLoaded', ()=> init());
 
-let resizeTimeout;
-window.addEventListener('resize', ()=>{ clearTimeout(resizeTimeout); resizeTimeout=setTimeout(()=>{ renderBubbles(); }, 150); });
+/* ===== Resize ===== */
+let rez;
+window.addEventListener('resize', ()=>{ clearTimeout(rez); rez=setTimeout(()=>{ render(); }, 150); });
 
-// iOS double-tap
+/* ===== iOS double-tap ===== */
 let lastTouchEnd=0;
 document.addEventListener('touchend', e=>{ const now=Date.now(); if(now-lastTouchEnd<=300) e.preventDefault(); lastTouchEnd=now; }, false);
