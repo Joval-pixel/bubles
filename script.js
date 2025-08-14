@@ -11,7 +11,7 @@ const REFRESH_MS  = 15000;
 const MORPH_MS    = 900;
 
 /* densidade-alvo (preenchimento) — MENOR = mais espaço */
-const PACK_DENSITY = IS_MOBILE ? 0.40 : 0.44;
+const PACK_DENSITY = IS_MOBILE ? 0.36 : 0.38;   // ↓ um pouco p/ abrir respiro
 const clamp = (min, v, max) => Math.max(min, Math.min(max, v));
 
 /* DOM */
@@ -56,13 +56,11 @@ const toPT = s => SECTOR_PT[s] || s || 'Desconhecido';
 function inferType(sym,t){ const raw=(t||'').toLowerCase(); if(/etf/.test(raw)) return 'ETF'; if(t) return t; if(/11$/.test(sym)) return 'FII/Units'; if(/3[45]$/.test(sym)) return 'BDR'; return 'Ação'; }
 function pickLogo(d){ return d.logo || d.logourl || d.logoUrl || d.image || null; }
 
-/* ===== Escala de raio =====
-   - Rmax menor e Rmin um pouco maior => equilíbrio
-*/
+/* ===== Escala de raio ===== */
 function scaleR(v, vmin, vmax){
   const n = TOP_N;
-  const Rmax = n > 150 ? 78 : n > 80 ? 96 : 120;
-  const Rmin = n > 150 ? 24 : n > 80 ? 26 : 30;
+  const Rmax = n > 150 ? 72 : n > 80 ? 92 : 116;  // ↓ tamanho máximo
+  const Rmin = n > 150 ? 24 : n > 80 ? 26 : 30;   // ↑ mínimo fica legível
   if (!(vmax > vmin)) return (Rmax + Rmin) / 2;
   let t = (v - vmin) / (vmax - vmin);
   t = Math.pow(clamp(0,t,1), 0.58);
@@ -140,15 +138,14 @@ function populateFilterOptions(){
   if([...sectorSelect.options].some(o=>o.value===sSel)) sectorSelect.value=sSel;
 }
 
-/* layout & escala por área (considera margem para separar) */
+/* layout & escala por área (com margem p/ separar) */
 function setView(){ const {w,h}=SZ(); svg.setAttribute('viewBox',`0 0 ${w} ${h}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); return {w,h}; }
 function baseRadInfo(list){ const key=metricKey(); const vmax=Math.max(...list.map(s=>s[key]??0)); const vmin=Math.min(...list.map(s=>s[key]??0)); return {key,vmin,vmax}; }
 
 function scaleTargetsToFit(targetRadii){
   const {w,h}=SZ();
   const targetArea = PACK_DENSITY * w * h;
-  // infla o raio para simular margem de separação
-  const SEP_MARGIN = 0.6 * 16; // 16 é nosso SEP base
+  const SEP_MARGIN = 0.7 * 20; // 20 é o SEP base (ver física)
   const sumArea = targetRadii.reduce((a,r)=>a + Math.PI*Math.pow(r + SEP_MARGIN, 2), 0);
   const sf = sumArea > 0 ? Math.min(1, Math.sqrt(targetArea / sumArea)) : 1;
   return sf;
@@ -180,7 +177,6 @@ function ensureGlobalDefs(defs){
       lg.appendChild(a); lg.appendChild(b);
       defs.appendChild(lg);
     };
-    // tons estilo crypto
     mk('rimGradPos','#e9fff6','#54f7a5');
     mk('rimGradNeg','#ffe9eb','#ff6571');
     mk('rimGradNeu','#eef2f8','#b9c2d3');
@@ -233,7 +229,7 @@ function render(){
         next.push({x,y, r, rv:12, targetR:r, s});
       }
     });
-    // aplica escala global por área
+    // escala global por área
     const targets = next.map(p => (p.targetR ?? p.r));
     const sf = scaleTargetsToFit(targets);
     next.forEach(p => {
@@ -317,25 +313,25 @@ function render(){
       inner.setAttribute('cx',0); inner.setAttribute('cy',0); inner.setAttribute('r',r-4); inner.setAttribute('class','logo-fallback'); g.appendChild(inner);
     }
 
-    /* tipografia central */
+    /* tipografia central — TICKER MENOR */
     const pct=document.createElementNS('http://www.w3.org/2000/svg','text');
     pct.setAttribute('class','pct'); pct.setAttribute('x',0);
-    pct.setAttribute('y',  r * 0.28);
-    pct.setAttribute('font-size', clamp(16, r*0.42, 28));
+    pct.setAttribute('y',  r * 0.26);
+    pct.setAttribute('font-size', clamp(12, r*0.36, 24));  // ↓ porcentagem
     pct.textContent=`${(chg>0?'+':'')}${(chg||0).toFixed(2)}%`;
     g.appendChild(pct);
 
     const tik=document.createElementNS('http://www.w3.org/2000/svg','text');
     tik.setAttribute('class','ticker'); tik.setAttribute('x',0); tik.setAttribute('y', 0);
-    tik.setAttribute('font-size', clamp(18, r*0.82, 64));
+    tik.setAttribute('font-size', clamp(14, r*0.62, 48));   // ↓ ticker principal
     tik.textContent=s.symbol; g.appendChild(tik);
 
     let price=null;
     if (SHOW_PRICE) {
       price=document.createElementNS('http://www.w3.org/2000/svg','text');
       price.setAttribute('class','price'); price.setAttribute('x',0);
-      price.setAttribute('y',  r * 0.60);
-      price.setAttribute('font-size', clamp(12, r*0.30, 18));
+      price.setAttribute('y',  r * 0.56);
+      price.setAttribute('font-size', clamp(10, r*0.28, 16));
       price.textContent=money(s.price,currentMarket);
       g.appendChild(price);
     }
@@ -365,15 +361,15 @@ function updateCounter(){
 /* === Física estável e espaçada === */
 function startPhysics(){
   cancelAnimationFrame(sim.raf);
-  const DAMP=0.985,
-        NOISE=IS_MOBILE?0.014:0.016,
+  const DAMP=0.986,
+        NOISE=IS_MOBILE?0.012:0.014,
         CENTER=0.00012,
         EDGE=0.22,
-        PASSES=5,
+        PASSES=6,        // +1 passe de colisão
         REACH=260,
-        REP=2.4,
-        SEP=16,
-        FILL=0.88;
+        REP=2.6,         // repulsão um pouco maior
+        SEP=20,          // separação maior (evita encostar)
+        FILL=0.86;
 
   const step=()=>{
     const {w,h}=SZ(); const CX=w/2, CY=h/2, targetR=Math.min(w,h)*FILL/2;
@@ -409,7 +405,7 @@ function startPhysics(){
           const dx=p.x-q.x, dy=p.y-q.y, dist=Math.hypot(dx,dy)||1e-6, ux=dx/dist, uy=dy/dist;
           const need=(p.rv||p.r)+(q.rv||q.r)+SEP, reach=need+REACH;
           if(dist<reach){
-            const s=REP*(1-dist/reach)*0.7; p.vx+=ux*s; p.vy+=uy*s; q.vx-=ux*s; q.vy-=uy*s;
+            const s=REP*(1-dist/reach)*0.75; p.vx+=ux*s; p.vy+=uy*s; q.vx-=ux*s; q.vy-=uy*s;
           }
           if(dist<need){
             const over=(need-dist)*0.5; p.x+=ux*over; p.y+=uy*over; q.x-=ux*over; q.y-=uy*over;
@@ -431,13 +427,13 @@ function startPhysics(){
       n.outer.setAttribute('r', r*1.06);
       n.outer.setAttribute('stroke-width', Math.max(9, r*0.24));
       n.clipCircle.setAttribute('r', r-4);
-      n.tik.setAttribute('font-size', clamp(18, r*0.82, 64));
+      n.tik.setAttribute('font-size', clamp(14, r*0.62, 48));
       n.tik.setAttribute('y', 0);
-      n.pct.setAttribute('font-size', clamp(16, r*0.42, 28));
-      n.pct.setAttribute('y', r * 0.28);
+      n.pct.setAttribute('font-size', clamp(12, r*0.36, 24));
+      n.pct.setAttribute('y', r * 0.26);
       if(n.price){
-        n.price.setAttribute('y',  r * 0.60);
-        n.price.setAttribute('font-size', clamp(12, r*0.30, 18));
+        n.price.setAttribute('y',  r * 0.56);
+        n.price.setAttribute('font-size', clamp(10, r*0.28, 16));
       }
     }
 
@@ -458,7 +454,7 @@ function morphRadii(){
     for (let i=0;i<sim.pts.length;i++){
       const p = sim.pts[i];
       const target = targetsRaw[i] * sf;
-      p.rv = (p.rv??p.r) + (target - (p.rv??p.r))*0.18;
+      p.rv = (p.rv??p.r) + (target - (p.rv??p.r))*0.2;
     }
     if(t<1) requestAnimationFrame(loop);
   })(t0);
