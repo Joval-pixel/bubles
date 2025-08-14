@@ -1,4 +1,4 @@
-/* ====== BUBLES — estilo CryptoBubbles (PT-BR) ====== */
+/* ====== BUBLES — estilo CryptoBubbles (PT-BR, 3D) ====== */
 
 /* config */
 const IS_MOBILE  = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0) > 0;
@@ -31,6 +31,43 @@ const money=(n, mkt)=> (n!=null) ? n.toLocaleString('pt-BR',{style:'currency', c
 const topN=a=>[...a].sort((x,y)=>(y.volume??0)-(x.volume??0)).slice(0,TOP_N);
 const metricKey=()=> currentMetric==='market-cap' ? 'marketCap' : currentMetric==='price' ? 'price' : 'volume';
 
+/* tradução de tipos e setores */
+const SECTOR_PT = {
+  "Commercial Services":"Serviços Comerciais",
+  "Communications":"Comunicações",
+  "Consumer Durables":"Bens de Consumo Duráveis",
+  "Consumer Non-Durables":"Bens de Consumo Não Duráveis",
+  "Consumer Services":"Serviços ao Consumidor",
+  "Distribution Services":"Serviços de Distribuição",
+  "Electronic Technology":"Tecnologia Eletrônica",
+  "Energy Minerals":"Energia (Mineração)",
+  "Finance":"Finanças",
+  "Health Services":"Serviços de Saúde",
+  "Health Technology":"Tecnologia em Saúde",
+  "Industrial Services":"Serviços Industriais",
+  "Miscellaneous":"Diversos",
+  "Non-Energy Minerals":"Mineração (Não Energia)",
+  "Process Industries":"Indústrias de Processos",
+  "Producer Manufacturing":"Manufatura",
+  "Retail Trade":"Varejo",
+  "Technology Services":"Serviços de Tecnologia",
+  "Transportation":"Transporte",
+  "Utilities":"Utilidades",
+  "Unknown":"Desconhecido",
+  "Desconhecido":"Desconhecido"
+};
+const toPT = s => SECTOR_PT[s] || s || 'Desconhecido';
+
+function inferType(sym,t){
+  const raw = (t||'').toString().toLowerCase();
+  if(/etf/.test(raw)) return 'ETF';
+  if(t) return t;
+  if(/11$/.test(sym)) return 'FII/Units';
+  if(/3[45]$/.test(sym)) return 'BDR';
+  return 'Ação';
+}
+function pickLogo(d){ return d.logo || d.logourl || d.logoUrl || d.image || null; }
+
 /* raios grandes */
 function scaleR(v, vmin, vmax){
   const n = TOP_N;
@@ -41,11 +78,7 @@ function scaleR(v, vmin, vmax){
   return Rmin + t * (Rmax - Rmin);
 }
 
-/* normalização BRAPI */
-function inferType(sym,t){ if(t) return t; if(/11$/.test(sym)) return 'FII/Units'; if(/3[45]$/.test(sym)) return 'BDR'; return 'Ação'; }
-function inferSector(s){ return s||'Desconhecido'; }
-function pickLogo(d){ return d.logo || d.logourl || d.logoUrl || d.image || null; }
-
+/* fetch/util */
 async function fetchWithTimeout(url,ms=9000){ const c=new AbortController(); const t=setTimeout(()=>c.abort(),ms);
   try{ const r=await fetch(url,{signal:c.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); }
   finally{ clearTimeout(t); } }
@@ -58,6 +91,8 @@ function normalize(it){
   const vol  =Number(it.volume ?? it.regularMarketVolume ?? it.v);
   const chg  =Number(it.change ?? it.regularMarketChangePercent ?? it.chg);
   const day  = Number.isFinite(chg) ? chg : (Math.random()-0.5)*4;
+
+  const sectorRaw = it.sector || it.industry || it.segment;
   return {
     symbol, name,
     price: Number.isFinite(price)?price:null,
@@ -69,7 +104,7 @@ function normalize(it){
     month: day*4.0 + (Math.random()-0.5)*4.0,
     year: day*18.0 + (Math.random()-0.5)*20.0,
     type: inferType(symbol, it.type),
-    sector: inferSector(it.sector),
+    sector: toPT(sectorRaw),
     logo: pickLogo(it)
   };
 }
@@ -126,7 +161,58 @@ function seed(list){
   });
 }
 
-/* render */
+/* render — com bolha 3D */
+function ensureGlobalDefs(defs){
+  // gradientes do aro — definidos uma vez
+  if(!document.getElementById('rimGradPos')){
+    const mk=(id,c1,c2)=>{
+      const lg = document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
+      lg.setAttribute('id', id);
+      lg.setAttribute('x1','0%'); lg.setAttribute('y1','0%'); lg.setAttribute('x2','0%'); lg.setAttribute('y2','100%');
+      const a = document.createElementNS('http://www.w3.org/2000/svg','stop');
+      const b = document.createElementNS('http://www.w3.org/2000/svg','stop');
+      a.setAttribute('offset','0%'); a.setAttribute('stop-color', c1);
+      b.setAttribute('offset','100%'); b.setAttribute('stop-color', c2);
+      lg.appendChild(a); lg.appendChild(b);
+      defs.appendChild(lg);
+    };
+    mk('rimGradPos','#d4ffe9','#1bd27a');
+    mk('rimGradNeg','#ffd8db','#ff6a73');
+    mk('rimGradNeu','#e4e8f0','#a9b3c6');
+  }
+  // filtro de sombra interna
+  if(!document.getElementById('innerShadow')){
+    const f = document.createElementNS('http://www.w3.org/2000/svg','filter');
+    f.setAttribute('id','innerShadow');
+    f.setAttribute('x','-50%'); f.setAttribute('y','-50%');
+    f.setAttribute('width','200%'); f.setAttribute('height','200%');
+    f.innerHTML = `
+      <feOffset dx="0" dy="2" result="off"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+      <feComposite in="blur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner"/>
+      <feColorMatrix in="inner" type="matrix"
+        values="0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 .55 0" result="shadow"/>
+      <feComposite in="shadow" in2="SourceGraphic" operator="over"/>
+    `;
+    defs.appendChild(f);
+  }
+  // gradiente do gloss
+  if(!document.getElementById('glossGrad')){
+    const gg = document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
+    gg.setAttribute('id','glossGrad');
+    gg.setAttribute('cx','50%'); gg.setAttribute('cy','10%'); gg.setAttribute('r','55%');
+    const g1 = document.createElementNS('http://www.w3.org/2000/svg','stop');
+    const g2 = document.createElementNS('http://www.w3.org/2000/svg','stop');
+    g1.setAttribute('offset','0%');  g1.setAttribute('stop-color','#ffffff');
+    g2.setAttribute('offset','100%'); g2.setAttribute('stop-color','#ffffff'); g2.setAttribute('stop-opacity','0');
+    gg.appendChild(g1); gg.appendChild(g2);
+    defs.appendChild(gg);
+  }
+}
+
 function render(){
   setView(); svg.innerHTML='';
   if(!sim.pts.length) sim.pts=seed(current);
@@ -148,6 +234,7 @@ function render(){
 
   const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
   svg.appendChild(defs);
+  ensureGlobalDefs(defs);
 
   sim.nodes=[];
   const frag=document.createDocumentFragment();
@@ -155,38 +242,83 @@ function render(){
   sim.pts.forEach((p,i)=>{
     const s=p.s, chg = s[currentPeriod] ?? s.day ?? 0;
     const isPos = chg>0, isNeg = chg<0;
+    const r = p.rv || p.r;
 
-    // gradiente
-    const gid=`g-${i}-${s.symbol}`;
-    const grad=document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
-    grad.setAttribute('id',gid); grad.setAttribute('cx','50%'); grad.setAttribute('cy','40%'); grad.setAttribute('r','65%');
-    const st1=document.createElementNS('http://www.w3.org/2000/svg','stop'); st1.setAttribute('offset','0%'); st1.setAttribute('class',isPos?'grad-pos-1':isNeg?'grad-neg-1':'grad-neu-1');
-    const st2=document.createElementNS('http://www.w3.org/2000/svg','stop'); st2.setAttribute('offset','100%'); st2.setAttribute('class',isPos?'grad-pos-2':isNeg?'grad-neg-2':'grad-neu-2');
-    grad.appendChild(st1); grad.appendChild(st2); defs.appendChild(grad);
+    // gradiente único do disco (4 paradas para 3D)
+    const discId = `disc-${i}-${s.symbol}`;
+    const discGrad = document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
+    discGrad.setAttribute('id', discId);
+    discGrad.setAttribute('cx','50%'); discGrad.setAttribute('cy','45%'); discGrad.setAttribute('r','70%');
 
+    const mkStop = (ofs, cls)=>{
+      const st = document.createElementNS('http://www.w3.org/2000/svg','stop');
+      st.setAttribute('offset', ofs);
+      st.setAttribute('class', cls);
+      return st;
+    };
+    if(isPos){
+      discGrad.appendChild(mkStop('0%','grad-pos-3'));
+      discGrad.appendChild(mkStop('55%','grad-pos-1'));
+      discGrad.appendChild(mkStop('85%','grad-pos-2'));
+      discGrad.appendChild(mkStop('100%','grad-pos-0'));
+    }else if(isNeg){
+      discGrad.appendChild(mkStop('0%','grad-neg-3'));
+      discGrad.appendChild(mkStop('55%','grad-neg-1'));
+      discGrad.appendChild(mkStop('85%','grad-neg-2'));
+      discGrad.appendChild(mkStop('100%','grad-neg-0'));
+    }else{
+      discGrad.appendChild(mkStop('0%','grad-neu-3'));
+      discGrad.appendChild(mkStop('55%','grad-neu-1'));
+      discGrad.appendChild(mkStop('85%','grad-neu-2'));
+      discGrad.appendChild(mkStop('100%','grad-neu-0'));
+    }
+    defs.appendChild(discGrad);
+
+    // grupo da bolha
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class',`bubble ${isPos?'glow-pos':'glow-neg'}`); g.setAttribute('transform',`translate(${p.x},${p.y})`);
+    g.setAttribute('class','bubble');
+    g.setAttribute('transform',`translate(${p.x},${p.y})`);
     g.style.cursor='pointer';
 
-    // disco + anel branco
+    // halo externo
+    const outer=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    outer.setAttribute('class', `outer-glow ${isPos?'glow-pos':isNeg?'glow-neg':'glow-neu'}`);
+    outer.setAttribute('cx',0); outer.setAttribute('cy',0);
+    outer.setAttribute('r', r*1.07);
+    outer.setAttribute('stroke-width', Math.max(8, r*0.22));
+    g.appendChild(outer);
+
+    // disco com sombra interna
     const disc=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    disc.setAttribute('cx',0); disc.setAttribute('cy',0); disc.setAttribute('r',p.rv||p.r);
-    disc.setAttribute('fill',`url(#${gid})`); disc.setAttribute('class','ring');
+    disc.setAttribute('cx',0); disc.setAttribute('cy',0);
+    disc.setAttribute('r', r);
+    disc.setAttribute('fill', `url(#${discId})`);
+    disc.setAttribute('class','has-inner-shadow');
     g.appendChild(disc);
 
-    // brilho topo
-    const halo=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
-    const r=p.rv||p.r; halo.setAttribute('cx',0); halo.setAttribute('cy',-r*0.35); halo.setAttribute('rx',r*0.6); halo.setAttribute('ry',r*0.25);
-    halo.setAttribute('fill','rgba(255,255,255,.16)'); g.appendChild(halo);
+    // aro
+    const rim=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    rim.setAttribute('cx',0); rim.setAttribute('cy',0);
+    rim.setAttribute('r', r-1.6);
+    rim.setAttribute('class', `rim ${isPos?'rim-pos':isNeg?'rim-neg':'rim-neu'}`);
+    g.appendChild(rim);
 
-    // clip/logo
-    const cid=`clip-${i}-${s.symbol}`; const cp=document.createElementNS('http://www.w3.org/2000/svg','clipPath'); cp.setAttribute('id',cid);
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('cx',0); c.setAttribute('cy',0); c.setAttribute('r',r-4);
-    cp.appendChild(c); defs.appendChild(cp);
+    // gloss topo
+    const gloss=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+    gloss.setAttribute('class','gloss');
+    gloss.setAttribute('cx',0); gloss.setAttribute('cy', -r*0.45);
+    gloss.setAttribute('rx', r*0.66); gloss.setAttribute('ry', r*0.28);
+    g.appendChild(gloss);
+
+    // clip do logo
+    const cid=`clip-${i}-${s.symbol}`;
+    const cp=document.createElementNS('http://www.w3.org/2000/svg','clipPath'); cp.setAttribute('id',cid);
+    const cc=document.createElementNS('http://www.w3.org/2000/svg','circle'); cc.setAttribute('cx',0); cc.setAttribute('cy',0); cc.setAttribute('r',r-4);
+    cp.appendChild(cc); defs.appendChild(cp);
 
     if(s.logo){
       const img=document.createElementNS('http://www.w3.org/2000/svg','image');
-      const sz=r*1.4; img.setAttributeNS('http://www.w3.org/1999/xlink','href',s.logo);
+      const sz=r*1.42; img.setAttributeNS('http://www.w3.org/1999/xlink','href',s.logo);
       img.setAttribute('x',-sz/2); img.setAttribute('y',-sz/2); img.setAttribute('width',sz); img.setAttribute('height',sz);
       img.setAttribute('opacity','0.22'); img.setAttribute('clip-path',`url(#${cid})`); g.appendChild(img);
     }else{
@@ -194,18 +326,18 @@ function render(){
       inner.setAttribute('cx',0); inner.setAttribute('cy',0); inner.setAttribute('r',r-4); inner.setAttribute('class','logo-fallback'); g.appendChild(inner);
     }
 
-    // textos — % grande no centro, ticker em cima, preço embaixo
+    // textos
     const pct=document.createElementNS('http://www.w3.org/2000/svg','text');
     pct.setAttribute('class','pct'); pct.setAttribute('x',0); pct.setAttribute('y',4);
-    pct.setAttribute('font-size', Math.max(14, Math.min(26, r * 0.52)));
+    pct.setAttribute('font-size', Math.max(16, Math.min(28, r * 0.54)));
     pct.textContent=`${chg>0?'+':''}${(chg||0).toFixed(2)}%`; g.appendChild(pct);
 
     const tik=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tik.setAttribute('class','ticker'); tik.setAttribute('x',0); tik.setAttribute('y', -r * 0.56);
+    tik.setAttribute('class','ticker'); tik.setAttribute('x',0); tik.setAttribute('y', -r * 0.58);
     tik.setAttribute('font-size', Math.max(12, Math.min(18, r * 0.34))); tik.textContent=s.symbol; g.appendChild(tik);
 
     const price=document.createElementNS('http://www.w3.org/2000/svg','text');
-    price.setAttribute('class','price'); price.setAttribute('x',0); price.setAttribute('y',  r * 0.70);
+    price.setAttribute('class','price'); price.setAttribute('x',0); price.setAttribute('y',  r * 0.72);
     price.setAttribute('font-size', Math.max(11, Math.min(16, r * 0.30))); price.textContent=money(s.price,currentMarket); g.appendChild(price);
 
     g.addEventListener('click', ()=>{
@@ -213,7 +345,7 @@ function render(){
     });
 
     frag.appendChild(g);
-    sim.nodes.push({ g, disc, halo, pct, tik, price, clipCircle:c });
+    sim.nodes.push({ g, disc, rim, outer, gloss, pct, tik, price, clipCircle:cc });
   });
 
   svg.appendChild(frag);
@@ -291,10 +423,18 @@ function startPhysics(){
 
       const n=sim.nodes[i];
       n.g.setAttribute('transform',`translate(${p.x},${p.y})`);
-      n.disc.setAttribute('r',r); n.clipCircle.setAttribute('r',r-4);
-      n.tik.setAttribute('y', -r * 0.56);
-      n.price.setAttribute('y',  r * 0.70);
-      n.pct.setAttribute('font-size', Math.max(14, Math.min(26, r * 0.52)));
+
+      // atualiza raios e camadas 3D
+      n.disc.setAttribute('r', r);
+      n.rim.setAttribute('r', r-1.6);
+      n.outer.setAttribute('r', r*1.07);
+      n.outer.setAttribute('stroke-width', Math.max(8, r*0.22));
+      n.clipCircle.setAttribute('r', r-4);
+
+      // textos
+      n.tik.setAttribute('y', -r * 0.58);
+      n.price.setAttribute('y',  r * 0.72);
+      n.pct.setAttribute('font-size', Math.max(16, Math.min(28, r * 0.54)));
     }
 
     sim.raf=requestAnimationFrame(step);
@@ -316,7 +456,7 @@ function morphRadii(){
   })(t0);
 }
 
-/* eventos UI (delegação de eventos nos botões de período) */
+/* eventos UI (delegação) */
 tabsBar.addEventListener('click', (e)=>{
   const btn = e.target.closest('.period-btn');
   if (!btn) return;
@@ -331,7 +471,6 @@ marketSelect.addEventListener('change',()=>{ currentMarket=marketSelect.value; p
 searchInput.addEventListener('input',applyFilters);
 typeSelect.addEventListener('change',applyFilters);
 sectorSelect.addEventListener('change',applyFilters);
-/* mantém o seletor de quantidade visual, mas TOP_N é automático (30/200) */
 if(rangeSelect){ rangeSelect.value=`1-${TOP_N}`; rangeSelect.addEventListener('change',()=>{ rangeSelect.value=`1-${TOP_N}`; }); }
 
 settingsBtn?.addEventListener('click',()=> settingsModal?.classList.remove('hidden'));
