@@ -15,9 +15,11 @@ body { margin:0; background:#000; color:#e8e8e8; font:14px/1.4 Inter, system-ui,
 .input{ flex:1; min-width:230px; }
 .select.w-compact{ min-width:150px; }
 .btn.icon{ padding:10px 12px; }
+
 .tabs{ display:flex; gap:8px; padding:8px 16px; border-top:1px solid #13151b; }
-.tab{ padding:8px 10px; border-radius:8px; background:#13151b; border:1px solid #232631; cursor:pointer; }
+.tab{ padding:8px 10px; border-radius:8px; background:#13151b; border:1px solid #232631; cursor:pointer; pointer-events:auto; }
 .tab.active{ background:#0f172a; border-color:#334155; color:#cbe1ff; }
+
 .status{ padding:8px 16px; color:#99a0a8; }
 
 /* palco */
