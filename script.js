@@ -1,561 +1,275 @@
-/************ BUBLES — script.js (API + 200 desktop / 30 mobile + auto-refresh 15s + morph) ************/
+import { useState, useEffect } from 'react'
+import './App.css'
 
-/* ===== 0) Quantidade por dispositivo ===== */
-const IS_MOBILE = matchMedia("(max-width: 820px)").matches || (navigator.maxTouchPoints || 0) > 0;
-const TOP_N = IS_MOBILE ? 30 : 200;
+function App() {
+  const [stocks, setStocks] = useState([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(true)
 
-/* ===== 1) DOM ===== */
-const bubbleChart   = document.getElementById('bubble-chart');
-const searchInput   = document.getElementById('search-input');
-const rangeSelect   = document.getElementById('range-select');
-const periodButtons = document.querySelectorAll('.period-btn');
-const metricSelect  = document.getElementById('metric-select');
-const settingsBtn   = document.getElementById('settings');
-const settingsModal = document.getElementById('settings-modal');
-const closeModal    = document.getElementById('close-modal');
-const marketSelect  = document.getElementById('market-select');
-const stockCounter  = document.getElementById('stock-counter');
-
-/* ===== 2) Estado ===== */
-let currentMarket = 'brazilian';   // 'brazilian' | 'american'
-let currentPeriod = 'hour';         // hour | day | week | month | year (default Hora)
-let currentMetric = 'market-cap';   // market-cap | volume | price
-let allData = { brazilian: [], american: [] };
-let currentData = [];
-
-/* ===== 3) Config de refresh ===== */
-const REFRESH_MS = 15000;     // ⏱️ 15 segundos
-const MORPH_MS   = 900;       // duração do morph (raio/cores/texto)
-
-/* ===== 4) Fallback local (caso API falhe) ===== */
-function gen(symbol, name, basePrice, baseCap) {
-  const rnd = () => (Math.random()-0.5);
-  return {
-    symbol, name,
-    price: basePrice + rnd()*basePrice*0.2,
-    marketCap: baseCap + rnd()*baseCap*0.3,
-    volume: Math.random()*5 + 0.1,
-    hour: rnd()*4, day: rnd()*10, week: rnd()*20, month: rnd()*40, year: rnd()*200
-  };
-}
-const fallbackBR = [
-  gen('PETR4','Petrobras',35.31,460.2),
-  gen('VALE3','Vale',54.71,245.8),
-  gen('ITUB4','Itaú',32.22,312.5),
-  gen('BBDC4','Bradesco',13.45,156.7),
-  gen('ABEV3','Ambev',12.89,203.4),
-  gen('WEGE3','WEG',67.89,89.3),
-  gen('MGLU3','Magazine Luiza',7.28,48.9),
-];
-const fallbackUS = [
-  gen('AAPL','Apple',185.92,2850.4),
-  gen('MSFT','Microsoft',378.85,2820.1),
-  gen('NVDA','NVIDIA',875.28,2156.7),
-  gen('AMZN','Amazon',151.94,1590.8),
-  gen('META','Meta',484.49,1234.5),
-];
-
-/* ===== 5) API (brapi) ===== */
-async function fetchWithTimeout(url, ms = 8000) {
-  const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), ms);
-  try {
-    const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } finally { clearTimeout(t); }
-}
-function normalizeItem(it) {
-  const sym = it.symbol || it.stock || it.ticker || it.code || it.name || '???';
-  const name = it.longName || it.name || it.company || sym;
-  const price = Number(it.close ?? it.price ?? it.regularMarketPrice ?? it.last ?? it.p) || (Math.random()*100+10);
-  const mcap  = Number(it.market_cap ?? it.marketCap ?? it.marketcap ?? it.marketValue) || (Math.random()*100+10);
-  const vol   = Number(it.volume ?? it.regularMarketVolume ?? it.v) || (Math.random()*10+0.1);
-  const chg   = Number(it.change ?? it.regularMarketChangePercent ?? it.chg) || ((Math.random()-0.5)*4);
-  const day = chg;
-  return {
-    symbol: String(sym).toUpperCase(),
-    name, price, marketCap: mcap, volume: vol,
-    hour: day * 0.25 + (Math.random()-0.5)*0.6,
-    day,
-    week: day * 1.9  + (Math.random()-0.5)*2.0,
-    month: day * 4.0 + (Math.random()-0.5)*4.0,
-    year: day * 18.0 + (Math.random()-0.5)*20.0
-  };
-}
-async function loadMarket(market) {
-  const tries = (market === 'brazilian')
-    ? [
-        'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500',
-        'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500&exchange=b3'
-      ]
-    : [
-        'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500&exchange=usa',
-        'https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=500'
-      ];
-  for (const url of tries) {
-    try {
-      const json = await fetchWithTimeout(url, 9000);
-      const arr = json?.stocks || json?.results || json?.data || [];
-      const mapped = arr.map(normalizeItem)
-        .filter(s => market === 'brazilian'
-          ? /[A-Z]{4}\d|[A-Z]{3}\d{1,2}/.test(s.symbol) || s.symbol.endsWith('3') || s.symbol.endsWith('4')
-          : true);
-      if (mapped.length >= 20) return mapped;
-    } catch (_e) {}
-  }
-  return market === 'brazilian' ? fallbackBR : fallbackUS;
-}
-
-/* ===== 6) Helpers ===== */
-function datasetByMarket() { return currentMarket === 'brazilian' ? allData.brazilian : allData.american; }
-function topNByVolume(arr) { return [...arr].sort((a,b)=>b.volume - a.volume).slice(0, TOP_N); }
-function getChartSize(svgEl){
-  const r = svgEl.getBoundingClientRect();
-  const w = r.width  > 0 ? Math.floor(r.width)  : 800;
-  const h = r.height > 0 ? Math.floor(r.height) : 600;
-  return { width: Math.max(320,w), height: Math.max(420,h) };
-}
-function scaleRadius(value, minV, maxV){
-  const MIN_R=16, MAX_R=44;
-  if(maxV===minV) return (MIN_R+MAX_R)/2;
-  const t=(value-minV)/(maxV-minV);
-  return Math.max(MIN_R, Math.min(MAX_R, MIN_R + t*(MAX_R-MIN_R)));
-}
-function metricKeyOf() {
-  return (currentMetric==='market-cap') ? 'marketCap'
-       : (currentMetric==='volume')     ? 'volume'
-       : 'price';
-}
-
-/* ===== 7) Semente + relaxamento curto ===== */
-function seedPositions(data){
-  const {width,height} = getChartSize(bubbleChart);
-  const PADDING=12, BORDER=8, MARGIN=PADDING+BORDER;
-  const CX=width/2, CY=height/2, HOLE_R=Math.min(width,height)*0.10;
-
-  const metricKey = metricKeyOf();
-  const maxV=Math.max(...data.map(s=>s[metricKey]));
-  const minV=Math.min(...data.map(s=>s[metricKey]));
-
-  const cellSize=56, cols=Math.ceil(width/cellSize), rows=Math.ceil(height/cellSize);
-  const grid=Array.from({length:cols*rows},()=>[]);
-  const key=(x,y)=>y*cols+x;
-  const add=(pt)=>{ const gx=Math.max(0,Math.min(cols-1,Math.floor(pt.x/cellSize)));
-    const gy=Math.max(0,Math.min(rows-1,Math.floor(pt.y/cellSize)));
-    grid[key(gx,gy)].push(pt); pt._gx=gx; pt._gy=gy; };
-  const neighbors=(pt)=>{ const out=[]; for(let gy=Math.max(0,pt._gy-1); gy<=Math.min(rows-1,pt._gy+1); gy++)
-    for(let gx=Math.max(0,pt._gx-1); gx<=Math.min(cols-1,pt._gx+1); gx++) out.push(...grid[key(gx,gy)]); return out; };
-
-  const sorted=[...data].sort((a,b)=>b[metricKey]-a[metricKey]);
-  const baseAngle=Math.random()*Math.PI*2, SPIRAL_STEP=.92, SPIRAL_K=20;
-
-  const pts=[];
-  sorted.forEach((s,i)=>{
-    const r=scaleRadius(s[metricKey],minV,maxV);
-    let angle=baseAngle+i*SPIRAL_STEP, dist=Math.sqrt(i+1)*SPIRAL_K + r;
-    let x= CX+Math.cos(angle)*dist, y= CY+Math.sin(angle)*dist;
-
-    const MARGIN=20;
-    x=Math.max(MARGIN+r, Math.min(width -MARGIN-r, x));
-    y=Math.max(MARGIN+r, Math.min(height-MARGIN-r, y));
-
-    const dx=x-CX, dy=y-CY, d=Math.hypot(dx,dy);
-    if(d < HOLE_R + r){
-      const nd = HOLE_R + r + 2;
-      if(d===0){ x=CX+nd; y=CY; } else { x=CX+(dx/d)*nd; y=CY+(dy/d)*nd; }
-    }
-    const pt = { x, y, radius:r, radiusVis:r, targetR:r, stock:s, vx:0, vy:0, alpha:1, targetAlpha:1 };
-    add(pt); pts.push(pt);
-  });
-
-  // relaxamento
-  const ITER=8, REPEL=.45, DAMP=.85, EDGE=.08;
-  for(let k=0;k<ITER;k++){
-    for(const p of pts){
-      for(const q of neighbors(p)){ if(q===p) continue;
-        const dx=p.x-q.x, dy=p.y-q.y; const dist=Math.hypot(dx,dy)||1e-4;
-        const minDist=p.radius+q.radius+4;
-        if(dist<minDist){ const push=(minDist-dist)*REPEL; const ux=dx/dist, uy=dy/dist;
-          p.vx+=ux*push; p.vy+=uy*push; q.vx-=ux*push*.5; q.vy-=uy*push*.5; }
-      }
-      if(p.x-p.radius<20) p.vx+=EDGE;
-      if(p.x+p.radius>width-20) p.vx-=EDGE;
-      if(p.y-p.radius<20) p.vy+=EDGE;
-      if(p.y+p.radius>height-20) p.vy-=EDGE;
-    }
-    for(const p of pts){ p.x=Math.max(20+p.radius, Math.min(width -20-p.radius, p.x+p.vx));
-      p.y=Math.max(20+p.radius, Math.min(height-20-p.radius, p.y+p.vy));
-      p.vx*=DAMP; p.vy*=DAMP;
-    }
-  }
-  return pts;
-}
-
-/* ===== 8) Render + simulação ===== */
-let SIM = { points: [], nodes: [], raf:null, symbolMap:new Map(), morphT:0 };
-
-function renderBubbles(){
-  const {width,height} = getChartSize(bubbleChart);
-  bubbleChart.setAttribute('viewBox', `0 0 ${width} ${height}`);
-  bubbleChart.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-  bubbleChart.innerHTML='';
-
-  const positions = seedPositions(currentData);
-  SIM.points = positions;
-  SIM.nodes  = [];
-  SIM.symbolMap.clear();
-
-  const frag=document.createDocumentFragment();
-
-  positions.forEach(({x,y,radius,stock}, idx)=>{
-    const change=stock[currentPeriod];
-    let cls= change>0 ? 'bubble-positive' : (change<0 ? 'bubble-negative' : 'bubble-neutral');
-
-    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','bubble');
-    g.setAttribute('data-symbol',stock.symbol);
-    g.setAttribute('transform',`translate(${x},${y})`);
-    g.style.opacity = 1;
-
-    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx',0); c.setAttribute('cy',0); c.setAttribute('r',radius);
-    c.setAttribute('class',cls); c.setAttribute('stroke-width','2');
-    g.appendChild(c);
-
-    const fs1=Math.max(10, Math.min(16, radius*.36));
-    const fs2=Math.max(9 , Math.min(14, radius*.30));
-
-    let t1, t2;
-    if(radius>=18){
-      t1=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t1.setAttribute('x',0); t1.setAttribute('y', radius>=26?-5:-3);
-      t1.setAttribute('class','bubble-text bubble-symbol');
-      t1.setAttribute('text-anchor','middle'); t1.setAttribute('dominant-baseline','middle');
-      t1.setAttribute('font-size',`${fs1}px`); t1.setAttribute('font-weight','700');
-      t1.textContent=stock.symbol; g.appendChild(t1);
-
-      t2=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t2.setAttribute('x',0); t2.setAttribute('y', radius>=26?9:7);
-      t2.setAttribute('class','bubble-text bubble-change');
-      t2.setAttribute('text-anchor','middle'); t2.setAttribute('dominant-baseline','middle');
-      t2.setAttribute('font-size',`${fs2}px`); t2.setAttribute('font-weight','600');
-      t2.textContent=`${change>0?'+':''}${change.toFixed(1)}%`; g.appendChild(t2);
-    } else {
-      t1=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t1.setAttribute('x',0); t1.setAttribute('y',0);
-      t1.setAttribute('class','bubble-text bubble-symbol');
-      t1.setAttribute('text-anchor','middle'); t1.setAttribute('dominant-baseline','middle');
-      t1.setAttribute('font-size',`${fs1-1}px`); t1.setAttribute('font-weight','700');
-      t1.textContent=stock.symbol.slice(0,5); g.appendChild(t1);
-    }
-
-    g.addEventListener('click', () => showStockDetails(stock));
-    frag.appendChild(g);
-
-    SIM.nodes.push({ g, c, t1, t2 });
-    SIM.symbolMap.set(stock.symbol, idx);
-  });
-
-  bubbleChart.appendChild(frag);
-  updateStockCounter();
-  startSimulation();
-}
-
-/* ===== 9) Simulação com morph ===== */
-function startSimulation(){
-  stopSimulation();
-  const {width,height} = getChartSize(bubbleChart);
-  const CX=width/2, CY=height/2;
-  const DAMP = 0.985, NOISE = IS_MOBILE ? 0.02 : 0.05, EDGE_PUSH = 0.08, CENTER = 0.0008, PASSES = 2;
-
-  let lastMorphStart = 0;
-
-  function lerp(a,b,t){ return a + (b-a)*t; }
-
-  function step(ts){
-    const pts = SIM.points, n=pts.length;
-
-    // grid por frame
-    const cellSize=56, cols=Math.ceil(width/cellSize), rows=Math.ceil(height/cellSize);
-    const grid=Array.from({length:cols*rows},()=>[]);
-    const key=(x,y)=>y*cols+x;
-    for(let i=0;i<n;i++){
-      const p=pts[i];
-      const gx=Math.max(0,Math.min(cols-1,Math.floor(p.x/cellSize)));
-      const gy=Math.max(0,Math.min(rows-1,Math.floor(p.y/cellSize)));
-      grid[key(gx,gy)].push(i); p._gx=gx; p._gy=gy;
-    }
-    const neighborIdx=(pt)=>{
-      const out=[]; for(let gy=Math.max(0,pt._gy-1);gy<=Math.min(rows-1,pt._gy+1);gy++)
-        for(let gx=Math.max(0,pt._gx-1);gx<=Math.min(cols-1,pt._gx+1);gx++) out.push(...grid[key(gx,gy)]);
-      return out;
-    };
-
-    // drift/bordas/centro
-    for(const p of pts){
-      p.vx += (Math.random()-0.5)*NOISE;
-      p.vy += (Math.random()-0.5)*NOISE;
-      p.vx += (CX - p.x)*CENTER;
-      p.vy += (CY - p.y)*CENTER;
-
-      if(p.x - p.radius < 20) p.vx += EDGE_PUSH;
-      if(p.x + p.radius > width - 20) p.vx -= EDGE_PUSH;
-      if(p.y - p.radius < 20) p.vy += EDGE_PUSH;
-      if(p.y + p.radius > height - 20) p.vy -= EDGE_PUSH;
-    }
-
-    // colisão
-    for(let pass=0; pass<PASSES; pass++){
-      for(let i=0;i<n;i++){
-        const p=pts[i];
-        for(const j of neighborIdx(p)){
-          if(j<=i) continue;
-          const q=pts[j];
-          const dx=p.x-q.x, dy=p.y-q.y;
-          const dist=Math.hypot(dx,dy)||1e-4;
-          const minDist=p.radius+q.radius+4;
-          if(dist<minDist){
-            const overlap=(minDist-dist)*0.5;
-            const ux=dx/dist, uy=dy/dist;
-            p.x += ux*overlap; p.y += uy*overlap;
-            q.x -= ux*overlap; q.y -= uy*overlap;
+  // Algoritmo de distribuição melhorado para evitar agrupamento
+  const generateOptimalPositions = (stocksData) => {
+    const positions = []
+    const minDistance = 80 // Distância mínima entre bolhas em pixels
+    const maxAttempts = 100 // Máximo de tentativas para encontrar posição válida
+    
+    return stocksData.slice(0, 200).map((stock, index) => {
+      let x, y, attempts = 0
+      let validPosition = false
+      
+      // Usar diferentes estratégias de distribuição baseado no índice
+      if (index < 50) {
+        // Primeiras 50 ações: distribuição em grade com variação
+        const cols = 10
+        const rows = 5
+        const gridX = (index % cols) * (80 / cols) + 10
+        const gridY = Math.floor(index / cols) * (60 / rows) + 15
+        x = gridX + (Math.random() - 0.5) * 8
+        y = gridY + (Math.random() - 0.5) * 8
+      } else if (index < 120) {
+        // Próximas 70 ações: distribuição em círculos concêntricos
+        const circleIndex = index - 50
+        const circle = Math.floor(circleIndex / 20) + 1
+        const angleStep = (2 * Math.PI) / Math.min(20, 70 - (circle - 1) * 20)
+        const angle = (circleIndex % 20) * angleStep
+        const radius = 15 + circle * 12
+        x = 50 + Math.cos(angle) * radius + (Math.random() - 0.5) * 5
+        y = 50 + Math.sin(angle) * radius + (Math.random() - 0.5) * 5
+      } else {
+        // Últimas 80 ações: distribuição aleatória com verificação de colisão
+        do {
+          x = Math.random() * 80 + 10
+          y = Math.random() * 70 + 15
+          
+          validPosition = true
+          for (const pos of positions) {
+            const distance = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2))
+            if (distance < minDistance / 10) { // Converter para porcentagem
+              validPosition = false
+              break
+            }
           }
-        }
+          attempts++
+        } while (!validPosition && attempts < maxAttempts)
       }
-    }
-
-    // aplica vel + atrito
-    for(const p of pts){ p.x+=p.vx; p.y+=p.vy; p.vx*=DAMP; p.vy*=DAMP; }
-
-    // ===== Morph (raio/opacidade) =====
-    const t = Math.min(1, (ts - lastMorphStart) / MORPH_MS);
-    for(let i=0;i<n;i++){
-      const p=pts[i];
-      p.radius   = lerp(p.radius,   p.targetR ?? p.radius,   0.12); // física usa radius
-      p.radiusVis= lerp(p.radiusVis,p.targetR ?? p.radiusVis, 0.18); // visual um pouco mais rápido
-      p.alpha    = lerp(p.alpha,    p.targetAlpha ?? 1,       0.18);
-
-      // DOM
-      const node = SIM.nodes[i];
-      node.g.setAttribute('transform',`translate(${p.x},${p.y})`);
-      node.g.style.opacity = p.alpha.toFixed(3);
-      node.c.setAttribute('r', p.radiusVis);
-
-      // texto pode precisar de ajuste fino de fontes
-      if (node.t1) {
-        const fs1=Math.max(10, Math.min(16, p.radiusVis*.36));
-        node.t1.setAttribute('font-size', `${fs1}px`);
+      
+      // Garantir que as posições estejam dentro dos limites
+      x = Math.max(5, Math.min(95, x))
+      y = Math.max(5, Math.min(90, y))
+      
+      const position = {
+        ...stock,
+        id: index,
+        x: x,
+        y: y,
+        size: Math.max(30, Math.min(80, (stock.volume / 1000000) * 2 + 25)), // Tamanhos menores para menos sobreposição
+        color: stock.change_percent >= 0 ? '#10b981' : '#ef4444',
+        animationDelay: Math.random() * 3,
+        animationDuration: 3 + Math.random() * 2
       }
-      if (node.t2) {
-        const fs2=Math.max(9 , Math.min(14, p.radiusVis*.30));
-        node.t2.setAttribute('font-size', `${fs2}px`);
-      }
-    }
-
-    SIM.raf = requestAnimationFrame(step);
+      
+      positions.push(position)
+      return position
+    })
   }
 
-  SIM.raf = requestAnimationFrame((ts)=>{ step(ts); });
-}
-
-/* ===== 10) Reconciliação (morph) ===== */
-function reconcileAndMorph(newTop) {
-  // mapeia novos por símbolo
-  const mapNew = new Map(newTop.map((s, i) => [s.symbol, { s, i }]));
-  const metricKey = metricKeyOf();
-  const maxV = Math.max(...newTop.map(s=>s[metricKey]));
-  const minV = Math.min(...newTop.map(s=>s[metricKey]));
-
-  // atualiza existentes
-  for (let i=0;i<SIM.points.length;i++){
-    const p = SIM.points[i];
-    const sym = p.stock.symbol;
-    if (mapNew.has(sym)) {
-      // atualizar dados e metas
-      const sNew = mapNew.get(sym).s;
-      p.stock = sNew;
-      const targetR = scaleRadius(sNew[metricKey], minV, maxV);
-      p.targetR = targetR;
-      p.targetAlpha = 1;
-
-      // atualizar UI (cor e textos)
-      const change = sNew[currentPeriod];
-      const node = SIM.nodes[i];
-      const oldClass = node.c.getAttribute('class');
-      const newClass = change>0 ? 'bubble-positive' : (change<0 ? 'bubble-negative' : 'bubble-neutral');
-      if (oldClass !== newClass) node.c.setAttribute('class', newClass);
-
-      if (node.t1) node.t1.textContent = sNew.symbol;
-      if (node.t2) node.t2.textContent = `${change>0?'+':''}${change.toFixed(1)}%`;
-    } else {
-      // símbolo saiu do TOP_N -> fade out e encolher
-      p.targetAlpha = 0;
-      p.targetR = Math.max(8, p.radius * 0.3);
-      // remove realmente depois do morph
-      setTimeout(()=> {
-        const idx = SIM.points.indexOf(p);
-        if (idx > -1) {
-          SIM.points.splice(idx,1);
-          const node = SIM.nodes.splice(idx,1)[0];
-          node.g.remove();
-          // recompor o mapa
-          SIM.symbolMap.clear();
-          SIM.points.forEach((pt, k)=> SIM.symbolMap.set(pt.stock.symbol, k));
-        }
-      }, MORPH_MS+100);
+  useEffect(() => {
+    // Carregar dados das ações
+    const loadStocks = async () => {
+      try {
+        const response = await fetch('/src/assets/top_stocks.json')
+        const stocksData = await response.json()
+        
+        console.log('Dados carregados:', stocksData.length)
+        
+        // Usar o algoritmo melhorado de distribuição
+        const processedStocks = generateOptimalPositions(stocksData)
+        
+        console.log('Ações processadas:', processedStocks.length)
+        setStocks(processedStocks)
+        setLoading(false)
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+        // Dados de fallback para demonstração
+        const fallbackData = [
+          { symbol: 'VALE3', name: 'Vale', price: 54.09, change_percent: -3.26, volume: 19720000 },
+          { symbol: 'PETR4', name: 'Petrobras', price: 30.57, change_percent: -0.75, volume: 38340700 },
+          { symbol: 'ITUB4', name: 'Itaú', price: 37.67, change_percent: -0.95, volume: 21959700 },
+          { symbol: 'BBAS3', name: 'Banco do Brasil', price: 19.28, change_percent: 0.21, volume: 33738000 },
+          { symbol: 'ABEV3', name: 'Ambev', price: 12.12, change_percent: -0.90, volume: 42653700 }
+        ]
+        
+        const processedFallback = generateOptimalPositions(fallbackData)
+        setStocks(processedFallback)
+        setLoading(false)
+      }
     }
+
+    loadStocks()
+  }, [])
+
+  // Filtrar ações baseado no termo de busca
+  const filteredStocks = stocks.filter(stock =>
+    stock.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    stock.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  // Função para formatar valores monetários
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
   }
 
-  // adiciona os que não existiam
-  newTop.forEach(sNew => {
-    if (!SIM.symbolMap.has(sNew.symbol)) {
-      // spawn próximo ao centro, pequeno e com fade-in
-      const { width, height } = getChartSize(bubbleChart);
-      const x = width/2  + (Math.random()-0.5)*40;
-      const y = height/2 + (Math.random()-0.5)*40;
-      const r0 = 8;
-      const p = { x, y, radius:r0, radiusVis:r0, targetR:r0, stock:sNew, vx:0, vy:0, alpha:0, targetAlpha:1 };
-
-      // DOM
-      const change = sNew[currentPeriod];
-      const cls = change>0 ? 'bubble-positive' : (change<0 ? 'bubble-negative' : 'bubble-neutral');
-
-      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-      g.setAttribute('class','bubble'); g.setAttribute('data-symbol',sNew.symbol);
-      g.setAttribute('transform',`translate(${x},${y})`);
-      g.style.opacity = 0;
-
-      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx',0); c.setAttribute('cy',0); c.setAttribute('r',r0);
-      c.setAttribute('class',cls); c.setAttribute('stroke-width','2');
-      g.appendChild(c);
-
-      const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t1.setAttribute('x',0); t1.setAttribute('y',-3);
-      t1.setAttribute('class','bubble-text bubble-symbol');
-      t1.setAttribute('text-anchor','middle'); t1.setAttribute('dominant-baseline','middle');
-      t1.setAttribute('font-size','10px'); t1.setAttribute('font-weight','700');
-      t1.textContent=sNew.symbol; g.appendChild(t1);
-
-      const t2=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t2.setAttribute('x',0); t2.setAttribute('y',7);
-      t2.setAttribute('class','bubble-text bubble-change');
-      t2.setAttribute('text-anchor','middle'); t2.setAttribute('dominant-baseline','middle');
-      t2.setAttribute('font-size','9px'); t2.setAttribute('font-weight','600');
-      t2.textContent=`${change>0?'+':''}${change.toFixed(1)}%`; g.appendChild(t2);
-
-      g.addEventListener('click', ()=> showStockDetails(sNew));
-      bubbleChart.appendChild(g);
-
-      SIM.points.push(p);
-      SIM.nodes.push({ g, c, t1, t2 });
-      SIM.symbolMap.set(sNew.symbol, SIM.points.length-1);
-
-      // define raio alvo correto
-      const targetR = scaleRadius(sNew[metricKey], minV, maxV);
-      p.targetR = targetR;
+  // Função para formatar volume
+  const formatVolume = (volume) => {
+    if (volume >= 1000000) {
+      return `${(volume / 1000000).toFixed(1)}M`
+    } else if (volume >= 1000) {
+      return `${(volume / 1000).toFixed(1)}K`
     }
-  });
+    return volume.toString()
+  }
 
-  updateStockCounter();
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-400 mx-auto mb-4"></div>
+          <p className="text-xl">Carregando dados das ações...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      {/* Header */}
+      <header className="p-6 border-b border-slate-700">
+        <div className="container mx-auto">
+          <h1 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+            Bubles - Ações B3
+          </h1>
+          <p className="text-center text-slate-300 mb-6">
+            Visualização interativa das {stocks.length} ações mais negociadas na B3
+          </p>
+          
+          {/* Barra de busca */}
+          <div className="max-w-md mx-auto">
+            <input
+              type="text"
+              placeholder="Buscar por símbolo ou nome..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* Visualização de bolhas */}
+      <main className="relative overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+        <div className="relative w-full h-full">
+          {filteredStocks.map((stock) => (
+            <div
+              key={stock.id}
+              className="absolute rounded-full cursor-pointer group flex items-center justify-center transition-all duration-300 hover:scale-110 hover:z-10 hover:shadow-2xl"
+              style={{
+                left: `${stock.x}%`,
+                top: `${stock.y}%`,
+                width: `${stock.size}px`,
+                height: `${stock.size}px`,
+                backgroundColor: stock.color,
+                transform: 'translate(-50%, -50%)',
+                opacity: 0.9,
+                animation: `float-${stock.id % 6} ${stock.animationDuration}s ease-in-out infinite`,
+                animationDelay: `${stock.animationDelay}s`,
+                boxShadow: `0 0 ${stock.size / 6}px ${stock.color}60`
+              }}
+            >
+              {/* Conteúdo da bolha */}
+              <div className="text-center text-white font-semibold">
+                <div className="text-xs leading-tight">{stock.symbol}</div>
+                {stock.size > 50 && (
+                  <div className="text-xs opacity-80 mt-1">
+                    {stock.change_percent >= 0 ? '+' : ''}{stock.change_percent.toFixed(1)}%
+                  </div>
+                )}
+              </div>
+
+              {/* Tooltip */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20 min-w-max">
+                <div className="text-sm font-semibold text-white">{stock.symbol}</div>
+                <div className="text-xs text-slate-300 mb-1">{stock.name}</div>
+                <div className="text-xs">
+                  <div className="flex justify-between gap-4">
+                    <span>Preço:</span>
+                    <span className="font-semibold">{formatCurrency(stock.price)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span>Variação:</span>
+                    <span className={`font-semibold ${stock.change_percent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {stock.change_percent >= 0 ? '+' : ''}{stock.change_percent.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span>Volume:</span>
+                    <span className="font-semibold">{formatVolume(stock.volume)}</span>
+                  </div>
+                </div>
+                {/* Seta do tooltip */}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
+
+      {/* Footer com informações */}
+      <footer className="p-4 border-t border-slate-700 text-center text-slate-400 text-sm">
+        <p>
+          Exibindo {filteredStocks.length} de {stocks.length} ações • 
+          <span className="text-green-400 ml-2">Verde: Alta</span> • 
+          <span className="text-red-400 ml-2">Vermelho: Baixa</span> • 
+          Tamanho baseado no volume de negociação
+        </p>
+      </footer>
+
+      {/* CSS para animações melhoradas */}
+      <style jsx>{`
+        @keyframes float-0 {
+          0%, 100% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
+          33% { transform: translate(-50%, -50%) translateY(-8px) rotate(0.5deg); }
+          66% { transform: translate(-50%, -50%) translateY(4px) rotate(-0.5deg); }
+        }
+        @keyframes float-1 {
+          0%, 100% { transform: translate(-50%, -50%) translateX(0px) scale(1); }
+          50% { transform: translate(-50%, -50%) translateX(6px) scale(1.01); }
+        }
+        @keyframes float-2 {
+          0%, 100% { transform: translate(-50%, -50%) translate(0px, 0px); }
+          25% { transform: translate(-50%, -50%) translate(4px, -4px); }
+          75% { transform: translate(-50%, -50%) translate(-4px, 4px); }
+        }
+        @keyframes float-3 {
+          0%, 100% { transform: translate(-50%, -50%) translateY(0px) translateX(0px); }
+          40% { transform: translate(-50%, -50%) translateY(-6px) translateX(3px); }
+          80% { transform: translate(-50%, -50%) translateY(3px) translateX(-3px); }
+        }
+        @keyframes float-4 {
+          0%, 100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+          50% { transform: translate(-50%, -50%) rotate(1deg) scale(1.02); }
+        }
+        @keyframes float-5 {
+          0%, 100% { transform: translate(-50%, -50%) translate(0px, 0px) rotate(0deg); }
+          20% { transform: translate(-50%, -50%) translate(3px, -3px) rotate(0.3deg); }
+          40% { transform: translate(-50%, -50%) translate(-2px, -2px) rotate(-0.3deg); }
+          60% { transform: translate(-50%, -50%) translate(2px, 3px) rotate(0.2deg); }
+          80% { transform: translate(-50%, -50%) translate(-3px, 1px) rotate(-0.2deg); }
+        }
+      `}</style>
+    </div>
+  )
 }
 
-/* ===== 11) UI ===== */
-function updateStockCounter(){
-  const total = datasetByMarket().length || 0;
-  const showing = Math.min(SIM.points.length, TOP_N);
-  const positive = SIM.points.filter(pt=>pt.stock[currentPeriod]>0).length;
-  const negative = SIM.points.filter(pt=>pt.stock[currentPeriod]<0).length;
-  if(stockCounter) stockCounter.textContent =
-    `Exibindo ${showing} de ${total} ações • 🟢 ${positive} Alta • 🔴 ${negative} Baixa`;
-}
-function showStockDetails(stock){
-  const price = stock.price.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  const marketCap = stock.marketCap?.toLocaleString('pt-BR',{maximumFractionDigits:1}) ?? '-';
-  const change = stock.day>0?'+':'';
-  alert(`${stock.symbol} — ${stock.name}\nPreço: ${price}\nValor de Mercado: ${marketCap}\nVariação do Dia: ${change}${stock.day.toFixed(2)}%`);
-}
-
-/* ===== 12) Listeners ===== */
-if(periodButtons){
-  periodButtons.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      periodButtons.forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      currentPeriod = btn.dataset.period;
-      // apenas refaz as classes/textos via reconcile para morph imediato
-      reconcileAndMorph(topNByVolume(datasetByMarket()));
-    });
-  });
-}
-if(metricSelect){
-  metricSelect.addEventListener('change', ()=>{
-    currentMetric = metricSelect.value;
-    reconcileAndMorph(topNByVolume(datasetByMarket()));
-  });
-}
-if(searchInput){
-  searchInput.addEventListener('input', e=>{
-    const q = e.target.value.toLowerCase();
-    const base = datasetByMarket();
-    const filtered = q
-      ? base.filter(s=> s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q))
-      : base;
-    currentData = topNByVolume(filtered);
-    renderBubbles(); // nova composição para busca
-  });
-}
-if(rangeSelect){ rangeSelect.value = `1-${TOP_N}`; rangeSelect.addEventListener('change', ()=>{ rangeSelect.value = `1-${TOP_N}`; }); }
-if(settingsBtn){ settingsBtn.addEventListener('click', ()=> settingsModal && settingsModal.classList.remove('hidden')); }
-if(closeModal){ closeModal?.addEventListener('click', ()=> settingsModal?.classList.add('hidden')); }
-if(marketSelect){
-  marketSelect.addEventListener('change', ()=>{
-    currentMarket = marketSelect.value;
-    currentData = topNByVolume(datasetByMarket());
-    renderBubbles();
-    settingsModal && settingsModal.classList.add('hidden');
-  });
-}
-
-/* ===== 13) Inicialização + Auto-refresh ===== */
-let refreshTimer = null;
-
-async function refreshOnce(){
-  // atualiza datasets dos dois mercados
-  const [br, us] = await Promise.all([loadMarket('brazilian'), loadMarket('american')]);
-  allData.brazilian = br; allData.american = us;
-
-  // recalcula o TOP_N do mercado atual e morfa
-  const nextTop = topNByVolume(datasetByMarket());
-  reconcileAndMorph(nextTop);
-}
-
-function startAutoRefresh(){
-  if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(refreshOnce, REFRESH_MS);
-}
-
-async function init() {
-  const [br, us] = await Promise.all([loadMarket('brazilian'), loadMarket('american')]);
-  allData.brazilian = br; allData.american = us;
-  currentData = topNByVolume(datasetByMarket());
-  if (rangeSelect) rangeSelect.value = `1-${TOP_N}`;
-  renderBubbles();
-  startAutoRefresh(); // ⏱️ ativa o auto-refresh 15s
-}
-
-document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(()=>init(), 50); });
-
-let resizeTimeout;
-window.addEventListener('resize', ()=>{
-  clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(()=>{ renderBubbles(); }, 150);
-});
-
-// Previne zoom duplo no iOS
-let lastTouchEnd=0;
-document.addEventListener('touchend', (ev)=>{
-  const now=Date.now();
-  if(now-lastTouchEnd<=300) ev.preventDefault();
-  lastTouchEnd=now;
-}, false);
+export default App
