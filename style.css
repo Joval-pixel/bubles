@@ -1,67 +1,45 @@
-:root { color-scheme: dark; }
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body { margin:0; background:#000; color:#e8e8e8; font:14px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+/* --- 3D layers --- */
+.bubble { filter: drop-shadow(0 10px 24px rgba(0,0,0,.55)); }
 
-/* topo */
-.topbar{ position:sticky; top:0; z-index:10; display:flex; gap:8px; align-items:center; padding:12px 16px; background:#0f1115; border-bottom:1px solid #1b1d24; }
-.led{ width:10px;height:10px;border-radius:50%;background:#23c061;box-shadow:0 0 10px 3px rgba(35,192,97,.7); }
-.brand{ letter-spacing:.4px; }
+/* aro principal (borda) */
+.rim { stroke-width: 3.2; fill: none; }
 
-/* controles */
-.controls{ background:#0b0d12; border-bottom:1px solid #1b1d24; }
-.controls .row{ display:flex; gap:10px; padding:12px 16px; flex-wrap:wrap; align-items:center; }
-.input,.select,.btn{ background:#13151b; color:#d7dce3; border:1px solid #232631; border-radius:10px; padding:10px 12px; outline:none; }
-.input{ flex:1; min-width:230px; }
-.select.w-compact{ min-width:150px; }
-.btn.icon{ padding:10px 12px; cursor:pointer; }
+/* halo externo grande (glow suave do crypto bubbles) */
+.outer-glow { fill: none; stroke-linecap: round; opacity: .32; }
 
-.tabs{ display:flex; gap:8px; padding:8px 16px; border-top:1px solid #13151b; }
-.tab{ padding:8px 10px; border-radius:8px; background:#13151b; border:1px solid #232631; cursor:pointer; pointer-events:auto; }
-.tab.active{ background:#0f172a; border-color:#334155; color:#cbe1ff; }
+/* sombra interna (reforça 3D) aplicada via filter */
+.has-inner-shadow { filter: url(#innerShadow); }
 
-.status{ padding:8px 16px; color:#99a0a8; }
+/* highlight/gloss no topo */
+.gloss { fill: url(#glossGrad); opacity: .28; }
 
-/* palco */
-.stage{ position:relative; }
-#bubble-chart{ width:100%; height:calc(100vh - 260px); display:block; }
+/* gradientes de cor */
+.grad-pos-0{ stop-color:#0d4026; }  /* fundo escuro externo */
+.grad-pos-1{ stop-color:#133f2b; }  /* anel */
+.grad-pos-2{ stop-color:#1fc879; }  /* borda clara */
+.grad-pos-3{ stop-color:#12271c; }  /* centro escurecido (3D) */
 
-/* bolhas estilo CryptoBubbles */
-.bubble { filter:
-  drop-shadow(0 8px 18px rgba(0,0,0,.65))
-  drop-shadow(0 0 18px rgba(255,255,255,.06));
-}
-.ring { stroke:#fff; stroke-width:3.5; }
+.grad-neg-0{ stop-color:#3f1316; }
+.grad-neg-1{ stop-color:#3f1b1d; }
+.grad-neg-2{ stop-color:#ff6a73; }
+.grad-neg-3{ stop-color:#2a0f12; }
 
-.grad-pos-1{ stop-color:#15e28a; }   /* centro claro */
-.grad-pos-2{ stop-color:#0e9a5b; }   /* borda escura */
-.grad-neg-1{ stop-color:#ff646e; }
-.grad-neg-2{ stop-color:#9a2e34; }
-.grad-neu-1{ stop-color:#8fa2ba; }
-.grad-neu-2{ stop-color:#475267; }
+.grad-neu-0{ stop-color:#333840; }
+.grad-neu-1{ stop-color:#3a404a; }
+.grad-neu-2{ stop-color:#aeb6c4; }
+.grad-neu-3{ stop-color:#2a2f37; }
 
-.glow-pos{ filter: drop-shadow(0 0 16px rgba(21,226,138,.45)); }
-.glow-neg{ filter: drop-shadow(0 0 16px rgba(255,100,110,.45)); }
+/* aro iluminado (verde/vermelho) */
+.rim-pos { stroke: url(#rimGradPos); }
+.rim-neg { stroke: url(#rimGradNeg); }
+.rim-neu { stroke: url(#rimGradNeu); }
 
-/* textos */
-.ticker, .price, .pct {
-  paint-order: stroke; stroke:#000; stroke-width:4px; fill:#fff; text-anchor:middle;
-}
-.ticker{ font-weight:900; }
-.price { font-weight:800; }
-.pct   { font-weight:900; }
+/* halo externo acompanha a cor */
+.glow-pos { stroke: #25e38f; }
+.glow-neg { stroke: #ff7780; }
+.glow-neu { stroke: #b9c2d3; }
 
-/* fallback quando não tem logo */
-.logo-fallback{ fill:rgba(255,255,255,.06); }
-
-/* modal */
-.modal.hidden{ display:none; }
-.modal{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; }
-.modal-card{ width:min(560px,90vw); background:#121418; border:1px solid #232631; border-radius:12px; overflow:hidden; }
-.modal-head{ display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #232631; }
-.modal-body{ padding:14px; }
-
-@media (max-width:820px){
-  #bubble-chart{ height:calc(100vh - 300px); }
-  .select.w-compact{ min-width:128px; }
-}
+/* textos um pouco maiores para as bolhas grandes */
+.ticker{ font-weight:900; letter-spacing:.5px; }
+.pct{ font-weight:900; }
+.price{ font-weight:800; }
