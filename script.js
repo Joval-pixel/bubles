@@ -267,39 +267,40 @@ const closeModal = document.getElementById('close-modal');
 const marketSelect = document.getElementById('market-select');
 const stockCounter = document.getElementById('stock-counter');
 
-// Função para gerar posições das bolhas (otimizada para mobile)
+// Função para gerar posições das bolhas (CORRIGIDA)
 function generateBubblePositions(data) {
     const positions = [];
     const width = 400;
     const height = 600;
-    const padding = 20;
+    const padding = 15;
     
     const sortedData = [...data].sort((a, b) => b.marketCap - a.marketCap);
     
     sortedData.forEach((stock, index) => {
         let x, y, radius;
         let attempts = 0;
-        const maxAttempts = 30;
+        const maxAttempts = 50;
         
-        // Calcular raio menor para mobile
+        // Calcular raio MAIOR para mostrar texto
         const maxValue = Math.max(...data.map(s => s[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price']));
         const minValue = Math.min(...data.map(s => s[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price']));
         const value = stock[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price'];
         
-        // Raio otimizado para mobile: 12 a 35 pixels
-        radius = 12 + ((value - minValue) / (maxValue - minValue)) * 23;
+        // RAIO MAIOR: 20 a 50 pixels para garantir que o texto apareça
+        radius = 20 + ((value - minValue) / (maxValue - minValue)) * 30;
         
         do {
             if (index === 0) {
                 x = width / 2;
                 y = height / 2;
             } else {
-                // Posicionamento em espiral otimizado para mobile
-                const angle = index * 0.8;
-                const distance = Math.sqrt(index) * 18;
+                // Posicionamento em espiral mais espaçado
+                const angle = index * 0.9;
+                const distance = Math.sqrt(index) * 22;
                 x = width / 2 + Math.cos(angle) * distance;
                 y = height / 2 + Math.sin(angle) * distance;
                 
+                // Garantir que a bolha fique dentro dos limites
                 if (x < radius + padding || x > width - radius - padding || 
                     y < radius + padding || y > height - radius - padding) {
                     x = padding + radius + Math.random() * (width - 2 * (padding + radius));
@@ -307,11 +308,12 @@ function generateBubblePositions(data) {
                 }
             }
             
+            // Verificar colisão com menos bolhas para performance
             let collision = false;
-            for (let i = Math.max(0, positions.length - 15); i < positions.length; i++) {
+            for (let i = Math.max(0, positions.length - 10); i < positions.length; i++) {
                 const other = positions[i];
                 const distance = Math.sqrt((x - other.x) ** 2 + (y - other.y) ** 2);
-                const minDistance = radius + other.radius + 2;
+                const minDistance = radius + other.radius + 3; // Mais espaço entre bolhas
                 
                 if (distance < minDistance) {
                     collision = true;
@@ -335,7 +337,7 @@ function generateBubblePositions(data) {
     return positions;
 }
 
-// Função para renderizar as bolhas (otimizada para mobile)
+// Função para renderizar as bolhas (CORRIGIDA)
 function renderBubbles() {
     const positions = generateBubblePositions(currentData);
     bubbleChart.innerHTML = '';
@@ -357,34 +359,51 @@ function renderBubbles() {
         circle.setAttribute('cy', y);
         circle.setAttribute('r', radius);
         circle.setAttribute('class', bubbleClass);
-        circle.setAttribute('stroke-width', '1');
+        circle.setAttribute('stroke-width', '2');
         
-        // Texto otimizado para mobile
-        if (radius > 18) {
+        group.appendChild(circle);
+        
+        // TEXTO SEMPRE VISÍVEL - Condições mais permissivas
+        if (radius > 15) {
+            // Símbolo da ação
             const symbolText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             symbolText.setAttribute('x', x);
-            symbolText.setAttribute('y', y - 3);
+            symbolText.setAttribute('y', y - 5);
             symbolText.setAttribute('class', 'bubble-text bubble-symbol');
+            symbolText.setAttribute('text-anchor', 'middle');
+            symbolText.setAttribute('dominant-baseline', 'middle');
+            symbolText.setAttribute('font-size', radius > 25 ? '14px' : '12px');
+            symbolText.setAttribute('font-weight', 'bold');
+            symbolText.setAttribute('fill', '#ffffff');
             symbolText.textContent = stock.symbol;
             group.appendChild(symbolText);
             
+            // Variação percentual
             const changeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             changeText.setAttribute('x', x);
-            changeText.setAttribute('y', y + 7);
+            changeText.setAttribute('y', y + 8);
             changeText.setAttribute('class', 'bubble-text bubble-change');
+            changeText.setAttribute('text-anchor', 'middle');
+            changeText.setAttribute('dominant-baseline', 'middle');
+            changeText.setAttribute('font-size', radius > 25 ? '12px' : '10px');
+            changeText.setAttribute('font-weight', '600');
+            changeText.setAttribute('fill', '#ffffff');
             changeText.textContent = `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
             group.appendChild(changeText);
-        } else if (radius > 12) {
+        } else if (radius > 10) {
+            // Para bolhas menores, só o símbolo
             const symbolText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             symbolText.setAttribute('x', x);
             symbolText.setAttribute('y', y);
             symbolText.setAttribute('class', 'bubble-text bubble-symbol');
-            symbolText.setAttribute('font-size', '9px');
+            symbolText.setAttribute('text-anchor', 'middle');
+            symbolText.setAttribute('dominant-baseline', 'middle');
+            symbolText.setAttribute('font-size', '10px');
+            symbolText.setAttribute('font-weight', 'bold');
+            symbolText.setAttribute('fill', '#ffffff');
             symbolText.textContent = stock.symbol.substring(0, 4);
             group.appendChild(symbolText);
         }
-        
-        group.appendChild(circle);
         
         group.addEventListener('click', () => showStockDetails(stock));
         
@@ -415,68 +434,90 @@ function showStockDetails(stock) {
 }
 
 // Event listeners
-periodButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        periodButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentPeriod = btn.dataset.period;
+if (periodButtons) {
+    periodButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            periodButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPeriod = btn.dataset.period;
+            renderBubbles();
+        });
+    });
+}
+
+if (metricSelect) {
+    metricSelect.addEventListener('change', (e) => {
+        currentMetric = e.target.value;
         renderBubbles();
     });
-});
+}
 
-metricSelect.addEventListener('change', (e) => {
-    currentMetric = e.target.value;
-    renderBubbles();
-});
+if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+        
+        if (query) {
+            currentData = baseData.filter(stock => 
+                stock.symbol.toLowerCase().includes(query) || 
+                stock.name.toLowerCase().includes(query)
+            );
+        } else {
+            const range = rangeSelect ? rangeSelect.value : '1-100';
+            const [start, end] = range.split('-').map(Number);
+            currentData = baseData.slice(start - 1, end);
+        }
+        renderBubbles();
+    });
+}
 
-searchInput.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase();
-    const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
-    
-    if (query) {
-        currentData = baseData.filter(stock => 
-            stock.symbol.toLowerCase().includes(query) || 
-            stock.name.toLowerCase().includes(query)
-        );
-    } else {
-        const range = rangeSelect.value;
+if (rangeSelect) {
+    rangeSelect.addEventListener('change', (e) => {
+        const range = e.target.value;
         const [start, end] = range.split('-').map(Number);
+        const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
         currentData = baseData.slice(start - 1, end);
-    }
-    renderBubbles();
-});
+        renderBubbles();
+    });
+}
 
-rangeSelect.addEventListener('change', (e) => {
-    const range = e.target.value;
-    const [start, end] = range.split('-').map(Number);
-    const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
-    currentData = baseData.slice(start - 1, end);
-    renderBubbles();
-});
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+        if (settingsModal) {
+            settingsModal.classList.remove('hidden');
+        }
+    });
+}
 
-settingsBtn.addEventListener('click', () => {
-    settingsModal.classList.remove('hidden');
-});
+if (closeModal) {
+    closeModal.addEventListener('click', () => {
+        if (settingsModal) {
+            settingsModal.classList.add('hidden');
+        }
+    });
+}
 
-closeModal.addEventListener('click', () => {
-    settingsModal.classList.add('hidden');
-});
+if (marketSelect) {
+    marketSelect.addEventListener('change', (e) => {
+        currentMarket = e.target.value;
+        const range = rangeSelect ? rangeSelect.value : '1-100';
+        const [start, end] = range.split('-').map(Number);
+        const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+        currentData = baseData.slice(start - 1, end);
+        renderBubbles();
+        if (settingsModal) {
+            settingsModal.classList.add('hidden');
+        }
+    });
+}
 
-marketSelect.addEventListener('change', (e) => {
-    currentMarket = e.target.value;
-    const range = rangeSelect.value;
-    const [start, end] = range.split('-').map(Number);
-    const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
-    currentData = baseData.slice(start - 1, end);
-    renderBubbles();
-    settingsModal.classList.add('hidden');
-});
-
-settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) {
-        settingsModal.classList.add('hidden');
-    }
-});
+if (settingsModal) {
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.classList.add('hidden');
+        }
+    });
+}
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
