@@ -267,41 +267,278 @@ const closeModal = document.getElementById('close-modal');
 const marketSelect = document.getElementById('market-select');
 const stockCounter = document.getElementById('stock-counter');
 
-// Função para gerar posições das bolhas (OTIMIZADA PARA MELHOR ESPAÇAMENTO)
+// Função para gerar posições das bolhas (CORRIGIDA)
 function generateBubblePositions(data) {
     const positions = [];
     const width = 400;
     const height = 600;
-    const padding = 25; // Aumentado para mais espaço nas bordas
+    const padding = 15;
     
     const sortedData = [...data].sort((a, b) => b.marketCap - a.marketCap);
     
     sortedData.forEach((stock, index) => {
         let x, y, radius;
         let attempts = 0;
-        const maxAttempts = 100; // Mais tentativas para melhor posicionamento
+        const maxAttempts = 50;
         
-        // Calcular raio otimizado
+        // Calcular raio MAIOR para mostrar texto
         const maxValue = Math.max(...data.map(s => s[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price']));
         const minValue = Math.min(...data.map(s => s[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price']));
         const value = stock[currentMetric === 'market-cap' ? 'marketCap' : currentMetric === 'volume' ? 'volume' : 'price'];
         
-        // RAIO OTIMIZADO: 22 a 55 pixels
-        radius = 22 + ((value - minValue) / (maxValue - minValue)) * 33;
+        // RAIO MAIOR: 20 a 50 pixels para garantir que o texto apareça
+        radius = 20 + ((value - minValue) / (maxValue - minValue)) * 30;
         
         do {
             if (index === 0) {
-                // Primeira bolha no centro
                 x = width / 2;
                 y = height / 2;
-            } else if (index < 6) {
-                // Primeiras 6 bolhas em círculo ao redor do centro
-                const angle = (index - 1) * (Math.PI * 2 / 5);
-                const distance = 80;
+            } else {
+                // Posicionamento em espiral mais espaçado
+                const angle = index * 0.9;
+                const distance = Math.sqrt(index) * 22;
                 x = width / 2 + Math.cos(angle) * distance;
                 y = height / 2 + Math.sin(angle) * distance;
-            } else {
-               
-(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
+                
+                // Garantir que a bolha fique dentro dos limites
+                if (x < radius + padding || x > width - radius - padding || 
+                    y < radius + padding || y > height - radius - padding) {
+                    x = padding + radius + Math.random() * (width - 2 * (padding + radius));
+                    y = padding + radius + Math.random() * (height - 2 * (padding + radius));
+                }
+            }
+            
+            // Verificar colisão com menos bolhas para performance
+            let collision = false;
+            for (let i = Math.max(0, positions.length - 10); i < positions.length; i++) {
+                const other = positions[i];
+                const distance = Math.sqrt((x - other.x) ** 2 + (y - other.y) ** 2);
+                const minDistance = radius + other.radius + 3; // Mais espaço entre bolhas
+                
+                if (distance < minDistance) {
+                    collision = true;
+                    break;
+                }
+            }
+            
+            if (!collision) {
+                positions.push({ x, y, radius, stock, index });
+                break;
+            }
+            
+            attempts++;
+        } while (attempts < maxAttempts);
+        
+        if (attempts >= maxAttempts) {
+            positions.push({ x, y, radius, stock, index });
+        }
+    });
+    
+    return positions;
+}
 
+// Função para renderizar as bolhas (CORRIGIDA)
+function renderBubbles() {
+    const positions = generateBubblePositions(currentData);
+    bubbleChart.innerHTML = '';
+    
+    const fragment = document.createDocumentFragment();
+    
+    positions.forEach(({ x, y, radius, stock }) => {
+        const change = stock[currentPeriod];
+        let bubbleClass = 'bubble-neutral';
+        if (change > 0) bubbleClass = 'bubble-positive';
+        else if (change < 0) bubbleClass = 'bubble-negative';
+        
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', 'bubble');
+        group.setAttribute('data-symbol', stock.symbol);
+        
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', radius);
+        circle.setAttribute('class', bubbleClass);
+        circle.setAttribute('stroke-width', '2');
+        
+        group.appendChild(circle);
+        
+        // TEXTO SEMPRE VISÍVEL - Condições mais permissivas
+        if (radius > 15) {
+            // Símbolo da ação
+            const symbolText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            symbolText.setAttribute('x', x);
+            symbolText.setAttribute('y', y - 5);
+            symbolText.setAttribute('class', 'bubble-text bubble-symbol');
+            symbolText.setAttribute('text-anchor', 'middle');
+            symbolText.setAttribute('dominant-baseline', 'middle');
+            symbolText.setAttribute('font-size', radius > 25 ? '14px' : '12px');
+            symbolText.setAttribute('font-weight', 'bold');
+            symbolText.setAttribute('fill', '#ffffff');
+            symbolText.textContent = stock.symbol;
+            group.appendChild(symbolText);
+            
+            // Variação percentual
+            const changeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            changeText.setAttribute('x', x);
+            changeText.setAttribute('y', y + 8);
+            changeText.setAttribute('class', 'bubble-text bubble-change');
+            changeText.setAttribute('text-anchor', 'middle');
+            changeText.setAttribute('dominant-baseline', 'middle');
+            changeText.setAttribute('font-size', radius > 25 ? '12px' : '10px');
+            changeText.setAttribute('font-weight', '600');
+            changeText.setAttribute('fill', '#ffffff');
+            changeText.textContent = `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
+            group.appendChild(changeText);
+        } else if (radius > 10) {
+            // Para bolhas menores, só o símbolo
+            const symbolText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            symbolText.setAttribute('x', x);
+            symbolText.setAttribute('y', y);
+            symbolText.setAttribute('class', 'bubble-text bubble-symbol');
+            symbolText.setAttribute('text-anchor', 'middle');
+            symbolText.setAttribute('dominant-baseline', 'middle');
+            symbolText.setAttribute('font-size', '10px');
+            symbolText.setAttribute('font-weight', 'bold');
+            symbolText.setAttribute('fill', '#ffffff');
+            symbolText.textContent = stock.symbol.substring(0, 4);
+            group.appendChild(symbolText);
+        }
+        
+        group.addEventListener('click', () => showStockDetails(stock));
+        
+        fragment.appendChild(group);
+    });
+    
+    bubbleChart.appendChild(fragment);
+    updateStockCounter();
+}
 
+// Função para atualizar contador
+function updateStockCounter() {
+    const total = currentMarket === 'brazilian' ? brazilianStocks.length : americanStocks.length;
+    const showing = currentData.length;
+    const positive = currentData.filter(s => s[currentPeriod] > 0).length;
+    const negative = currentData.filter(s => s[currentPeriod] < 0).length;
+    
+    stockCounter.textContent = `Exibindo ${showing} de ${total} ações • 🟢 ${positive} Alta • 🔴 ${negative} Baixa`;
+}
+
+// Função para mostrar detalhes da ação
+function showStockDetails(stock) {
+    const price = stock.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const marketCap = stock.marketCap.toFixed(1);
+    const change = stock.day > 0 ? '+' : '';
+    
+    alert(`${stock.symbol} - ${stock.name}\nPreço: ${price}\nValor de Mercado: R$ ${marketCap}B\nVariação do Dia: ${change}${stock.day.toFixed(2)}%`);
+}
+
+// Event listeners
+if (periodButtons) {
+    periodButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            periodButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPeriod = btn.dataset.period;
+            renderBubbles();
+        });
+    });
+}
+
+if (metricSelect) {
+    metricSelect.addEventListener('change', (e) => {
+        currentMetric = e.target.value;
+        renderBubbles();
+    });
+}
+
+if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+        
+        if (query) {
+            currentData = baseData.filter(stock => 
+                stock.symbol.toLowerCase().includes(query) || 
+                stock.name.toLowerCase().includes(query)
+            );
+        } else {
+            const range = rangeSelect ? rangeSelect.value : '1-100';
+            const [start, end] = range.split('-').map(Number);
+            currentData = baseData.slice(start - 1, end);
+        }
+        renderBubbles();
+    });
+}
+
+if (rangeSelect) {
+    rangeSelect.addEventListener('change', (e) => {
+        const range = e.target.value;
+        const [start, end] = range.split('-').map(Number);
+        const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+        currentData = baseData.slice(start - 1, end);
+        renderBubbles();
+    });
+}
+
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+        if (settingsModal) {
+            settingsModal.classList.remove('hidden');
+        }
+    });
+}
+
+if (closeModal) {
+    closeModal.addEventListener('click', () => {
+        if (settingsModal) {
+            settingsModal.classList.add('hidden');
+        }
+    });
+}
+
+if (marketSelect) {
+    marketSelect.addEventListener('change', (e) => {
+        currentMarket = e.target.value;
+        const range = rangeSelect ? rangeSelect.value : '1-100';
+        const [start, end] = range.split('-').map(Number);
+        const baseData = currentMarket === 'brazilian' ? brazilianStocks : americanStocks;
+        currentData = baseData.slice(start - 1, end);
+        renderBubbles();
+        if (settingsModal) {
+            settingsModal.classList.add('hidden');
+        }
+    });
+}
+
+if (settingsModal) {
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.classList.add('hidden');
+        }
+    });
+}
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    renderBubbles();
+});
+
+// Redimensionamento otimizado
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        renderBubbles();
+    }, 300);
+});
+
+// Prevenir zoom duplo toque no iOS
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (event) {
+    const now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+    }
+    lastTouchEnd = now;
+}, false);
