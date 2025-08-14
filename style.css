@@ -4,7 +4,7 @@ html, body { height: 100%; }
 
 body{
   margin:0;
-  background:#2b2f37;           /* fundo estilo CryptoBubbles */
+  background:#2b2f37;
   color:#e8e8e8;
   font:14px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
@@ -32,22 +32,18 @@ body{
 .stage{ position:relative; }
 #bubble-chart{ width:100%; height:calc(100vh - 260px); display:block; }
 
-/* ---- 3D das bolhas ---- */
+/* ---- 3D ---- */
 .bubble { filter: drop-shadow(0 10px 24px rgba(0,0,0,.55)); }
 
-/* aro principal */
 .rim { stroke-width: 4.2; fill: none; }
 
-/* halo/glow */
-.outer-glow { fill: none; stroke-linecap: round; opacity: .48; } /* levemente menor que .52 */
+.outer-glow { fill: none; stroke-linecap: round; opacity: .46; }
 
-/* sombra interna */
 .has-inner-shadow { filter: url(#innerShadow); }
 
-/* brilho/gloss */
 .gloss { fill: url(#glossGrad); opacity: .40; }
 
-/* paradas do gradiente (radial) */
+/* gradientes disco */
 .grad-pos-0{ stop-color:#0d4026; }
 .grad-pos-1{ stop-color:#133f2b; }
 .grad-pos-2{ stop-color:#1fc879; }
@@ -63,27 +59,23 @@ body{
 .grad-neu-2{ stop-color:#aeb6c4; }
 .grad-neu-3{ stop-color:#2a2f37; }
 
-/* aro iluminado */
 .rim-pos { stroke: url(#rimGradPos); }
 .rim-neg { stroke: url(#rimGradNeg); }
 .rim-neu { stroke: url(#rimGradNeu); }
 
-/* cor do halo */
 .glow-pos { stroke: #54f7a5; }
 .glow-neg { stroke: #ff6571; }
 .glow-neu { stroke: #b9c2d3; }
 
-/* tipografia central */
 .ticker, .price, .pct {
   paint-order: stroke;
-  stroke:#000; stroke-width:5px;     /* contorno grosso */
+  stroke:#000; stroke-width:5px;
   fill:#fff; text-anchor:middle;
 }
 .ticker{ font-weight:1000; letter-spacing:.6px; }
 .price { font-weight:800; }
 .pct   { font-weight:1000; }
 
-/* fallback do logo */
 .logo-fallback{ fill:rgba(255,255,255,.06); }
 
 /* modal */
