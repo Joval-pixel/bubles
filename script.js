@@ -1,9 +1,6 @@
-/* ====== BUBLES — estilo CryptoBubbles (PT-BR, 3D) ====== */
+/* ====== BUBLES (PT-BR, 3D, Brapi) ====== */
+const BRAPI_TOKEN = ""; // coloque seu token, se tiver
 
-/* >>> Coloque seu token da Brapi aqui (ou deixe vazio) <<< */
-const BRAPI_TOKEN = ""; // exemplo: "5bTDfSmR2ieax6y7JUqDAD"
-
-/* config */
 const IS_MOBILE  = matchMedia("(max-width:820px)").matches || (navigator.maxTouchPoints||0) > 0;
 const TOP_N      = IS_MOBILE ? 30 : 200;
 const REFRESH_MS = 15000;
@@ -35,64 +32,27 @@ const topN=a=>[...a].sort((x,y)=>(y.volume??0)-(x.volume??0)).slice(0,TOP_N);
 const metricKey=()=> currentMetric==='market-cap' ? 'marketCap' : currentMetric==='price' ? 'price' : 'volume';
 const qToken = BRAPI_TOKEN ? `&token=${encodeURIComponent(BRAPI_TOKEN)}` : "";
 
-/* tradução de setores (Brapi → PT) */
-const SECTOR_PT = {
-  "Commercial Services":"Serviços Comerciais",
-  "Communications":"Comunicações",
-  "Consumer Durables":"Bens de Consumo Duráveis",
-  "Consumer Non-Durables":"Bens de Consumo Não Duráveis",
-  "Consumer Services":"Serviços ao Consumidor",
-  "Distribution Services":"Serviços de Distribuição",
-  "Electronic Technology":"Tecnologia Eletrônica",
-  "Energy Minerals":"Energia (Mineração)",
-  "Finance":"Finanças",
-  "Health Services":"Serviços de Saúde",
-  "Health Technology":"Tecnologia em Saúde",
-  "Industrial Services":"Serviços Industriais",
-  "Miscellaneous":"Diversos",
-  "Non-Energy Minerals":"Mineração (Não Energia)",
-  "Process Industries":"Indústrias de Processos",
-  "Producer Manufacturing":"Manufatura",
-  "Retail Trade":"Varejo",
-  "Technology Services":"Serviços de Tecnologia",
-  "Transportation":"Transporte",
-  "Utilities":"Utilidades",
-  "Unknown":"Desconhecido",
-  "Desconhecido":"Desconhecido"
-};
+/* setores PT */
+const SECTOR_PT = { "Commercial Services":"Serviços Comerciais","Communications":"Comunicações","Consumer Durables":"Bens de Consumo Duráveis","Consumer Non-Durables":"Bens de Consumo Não Duráveis","Consumer Services":"Serviços ao Consumidor","Distribution Services":"Serviços de Distribuição","Electronic Technology":"Tecnologia Eletrônica","Energy Minerals":"Energia (Mineração)","Finance":"Finanças","Health Services":"Serviços de Saúde","Health Technology":"Tecnologia em Saúde","Industrial Services":"Serviços Industriais","Miscellaneous":"Diversos","Non-Energy Minerals":"Mineração (Não Energia)","Process Industries":"Indústrias de Processos","Producer Manufacturing":"Manufatura","Retail Trade":"Varejo","Technology Services":"Serviços de Tecnologia","Transportation":"Transporte","Utilities":"Utilidades","Unknown":"Desconhecido","Desconhecido":"Desconhecido" };
 const toPT = s => SECTOR_PT[s] || s || 'Desconhecido';
 
-function inferType(sym,t){
-  const raw = (t||'').toString().toLowerCase();
-  if(/etf/.test(raw)) return 'ETF';
-  if(t) return t;
-  if(/11$/.test(sym)) return 'FII/Units';
-  if(/3[45]$/.test(sym)) return 'BDR';
-  return 'Ação';
-}
+function inferType(sym,t){ const raw=(t||'').toLowerCase(); if(/etf/.test(raw)) return 'ETF'; if(t) return t; if(/11$/.test(sym)) return 'FII/Units'; if(/3[45]$/.test(sym)) return 'BDR'; return 'Ação'; }
 function pickLogo(d){ return d.logo || d.logourl || d.logoUrl || d.image || null; }
 
-/* raios grandes */
+/* === BOLHAS MAIORES === */
 function scaleR(v, vmin, vmax){
   const n = TOP_N;
-  // bolhas maiores em todos os cenários
-  const Rmax = n > 150 ? 70 : n > 80 ? 86 : 100;  // antes: 54/64/74
-  const Rmin = n > 150 ? 28 : n > 80 ? 30 : 34;   // antes: 22/24/28
+  const Rmax = n > 150 ? 70 : n > 80 ? 86 : 100;  // ↑
+  const Rmin = n > 150 ? 28 : n > 80 ? 30 : 34;   // ↑
   if (!(vmax > vmin)) return (Rmax + Rmin) / 2;
   const t = (v - vmin) / (vmax - vmin);
   return Rmin + t * (Rmax - Rmin);
 }
 
-/* fetch/util */
-async function fetchWithTimeout(url,ms=10000){
-  const c=new AbortController();
-  const t=setTimeout(()=>c.abort(),ms);
-  try{
-    const r=await fetch(url,{signal:c.signal});
-    if(!r.ok) throw new Error(r.status);
-    return await r.json();
-  } finally { clearTimeout(t); }
-}
+/* fetch */
+async function fetchWithTimeout(url,ms=10000){ const c=new AbortController(); const t=setTimeout(()=>c.abort(),ms);
+  try{ const r=await fetch(url,{signal:c.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); }
+  finally{ clearTimeout(t); } }
 
 function normalize(it){
   const symbol=String(it.symbol||it.stock||it.ticker||it.code||it.name||'').toUpperCase();
@@ -124,14 +84,9 @@ async function loadMarket(market){
   const baseBR = `https://brapi.dev/api/quote/list?limit=500`;
   const baseUS = `https://brapi.dev/api/quote/list?limit=500&exchange=usa`;
   const urls = (market==='brazilian')
-    ? [
-        `${baseBR}&sortBy=volume&sortOrder=desc${qToken}`,
-        `${baseBR}&sortBy=market_cap&sortOrder=desc${qToken}`
-      ]
-    : [
-        `${baseUS}&sortBy=volume&sortOrder=desc${qToken}`,
-        `${baseUS}&sortBy=market_cap&sortOrder=desc${qToken}`
-      ];
+    ? [`${baseBR}&sortBy=volume&sortOrder=desc${qToken}`, `${baseBR}&sortBy=market_cap&sortOrder=desc${qToken}`]
+    : [`${baseUS}&sortBy=volume&sortOrder=desc${qToken}`, `${baseUS}&sortBy=market_cap&sortOrder=desc${qToken}`];
+
   for(const u of urls){
     try{
       const j=await fetchWithTimeout(u,10000);
@@ -165,7 +120,7 @@ function populateFilterOptions(){
   if([...sectorSelect.options].some(o=>o.value===sSel)) sectorSelect.value=sSel;
 }
 
-/* layout base */
+/* layout */
 function setView(){ const {w,h}=SZ(); svg.setAttribute('viewBox',`0 0 ${w} ${h}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); return {w,h}; }
 function baseRadInfo(list){ const key=metricKey(); const vmax=Math.max(...list.map(s=>s[key]??0)); const vmin=Math.min(...list.map(s=>s[key]??0)); return {key,vmin,vmax}; }
 function seed(list){
@@ -178,7 +133,7 @@ function seed(list){
   });
 }
 
-/* defs globais (aro, sombra interna, gloss) */
+/* defs 3D */
 function ensureGlobalDefs(defs){
   if(!document.getElementById('rimGradPos')){
     const mk=(id,c1,c2)=>{
@@ -201,15 +156,16 @@ function ensureGlobalDefs(defs){
     f.setAttribute('id','innerShadow');
     f.setAttribute('x','-50%'); f.setAttribute('y','-50%');
     f.setAttribute('width','200%'); f.setAttribute('height','200%');
+    /* sombra interna + forte */
     f.innerHTML = `
       <feOffset dx="0" dy="2" result="off"/>
-      <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
       <feComposite in="blur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner"/>
       <feColorMatrix in="inner" type="matrix"
         values="0 0 0 0 0
                 0 0 0 0 0
                 0 0 0 0 0
-                0 0 0 .55 0" result="shadow"/>
+                0 0 0 .65 0" result="shadow"/>
       <feComposite in="shadow" in2="SourceGraphic" operator="over"/>
     `;
     defs.appendChild(f);
@@ -227,7 +183,7 @@ function ensureGlobalDefs(defs){
   }
 }
 
-/* render — com bolha 3D */
+/* render 3D */
 function render(){
   setView(); svg.innerHTML='';
   if(!sim.pts.length) sim.pts=seed(current);
@@ -259,48 +215,28 @@ function render(){
     const isPos = chg>0, isNeg = chg<0;
     const r = p.rv || p.r;
 
-    // gradiente do disco (4 paradas para 3D)
+    // gradiente do disco
     const discId = `disc-${i}-${s.symbol}`;
     const discGrad = document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
     discGrad.setAttribute('id', discId);
     discGrad.setAttribute('cx','50%'); discGrad.setAttribute('cy','45%'); discGrad.setAttribute('r','70%');
-
-    const mkStop = (ofs, cls)=>{
-      const st = document.createElementNS('http://www.w3.org/2000/svg','stop');
-      st.setAttribute('offset', ofs);
-      st.setAttribute('class', cls);
-      return st;
-    };
-    if(isPos){
-      discGrad.appendChild(mkStop('0%','grad-pos-3'));
-      discGrad.appendChild(mkStop('55%','grad-pos-1'));
-      discGrad.appendChild(mkStop('85%','grad-pos-2'));
-      discGrad.appendChild(mkStop('100%','grad-pos-0'));
-    }else if(isNeg){
-      discGrad.appendChild(mkStop('0%','grad-neg-3'));
-      discGrad.appendChild(mkStop('55%','grad-neg-1'));
-      discGrad.appendChild(mkStop('85%','grad-neg-2'));
-      discGrad.appendChild(mkStop('100%','grad-neg-0'));
-    }else{
-      discGrad.appendChild(mkStop('0%','grad-neu-3'));
-      discGrad.appendChild(mkStop('55%','grad-neu-1'));
-      discGrad.appendChild(mkStop('85%','grad-neu-2'));
-      discGrad.appendChild(mkStop('100%','grad-neu-0'));
-    }
+    const mkStop=(ofs,cls)=>{const st=document.createElementNS('http://www.w3.org/2000/svg','stop'); st.setAttribute('offset',ofs); st.setAttribute('class',cls); return st;};
+    if(isPos){ discGrad.appendChild(mkStop('0%','grad-pos-3')); discGrad.appendChild(mkStop('55%','grad-pos-1')); discGrad.appendChild(mkStop('85%','grad-pos-2')); discGrad.appendChild(mkStop('100%','grad-pos-0')); }
+    else if(isNeg){ discGrad.appendChild(mkStop('0%','grad-neg-3')); discGrad.appendChild(mkStop('55%','grad-neg-1')); discGrad.appendChild(mkStop('85%','grad-neg-2')); discGrad.appendChild(mkStop('100%','grad-neg-0')); }
+    else { discGrad.appendChild(mkStop('0%','grad-neu-3')); discGrad.appendChild(mkStop('55%','grad-neu-1')); discGrad.appendChild(mkStop('85%','grad-neu-2')); discGrad.appendChild(mkStop('100%','grad-neu-0')); }
     defs.appendChild(discGrad);
 
-    // grupo da bolha
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','bubble');
     g.setAttribute('transform',`translate(${p.x},${p.y})`);
     g.style.cursor='pointer';
 
-    // halo externo
+    // glow externo — mais largo
     const outer=document.createElementNS('http://www.w3.org/2000/svg','circle');
     outer.setAttribute('class', `outer-glow ${isPos?'glow-pos':isNeg?'glow-neg':'glow-neu'}`);
     outer.setAttribute('cx',0); outer.setAttribute('cy',0);
     outer.setAttribute('r', r*1.07);
-    outer.setAttribute('stroke-width', Math.max(8, r*0.22));
+    outer.setAttribute('stroke-width', Math.max(10, r*0.28));
     g.appendChild(outer);
 
     // disco com sombra interna
@@ -341,19 +277,19 @@ function render(){
       inner.setAttribute('cx',0); inner.setAttribute('cy',0); inner.setAttribute('r',r-4); inner.setAttribute('class','logo-fallback'); g.appendChild(inner);
     }
 
-    // textos
+    // textos — maiores
     const pct=document.createElementNS('http://www.w3.org/2000/svg','text');
     pct.setAttribute('class','pct'); pct.setAttribute('x',0); pct.setAttribute('y',4);
-    pct.setAttribute('font-size', Math.max(16, Math.min(28, r * 0.54)));
+    pct.setAttribute('font-size', Math.max(18, Math.min(34, r * 0.60)));
     pct.textContent=`${chg>0?'+':''}${(chg||0).toFixed(2)}%`; g.appendChild(pct);
 
     const tik=document.createElementNS('http://www.w3.org/2000/svg','text');
     tik.setAttribute('class','ticker'); tik.setAttribute('x',0); tik.setAttribute('y', -r * 0.58);
-    tik.setAttribute('font-size', Math.max(12, Math.min(18, r * 0.34))); tik.textContent=s.symbol; g.appendChild(tik);
+    tik.setAttribute('font-size', Math.max(13, Math.min(20, r * 0.38))); tik.textContent=s.symbol; g.appendChild(tik);
 
     const price=document.createElementNS('http://www.w3.org/2000/svg','text');
     price.setAttribute('class','price'); price.setAttribute('x',0); price.setAttribute('y',  r * 0.72);
-    price.setAttribute('font-size', Math.max(11, Math.min(16, r * 0.30))); price.textContent=money(s.price,currentMarket); g.appendChild(price);
+    price.setAttribute('font-size', Math.max(12, Math.min(18, r * 0.34))); price.textContent=money(s.price,currentMarket); g.appendChild(price);
 
     g.addEventListener('click', ()=>{
       alert(`${s.symbol} — ${s.name}\nPreço: ${money(s.price,currentMarket)}\nTipo: ${s.type}\nSetor: ${s.sector}\nVariação (${labelDoPeriodo()}): ${(s[currentPeriod]??0).toFixed(2)}%`);
@@ -369,12 +305,7 @@ function render(){
   morphRadii();
 }
 
-/* label PT do período */
-function labelDoPeriodo(){
-  return {hour:'hora',day:'dia',week:'semana',month:'mês',year:'ano'}[currentPeriod] || 'dia';
-}
-
-/* contador */
+function labelDoPeriodo(){ return {hour:'hora',day:'dia',week:'semana',month:'mês',year:'ano'}[currentPeriod] || 'dia'; }
 function updateCounter(){
   const total=(master[currentMarket]||[]).length, showing=current.length;
   const pos=current.filter(s=>(s[currentPeriod]??0)>0).length;
@@ -382,14 +313,22 @@ function updateCounter(){
   stockCounter.textContent=`Exibindo ${showing} de ${total} ações • 🟢 ${pos} Alta • 🔴 ${neg} Baixa`;
 }
 
-/* física (sem sobrepor) */
+/* === FÍSICA ABERTA (mais espaço e sem sobrepor) === */
 function startPhysics(){
   cancelAnimationFrame(sim.raf);
-  const DAMP=0.986, NOISE=IS_MOBILE?0.028:0.05, CENTER=0.00010, EDGE=0.12,
-        PASSES=2, REACH=110, REP=1.25, SEP=8, FILL=0.88;
+  const DAMP=0.988,
+        NOISE=IS_MOBILE?0.020:0.022,
+        CENTER=0.00011,
+        EDGE=0.16,
+        PASSES=3,
+        REACH=160,
+        REP=1.6,
+        SEP=10,
+        FILL=0.94;
 
   const step=()=>{
     const {w,h}=SZ(); const CX=w/2, CY=h/2, targetR=Math.min(w,h)*FILL/2;
+
     // grid
     const cell=64, cols=Math.ceil(w/cell), rows=Math.ceil(h/cell);
     const grid=Array.from({length:cols*rows},()=>[]), key=(x,y)=>y*cols+x;
@@ -441,11 +380,11 @@ function startPhysics(){
       n.disc.setAttribute('r', r);
       n.rim.setAttribute('r', r-1.6);
       n.outer.setAttribute('r', r*1.07);
-      n.outer.setAttribute('stroke-width', Math.max(8, r*0.22));
+      n.outer.setAttribute('stroke-width', Math.max(10, r*0.28));
       n.clipCircle.setAttribute('r', r-4);
       n.tik.setAttribute('y', -r * 0.58);
       n.price.setAttribute('y',  r * 0.72);
-      n.pct.setAttribute('font-size', Math.max(16, Math.min(28, r * 0.54)));
+      n.pct.setAttribute('font-size', Math.max(18, Math.min(34, r * 0.60)));
     }
 
     sim.raf=requestAnimationFrame(step);
@@ -453,7 +392,7 @@ function startPhysics(){
   sim.raf=requestAnimationFrame(step);
 }
 
-/* morph de raios */
+/* morph */
 function morphRadii(){
   const {key,vmin,vmax}=baseRadInfo(current);
   const t0=performance.now();
@@ -467,38 +406,32 @@ function morphRadii(){
   })(t0);
 }
 
-/* eventos UI */
+/* UI */
 tabsBar.addEventListener('click', (e)=>{
   const btn = e.target.closest('.period-btn');
   if (!btn) return;
   document.querySelectorAll('.period-btn').forEach(x=>x.classList.remove('active'));
   btn.classList.add('active');
-  currentPeriod = btn.dataset.period;   // hour|day|week|month|year
+  currentPeriod = btn.dataset.period;
   render();
 });
-
 metricSelect.addEventListener('change',()=>{ currentMetric=metricSelect.value; morphRadii(); });
 marketSelect.addEventListener('change',()=>{ currentMarket=marketSelect.value; populateFilterOptions(); applyFilters(); });
 searchInput.addEventListener('input',applyFilters);
 typeSelect.addEventListener('change',applyFilters);
 sectorSelect.addEventListener('change',applyFilters);
 if(rangeSelect){ rangeSelect.value=`1-${TOP_N}`; rangeSelect.addEventListener('change',()=>{ rangeSelect.value=`1-${TOP_N}`; }); }
-
 settingsBtn?.addEventListener('click',()=> settingsModal?.classList.remove('hidden'));
 closeModal?.addEventListener('click',()=> settingsModal?.classList.add('hidden'));
 settingsModal?.addEventListener('click',e=>{ if(e.target===settingsModal) settingsModal.classList.add('hidden'); });
 
 /* refresh */
 let timer=null;
-async function refresh(){
-  const [br,us]=await Promise.all([loadMarket('brazilian'), loadMarket('american')]);
-  master.brazilian=br; master.american=us; populateFilterOptions(); applyFilters();
-}
+async function refresh(){ const [br,us]=await Promise.all([loadMarket('brazilian'), loadMarket('american')]); master.brazilian=br; master.american=us; populateFilterOptions(); applyFilters(); }
 function startAuto(){ if(timer) clearInterval(timer); timer=setInterval(refresh, REFRESH_MS); }
 
 /* init */
-async function init(){ const [br,us]=await Promise.all([loadMarket('brazilian'), loadMarket('american')]);
-  master.brazilian=br; master.american=us; populateFilterOptions(); applyFilters(); startAuto(); }
+async function init(){ const [br,us]=await Promise.all([loadMarket('brazilian'), loadMarket('american')]); master.brazilian=br; master.american=us; populateFilterOptions(); applyFilters(); startAuto(); }
 document.addEventListener('DOMContentLoaded', init);
 
 /* resize */
