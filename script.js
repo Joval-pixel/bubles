@@ -14,7 +14,7 @@ const MAX_SPEED        = IS_MOBILE ? 0.12  : 0.90;
 const START_VEL        = IS_MOBILE ? 0.05  : 0.45;
 const REPULSE_COLLIDE  = IS_MOBILE ? 0.55  : 0.40;
 const BORDER_WIDTH     = 2.5;
-const COLLISION_PASSES = IS_MOBILE ? 5 : 1;
+const COLLISION_PASSES = IS_MOBILE ? 10 : 1;
 
 const MAX_RADIUS_BASE  = IS_MOBILE ? 46 : 80;     // base
 
