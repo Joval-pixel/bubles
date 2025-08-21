@@ -1,7 +1,7 @@
 /************ CONFIG ************/
 console.log("Bubles JS v2025-08-14 (fix: canvas visível + z-index + retina)");
 const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
-const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
+const IS_MOBILE = matchMedia("(max-width: 720px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
 const TOP_N = IS_MOBILE ? 25 : 200;
