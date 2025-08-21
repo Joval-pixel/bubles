@@ -4,7 +4,7 @@ const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 const IS_MOBILE = matchMedia("(max-width: 720px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
-const TOP_N = IS_MOBILE ? 30 : 200;
+const TOP_N = IS_MOBILE ? 40 : 200;
 
 /* Física (mobile mais rapido) */
 const DEFAULT_HEADER_SAFE = 84;
@@ -88,7 +88,7 @@ function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
   const varScale = Math.min(8, Math.abs(Number(changePct)||0));
-  const base = 10;
+  const base = 8;
   let r = base + vara cale*3 + volScale;
 
   const bigCats = ["minerio","petroleo","bancos","varejo"];
