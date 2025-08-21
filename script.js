@@ -4,7 +4,7 @@ const TOKEN = "5bTDfSmR2ieax6y7JUqDAD";
 const IS_MOBILE = matchMedia("(max-width: 820px)").matches ||
                   (navigator.maxTouchPoints || 0) > 0;
 
-const TOP_N = IS_MOBILE ? 35 : 200;
+const TOP_N = IS_MOBILE ? 35 : 300;
 
 /* Física (mobile mais lento) */
 const DEFAULT_HEADER_SAFE = 84;
