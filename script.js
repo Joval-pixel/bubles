@@ -6,7 +6,7 @@ const IS_MOBILE = matchMedia("(max-width: 720px)").matches ||
 
 const TOP_N = IS_MOBILE ? 25 : 200;
 
-/* Física (mobile mais lento) */
+/* Física (mobile mais rapido) */
 const DEFAULT_HEADER_SAFE = 84;
 const WALL_MARGIN      = IS_MOBILE ? 18 : 10;
 const FRICTION         = IS_MOBILE ? 0.998 : 0.985;
