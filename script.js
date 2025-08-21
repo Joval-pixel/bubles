@@ -23,12 +23,12 @@ const SOFT_REPULSE_STRENGTH = IS_MOBILE ? 0.005 : 0.0035;
 const NEIGHBOR_RANGE_MULT   = 1.7;
 
 /* “Buraco” central + órbita */
-const CENTER_HOLE_RADIUS_FACTOR = IS_MOBILE ? 0.32 : 0.28;
+const CENTER_HOLE_RADIUS_FACTOR = IS_MOBILE ? 0.20 : 0.20;
 const CENTER_HOLE_STRENGTH      = IS_MOBILE ? 0.012 : 0.008;
 const ORBIT_STRENGTH            = IS_MOBILE ? 0.009 : 0.006;
 
 /* Vento/drift + wobble */
-const DRIFT_BASE        = IS_MOBILE ? 0.004 : 0.003;
+const DRIFT_BASE        = IS_MOBILE ? 0.010 : 0.010;
 const DRIFT_FREQ        = 0.0018;
 const WOBBLE_STRENGTH   = IS_MOBILE ? 0.010 : 0.010;
 const WOBBLE_FREQ       = 0.0025;
@@ -93,7 +93,7 @@ function radiusFor(changePct, volume){
 
   const bigCats = ["minerio","petroleo","bancos","varejo"];
   const isBig = IS_MOBILE && bigCats.includes(category);
-  const minR = 18;
+  const minR = 14;
   const maxR = isBig ? MAX_RADIUS_BASE*3 : MAX_RADIUS_BASE;
 
   if (isBig) r *= 3;
