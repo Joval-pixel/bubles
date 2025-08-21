@@ -107,8 +107,8 @@ async function getJSON(url){
 }
 
 /************ LISTAS (setores) ************/
-const LISTS = 
-  minerio: {["VALE3","CMIN3","CSNA3",
+const LISTS = {
+  minerio: ["VALE3","CMIN3","CSNA3",
     "GGBR4","GGBR3","GOAU4","GOAU3",
     "BRAP4","BRAP3",
     "USIM5","USIM3",
