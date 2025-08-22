@@ -53,7 +53,7 @@
   <!-- Badge de visitantes online -->
   <div id="online-counter" class="online-badge" aria-live="polite">
     <span class="dot" aria-hidden="true"></span>
-    <span><strong id="online-number">--</strong> online agora</span>
+    <span><strong id="online-number">50</strong> online agora</span>
   </div>
 
   <script src="/script.js"></script>
@@ -94,18 +94,21 @@
       async function update(post = false) {
         try {
           const data = await call(post ? "POST" : "GET", post ? { sessionId } : undefined);
-          if (typeof data.online === "number") numberEl.textContent = data.online;
+          if (typeof data.online === "number") {
+            numberEl.textContent = data.online + 50; // sempre soma +50
+          }
         } catch (err) {
           console.warn("[online-counter]", err);
+          // fallback visual
           if (numberEl.textContent.trim() === "—" || numberEl.textContent.trim() === "--") {
-            numberEl.textContent = "0";
+            numberEl.textContent = "50";
           }
         }
       }
 
-      update(false);
-      update(true);
-      setInterval(() => update(true), 20_000);
+      update(false); // lê valor atual
+      update(true);  // registra presença
+      setInterval(() => update(true), 20_000); // mantém presença
     })();
   </script>
 </body>
