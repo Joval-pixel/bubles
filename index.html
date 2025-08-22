@@ -10,13 +10,11 @@
           localStorage.setItem(key, sid);
         }
         return sid;
-      } catch {
-        return Date.now() + "-" + Math.random().toString(16).slice(2);
-      }
+      } catch { return Date.now() + "-" + Math.random().toString(16).slice(2); }
     }
 
     const sessionId = getSessionId();
-    const API = `${location.origin}/api/online`; // URL absoluta
+    const API = `${location.origin}/api/online`;
     const numberEl = document.getElementById("online-number");
 
     async function call(method, body) {
@@ -36,21 +34,17 @@
     async function update(post = false) {
       try {
         const data = await call(post ? "POST" : "GET", post ? { sessionId } : undefined);
-        if (typeof data.online === "number") {
-          numberEl.textContent = data.online;
-        }
+        if (typeof data.online === "number") numberEl.textContent = data.online;
       } catch (err) {
         console.warn("[online-counter]", err);
-        // fallback visual para não ficar “—”
         if (numberEl.textContent.trim() === "—" || numberEl.textContent.trim() === "--") {
           numberEl.textContent = "0";
         }
       }
     }
 
-    // Primeiro tenta só ler (GET), depois mantém presença (POST)
-    update(false);
-    update(true);
-    setInterval(() => update(true), 20_000);
+    update(false); // lê valor atual
+    update(true);  // registra presença
+    setInterval(() => update(true), 20_000); // mantém presença
   })();
 </script>
