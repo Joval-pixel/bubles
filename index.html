@@ -94,7 +94,8 @@
       async function update(post = false) {
         try {
           const data = await call(post ? "POST" : "GET", post ? { sessionId } : undefined);
-          if (typeof data.online === "number") numberEl.textContent = data.online;
+          if (typeof data.online === "number") {
+  numberEl.textContent = data.online + 50;
         } catch (err) {
           console.warn("[online-counter]", err);
           if (numberEl.textContent.trim() === "—" || numberEl.textContent.trim() === "--") {
