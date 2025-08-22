@@ -5,6 +5,29 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>BUBLES — Ações ao Vivo</title>
   <link rel="stylesheet" href="/style.css" />
+
+  <!-- CSS do badge "online agora" -->
+  <style>
+    .online-badge {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.15);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      font-size: 14px;
+      background: #111;
+      color: #fff;
+      display: flex; align-items: center; gap: 8px;
+      z-index: 1000;
+    }
+    .online-badge .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34,197,94,.6);
+    }
+  </style>
 </head>
 <body>
   <!-- Header / Controles -->
@@ -27,6 +50,63 @@
   <!-- Palco das bolhas -->
   <canvas id="bubbleCanvas" aria-hidden="true"></canvas>
 
+  <!-- Badge de visitantes online -->
+  <div id="online-counter" class="online-badge" aria-live="polite">
+    <span class="dot" aria-hidden="true"></span>
+    <span><strong id="online-number">--</strong> online agora</span>
+  </div>
+
   <script src="/script.js"></script>
+
+  <!-- Script do contador -->
+  <script>
+    (function () {
+      function getSessionId() {
+        try {
+          const key = "online:sessionId";
+          let sid = localStorage.getItem(key);
+          if (!sid) {
+            sid = (crypto.randomUUID && crypto.randomUUID()) ||
+                  (Date.now() + "-" + Math.random().toString(16).slice(2));
+            localStorage.setItem(key, sid);
+          }
+          return sid;
+        } catch {
+          return Date.now() + "-" + Math.random().toString(16).slice(2);
+        }
+      }
+
+      const sessionId = getSessionId();
+      const API = `${location.origin}/api/online`;
+      const numberEl = document.getElementById("online-number");
+
+      async function call(method, body) {
+        const res = await fetch(API, {
+          method,
+          headers: body ? { "Content-Type": "application/json" } : undefined,
+          body: body ? JSON.stringify(body) : undefined,
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`API ${method} ${res.status}`);
+        return res.json();
+      }
+
+      async function update(post = false) {
+        try {
+          const data = await call(post ? "POST" : "GET", post ? { sessionId } : undefined);
+          if (typeof data.online === "number") numberEl.textContent = data.online;
+        } catch (err) {
+          console.warn("[online-counter]", err);
+          if (numberEl.textContent.trim() === "—" || numberEl.textContent.trim() === "--") {
+            numberEl.textContent = "0";
+          }
+        }
+      }
+
+      update(false);
+      update(true);
+      setInterval(() => update(true), 20_000);
+    })();
+  </script>
 </body>
 </html>
