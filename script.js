@@ -88,7 +88,7 @@ function radiusFor(changePct, volume){
   const v = Math.max(1, Number(volume)||1);
   const volScale = Math.log10(v+10)*3;
   const varScale = Math.min(8, Math.abs(Number(changePct)||0));
-  const base = 9;
+  const base = 10;
   let r = base + varScale*3 + volScale;
 
   const bigCats = ["minerio","petroleo","bancos","varejo"];
