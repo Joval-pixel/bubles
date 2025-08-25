@@ -1,33 +1,37 @@
 {
-  "name": "bubles-palpites",
-  "version": "2.0.0",
-  "description": "Sistema de palpites esportivos em bolhas - 30 dias grátis",
-  "main": "index.html",
-  "scripts": {
-    "dev": "python3 -m http.server 3000",
-    "build": "echo 'Build completed - static files ready'",
-    "start": "python3 -m http.server 8080",
-    "deploy": "vercel --prod"
-  },
-  "keywords": [
-    "futebol",
-    "palpites",
-    "odds",
-    "bolhas",
-    "visualização",
-    "apostas",
-    "estatísticas",
-    "30-dias-gratis"
-  ],
-  "author": "Bubles Team",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/seu-usuario/bubles-palpites.git"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {},
-  "devDependencies": {}
+  "fixtureId": 123456,
+  "game": "Time A vs. Time B",
+  "league": "Premier League",
+  "country": "England",
+  "datetime_brt": "2025-08-25 16:00",
+
+  "market": "OU25",          // OU25 ou 1X2
+  "selection": "OVER",       // OVER/UNDER/HOME/DRAW/AWAY
+  "odds_over": 1.85,         // se market = OU25
+  "odds_under": 2.00,        // se market = OU25
+  "odds_home": null,         // se market = 1X2, preencha home/draw/away
+  "odds_draw": null,
+  "odds_away": null,
+
+  "pOver": 0.54,             // probabilidades normalizadas (sem vig)
+  "pUnder": 0.46,
+  "pHome": null,
+  "pDraw": null,
+  "pAway": null,
+
+  "bookmakers": 18,          // nº de casas (proxy de popularidade)
+  "confidence": 0.72,        // 0–1 (define tamanho da bolha)
+
+  "recent": "Time A (3V,2E); Time B (4V,1D)",
+  "h2h": "Últimos 5: Over 2.5 em 4 jogos",
+  "stats": "xG A 2.0, xGA B 1.2; chutes 15 vs 12; posse 58% vs 54%",
+  "squad": "A sem zagueiro titular (suspenso); B completo",
+
+  "analysis_pt": "Resumo técnico (PT) seguindo seu prompt.",
+  "analysis_en": "Technical summary (EN) matching your prompt.",
+
+  "option1": "Acima de 2.5 gols",
+  "reason1": "Média combinada 3.2 gols/j nos últimos 5; xG somado ~3.1",
+  "option2": "Time A marcará 2+ gols",
+  "reason2": "xG ofensivo 2.0/j e defesa B concede 1.4 xGA/j"
 }
