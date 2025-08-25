@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bubles Stats — Palpites com Bolhas (ao vivo)</title>
+  <meta name="description" content="Visualização de bolhas para dados de futebol com odds e estatísticas em tempo real">
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -33,24 +34,17 @@
           <p>Bolhas mostram viés do mercado (Over/Under 2.5) e popularidade (nº de casas). Fonte: API oficial via proxy.</p>
           <div class="filters">
             <label>País/Liga: <input id="league-filter" placeholder="Ex.: Brazil, England, Spain" /></label>
-            <label>Mercado:
-              <select id="market-select">
-                <option value="OU25" selected>Over/Under 2.5</option>
-                <option value="1X2">1X2</option>
-              </select>
-            </label>
             <button class="btn btn-primary" id="btn-refresh">Atualizar hoje</button>
           </div>
           <ul class="bullets">
             <li>Busca jogos de <b>hoje</b> + odds 1X2 e Over/Under 2.5</li>
-            <li>Cor: <b>verde</b> (viés Over/favorito) / <b>vermelho</b> (Under/zebra)</li>
+            <li>Cor: <b>verde</b> (viés Over) / <b>vermelho</b> (viés Under)</li>
             <li>Tamanho: popularidade (~ nº de casas/odds)</li>
           </ul>
         </div>
         <div class="home-right">
-          <canvas id="bubble-canvas" width="520" height="420" aria-label="Bubles canvas"></canvas>
+          <canvas id="bubble-canvas" width="520" height="420"></canvas>
           <div class="muted smallpad" id="last-update">—</div>
-          <div id="tooltip" class="tooltip hidden"></div>
         </div>
       </div>
     </section>
@@ -129,11 +123,15 @@
           <div class="grid-2">
             <div class="card shadow">
               <h3>Postagens de Hoje</h3>
-              <div id="posts-today"></div>
+              <div id="posts-today">
+                <p>📊 Análise completa dos jogos de hoje disponível!</p>
+                <p>⚽ 15 jogos analisados com viés Over/Under</p>
+                <p>📈 Relatórios detalhados com H2H e xG</p>
+              </div>
             </div>
             <div class="card shadow">
               <h3>Bolhas (snapshot)</h3>
-              <canvas id="bubble-canvas-mini" width="480" height="360" aria-label="Bubles canvas mini"></canvas>
+              <canvas id="bubble-canvas-mini" width="480" height="360"></canvas>
             </div>
           </div>
         </div>
