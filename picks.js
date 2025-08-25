@@ -1,1 +1,0 @@
-import fs from 'fs/promises';import path from 'path';export default async function handler(req,res){const file=path.join(process.cwd(),'data','picks-2025-08-25.json');const d=JSON.parse(await fs.readFile(file,'utf-8'));res.status(200).json(d)}
