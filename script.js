@@ -21,15 +21,50 @@ function mountBubbles(data){
   const H = stage.clientHeight || 400;
 
   data.forEach(p=>{
-    const r = 40; // tamanho fixo pra teste
+    // tamanho proporcional à confiança
+    const conf = p.confidence ? p.confidence : 0.5;
+    const r = 40 + conf*60; // raio entre 40 e 100
+
+    // cor: verde se "OVER" ou vitória mandante, vermelho se "UNDER" ou visitante
+    let bg = 'rgba(46,204,113,0.8)'; // verde
+    if (p.selection?.toUpperCase().includes('UNDER') || p.selection?.toUpperCase().includes('AWAY')) {
+      bg = 'rgba(231,76,60,0.85)'; // vermelho
+    }
+
     const el = document.createElement('div');
     el.className = 'bubble';
     el.style.width = el.style.height = `${r*2}px`;
-    el.style.background = 'rgba(46,204,113,0.7)';
+    el.style.background = bg;
+
+    // posição inicial
     el.style.left = (Math.random()*(W-2*r))+'px';
     el.style.top  = (Math.random()*(H-2*r))+'px';
-    el.innerHTML = p.selection;
+
+    el.innerHTML = `<div>${p.selection}</div>`;
+
     stage.appendChild(el);
+
+    // movimento aleatório
+    let dx = (Math.random() - 0.5) * 2;
+    let dy = (Math.random() - 0.5) * 2;
+
+    function animate(){
+      let x = parseFloat(el.style.left);
+      let y = parseFloat(el.style.top);
+      if (isNaN(x) || isNaN(y)) return;
+
+      x += dx; y += dy;
+
+      // colisão com bordas
+      if (x < 0 || x > W-2*r) dx *= -1;
+      if (y < 0 || y > H-2*r) dy *= -1;
+
+      el.style.left = Math.max(0, Math.min(W-2*r, x)) + 'px';
+      el.style.top  = Math.max(0, Math.min(H-2*r, y)) + 'px';
+
+      requestAnimationFrame(animate);
+    }
+    animate();
   });
 }
 
