@@ -1,0 +1,673 @@
+# 📦 Protótipo — Site de Assinaturas para Análises Estatísticas de Futebol
+
+> Estrutura base com landing page, planos, login/cadastro, área do assinante com paywall, posts diários e simulação de pagamento (Pix/Cartão). Totalmente front‑end (HTML/CSS/JS) usando `localStorage`.
+
+---
+
+## 🚀 Como usar
+
+1. Crie três arquivos lado a lado no mesmo diretório: `index.html`, `style.css`, `script.js`.
+2. Copie e cole o conteúdo de cada seção abaixo para o respectivo arquivo.
+3. Abra o `index.html` no navegador (ou suba para a Vercel).
+4. Para desbloquear a área do assinante, faça um cadastro/ login e clique em **Assinar** (simulado), depois **Marcar como Pago (Simulação)**.
+
+> **Obs.:** Este protótipo é didático. Para cobrar de verdade, troque os trechos de pagamento simulado por integrações reais (Stripe, Mercado Pago, PagSeguro, Pix-API).
+
+---
+
+## 🧩 Configurações rápidas
+
+* **Nome do produto/marca:** Edite no `<header>` e nos textos do `index.html` (procure por **FutStats Pro**).
+* **Plano e preço:** Edite na seção *Planos* (ex.: R\$ 39,90/mês).
+* **Admin (opcional):** No `script.js`, ajuste `ADMIN_EMAIL` para restringir a criação de posts (só admin cria).
+
+---
+
+## 🌐 `index.html`
+
+```html
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FutStats Pro — Análises Estatísticas para Apostas</title>
+  <link rel="stylesheet" href="style.css" />
+  <meta name="description" content="Análises diárias de futebol baseadas em dados — identifique apostas de valor.">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="logo">FS</div>
+        <div class="brand-text">
+          <h1>FutStats Pro</h1>
+          <p>Apostas de valor com base em dados</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#home" data-route>Início</a>
+        <a href="#planos" data-route>Planos</a>
+        <a href="#entrar" data-route class="btn btn-outline">Entrar</a>
+        <a href="#dashboard" data-route class="btn btn-primary">Área do Assinante</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- HOME / LANDING -->
+    <section id="home" class="section visible">
+      <div class="container grid-2">
+        <div>
+          <h2>Analise jogos. Encontre <span class="highlight">apostas de valor</span>.</h2>
+          <p>Relatórios diários com desempenho recente, H2H, xG/xGA, escanteios e recomendações objetivas — sem achismo.</p>
+          <div class="cta-row">
+            <a href="#planos" data-route class="btn btn-primary">Assinar agora</a>
+            <a href="#exemplo" data-route class="btn btn-ghost">Ver exemplo</a>
+          </div>
+          <ul class="bullets">
+            <li>Dados e estatísticas reais (0% palpite, 100% método)</li>
+            <li>Formato padronizado e fácil de ler</li>
+            <li>Postagens diárias — prontos para apostar</li>
+          </ul>
+        </div>
+        <div class="card shadow">
+          <h3>Exemplo de saída (resumo)</h3>
+          <pre class="code">
+Jogo: Barcelona vs Real Madrid
+Competição: La Liga
+Data e Hora: 25/08/2025 – 16:00 BRT
+Análise: xG 2.1 vs xGA 0.8; H2H: RM 3/5; Barça desfalcado.
+Apostas: (1) Mais de 2.5 gols; (2) RM vitória.
+          </pre>
+          <small>O conteúdo completo fica disponível na Área do Assinante.</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLANOS -->
+    <section id="planos" class="section">
+      <div class="container">
+        <h2>Planos</h2>
+        <div class="plans">
+          <div class="plan-card shadow">
+            <h3>Mensal</h3>
+            <div class="price">R$ <strong>39,90</strong> <span>/mês</span></div>
+            <ul>
+              <li>Análises diárias</li>
+              <li>1–3 recomendações por jogo</li>
+              <li>Histórico recente e H2H</li>
+              <li>xG/xGA, escanteios, etc.</li>
+            </ul>
+            <a href="#assinatura" class="btn btn-primary" data-route>Assinar</a>
+          </div>
+          <div class="plan-card shadow">
+            <h3>Premium</h3>
+            <div class="price">R$ <strong>79,90</strong> <span>/mês</span></div>
+            <ul>
+              <li>Tudo do Mensal</li>
+              <li>Relatórios avançados</li>
+              <li>Exportação (CSV/Print)</li>
+              <li>Alertas (em breve)</li>
+            </ul>
+            <a href="#assinatura" class="btn btn-outline" data-route>Assinar</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOGIN / CADASTRO -->
+    <section id="entrar" class="section">
+      <div class="container grid-2">
+        <div class="card shadow">
+          <h3>Criar conta</h3>
+          <form id="form-register" class="form">
+            <label>Email <input type="email" id="reg-email" required /></label>
+            <label>Senha <input type="password" id="reg-pass" required /></label>
+            <button class="btn btn-primary" type="submit">Cadastrar</button>
+          </form>
+        </div>
+        <div class="card shadow">
+          <h3>Entrar</h3>
+          <form id="form-login" class="form">
+            <label>Email <input type="email" id="log-email" required /></label>
+            <label>Senha <input type="password" id="log-pass" required /></label>
+            <button class="btn btn-primary" type="submit">Entrar</button>
+            <p class="muted">Esqueceu a senha? (Protótipo não envia email)</p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHECKOUT (SIMULADO) -->
+    <section id="assinatura" class="section">
+      <div class="container grid-2">
+        <div class="card shadow">
+          <h3>Checkout — Assinatura Mensal</h3>
+          <p>Escolha a forma de pagamento (simulada para testes).</p>
+          <div class="tabs">
+            <button class="tab active" data-tab="pix">Pix</button>
+            <button class="tab" data-tab="card">Cartão</button>
+          </div>
+          <div class="tab-panel" id="tab-pix">
+            <div class="pix-box">
+              <div class="qr">QR PIX (Demonstração)</div>
+              <div class="pix-code">
+                <label>Copia e Cola Pix (simulação)</label>
+                <textarea id="pix-brcode" rows="3" readonly>00020126PIX-SIMULADO-CHAVE...520400005303986540539,90...</textarea>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btn-mark-paid">Marcar como Pago (Simulação)</button>
+            <p class="muted">Isto definirá sua assinatura como ativa por 30 dias (localStorage).</p>
+          </div>
+          <div class="tab-panel hidden" id="tab-card">
+            <form id="form-card" class="form">
+              <label>Número do cartão <input inputmode="numeric" placeholder="4111 1111 1111 1111" /></label>
+              <div class="grid-2-tight">
+                <label>Validade <input placeholder="12/28" /></label>
+                <label>CVV <input inputmode="numeric" placeholder="123" /></label>
+              </div>
+              <button class="btn btn-primary" type="submit">Pagar (Simulado)</button>
+            </form>
+            <p class="muted">Integre Stripe/Mercado Pago em produção.</p>
+          </div>
+        </div>
+        <div class="card shadow">
+          <h3>Status</h3>
+          <p id="sub-status">Você não está logado.</p>
+          <div class="line"></div>
+          <button class="btn btn-outline" id="go-dashboard">Ir para Área do Assinante</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD / ÁREA DO ASSINANTE -->
+    <section id="dashboard" class="section">
+      <div class="container">
+        <div class="dash-top">
+          <h2>Área do Assinante</h2>
+          <div class="session">
+            <span id="user-email">—</span>
+            <button class="btn btn-ghost" id="btn-logout">Sair</button>
+          </div>
+        </div>
+
+        <div id="paywall" class="paywall hidden">
+          <p>Assinatura inativa ou expirada. <a href="#assinatura" data-route>Assine</a> para acessar os conteúdos.</p>
+        </div>
+
+        <div id="content" class="hidden">
+          <div class="grid-2">
+            <div class="card shadow">
+              <h3>Postagens de Hoje</h3>
+              <div id="posts-today"></div>
+              <div class="line"></div>
+              <button class="btn btn-outline" id="btn-print">Imprimir / Salvar PDF</button>
+            </div>
+
+            <div class="card shadow">
+              <h3>Prompts Prontos</h3>
+
+              <details open>
+                <summary>Português</summary>
+                <textarea id="prompt-pt" rows="9" readonly>
+Aja como um analista de dados esportivos especializado em futebol e apostas estatísticas.
+Analise os jogos de hoje e identifique apostas de valor usando apenas dados (desempenho recente, H2H, xG, xGA, gols, escanteios, etc.).
+Para cada jogo: Jogo, Competição, Data/Hora, Análise (últimos jogos, H2H, ofensivo/defensivo, situação do elenco) e até 2 recomendações com justificativa baseada nos dados.
+Separe com --- e, se não houver oportunidades, informe explicitamente.
+                </textarea>
+                <button class="btn btn-ghost small" data-copy="#prompt-pt">Copiar</button>
+              </details>
+
+              <details>
+                <summary>English</summary>
+                <textarea id="prompt-en" rows="9" readonly>
+Act as a sports data analyst specialized in football and betting statistics.
+Analyze today’s matches and identify value bets using only data (recent form, H2H, xG, xGA, goals, corners, etc.).
+For each match: Match, Competition, Date/Time, Analysis (recent form, H2H, offensive/defensive, squad status) and up to 2 recommendations with data-based justification.
+Separate with --- and, if no opportunities exist, state it explicitly.
+                </textarea>
+                <button class="btn btn-ghost small" data-copy="#prompt-en">Copy</button>
+              </details>
+            </div>
+          </div>
+
+          <div class="card shadow" id="admin-box" hidden>
+            <h3>Publicar Análise (Admin)</h3>
+            <form id="form-post" class="form">
+              <div class="grid-3">
+                <label>Jogo <input id="p-jogo" required placeholder="Manchester City vs Liverpool" /></label>
+                <label>Competição <input id="p-comp" required placeholder="Premier League" /></label>
+                <label>Data/Hora (BRT) <input id="p-dh" required placeholder="25/08/2025 16:00" /></label>
+              </div>
+              <label>Desempenho Recente <textarea id="p-rec" rows="2" placeholder="Time A (3V,1E,1D); Time B (4V,1D)"></textarea></label>
+              <label>H2H <textarea id="p-h2h" rows="2" placeholder="Últimos 5: A 2V, B 2V, 1E"></textarea></label>
+              <label>Ofensivo/Defensivo <textarea id="p-stats" rows="3" placeholder="xG/xGA, chutes, posse, escanteios..."></textarea></label>
+              <label>Situação da Equipe <textarea id="p-sit" rows="2" placeholder="Lesões/suspensões relevantes"></textarea></label>
+              <div class="grid-2-tight">
+                <label>Opção 1 <input id="p-op1" placeholder="Mais de 2.5 gols" /></label>
+                <label>Justificativa 1 <input id="p-j1" placeholder="Média combinada 3.2 gols/jogo..." /></label>
+              </div>
+              <div class="grid-2-tight">
+                <label>Opção 2 <input id="p-op2" placeholder="Vitória Time A" /></label>
+                <label>Justificativa 2 <input id="p-j2" placeholder="80% vitórias em casa..." /></label>
+              </div>
+              <button class="btn btn-primary" type="submit">Publicar</button>
+              <p class="muted">As postagens ficam disponíveis imediatamente para assinantes ativos.</p>
+            </form>
+          </div>
+
+          <div class="card shadow">
+            <h3>Histórico (últimos 7 dias)</h3>
+            <div id="posts-history"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXEMPLO DETALHADO -->
+    <section id="exemplo" class="section">
+      <div class="container">
+        <h2>Exemplo completo de análise</h2>
+        <pre class="code">
+Jogo: Barcelona vs Real Madrid
+Competição: La Liga
+Data e Hora: 25/08/2025 – 16:00 BRT
+Análise Estatística:
+ - Desempenho Recente: Barcelona (3V, 2E); Real (4V, 1D)
+ - H2H: Real venceu 3/5; 2 empates
+ - Ofensivo/Defensivo: xG Barça 2.1; xGA Real 0.8
+ - Situação da Equipe: zagueiro-chave suspenso
+Recomendações:
+ - Opção 1: Vitória do Real Madrid (fase + defesa sólida)
+ - Opção 2: Mais de 2.5 gols (média 3.2 nos últimos confrontos)
+        </pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <strong>FutStats Pro</strong> — conteúdo educacional. Jogue com responsabilidade.
+      </div>
+      <div class="links">
+        <a href="#planos" data-route>Assinar</a>
+        <a href="#entrar" data-route>Entrar</a>
+        <a href="#dashboard" data-route>Área do Assinante</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
+```
+
+---
+
+## 🎨 `style.css`
+
+```css
+:root{
+  --bg:#0e1013; --panel:#151922; --muted:#97a0af; --text:#e6eaf2; --brand:#6ae3a1; --brand-2:#4cc2ff; --danger:#ff4d4f;
+  --border:#232838; --shadow: rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+.container{max-width:1100px;margin:0 auto;padding:28px}
+.section{display:none;padding:24px 0}
+.section.visible{display:block}
+.site-header{position:sticky;top:0;background:#0c0f14;border-bottom:1px solid var(--border);z-index:20}
+.header-inner{display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;color:#0b1020;font-weight:800}
+.brand-text h1{margin:0;font-size:18px}
+.brand-text p{margin:2px 0 0;color:var(--muted);font-size:12px}
+.nav{display:flex;gap:12px;align-items:center}
+.nav a{color:var(--text);text-decoration:none;opacity:.9}
+
+h2{font-size:28px;margin:0 0 16px}
+.highlight{color:var(--brand)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid-2-tight{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+.shadow{box-shadow:0 10px 30px var(--shadow)}
+.line{height:1px;background:var(--border);margin:12px 0}
+.muted{color:var(--muted);font-size:12px}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--border);cursor:pointer;text-decoration:none;color:var(--text)}
+.btn:hover{opacity:.92}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#071020;border:none}
+.btn-outline{background:transparent}
+.btn-ghost{background:transparent;border-color:transparent}
+.small{font-size:12px;padding:6px 10px}
+
+.bullets{margin:14px 0;padding-left:18px}
+.bullets li{margin:8px 0}
+
+.code{background:#0b0e13;border:1px solid var(--border);border-radius:10px;padding:12px;overflow:auto}
+
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.plan-card h3{margin:6px 0 12px}
+.plan-card .price{font-size:22px;margin:8px 0 12px}
+.plan-card ul{margin:0 0 18px 18px}
+
+.form{display:flex;flex-direction:column;gap:10px}
+.form input, .form textarea{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#0e121a;color:var(--text)}
+
+.tabs{display:flex;gap:10px;margin:4px 0 10px}
+.tab{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#0f1320;color:var(--text);cursor:pointer}
+.tab.active{outline:2px solid var(--brand)}
+.tab-panel.hidden{display:none}
+.pix-box{display:flex;gap:14px}
+.qr{width:160px;height:160px;border-radius:12px;background:repeating-linear-gradient(45deg,#111 0 6px,#1a1f2e 6px 12px);display:grid;place-items:center;color:#fff;border:1px solid var(--border)}
+.pix-code textarea{min-width:280px}
+
+.dash-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.session{display:flex;gap:10px;align-items:center}
+.paywall{padding:12px;border:1px dashed var(--border);border-radius:12px;background:#0f1320}
+
+.footer-inner{display:flex;align-items:center;justify-content:space-between}
+.links a{color:var(--muted);margin-left:12px;text-decoration:none}
+
+/* responsivo */
+@media (max-width: 900px){
+  .grid-2, .plans{grid-template-columns:1fr}
+  .grid-3{grid-template-columns:1fr}
+}
+```
+
+---
+
+## ⚙️ `script.js`
+
+```js
+/*****************************
+ * FutStats Pro — Protótipo 1.0
+ * Front-end puro com localStorage
+ *****************************/
+
+// ====== CONFIG ======
+const ADMIN_EMAIL = "admin@seusite.com"; // troque para seu e-mail (ex: bubles@joval.com.br)
+const SUB_DAYS = 30; // duração da assinatura simulada
+
+// ====== HELPERS ======
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const todayKey = () => new Date().toISOString().slice(0,10);
+const fmtDate = d => new Date(d).toLocaleString("pt-BR", { hour12:false });
+
+function toast(msg){
+  alert(msg); // simples para protótipo; troque por toaster elegante
+}
+
+// ====== STORAGE ======
+const store = {
+  get users(){ return JSON.parse(localStorage.getItem('fs_users')||'[]'); },
+  set users(v){ localStorage.setItem('fs_users', JSON.stringify(v)); },
+  get session(){ return localStorage.getItem('fs_session'); },
+  set session(email){ email? localStorage.setItem('fs_session', email) : localStorage.removeItem('fs_session'); },
+  get subs(){ return JSON.parse(localStorage.getItem('fs_subs')||'{}'); },
+  set subs(v){ localStorage.setItem('fs_subs', JSON.stringify(v)); },
+  get posts(){ return JSON.parse(localStorage.getItem('fs_posts')||'[]'); },
+  set posts(v){ localStorage.setItem('fs_posts', JSON.stringify(v)); },
+};
+
+function isSubscribed(email){
+  const s = store.subs[email];
+  if(!s) return false;
+  const now = Date.now();
+  return now < s.expiresAt;
+}
+
+function requireAuth(){
+  if(!store.session){ location.hash = '#entrar'; toast('Faça login para continuar.'); return false; }
+  return true;
+}
+
+function guardDashboard(){
+  const email = store.session;
+  $('#user-email').textContent = email || '—';
+  if(!email){
+    $('#paywall').classList.remove('hidden');
+    $('#content').classList.add('hidden');
+    return;
+  }
+  if(isSubscribed(email)){
+    $('#paywall').classList.add('hidden');
+    $('#content').classList.remove('hidden');
+  } else {
+    $('#paywall').classList.remove('hidden');
+    $('#content').classList.add('hidden');
+  }
+
+  // admin box visibility
+  $('#admin-box').hidden = (email !== ADMIN_EMAIL);
+}
+
+// ====== ROUTER (âncoras) ======
+function showSection(id){
+  $$('.section').forEach(sec=>sec.classList.remove('visible'));
+  const el = $(id);
+  if(el) el.classList.add('visible');
+  if(id === '#dashboard') guardDashboard();
+}
+
+window.addEventListener('hashchange', ()=>{
+  const id = location.hash || '#home';
+  showSection(id);
+});
+
+// links com data-route
+$$('[data-route]').forEach(a=>{
+  a.addEventListener('click', (e)=>{
+    const href = a.getAttribute('href');
+    if(href.startsWith('#')){ e.preventDefault(); location.hash = href; }
+  });
+});
+
+// start
+if(!location.hash) location.hash = '#home';
+showSection(location.hash || '#home');
+
+// ====== LOGIN / CADASTRO ======
+$('#form-register')?.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const email = $('#reg-email').value.trim().toLowerCase();
+  const pass = $('#reg-pass').value;
+  if(!email || !pass) return;
+  const users = store.users;
+  if(users.find(u=>u.email===email)){ return toast('Este e-mail já está cadastrado.'); }
+  users.push({ email, pass });
+  store.users = users;
+  store.session = email;
+  toast('Cadastro realizado. Você está logado.');
+  location.hash = '#assinatura';
+});
+
+$('#form-login')?.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const email = $('#log-email').value.trim().toLowerCase();
+  const pass = $('#log-pass').value;
+  const u = store.users.find(u=>u.email===email && u.pass===pass);
+  if(!u) return toast('Credenciais inválidas.');
+  store.session = email;
+  toast('Bem-vindo!');
+  location.hash = '#dashboard';
+});
+
+$('#btn-logout')?.addEventListener('click', ()=>{
+  store.session = '';
+  toast('Sessão encerrada.');
+  location.hash = '#home';
+});
+
+// ====== CHECKOUT (simulado) ======
+// tabs
+$$('.tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    $$('.tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    $$('.tab-panel').forEach(p=>p.classList.add('hidden'));
+    $('#tab-' + tab).classList.remove('hidden');
+  });
+});
+
+$('#btn-mark-paid')?.addEventListener('click', ()=>{
+  if(!requireAuth()) return;
+  const email = store.session;
+  const subs = store.subs;
+  const expiresAt = Date.now() + SUB_DAYS*24*60*60*1000;
+  subs[email] = { plan:'mensal', startsAt: Date.now(), expiresAt };
+  store.subs = subs;
+  toast('Assinatura ATIVADA (simulação) por 30 dias.');
+  updateSubStatus();
+});
+
+$('#form-card')?.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  if(!requireAuth()) return;
+  const email = store.session;
+  const subs = store.subs;
+  const expiresAt = Date.now() + SUB_DAYS*24*60*60*1000;
+  subs[email] = { plan:'mensal', startsAt: Date.now(), expiresAt };
+  store.subs = subs;
+  toast('Pagamento aprovado (simulado). Assinatura ativa!');
+  updateSubStatus();
+});
+
+$('#go-dashboard')?.addEventListener('click', ()=>{
+  location.hash = '#dashboard';
+});
+
+function updateSubStatus(){
+  const email = store.session;
+  if(!email){ $('#sub-status').textContent = 'Você não está logado.'; return; }
+  const active = isSubscribed(email);
+  $('#sub-status').textContent = active
+    ? `Assinatura ativa até ${fmtDate(store.subs[email].expiresAt)}`
+    : 'Sem assinatura ativa.';
+  if(location.hash === '#dashboard') guardDashboard();
+}
+updateSubStatus();
+
+// ====== POSTS ======
+function renderPosts(){
+  const posts = store.posts.sort((a,b)=> b.createdAt - a.createdAt);
+  const today = todayKey();
+  const wrapToday = $('#posts-today');
+  const wrapHist = $('#posts-history');
+  wrapToday.innerHTML = '';
+  wrapHist.innerHTML = '';
+
+  // hoje
+  const todays = posts.filter(p=>p.dateKey===today);
+  if(todays.length===0){
+    wrapToday.innerHTML = '<p class="muted">Nenhuma análise publicada hoje.</p>';
+  } else {
+    todays.forEach(p=> wrapToday.appendChild(postCard(p)) );
+  }
+
+  // últimos 7 dias
+  const weekAgo = Date.now() - 7*24*60*60*1000;
+  posts.filter(p=>p.createdAt>=weekAgo).forEach(p=> wrapHist.appendChild(postCard(p)) );
+}
+
+function postCard(p){
+  const div = document.createElement('div');
+  div.className = 'post';
+  div.innerHTML = `
+    <div class="post-head">
+      <strong>${p.jogo}</strong> · <span>${p.comp}</span>
+      <span class="muted">— ${p.dh}</span>
+    </div>
+    <div class="post-body">
+      <ul>
+        <li><b>Desempenho Recente:</b> ${p.rec||'-'}</li>
+        <li><b>H2H:</b> ${p.h2h||'-'}</li>
+        <li><b>Ofensivo/Defensivo:</b> ${p.stats||'-'}</li>
+        <li><b>Situação da Equipe:</b> ${p.sit||'-'}</li>
+      </ul>
+      <div class="recos">
+        ${p.op1? `<div class="reco"><b>Opção 1:</b> ${p.op1}<br><span class="muted">${p.j1||''}</span></div>`:''}
+        ${p.op2? `<div class="reco"><b>Opção 2:</b> ${p.op2}<br><span class="muted">${p.j2||''}</span></div>`:''}
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+$('#form-post')?.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  if(store.session !== ADMIN_EMAIL){ return toast('Apenas o admin pode publicar.'); }
+  const post = {
+    id: crypto.randomUUID(),
+    jogo: $('#p-jogo').value.trim(),
+    comp: $('#p-comp').value.trim(),
+    dh: $('#p-dh').value.trim(),
+    rec: $('#p-rec').value.trim(),
+    h2h: $('#p-h2h').value.trim(),
+    stats: $('#p-stats').value.trim(),
+    sit: $('#p-sit').value.trim(),
+    op1: $('#p-op1').value.trim(),
+    j1: $('#p-j1').value.trim(),
+    op2: $('#p-op2').value.trim(),
+    j2: $('#p-j2').value.trim(),
+    createdAt: Date.now(),
+    dateKey: todayKey(),
+  };
+  if(!post.jogo || !post.comp || !post.dh){ return toast('Preencha Jogo, Competição e Data/Hora.'); }
+  const posts = store.posts; posts.push(post); store.posts = posts;
+  toast('Análise publicada!');
+  renderPosts();
+  $('#form-post').reset();
+});
+
+// ====== COPIAR PROMPTS ======
+$$('[data-copy]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const sel = btn.getAttribute('data-copy');
+    const el = $(sel);
+    el.select(); document.execCommand('copy');
+    toast('Copiado!');
+  });
+});
+
+// ====== PRINT ======
+$('#btn-print')?.addEventListener('click', ()=>{
+  window.print();
+});
+
+// ====== INIT on dashboard show ======
+if(location.hash === '#dashboard') renderPosts();
+window.addEventListener('hashchange', ()=>{ if(location.hash==='#dashboard') renderPosts(); });
+```
+
+---
+
+## 🧪 Notas importantes
+
+* **Segurança:** Este protótipo guarda dados em `localStorage` (não use em produção). Em produção, use backend com autenticação segura (JWT/OAuth), banco de dados e gateway de pagamento real (Stripe/Mercado Pago/PagSeguro).
+* **Pagamentos:** Os botões de pagamento são apenas simulações. Substitua por integrações reais (webhooks para ativar assinatura após confirmação).
+* **Admin:** Troque `ADMIN_EMAIL` no `script.js` para o seu e-mail. Só esse usuário consegue publicar análises.
+* **PDF:** Use o botão *Imprimir/Salvar PDF* para gerar PDF pelo próprio navegador.
+
+---
+
+## 🔌 Próximos passos (quando quiser evoluir)
+
+* Integração real de pagamentos (Stripe/Mercado Pago + webhook que ativa assinatura).
+* Painel de posts com multi-idioma (PT/EN) e filtros por liga/horário.
+* Geração automática de posts a partir de um backend/planilha/API.
+* Exportação CSV e feed RSS para assinantes Premium.
+* App Telegram para alertas.
+
+---
+
+## ✅ Pronto!
+
+Copie os três arquivos, edite o `ADMIN_EMAIL`, abra no navegador e teste. Depois podemos evoluir para backend + pagamentos reais.
