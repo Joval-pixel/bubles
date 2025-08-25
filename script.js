@@ -21,20 +21,14 @@ function mountBubbles(data){
   const H = stage.clientHeight || 400;
 
   data.forEach(p=>{
-    const r = 40;
+    const r = 40; // tamanho fixo pra teste
     const el = document.createElement('div');
     el.className = 'bubble';
     el.style.width = el.style.height = `${r*2}px`;
     el.style.background = 'rgba(46,204,113,0.7)';
-    el.style.position = 'absolute';
     el.style.left = (Math.random()*(W-2*r))+'px';
     el.style.top  = (Math.random()*(H-2*r))+'px';
-    el.style.display='flex';
-    el.style.alignItems='center';
-    el.style.justifyContent='center';
-    el.style.color='#fff';
     el.innerHTML = p.selection;
-
     stage.appendChild(el);
   });
 }
@@ -46,7 +40,8 @@ async function refresh(){
     mountBubbles(picks);
   } catch(e){
     console.error(e);
-    if ($('#last-update')) $('#last-update').textContent = 'Erro ao carregar';
+    const box = $('#last-update');
+    if (box) box.textContent = 'Erro ao carregar';
   }
 }
 
