@@ -1,25 +1,76 @@
+/* ============================
+   BUBLES Palpites - estilo
+============================ */
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #0f0f0f;
+  color: #fff;
+}
+
+h1 {
+  margin: 12px;
+}
+
+#last-update {
+  margin: 6px 12px;
+  font-size: 14px;
+}
+
+#bubble-stage {
+  position: relative;
+  width: 100%;
+  height: 75vh;
+  overflow: hidden;
+  background: radial-gradient(circle at top, #1a1a1a, #0f0f0f);
+}
+
 .bubble {
   position: absolute;
-  border-radius: 50%;          /* garante bolha redonda */
+  border-radius: 50%;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  text-align: center;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0,0,0,.6);
   cursor: pointer;
-  user-select: none;
-
-  /* estilo 3D */
-  box-shadow:
-    inset -8px -8px 15px rgba(0,0,0,.4),
-    inset 8px 8px 15px rgba(255,255,255,.08),
-    0 8px 25px rgba(0,0,0,.35);
-
-  transition: transform .3s ease;
-  overflow: hidden;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.5),
+              inset -8px -8px 16px rgba(0, 0, 0, 0.3),
+              inset 6px 6px 12px rgba(255, 255, 255, 0.15);
+  transition: transform 0.2s;
 }
+
 .bubble:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
+  z-index: 10;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  background: rgba(0,0,0,0.9);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  max-width: 240px;
+  line-height: 1.3;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Painel de detalhes */
+.details {
+  padding: 12px;
+  background: #151515;
+  border-top: 1px solid #333;
+  font-size: 14px;
+  display: none;
+}
+
+.details.show {
+  display: block;
 }
