@@ -4,7 +4,14 @@ const HOST = "api-football-v1.p.rapidapi.com";
 const BASE = `https://${HOST}/v3`;
 const headers = { "x-rapidapi-key": RAPID_KEY || "", "x-rapidapi-host": HOST };
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
+  try {
+    // ... (todo o seu código atual dentro daqui, sem mudar mais nada)
+  } catch (err) {
+    return res.status(200).json({ source: "error", error: String(err?.message || err) });
+  }
+};
+
   try {
     const homeId = Number(req.query.home);
     const awayId = Number(req.query.away);
