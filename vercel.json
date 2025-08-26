@@ -6,8 +6,8 @@
     { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.js" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "^/api/(.*)$", "dest": "/api/$1.js" },
+    { "src": "^/(.*)$", "dest": "/index.html" }
   ],
   "functions": {
     "api/**/*.js": {
@@ -15,8 +15,5 @@
       "memory": 512,
       "maxDuration": 30
     }
-  },
-  "env": {
-    "RAPIDAPI_KEY": "@rapidapi_key"
   }
 }
