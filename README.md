@@ -1,1 +1,0 @@
-BUBLES Palpites - versão JSON demo
