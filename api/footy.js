@@ -4,7 +4,14 @@ const HOST = "api-football-v1.p.rapidapi.com";
 const BASE = `https://${HOST}/v3`;
 const MAX_CONCURRENCY = 8;
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
+  try {
+    // ... (todo o seu código atual dentro daqui, sem mudar mais nada)
+  } catch (err) {
+    return res.status(200).json(demoPayload(new Date().toISOString().slice(0,10), String(err)));
+  }
+};
+
   try {
     const { date } = req.query || {};
     const iso = (date && /^\d{4}-\d{2}-\d{2}$/.test(date))
