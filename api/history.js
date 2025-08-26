@@ -1,4 +1,4 @@
-// api/history.js — últimos 10 jogos + H2H, à prova de falhas
+// api/history.js — últimos 10 jogos + H2H (CommonJS, à prova de falhas)
 const RAPID_KEY = process.env.RAPIDAPI_KEY;
 const HOST = "api-football-v1.p.rapidapi.com";
 const BASE = `https://${HOST}/v3`;
@@ -6,27 +6,16 @@ const headers = { "x-rapidapi-key": RAPID_KEY || "", "x-rapidapi-host": HOST };
 
 module.exports = async (req, res) => {
   try {
-    // ... (todo o seu código atual dentro daqui, sem mudar mais nada)
-  } catch (err) {
-    return res.status(200).json({ source: "error", error: String(err?.message || err) });
-  }
-};
-
-  try {
     const homeId = Number(req.query.home);
     const awayId = Number(req.query.away);
 
-    // Sem parâmetros → erro amigável
     if (!homeId || !awayId) {
       return res.status(200).json({ source: "error", error: "Use ?home=<id>&away=<id>" });
     }
-
-    // Sem chave → demo (não gera 500)
     if (!RAPID_KEY) {
       return res.status(200).json({ source: "demo", note: "Sem RAPIDAPI_KEY" });
     }
 
-    // Buscar dados com proteção
     const [homeJ, awayJ, h2h] = await Promise.allSettled([
       fetchJson(`${BASE}/fixtures?team=${homeId}&last=10`),
       fetchJson(`${BASE}/fixtures?team=${awayId}&last=10`),
@@ -44,24 +33,26 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       source: "api",
       degraded: (homeJ.status !== "fulfilled" || awayJ.status !== "fulfilled" || h2h.status !== "fulfilled"),
-      home: homeStats, away: awayStats, h2h: h2hStats
+      home: homeStats,
+      away: awayStats,
+      h2h:  h2hStats
     });
   } catch (err) {
-    // Nunca devolve 500
     return res.status(200).json({ source: "error", error: String(err?.message || err) });
   }
-}
+};
+
+/* ----------------- helpers ----------------- */
 
 async function fetchJson(url) {
   const r = await fetch(url, { headers, next: { revalidate: 0 } });
-  // Tratar limites/erros da RapidAPI
   if (!r.ok) {
-    const txt = await safeText(r);
-    throw new Error(`HTTP ${r.status} – ${txt?.slice(0,200)}`);
+    let txt = "";
+    try { txt = await r.text(); } catch {}
+    throw new Error(`HTTP ${r.status} – ${txt.slice(0, 200)}`);
   }
   return r.json();
 }
-async function safeText(r){ try{ return await r.text(); }catch{ return ""; } }
 
 function summarizeMatches(list, teamId) {
   let W = 0, D = 0, L = 0, gf = 0, ga = 0;
