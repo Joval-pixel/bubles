@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUBLES — Palpites em Bolhas</title>
+    <meta name="description" content="Visualização de palpites esportivos em bolhas - 30 dias grátis">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="brand">
+                <div class="logo">B</div>
+                <div class="brand-text">
+                    <h1>BUBLES</h1>
+                    <p>Probabilidades e valor esperado — só dados</p>
+                </div>
+            </div>
+            <nav class="nav">
+                <a href="#home" data-route class="nav-link active">Início</a>
+                <a href="#register" data-route class="nav-link">Cadastrar</a>
+                <a href="#login" data-route class="nav-link">Entrar</a>
+                <a href="#dashboard" data-route class="nav-link premium">Área do Assinante</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- HOME SECTION -->
+        <section id="home" class="section active">
+            <div class="container">
+                <div class="hero">
+                    <div class="hero-content">
+                        <h2>Palpites em <span class="highlight">bolhas</span>.</h2>
+                        <p class="subtitle">Cada bolha = um palpite. Tamanho indica confiança; cor indica tendência do mercado/seleção.</p>
+                        
+                        <div class="controls">
+                            <div class="control-group">
+                                <label for="market-select">Mercado:</label>
+                                <select id="market-select" class="select">
+                                    <option value="over_under">Over/Under 2.5</option>
+                                    <option value="1x2">1X2</option>
+                                </select>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label for="league-filter">Filtro de liga/país:</label>
+                                <input type="text" id="league-filter" class="input" placeholder="Ex.: Brazil, England">
+                            </div>
+                            
+                            <button id="update-btn" class="btn btn-primary">Atualizar</button>
+                        </div>
+
+                        <ul class="features">
+                            <li>Baseado em probabilidades implícitas das odds (+ normalização sem vig)</li>
+                            <li>Mostra confiança e resumo; clique para ver a análise detalhada (PT/EN)</li>
+                            <li>Dados reais via API oficial (proxy serverless na Vercel)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bubble-container">
+                        <canvas id="bubble-canvas" width="600" height="400"></canvas>
+                        <div class="update-status" id="update-status">Carregando...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- REGISTER SECTION -->
+        <section id="register" class="section">
+            <div class="container">
+                <div class="auth-container">
+                    <div class="auth-card">
+                        <h2>Cadastre-se Grátis</h2>
+                        <p class="auth-subtitle">🎉 <strong>30 dias grátis</strong> para novos usuários!</p>
+                        
+                        <form id="register-form" class="auth-form">
+                            <div class="form-group">
+                                <label for="reg-email">Email:</label>
+                                <input type="email" id="reg-email" class="input" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="reg-password">Senha:</label>
+                                <input type="password" id="reg-password" class="input" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="reg-confirm">Confirmar Senha:</label>
+                                <input type="password" id="reg-confirm" class="input" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-full">
+                                Cadastrar e Ganhar 30 Dias Grátis
+                            </button>
+                        </form>
+                        
+                        <p class="auth-link">
+                            Já tem conta? <a href="#login" data-route>Faça login</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LOGIN SECTION -->
+        <section id="login" class="section">
+            <div class="container">
+                <div class="auth-container">
+                    <div class="auth-card">
+                        <h2>Entrar</h2>
+                        <p class="auth-subtitle">Acesse sua conta</p>
+                        
+                        <form id="login-form" class="auth-form">
+                            <div class="form-group">
+                                <label for="login-email">Email:</label>
+                                <input type="email" id="login-email" class="input" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="login-password">Senha:</label>
+                                <input type="password" id="login-password" class="input" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-full">Entrar</button>
+                        </form>
+                        
+                        <p class="auth-link">
+                            Não tem conta? <a href="#register" data-route>Cadastre-se grátis</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DASHBOARD SECTION -->
+        <section id="dashboard" class="section">
+            <div class="container">
+                <div class="dashboard-header">
+                    <div class="user-info">
+                        <h2>Área do Assinante</h2>
+                        <div class="user-details">
+                            <span id="user-email">—</span>
+                            <span id="trial-status" class="trial-badge">—</span>
+                        </div>
+                    </div>
+                    <button id="logout-btn" class="btn btn-ghost">Sair</button>
+                </div>
+
+                <!-- PAYWALL -->
+                <div id="paywall" class="paywall hidden">
+                    <div class="paywall-content">
+                        <h3>🔒 Acesso Expirado</h3>
+                        <p>Seu período gratuito de 30 dias expirou.</p>
+                        <div class="pricing">
+                            <h4>Assinar — PIX</h4>
+                            <p>Use a chave (CPF) <strong>388.335.408-20</strong></p>
+                            <p>Valor: <strong>R$ 39,90/mês</strong></p>
+                            <button id="confirm-payment" class="btn btn-primary">
+                                Confirmar Pagamento (Simulação)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DASHBOARD CONTENT -->
+                <div id="dashboard-content" class="dashboard-content hidden">
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <h3>📊 Palpites de Hoje</h3>
+                            <div id="today-tips" class="tips-list">
+                                <div class="tip-item">
+                                    <span class="tip-match">Carregando palpites...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <h3>🫧 Snapshot</h3>
+                            <canvas id="mini-canvas" width="400" height="300"></canvas>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <h3>📈 Estatísticas</h3>
+                            <div class="stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Palpites Hoje:</span>
+                                    <span class="stat-value" id="tips-count">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Última Atualização:</span>
+                                    <span class="stat-value" id="last-update">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p><strong>BUBLES</strong> — conteúdo educacional. Jogue com responsabilidade.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
