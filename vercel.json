@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "next build",
   "installCommand": "npm install",
+  "buildCommand": "next build",
   "framework": "nextjs",
   "outputDirectory": ".next",
-  "rootDirectory": "."
+  "redirects": [
+    { "source": "https://www.bubles.com.br/(.*)", "destination": "https://bubles.com.br/$1", "permanent": true }
+  ]
 }
