@@ -1,0 +1,54 @@
+{
+  "teams": {
+    "Flamengo": {
+      "attack": 1.65,
+      "defense": 0.85
+    },
+    "Palmeiras": {
+      "attack": 1.55,
+      "defense": 0.8
+    },
+    "Corinthians": {
+      "attack": 1.2,
+      "defense": 0.95
+    },
+    "Santos": {
+      "attack": 1.3,
+      "defense": 1.05
+    },
+    "Vasco": {
+      "attack": 1.1,
+      "defense": 1.1
+    },
+    "Botafogo": {
+      "attack": 1.4,
+      "defense": 0.95
+    }
+  },
+  "matches": [
+    {
+      "id": "bra-1",
+      "league": "Brasileirão A",
+      "venue": "Maracanã",
+      "kickoff": "2025-08-27T18:00:00-03:00",
+      "home": "Flamengo",
+      "away": "Vasco"
+    },
+    {
+      "id": "bra-2",
+      "league": "Brasileirão A",
+      "venue": "Allianz Parque",
+      "kickoff": "2025-08-27T20:30:00-03:00",
+      "home": "Palmeiras",
+      "away": "Corinthians"
+    },
+    {
+      "id": "bra-3",
+      "league": "Brasileirão A",
+      "venue": "Vila Belmiro",
+      "kickoff": "2025-08-27T22:00:00-03:00",
+      "home": "Santos",
+      "away": "Botafogo"
+    }
+  ]
+}
