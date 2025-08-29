@@ -1,62 +1,49 @@
-// /api/footy.js  -> lista TODOS os jogos do dia, com uma confiança simples
-const RAPID = process.env.RAPIDAPI_KEY;
-const HOST  = 'v3.football.api-sports.io';
-const BASE  = `https://${HOST}`;
+// /api/footy.js
+const BASE = 'https://api-football-v1.p.rapidapi.com/v3';
 
-export default async function handler(req, res) {
-  const iso = (req.query.date || new Date().toISOString().slice(0,10));
-
+module.exports = async (req, res) => {
   try {
-    if (!RAPID) {
-      return res.status(200).json({ source:'demo', note:'Sem RAPIDAPI_KEY', matches:[] });
+    const key = process.env.RAPIDAPI_KEY || '';
+    const headers = key ? {
+      'X-RapidAPI-Key': key,
+      'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+    } : {};
+
+    // data no formato YYYY-MM-DD
+    const iso = (req.query?.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date))
+      ? req.query.date
+      : new Date().toISOString().slice(0,10);
+
+    if (!key) {
+      // Sem chave → não quebra o front
+      return res.status(200).json({ source:'api', date: iso, matches: [] });
     }
 
-    const fixtures = await apiJson(`/fixtures?date=${iso}`);
-    const list = (fixtures?.response ?? []).map(fx => toMatch(fx));
+    const url = `${BASE}/fixtures?date=${iso}&timezone=UTC`;
+    const r = await fetch(url, { headers });
+    const j = await r.json();
 
-    // “confiança” simples: mais conhecida liga => mais confiança
-    for (const m of list) m.confidence = leagueWeight(m.league.id) * 0.75;
+    if (!r.ok) {
+      const msg = j?.message || j?.errors?.[0] || 'Erro API';
+      return res.status(500).json({ source:'api', error: msg });
+    }
 
-    res.status(200).json({ source:'api', date: iso, matches: list });
-  } catch (err) {
-    console.error('[footy] error:', err);
-    res.status(200).json({ source:'error', error: String(err?.message || err) });
+    const matches = (j.response || []).map(x => {
+      const fx = x.fixture || {};
+      const lg = x.league || {};
+      const t  = x.teams  || {};
+      return {
+        id: fx.id,
+        timestamp: fx.timestamp,
+        league: { id: lg.id, name: lg.name, country: lg.country, season: lg.season },
+        home: { id: t.home?.id, name: t.home?.name, logo: t.home?.logo },
+        away: { id: t.away?.id, name: t.away?.name, logo: t.away?.logo }
+        // marketProb / prob podem ser acrescentadas se você ativar endpoint de odds
+      };
+    });
+
+    return res.status(200).json({ source:'api', date: iso, matches });
+  } catch(err) {
+    return res.status(500).json({ source:'api', error: String(err?.message || err) });
   }
-}
-
-// -------- helpers
-function toMatch(fx) {
-  const fixture = fx.fixture || {};
-  const league  = fx.league || {};
-  const teams   = fx.teams || {};
-  return {
-    id: fixture.id,
-    kickoff_ts: Math.floor((fixture.timestamp || Date.now()/1000)),
-    league: { id: league.id, name: league.name, country: league.country },
-    home: { id: teams.home?.id, name: teams.home?.name },
-    away: { id: teams.away?.id, name: teams.away?.name }
-  };
-}
-
-function leagueWeight(leagueId) {
-  if (!leagueId) return 0.3;
-  // pesos simples por ligas populares (ajuste como quiser)
-  const top = new Set([39,140,135,78,61,2,3,4,5,94,848]); // EPL, LaLiga, Serie A, Bundesliga, Ligue 1, etc
-  if (top.has(leagueId)) return 0.95;
-  return 0.55;
-}
-
-async function apiJson(path) {
-  const r = await fetch(`${BASE}${path}`, {
-    headers: {
-      'x-rapidapi-key': RAPID,
-      'x-rapidapi-host': HOST
-    },
-    cache: 'no-store'
-  });
-  if (!r.ok) {
-    const t = await r.text().catch(()=> '');
-    throw new Error(`API ${path} -> ${r.status} ${r.statusText} ${t}`);
-  }
-  return r.json();
-}
+};
