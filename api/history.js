@@ -1,43 +1,95 @@
-// api/history.js — últimas 10 partidas + H2H — CommonJS
-const RAPID_KEY = process.env.RAPIDAPI_KEY;
-const HOST = "api-football-v1.p.rapidapi.com";
-const BASE = `https://${HOST}/v3`;
-const H = { "x-rapidapi-key": RAPID_KEY || "", "x-rapidapi-host": HOST };
+// /api/history.js  -> últimos 10 jogos mandante/visitante + H2H
+const RAPID = process.env.RAPIDAPI_KEY;
+const HOST  = 'v3.football.api-sports.io';
+const BASE  = `https://${HOST}`;
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
+  const homeId = Number(req.query.home);
+  const awayId = Number(req.query.away);
+
   try {
-    const homeId = Number(req.query.home);
-    const awayId = Number(req.query.away);
     if (!homeId || !awayId) {
-      return res.status(200).json({ source: "error", error: "Use ?home=<id>&away=<id>" });
+      return res.status(200).json({ source:'error', error:'Use ?home=<id>&away=<id>' });
     }
-    if (!RAPID_KEY) {
-      return res.status(200).json({
-        source: "demo",
-        note: "Sem RAPIDAPI_KEY",
-        home: { games: 10, W:5, D:2, L:3, winRate:0.5, goalsForAvg:1.6, goalsAgstAvg:1.2 },
-        away: { games: 10, W:4, D:3, L:3, winRate:0.4, goalsForAvg:1.3, goalsAgstAvg:1.1 },
-        h2h : { games: 6, homeW: 2, draws: 2, awayW: 2 }
-      });
+    if (!RAPID) {
+      return res.status(200).json({ source:'demo', note:'Sem RAPIDAPI_KEY', home:{}, away:{}, h2h:{} });
     }
 
-    const [homeJ, awayJ, h2hJ] = await Promise.allSettled([
-      j(`${BASE}/fixtures?team=${homeId}&last=10`),
-      j(`${BASE}/fixtures?team=${awayId}&last=10`),
-      j(`${BASE}/fixtures/headtohead?h2h=${homeId}-${awayId}&last=10`)
+    const [home, away, h2h] = await Promise.allSettled([
+      apiJson(`/fixtures?team=${homeId}&last=10`),
+      apiJson(`/fixtures?team=${awayId}&last=10`),
+      apiJson(`/fixtures/headtohead?h2h=${homeId}-${awayId}&last=10`)
     ]);
 
-    const home = summarizeMatches(homeJ.status === "fulfilled" ? (homeJ.value?.response || []) : [], homeId);
-    const away = summarizeMatches(awayJ.status === "fulfilled" ? (awayJ.value?.response || []) : [], awayId);
-    const h2h  = summarizeH2H(h2hJ.status  === "fulfilled" ? (h2hJ.value?.response  || []) : [], homeId);
+    const homeList = ok(home)?.response ?? [];
+    const awayList = ok(away)?.response ?? [];
+    const  h2hList = ok(h2h)?.response ?? [];
 
-    return res.status(200).json({ source:"api", home, away, h2h });
+    const summary = {
+      home: summarize(homeList, homeId),
+      away: summarize(awayList, awayId),
+      h2h : summarizeH2H(h2hList, homeId)
+    };
+
+    res.status(200).json({ source:'api', ...summary });
   } catch (err) {
-    return res.status(200).json({ source: "error", error: String(err?.message || err) });
+    console.error('[history] error:', err);
+    res.status(200).json({ source:'error', error:String(err?.message||err) });
   }
-};
+}
 
-/* helpers */
-async function j(url){ const r = await fetch(url, { headers: H, next: { revalidate: 0 } }); if (!r.ok){ let t=""; try{ t=await r.text(); }catch{} throw new Error(`HTTP ${r.status} – ${t.slice(0,180)}`); } return r.json(); }
-function summarizeMatches(list, myId){ let W=0,D=0,L=0,gf=0,ga=0; for(const f of list){ const hs=Number(f.goals?.home ?? f.score?.fulltime?.home ?? 0); const as=Number(f.goals?.away ?? f.score?.fulltime?.away ?? 0); const isHome = (f.teams?.home?.id === myId); const my = isHome?hs:as; const op=isHome?as:hs; if(my>op)W++; else if(my===op)D++; else L++; gf+=my; ga+=op; } const n=list.length||1; return { games:list.length, W,D,L, winRate:+(W/n).toFixed(2), goalsForAvg:+(gf/n).toFixed(2), goalsAgstAvg:+(ga/n).toFixed(2) }; }
-function summarizeH2H(list, homeId){ let homeW=0,draws=0,awayW=0; for(const f of list){ const hs=Number(f.goals?.home ?? f.score?.fulltime?.home ?? 0); const as=Number(f.goals?.away ?? f.score?.fulltime?.away ?? 0); if(hs===as){draws++;continue;} const isHome=(f.teams?.home?.id===homeId); const homeWon = hs>as; if((isHome&&homeWon)||(!isHome&&!homeWon)) homeW++; else awayW++; } return { games:list.length, homeW, draws, awayW }; }
+// -------- helpers
+function ok(p) { return p && p.status === 'fulfilled' ? p.value : null; }
+
+function summarize(list, teamId) {
+  let W=0,D=0,L=0, gf=0, ga=0, n=0;
+  for (const item of list) {
+    const t = item.teams || {};
+    const s = item.goals || {};
+    const isHome = t.home?.id === teamId;
+    const goalsFor  = isHome ? s.home ?? 0 : s.away ?? 0;
+    const goalsAgst = isHome ? s.away ?? 0 : s.home ?? 0;
+    gf += goalsFor; ga += goalsAgst;
+    if (goalsFor > goalsAgst) W++; else if (goalsFor === goalsAgst) D++; else L++;
+    n++;
+  }
+  return {
+    games: n, W, D, L,
+    winRate: n ? +(W/n).toFixed(2) : 0,
+    goalsForAvg: n ? +(gf/n).toFixed(2) : 0,
+    goalsAgstAvg: n ? +(ga/n).toFixed(2) : 0
+  };
+}
+
+function summarizeH2H(list, homeId) {
+  let homeW=0, draws=0, awayW=0, n=0;
+  for (const item of list) {
+    const t = item.teams || {};
+    const g = item.goals || {};
+    const gh = g.home ?? 0, ga = g.away ?? 0;
+    const isHomeHomeTeam = t.home?.id === homeId; // se o time A está como mandante nesse jogo
+    if (gh === ga) draws++;
+    else {
+      const homeWinner = gh > ga;
+      if (homeWinner === isHomeHomeTeam) homeW++;
+      else awayW++;
+    }
+    n++;
+  }
+  return { games:n, homeW, draws, awayW };
+}
+
+async function apiJson(path) {
+  const r = await fetch(`${BASE}${path}`, {
+    headers: {
+      'x-rapidapi-key': RAPID,
+      'x-rapidapi-host': HOST
+    },
+    cache: 'no-store'
+  });
+  if (!r.ok) {
+    const t = await r.text().catch(()=> '');
+    throw new Error(`API ${path} -> ${r.status} ${r.statusText} ${t}`);
+  }
+  return r.json();
+}
