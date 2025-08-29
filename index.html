@@ -1,32 +1,31 @@
 <!doctype html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BUBLES — Palpites em Bolhas</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <header class="topbar">
-    <h1>BUBLES — Palpites em Bolhas</h1>
+    <h1>🫧 BUBLES — Palpites em Bolhas</h1>
+    <div class="controls">
+      <label>Data:
+        <input id="date-input" type="date" />
+      </label>
+      <button id="refresh-btn">Atualizar</button>
+    </div>
   </header>
 
-  <main class="container">
-    <section class="controls">
-      <label>Data:
-        <input id="date" type="date" />
-      </label>
-      <button id="reload">Atualizar</button>
-      <span id="status">Carregando...</span>
-    </section>
-
-    <section id="bubbles" class="bubbles"></section>
+  <main class="main">
+    <section id="status" class="status">Carregando...</section>
+    <section id="bubbles" class="bubble-grid" hidden></section>
   </main>
 
   <footer class="foot">
-    <small>Dados em tempo real via API-Football (RapidAPI)</small>
+    <small>Dados ao vivo via API-Football (RapidAPI). Este é um protótipo didático.</small>
   </footer>
 
-  <script src="/script.js"></script>
+  <script src="/script.js" defer></script>
 </body>
 </html>
