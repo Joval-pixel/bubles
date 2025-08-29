@@ -4,28 +4,35 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BUBLES — Palpites em Bolhas</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header class="topbar">
-    <h1>🫧 BUBLES — Palpites em Bolhas</h1>
-    <div class="controls">
-      <label>Data:
-        <input id="date-input" type="date" />
+    <h1>BUBLES — Palpites em Bolhas</h1>
+    <div class="filters">
+      <label>
+        Data:
+        <input id="dateInput" type="date" />
       </label>
-      <button id="refresh-btn">Atualizar</button>
+      <button id="reloadBtn">Atualizar</button>
     </div>
   </header>
 
-  <main class="main">
-    <section id="status" class="status">Carregando...</section>
-    <section id="bubbles" class="bubble-grid" hidden></section>
+  <main class="content">
+    <section class="legend">
+      <span class="dot green"></span> maior probabilidade
+      <span class="dot gray"></span> menor probabilidade
+    </section>
+
+    <section id="status" class="status">Carregando…</section>
+
+    <section id="bubbles" class="bubbles" aria-live="polite"></section>
   </main>
 
   <footer class="foot">
-    <small>Dados ao vivo via API-Football (RapidAPI). Este é um protótipo didático.</small>
+    <small>Odds → probabilidade implícita; tamanho = confiança</small>
   </footer>
 
-  <script src="/script.js" defer></script>
+  <script src="./script.js" defer></script>
 </body>
 </html>
