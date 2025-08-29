@@ -1,95 +1,92 @@
-// /api/history.js  -> últimos 10 jogos mandante/visitante + H2H
-const RAPID = process.env.RAPIDAPI_KEY;
-const HOST  = 'v3.football.api-sports.io';
-const BASE  = `https://${HOST}`;
+// /api/history.js
+const RAPID_KEY = process.env.RAPIDAPI_KEY || '';
+const HOST = 'api-football-v1.p.rapidapi.com';
+const BASE = `https://${HOST}/v3`;
 
-export default async function handler(req, res) {
-  const homeId = Number(req.query.home);
-  const awayId = Number(req.query.away);
+const headers = RAPID_KEY ? {
+  'X-RapidAPI-Key': RAPID_KEY,
+  'X-RapidAPI-Host': HOST
+} : {};
 
-  try {
-    if (!homeId || !awayId) {
-      return res.status(200).json({ source:'error', error:'Use ?home=<id>&away=<id>' });
-    }
-    if (!RAPID) {
-      return res.status(200).json({ source:'demo', note:'Sem RAPIDAPI_KEY', home:{}, away:{}, h2h:{} });
-    }
-
-    const [home, away, h2h] = await Promise.allSettled([
-      apiJson(`/fixtures?team=${homeId}&last=10`),
-      apiJson(`/fixtures?team=${awayId}&last=10`),
-      apiJson(`/fixtures/headtohead?h2h=${homeId}-${awayId}&last=10`)
-    ]);
-
-    const homeList = ok(home)?.response ?? [];
-    const awayList = ok(away)?.response ?? [];
-    const  h2hList = ok(h2h)?.response ?? [];
-
-    const summary = {
-      home: summarize(homeList, homeId),
-      away: summarize(awayList, awayId),
-      h2h : summarizeH2H(h2hList, homeId)
-    };
-
-    res.status(200).json({ source:'api', ...summary });
-  } catch (err) {
-    console.error('[history] error:', err);
-    res.status(200).json({ source:'error', error:String(err?.message||err) });
-  }
+async function fetchJson(url) {
+  const r = await fetch(url, { headers });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
 }
 
-// -------- helpers
-function ok(p) { return p && p.status === 'fulfilled' ? p.value : null; }
-
-function summarize(list, teamId) {
-  let W=0,D=0,L=0, gf=0, ga=0, n=0;
-  for (const item of list) {
-    const t = item.teams || {};
-    const s = item.goals || {};
-    const isHome = t.home?.id === teamId;
-    const goalsFor  = isHome ? s.home ?? 0 : s.away ?? 0;
-    const goalsAgst = isHome ? s.away ?? 0 : s.home ?? 0;
-    gf += goalsFor; ga += goalsAgst;
-    if (goalsFor > goalsAgst) W++; else if (goalsFor === goalsAgst) D++; else L++;
-    n++;
+function summarize(list) {
+  let W=0, D=0, L=0, gf=0, ga=0;
+  for (const fx of list) {
+    const s = fx.goals || {};
+    const home = fx.teams?.home?.id === fx.teamIdRef;
+    const gfThis = home ? s.home : s.away;
+    const gaThis = home ? s.away : s.home;
+    gf += +gfThis || 0; ga += +gaThis || 0;
+    if (+gfThis > +gaThis) W++;
+    else if (+gfThis === +gaThis) D++;
+    else L++;
   }
+  const n = list.length || 1;
   return {
-    games: n, W, D, L,
-    winRate: n ? +(W/n).toFixed(2) : 0,
-    goalsForAvg: n ? +(gf/n).toFixed(2) : 0,
-    goalsAgstAvg: n ? +(ga/n).toFixed(2) : 0
+    games: list.length,
+    W, D, L,
+    winRate: +(W/n).toFixed(2),
+    goalsForAvg: +(gf/n).toFixed(2),
+    goalsAgstAvg: +(ga/n).toFixed(2)
   };
 }
 
-function summarizeH2H(list, homeId) {
-  let homeW=0, draws=0, awayW=0, n=0;
-  for (const item of list) {
-    const t = item.teams || {};
-    const g = item.goals || {};
-    const gh = g.home ?? 0, ga = g.away ?? 0;
-    const isHomeHomeTeam = t.home?.id === homeId; // se o time A está como mandante nesse jogo
-    if (gh === ga) draws++;
-    else {
-      const homeWinner = gh > ga;
-      if (homeWinner === isHomeHomeTeam) homeW++;
-      else awayW++;
-    }
-    n++;
+function summarizeH2H(list, homeId, awayId) {
+  let homeW=0, draws=0, awayW=0;
+  for (const fx of list) {
+    const h = fx.teams?.home?.id;
+    const a = fx.teams?.away?.id;
+    const gh = fx.goals?.home ?? 0;
+    const ga = fx.goals?.away ?? 0;
+    if (gh === ga) { draws++; continue; }
+    const winnerIsHome = gh > ga;
+    if (winnerIsHome && h === homeId) homeW++;
+    if (!winnerIsHome && a === awayId) awayW++;
   }
-  return { games:n, homeW, draws, awayW };
+  return { games: list.length, homeW, draws, awayW };
 }
 
-async function apiJson(path) {
-  const r = await fetch(`${BASE}${path}`, {
-    headers: {
-      'x-rapidapi-key': RAPID,
-      'x-rapidapi-host': HOST
-    },
-    cache: 'no-store'
-  });
-  if (!r.ok) {
-    const t = await r.text().catch(()=> '');
-    throw new Error(`API ${path} -> ${r.status} ${r.statusText} ${t}`);
+module.exports = async (req, res) => {
+  try {
+    const homeId = Number(req.query?.home);
+    const awayId = Number(req.query?.away);
+    if (!homeId || !awayId) {
+      return res.status(200).json({ source:'error', error:'Use ?home=<id>&away=<id>' });
+    }
+
+    if (!RAPID_KEY) {
+      return res.status(200).json({
+        source: 'demo',
+        home: { games:0, W:0, D:0, L:0, winRate:0, goalsForAvg:0, goalsAgstAvg:0 },
+        away: { games:0, W:0, D:0, L:0, winRate:0, goalsForAvg:0, goalsAgstAvg:0 },
+        h2h:  { games:0, homeW:0, draws:0, awayW:0 }
+      });
+    }
+
+    const last = 10;
+
+    const [homeFx, awayFx, h2hFx] = await Promise.all([
+      fetchJson(`${BASE}/fixtures?team=${homeId}&last=${last}`),
+      fetchJson(`${BASE}/fixtures?team=${awayId}&last=${last}`),
+      fetchJson(`${BASE}/fixtures/headtohead?h2h=${homeId}-${awayId}&last=${last}`)
+    ]);
+
+    const homeList = (homeFx?.response || []).map(x => ({...x, teamIdRef: homeId}));
+    const awayList = (awayFx?.response || []).map(x => ({...x, teamIdRef: awayId}));
+    const h2hList  = (h2hFx?.response || []);
+
+    return res.status(200).json({
+      source: 'api',
+      home: summarize(homeList),
+      away: summarize(awayList),
+      h2h : summarizeH2H(h2hList, homeId, awayId)
+    });
+  } catch (err) {
+    return res.status(200).json({ source:'error', error: String(err?.message || err) });
   }
-  return r.json();
-}
+};
