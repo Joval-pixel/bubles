@@ -4,11 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BUBLES — Palpites em Bolhas</title>
-  <link rel="stylesheet" href="./style.css" />
+
+  <!-- CSS estático servido pelo filesystem -->
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <header class="topbar">
-    <h1>BUBLES — Palpites em Bolhas</h1>
+    <h1>🫧 BUBLES — Palpites em Bolhas</h1>
+
     <div class="filters">
       <label>
         Data:
@@ -24,15 +27,18 @@
       <span class="dot gray"></span> menor probabilidade
     </section>
 
+    <!-- Mensagens de estado -->
     <section id="status" class="status">Carregando…</section>
 
+    <!-- Grade das bolhas -->
     <section id="bubbles" class="bubbles" aria-live="polite"></section>
   </main>
 
   <footer class="foot">
-    <small>Odds → probabilidade implícita; tamanho = confiança</small>
+    <small>Dados via API-Football (RapidAPI). Protótipo didático.</small>
   </footer>
 
-  <script src="./script.js?v=2" defer></script>
+  <!-- JS estático: caminho ABSOLUTO + cache-buster -->
+  <script src="/script.js?v=4" defer></script>
 </body>
 </html>
