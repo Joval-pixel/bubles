@@ -1,0 +1,36 @@
+{
+  "name": "bubles-palpites",
+  "version": "2.0.0",
+  "description": "Visualização de palpites esportivos em bolhas estilo CryptoBubbles",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 3000",
+    "build": "echo 'Build completed - static files ready'",
+    "start": "python3 -m http.server 8080",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "futebol",
+    "palpites",
+    "bolhas",
+    "apostas",
+    "odds",
+    "cryptobubbles",
+    "visualização",
+    "esportes",
+    "probabilidades"
+  ],
+  "author": "Bubles Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seu-usuario/bubles-palpites.git"
+  },
+  "homepage": "https://bubles.com.br",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
+
