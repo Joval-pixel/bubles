@@ -5,26 +5,30 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>BUBLES — Palpites em Bolhas</title>
   <link rel="stylesheet" href="/style.css" />
-  <meta name="description" content="BUBLES — Palpites em Bolhas: próximos jogos, previsões e dicas." />
+  <meta name="description" content="BUBLES — Palpites em Bolhas com visual de bolhas estilo CryptoBubbles." />
 </head>
 <body>
   <header class="topbar">
     <h1>BUBLES — Palpites em Bolhas</h1>
-    <a class="badge" href="https://rapidapi.com/api-sports/api/api-football/" target="_blank" rel="noreferrer">API-Football via RapidAPI</a>
+    <nav class="tabs">
+      <button class="tab active" data-view="bubbles">Bolhas</button>
+      <button class="tab" data-view="lista">Lista</button>
+    </nav>
   </header>
 
   <main class="container">
+
     <!-- FILTROS -->
     <section class="panel">
       <form id="filters" class="filters" autocomplete="off">
         <div class="row">
           <label>
             Próximos:
-            <input type="number" name="next" min="1" max="50" value="20" />
+            <input type="number" name="next" min="1" max="40" value="20" />
           </label>
           <label>
             Liga (ID):
-            <input type="number" name="league" placeholder="ex.: 71 (Serie B)" />
+            <input type="number" name="league" placeholder="ex.: 71" />
           </label>
           <label>
             Temporada:
@@ -40,22 +44,31 @@
           </label>
           <button id="btnLoad" type="submit">Atualizar</button>
         </div>
-        <small class="hint">Dica: deixe “Liga” em branco para ver os próximos jogos globais. Clique em um jogo para ver as previsões.</small>
+        <small class="hint">Clique numa bolha para abrir as previsões. Tamanho = confiança do vencedor; Verde = casa, Vermelho = visitante, Cinza = empate.</small>
       </form>
     </section>
 
     <!-- STATUS -->
     <p id="status" class="status"></p>
 
-    <section class="grid">
-      <div class="col">
-        <h2>Próximos jogos</h2>
-        <ul id="fixtures" class="list"></ul>
+    <section class="main-grid">
+      <!-- ÁREA DE BOLHAS -->
+      <div class="stage-wrap">
+        <div id="stage" class="stage" aria-label="bolhas"></div>
+        <div id="tooltip" class="tooltip" hidden></div>
       </div>
 
-      <div class="col">
-        <h2>Previsões</h2>
-        <div id="picks" class="picks"></div>
+      <!-- LADO DIREITO: LISTA/PICKS -->
+      <div class="side">
+        <div class="side-card">
+          <h2>Previsões</h2>
+          <div id="picks"></div>
+        </div>
+
+        <div class="side-card">
+          <h2>Próximos jogos</h2>
+          <ul id="fixtures" class="list"></ul>
+        </div>
       </div>
     </section>
   </main>
