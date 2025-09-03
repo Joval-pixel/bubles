@@ -3,454 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BUBLES — Palpites em Bolhas</title>
-    <meta name="description" content="Visualização de palpites esportivos em bolhas estilo CryptoBubbles">
-    <style>
-        /* CSS inline para evitar problemas de carregamento */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-dark: #0a0e1a;
-            --bg-darker: #050810;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a9c0;
-            --bubble-green: #00ff88;
-            --bubble-red: #ff4757;
-            --bubble-blue: #3742fa;
-            --bubble-gold: #ffa502;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background: radial-gradient(ellipse at center, var(--bg-dark) 0%, var(--bg-darker) 100%);
-            color: var(--text-primary);
-            overflow: hidden;
-            height: 100vh;
-        }
-
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: rgba(10, 14, 26, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--bubble-green), var(--bubble-blue));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 18px;
-            color: var(--bg-dark);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
-        }
-
-        .brand h1 {
-            font-size: 24px;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--bubble-green), var(--bubble-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .main-canvas {
-            position: fixed;
-            top: 60px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(ellipse at center, #0f1419 0%, #050810 100%);
-        }
-
-        #canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            cursor: pointer;
-        }
-
-        .controls {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: rgba(26, 31, 46, 0.9);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 16px;
-            z-index: 100;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            background: linear-gradient(135deg, var(--bubble-green), #00cc66);
-            border: none;
-            border-radius: 8px;
-            color: var(--bg-dark);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
-        }
-
-        .stats {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(26, 31, 46, 0.9);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 16px;
-            z-index: 100;
-        }
-
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .stat-value {
-            color: var(--bubble-green);
-            font-weight: 600;
-        }
-
-        .loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            z-index: 2000;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top: 4px solid var(--bubble-green);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        @media (max-width: 768px) {
-            .controls, .stats {
-                position: relative;
-                margin: 10px;
-            }
-            
-            .main-canvas {
-                top: 80px;
-            }
-        }
-    </style>
+    <title>BUBLES — Palpites em Bolhas (Tela Cheia)</title>
+    <meta name="description" content="Visualização em tela cheia de palpites esportivos com escudos, horários e resultados">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- HEADER COMPACTO -->
     <header class="header">
-        <div class="brand">
-            <div class="logo">B</div>
-            <h1>BUBLES</h1>
+        <div class="header-content">
+            <div class="brand">
+                <div class="logo">B</div>
+                <div class="brand-text">
+                    <h1>BUBLES</h1>
+                    <span>Palpites em Tempo Real</span>
+                </div>
+            </div>
+            
+            <div class="header-controls">
+                <div class="control-group">
+                    <label>Mercado:</label>
+                    <select id="market-select" class="select-compact">
+                        <option value="over_under">Over/Under 2.5</option>
+                        <option value="1x2">Resultado Final</option>
+                        <option value="both_teams">Ambos Marcam</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Liga:</label>
+                    <select id="league-filter" class="select-compact">
+                        <option value="">Todas as Ligas</option>
+                        <option value="brasileirao">Brasileirão</option>
+                        <option value="premier">Premier League</option>
+                        <option value="laliga">La Liga</option>
+                        <option value="seriea">Serie A</option>
+                        <option value="bundesliga">Bundesliga</option>
+                        <option value="ligue1">Ligue 1</option>
+                        <option value="champions">Champions League</option>
+                        <option value="libertadores">Libertadores</option>
+                    </select>
+                </div>
+                
+                <button id="refresh-btn" class="btn-refresh">
+                    <span class="refresh-icon">⟳</span>
+                    Atualizar
+                </button>
+            </div>
+            
+            <div class="header-info">
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    AO VIVO
+                </div>
+                <div class="update-time" id="last-update">Carregando...</div>
+            </div>
         </div>
     </header>
 
+    <!-- TELA CHEIA DE BOLHAS -->
     <main class="main-canvas">
-        <canvas id="canvas"></canvas>
+        <canvas id="fullscreen-canvas"></canvas>
+        
+        <!-- OVERLAY DE INFORMAÇÕES -->
+        <div class="info-overlay">
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <span class="stat-number" id="total-matches">0</span>
+                    <span class="stat-label">Jogos Hoje</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="high-confidence">0</span>
+                    <span class="stat-label">Alta Confiança</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="live-matches">0</span>
+                    <span class="stat-label">Ao Vivo</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- LEGENDA -->
+        <div class="legend">
+            <h3>Legenda das Bolhas</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-bubble large green"></div>
+                    <span>Alta Probabilidade (70%+)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-bubble medium blue"></div>
+                    <span>Média Probabilidade (50-70%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-bubble small red"></div>
+                    <span>Baixa Probabilidade (30-50%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-bubble pulse gold"></div>
+                    <span>Jogo Importante / Destaque</span>
+                </div>
+            </div>
+        </div>
     </main>
 
-    <div class="controls">
-        <button class="btn" onclick="refreshBubbles()">🔄 Atualizar</button>
+    <!-- MODAL DE DETALHES DO JOGO -->
+    <div id="match-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Detalhes do Jogo</h2>
+                <button class="modal-close" id="close-modal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="match-info">
+                    <div class="teams">
+                        <div class="team">
+                            <div id="home-shield" class="team-shield-emoji">🏠</div>
+                            <span id="home-team">Time Casa</span>
+                        </div>
+                        <div class="vs">VS</div>
+                        <div class="team">
+                            <div id="away-shield" class="team-shield-emoji">✈️</div>
+                            <span id="away-team">Time Visitante</span>
+                        </div>
+                    </div>
+                    
+                    <div class="match-details">
+                        <div class="detail-item">
+                            <span class="label">Horário:</span>
+                            <span id="match-time">--:--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Liga:</span>
+                            <span id="match-league">Liga</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Probabilidade:</span>
+                            <span id="match-probability">--%</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Confiança:</span>
+                            <span id="match-confidence">--%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="odds-section">
+                    <h3>Odds e Mercados</h3>
+                    <div class="odds-grid" id="odds-grid">
+                        <!-- Odds serão inseridas dinamicamente -->
+                    </div>
+                </div>
+                
+                <div class="analysis-section">
+                    <h3>Análise Rápida</h3>
+                    <div class="analysis-content" id="analysis-content">
+                        <p>Carregando análise...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="stats">
-        <div class="stat-item">
-            <span>Jogos:</span>
-            <span class="stat-value" id="total-games">0</span>
-        </div>
-        <div class="stat-item">
-            <span>Alta Confiança:</span>
-            <span class="stat-value" id="high-confidence">0</span>
-        </div>
-        <div class="stat-item">
-            <span>Ao Vivo:</span>
-            <span class="stat-value" id="live-games">0</span>
+    <!-- PAINEL DE CONTROLE AVANÇADO (TOGGLE) -->
+    <div class="control-panel" id="control-panel">
+        <button class="panel-toggle" id="panel-toggle">⚙️</button>
+        
+        <div class="panel-content">
+            <h3>Controles Avançados</h3>
+            
+            <div class="control-section">
+                <label>Tamanho das Bolhas:</label>
+                <input type="range" id="bubble-size" min="0.5" max="2" step="0.1" value="1">
+            </div>
+            
+            <div class="control-section">
+                <label>Velocidade da Animação:</label>
+                <input type="range" id="animation-speed" min="0.1" max="3" step="0.1" value="1">
+            </div>
+            
+            <div class="control-section">
+                <label>Filtro por Probabilidade:</label>
+                <input type="range" id="probability-filter" min="0" max="100" step="5" value="0">
+                <span id="probability-value">0%+</span>
+            </div>
+            
+            <div class="control-section">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="show-shields" checked>
+                    Mostrar Escudos
+                </label>
+            </div>
+            
+            <div class="control-section">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="show-time" checked>
+                    Mostrar Horários
+                </label>
+            </div>
+            
+            <div class="control-section">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="show-odds" checked>
+                    Mostrar Odds
+                </label>
+            </div>
+            
+            <div class="control-section">
+                <button class="btn-reset" id="reset-view">Resetar Visualização</button>
+            </div>
         </div>
     </div>
 
-    <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <p>Carregando palpites...</p>
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Carregando jogos de hoje...</p>
+        </div>
     </div>
 
-    <script>
-        // JavaScript inline para evitar problemas de carregamento
-        const CONFIG = {
-            BUBBLE_COUNT: 25,
-            MIN_SIZE: 25,
-            MAX_SIZE: 80,
-            COLORS: {
-                GREEN: { light: '#00ff88', dark: '#00cc66' },
-                RED: { light: '#ff4757', dark: '#ff3742' },
-                BLUE: { light: '#3742fa', dark: '#2f3542' },
-                GOLD: { light: '#ffa502', dark: '#ff6348' }
-            }
-        };
-
-        class Bubble {
-            constructor(data, canvas) {
-                this.data = data;
-                this.canvas = canvas;
-                this.x = Math.random() * (canvas.width - 100) + 50;
-                this.y = Math.random() * (canvas.height - 100) + 50;
-                this.vx = (Math.random() - 0.5) * 2;
-                this.vy = (Math.random() - 0.5) * 2;
-                this.radius = CONFIG.MIN_SIZE + (data.importance * (CONFIG.MAX_SIZE - CONFIG.MIN_SIZE));
-                this.color = this.getColor();
-            }
-
-            getColor() {
-                if (this.data.status === 'LIVE') return CONFIG.COLORS.GOLD;
-                if (this.data.bias > 0.3) return CONFIG.COLORS.GREEN;
-                if (this.data.bias < -0.3) return CONFIG.COLORS.RED;
-                return CONFIG.COLORS.BLUE;
-            }
-
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-
-                if (this.x <= this.radius || this.x >= this.canvas.width - this.radius) {
-                    this.vx *= -0.8;
-                    this.x = Math.max(this.radius, Math.min(this.canvas.width - this.radius, this.x));
-                }
-
-                if (this.y <= this.radius || this.y >= this.canvas.height - this.radius) {
-                    this.vy *= -0.8;
-                    this.y = Math.max(this.radius, Math.min(this.canvas.height - this.radius, this.y));
-                }
-
-                this.vx *= 0.995;
-                this.vy *= 0.995;
-            }
-
-            draw(ctx) {
-                const gradient = ctx.createRadialGradient(
-                    this.x - this.radius * 0.3, this.y - this.radius * 0.3, 0,
-                    this.x, this.y, this.radius
-                );
-                gradient.addColorStop(0, this.color.light);
-                gradient.addColorStop(1, this.color.dark);
-
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = gradient;
-                ctx.fill();
-
-                ctx.strokeStyle = this.color.light + '80';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                // Texto
-                ctx.fillStyle = 'white';
-                ctx.font = `bold ${Math.max(10, this.radius * 0.15)}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-
-                const homeShort = this.data.homeTeam.substring(0, 6);
-                const awayShort = this.data.awayTeam.substring(0, 6);
-                
-                ctx.fillText(homeShort, this.x, this.y - 8);
-                ctx.fillText('VS', this.x, this.y);
-                ctx.fillText(awayShort, this.x, this.y + 8);
-
-                if (this.data.status === 'LIVE') {
-                    ctx.fillStyle = '#ff4757';
-                    ctx.font = `bold ${Math.max(8, this.radius * 0.1)}px Arial`;
-                    ctx.fillText('● AO VIVO', this.x, this.y + this.radius * 0.6);
-                } else {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                    ctx.font = `${Math.max(8, this.radius * 0.1)}px Arial`;
-                    ctx.fillText(this.data.time, this.x, this.y + this.radius * 0.6);
-                }
-            }
-
-            checkCollision(other) {
-                const dx = other.x - this.x;
-                const dy = other.y - this.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const minDistance = this.radius + other.radius;
-
-                if (distance < minDistance) {
-                    const overlap = minDistance - distance;
-                    const nx = dx / distance;
-                    const ny = dy / distance;
-
-                    this.x -= nx * overlap * 0.5;
-                    this.y -= ny * overlap * 0.5;
-                    other.x += nx * overlap * 0.5;
-                    other.y += ny * overlap * 0.5;
-
-                    const relativeVelocityX = other.vx - this.vx;
-                    const relativeVelocityY = other.vy - this.vy;
-                    const speed = relativeVelocityX * nx + relativeVelocityY * ny;
-
-                    if (speed < 0) return;
-
-                    this.vx += nx * speed * 0.5;
-                    this.vy += ny * speed * 0.5;
-                    other.vx -= nx * speed * 0.5;
-                    other.vy -= ny * speed * 0.5;
-                }
-            }
-        }
-
-        class BubbleEngine {
-            constructor() {
-                this.canvas = document.getElementById('canvas');
-                this.ctx = this.canvas.getContext('2d');
-                this.bubbles = [];
-                this.animationId = null;
-
-                this.setupCanvas();
-                this.loadData();
-            }
-
-            setupCanvas() {
-                const resize = () => {
-                    const rect = this.canvas.getBoundingClientRect();
-                    this.canvas.width = rect.width;
-                    this.canvas.height = rect.height;
-                };
-                resize();
-                window.addEventListener('resize', resize);
-            }
-
-            generateData() {
-                const teams = [
-                    ['Flamengo', 'Palmeiras'], ['Corinthians', 'São Paulo'],
-                    ['Santos', 'Vasco'], ['Botafogo', 'Fluminense'],
-                    ['Manchester City', 'Liverpool'], ['Arsenal', 'Chelsea'],
-                    ['Real Madrid', 'Barcelona'], ['Bayern', 'Dortmund'],
-                    ['PSG', 'Marseille'], ['Juventus', 'Milan'],
-                    ['Inter', 'Napoli'], ['Atletico', 'Valencia'],
-                    ['Tottenham', 'United'], ['Leicester', 'Brighton'],
-                    ['Sevilla', 'Betis'], ['Roma', 'Lazio'],
-                    ['Ajax', 'PSV'], ['Porto', 'Benfica'],
-                    ['Celtic', 'Rangers'], ['Olympiacos', 'Panathinaikos']
-                ];
-
-                return teams.slice(0, CONFIG.BUBBLE_COUNT).map(([home, away]) => ({
-                    homeTeam: home,
-                    awayTeam: away,
-                    time: `${14 + Math.floor(Math.random() * 6)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
-                    status: Math.random() > 0.8 ? 'LIVE' : 'SCHEDULED',
-                    importance: Math.random(),
-                    bias: (Math.random() - 0.5) * 2,
-                    probability: 0.3 + Math.random() * 0.6
-                }));
-            }
-
-            async loadData() {
-                document.getElementById('loading').classList.remove('hidden');
-                
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                const data = this.generateData();
-                this.bubbles = data.map(item => new Bubble(item, this.canvas));
-                
-                this.updateStats(data);
-                document.getElementById('loading').classList.add('hidden');
-                
-                this.start();
-            }
-
-            updateStats(data) {
-                document.getElementById('total-games').textContent = data.length;
-                document.getElementById('high-confidence').textContent = data.filter(d => d.probability > 0.7).length;
-                document.getElementById('live-games').textContent = data.filter(d => d.status === 'LIVE').length;
-            }
-
-            start() {
-                const animate = () => {
-                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                    
-                    this.bubbles.forEach(bubble => bubble.update());
-                    
-                    for (let i = 0; i < this.bubbles.length; i++) {
-                        for (let j = i + 1; j < this.bubbles.length; j++) {
-                            this.bubbles[i].checkCollision(this.bubbles[j]);
-                        }
-                    }
-                    
-                    this.bubbles.forEach(bubble => bubble.draw(this.ctx));
-                    
-                    this.animationId = requestAnimationFrame(animate);
-                };
-                animate();
-            }
-
-            stop() {
-                if (this.animationId) {
-                    cancelAnimationFrame(this.animationId);
-                }
-            }
-        }
-
-        let engine;
-
-        function refreshBubbles() {
-            if (engine) engine.stop();
-            engine = new BubbleEngine();
-        }
-
-        // Inicializar quando a página carregar
-        document.addEventListener('DOMContentLoaded', () => {
-            engine = new BubbleEngine();
-        });
-
-        // Cleanup
-        window.addEventListener('beforeunload', () => {
-            if (engine) engine.stop();
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
 
