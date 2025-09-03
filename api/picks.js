@@ -3,7 +3,6 @@ export default async function handler(req, res) {
     const apiKey = process.env.RAPIDAPI_KEY;
     if (!apiKey) return res.status(500).json({ error: "RAPIDAPI_KEY não configurada no Vercel" });
 
-    // Requer fixture id: /api/picks?fixture=12345
     const { fixture } = req.query;
     if (!fixture) return res.status(400).json({ error: "Passe ?fixture=<id> na URL" });
 
