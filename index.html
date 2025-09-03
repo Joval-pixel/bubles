@@ -1,56 +1,70 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>BUBLES — Palpites em Bolhas</title>
-  <link rel="stylesheet" href="./style.css?v=4" />
+  <link rel="stylesheet" href="/style.css" />
+  <meta name="description" content="BUBLES — Palpites em Bolhas: próximos jogos, previsões e dicas." />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
-      <span class="logo">B</span>
-      <strong>BOLHAS</strong>
-    </div>
-
-    <div class="controls">
-      <label class="ctrl">Tamanho<input id="sizeRange" type="range" min="0.8" max="1.6" step="0.05" value="1"></label>
-      <label class="ctrl">Velocidade<input id="speedRange" type="range" min="0.2" max="2.0" step="0.05" value="1"></label>
-      <label class="ctrl">Prob. mínima<input id="probRange" type="range" min="0" max="100" step="5" value="0"></label>
-      <button id="refreshBtn" class="btn">🔄 Atualizar</button>
-    </div>
+    <h1>BUBLES — Palpites em Bolhas</h1>
+    <a class="badge" href="https://rapidapi.com/api-sports/api/api-football/" target="_blank" rel="noreferrer">API-Football via RapidAPI</a>
   </header>
 
-  <main>
-    <div id="board" class="board"></div>
+  <main class="container">
+    <!-- FILTROS -->
+    <section class="panel">
+      <form id="filters" class="filters" autocomplete="off">
+        <div class="row">
+          <label>
+            Próximos:
+            <input type="number" name="next" min="1" max="50" value="20" />
+          </label>
+          <label>
+            Liga (ID):
+            <input type="number" name="league" placeholder="ex.: 71 (Serie B)" />
+          </label>
+          <label>
+            Temporada:
+            <input type="number" name="season" placeholder="2025" />
+          </label>
+          <label>
+            Data (YYYY-MM-DD):
+            <input type="text" name="date" placeholder="2025-09-03" />
+          </label>
+          <label class="chk">
+            <input type="checkbox" name="live" value="all" />
+            Somente ao vivo
+          </label>
+          <button id="btnLoad" type="submit">Atualizar</button>
+        </div>
+        <small class="hint">Dica: deixe “Liga” em branco para ver os próximos jogos globais. Clique em um jogo para ver as previsões.</small>
+      </form>
+    </section>
 
-    <aside class="hud">
-      <div>Jogos: <span id="countAll">0</span></div>
-      <div>Alta Confiança: <span id="countHigh">0</span></div>
-      <div>Ao vivo: <span id="countLive">0</span></div>
-    </aside>
+    <!-- STATUS -->
+    <p id="status" class="status"></p>
+
+    <section class="grid">
+      <div class="col">
+        <h2>Próximos jogos</h2>
+        <ul id="fixtures" class="list"></ul>
+      </div>
+
+      <div class="col">
+        <h2>Previsões</h2>
+        <div id="picks" class="picks"></div>
+      </div>
+    </section>
   </main>
 
-  <dialog id="modal" class="modal">
-    <div class="modal-card">
-      <button id="modalClose" class="modal-close">✖</button>
-      <h3 id="mTitle">Jogo</h3>
-      <div class="modal-grid">
-        <div>
-          <div class="kv"><span>Horário</span><b id="mTime">--:--</b></div>
-          <div class="kv"><span>Probabilidade</span><b id="mProb">--%</b></div>
-          <div class="kv"><span>Mercado</span><b id="mMarket">—</b></div>
-        </div>
-        <div>
-          <div class="kv"><span>Liga</span><b id="mLeague">—</b></div>
-          <div class="kv"><span>Importância</span><b id="mImportance">—</b></div>
-          <div class="kv"><span>Status</span><b id="mStatus">—</b></div>
-        </div>
-      </div>
-      <p class="hint">* Probabilidades calculadas a partir das odds (API-Football / RapidAPI).</p>
-    </div>
-  </dialog>
+  <footer class="foot">
+    <span>© BUBLES</span>
+    <span>Atualiza automático a cada 60s (com cache na Vercel)</span>
+  </footer>
 
-  <script src="./script.js?v=4" defer></script>
+  <script src="/script.js" defer></script>
 </body>
 </html>
