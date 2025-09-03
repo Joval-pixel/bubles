@@ -1,0 +1,9 @@
+{
+  "name": "bubles-bolhas",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Palpites em bolhas com API-Football (RapidAPI)",
+  "engines": {
+    "node": ">=18"
+  }
+}

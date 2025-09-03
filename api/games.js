@@ -1,0 +1,1 @@
+export default async function handler(req,res){res.json({matches:[{home:'Time A',away:'Time B',time:'12:00',league:'Demo',prob:55,importance:0.8,live:false}]});}

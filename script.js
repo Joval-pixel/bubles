@@ -1,0 +1,1 @@
+console.log('Frontend pronto. Buscará /api/games');
