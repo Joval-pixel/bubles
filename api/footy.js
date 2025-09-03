@@ -4,7 +4,9 @@ export default async function handler(req, res) {
     if (!apiKey) return res.status(500).json({ error: "RAPIDAPI_KEY não configurada no Vercel" });
 
     const { next = 20, league, season, date, live } = req.query;
-    const params = new URLSearchParams({ next, ...(league && { league }), ...(season && { season }), ...(date && { date }), ...(live && { live }) });
+    const params = new URLSearchParams({
+      next, ...(league && { league }), ...(season && { season }), ...(date && { date }), ...(live && { live })
+    });
 
     const r = await fetch(`https://api-football-v1.p.rapidapi.com/v3/fixtures?${params.toString()}`, {
       headers: {
@@ -14,7 +16,7 @@ export default async function handler(req, res) {
     });
 
     const data = await r.json();
-    // Ajuda a evitar rate limit repetindo sempre a mesma resposta por 60s
+    // Cache no edge da Vercel para aliviar rate limit
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=120");
     return res.status(r.ok ? 200 : r.status).json(data);
 
