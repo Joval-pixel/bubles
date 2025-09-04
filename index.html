@@ -1,83 +1,25 @@
-<!doctype html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>BUBLES — Palpites em Bolhas</title>
-  <link rel="stylesheet" href="/style.css" />
-  <meta name="description" content="BUBLES — Palpites em Bolhas com visual de bolhas estilo CryptoBubbles." />
-</head>
-<body>
-  <header class="topbar">
-    <h1>BUBLES — Palpites em Bolhas</h1>
-    <nav class="tabs">
-      <button class="tab active" data-view="bubbles">Bolhas</button>
-      <button class="tab" data-view="lista">Lista</button>
-    </nav>
-  </header>
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bubles Palpites - Melhores Palpites de Futebol</title>
+    <meta name="description" content="Os melhores palpites de futebol online. Análises detalhadas, estatísticas e previsões precisas para suas apostas esportivas." />
+    <meta name="author" content="Bubles Palpites" />
+    <meta name="keywords" content="palpites, futebol, apostas, previsões, estatísticas, tips, soccer predictions" />
 
-  <main class="container">
+    <meta property="og:title" content="Bubles Palpites - Melhores Palpites de Futebol" />
+    <meta property="og:description" content="Os melhores palpites de futebol online. Análises detalhadas, estatísticas e previsões precisas para suas apostas esportivas." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og-image.png" />
 
-    <!-- FILTROS -->
-    <section class="panel">
-      <form id="filters" class="filters" autocomplete="off">
-        <div class="row">
-          <label>
-            Próximos:
-            <input type="number" name="next" min="1" max="40" value="20" />
-          </label>
-          <label>
-            Liga (ID):
-            <input type="number" name="league" placeholder="ex.: 71" />
-          </label>
-          <label>
-            Temporada:
-            <input type="number" name="season" placeholder="2025" />
-          </label>
-          <label>
-            Data (YYYY-MM-DD):
-            <input type="text" name="date" placeholder="2025-09-03" />
-          </label>
-          <label class="chk">
-            <input type="checkbox" name="live" value="all" />
-            Somente ao vivo
-          </label>
-          <button id="btnLoad" type="submit">Atualizar</button>
-        </div>
-        <small class="hint">Clique numa bolha para abrir as previsões. Tamanho = confiança do vencedor; Verde = casa, Vermelho = visitante, Cinza = empate.</small>
-      </form>
-    </section>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@bublespalpites" />
+    <meta name="twitter:image" content="/og-image.png" />
+  </head>
 
-    <!-- STATUS -->
-    <p id="status" class="status"></p>
-
-    <section class="main-grid">
-      <!-- ÁREA DE BOLHAS -->
-      <div class="stage-wrap">
-        <div id="stage" class="stage" aria-label="bolhas"></div>
-        <div id="tooltip" class="tooltip" hidden></div>
-      </div>
-
-      <!-- LADO DIREITO: LISTA/PICKS -->
-      <div class="side">
-        <div class="side-card">
-          <h2>Previsões</h2>
-          <div id="picks"></div>
-        </div>
-
-        <div class="side-card">
-          <h2>Próximos jogos</h2>
-          <ul id="fixtures" class="list"></ul>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="foot">
-    <span>© BUBLES</span>
-    <span>Atualiza automático a cada 60s (com cache na Vercel)</span>
-  </footer>
-
-  <script src="/script.js" defer></script>
-</body>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
