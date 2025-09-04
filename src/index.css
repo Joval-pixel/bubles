@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Bubles Palpites Online - Design System */
+
+@layer base {
+  :root {
+    --background: 210 11% 15%;
+    --foreground: 210 40% 98%;
+
+    --card: 210 11% 13%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 210 11% 13%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 142 76% 36%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 11% 20%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 210 11% 18%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 142 76% 36%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 210 11% 20%;
+    --input: 210 11% 18%;
+    --ring: 142 76% 36%;
+
+    --radius: 0.375rem;
+
+    /* Sport prediction specific colors */
+    --sport-header: 210 11% 11%;
+    --sport-sidebar: 210 11% 13%;
+    --sport-main: 210 11% 15%;
+    --sport-success: 142 76% 36%;
+    --sport-warning: 45 93% 47%;
+    --sport-danger: 0 84% 60%;
+    
+    /* Match status colors */
+    --match-live: 142 76% 36%;
+    --match-upcoming: 210 40% 98%;
+    --match-finished: 215 20.2% 65.1%;
+    
+    /* Gradients */
+    --gradient-header: linear-gradient(135deg, hsl(210 11% 11%), hsl(210 11% 13%));
+    --gradient-card: linear-gradient(135deg, hsl(210 11% 13%), hsl(210 11% 15%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 42%));
+    
+    /* Shadows */
+    --shadow-card: 0 4px 6px -1px hsl(210 11% 8% / 0.3);
+    --shadow-header: 0 2px 8px hsl(210 11% 8% / 0.4);
+    
+    /* Transitions */
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 142 76% 36%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142 76% 36%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
