@@ -52,7 +52,7 @@ const REFRESH_INTERVAL_MS = 60000;
 
 let bubbles = [];
 let animationId = null;
-
+let currentTab = "commodities"; // aba atual
 
 // ===============================
 // BUSCAR DADOS YAHOO FINANCE
@@ -78,10 +78,7 @@ async function fetchYahooQuote(symbol) {
 
   const changePct = ((price - prevClose) / prevClose) * 100;
 
-  return {
-    price,
-    changePct
-  };
+  return { price, changePct };
 }
 
 async function fetchAllCommodities() {
@@ -96,7 +93,6 @@ async function fetchAllCommodities() {
   }
   return data;
 }
-
 
 // ===============================
 // CRIAÇÃO DA BOLHA
@@ -145,7 +141,6 @@ function createBubbleElement(parent, commodity, info, index, total) {
   return obj;
 }
 
-
 // ===============================
 // ESTILO DA BOLHA + TAMANHO PROPORCIONAL
 // ===============================
@@ -180,7 +175,6 @@ function updateBubbleVisual(b) {
     b.changeEl.style.fontSize = "11px";
   }
 
-  // Texto
   if (!isNaN(b.price)) {
     b.priceEl.textContent = `Preço: ${b.price.toFixed(2)}`;
   } else {
@@ -195,7 +189,6 @@ function updateBubbleVisual(b) {
   else if (change < -0.05) b.el.classList.add("bubble-neg");
   else b.el.classList.add("bubble-flat");
 }
-
 
 // ===============================
 // POSIÇÃO INICIAL EM GRID
@@ -221,7 +214,6 @@ function setInitialPosition(b, index, total, container) {
   b.x = padding + cellW * col + cellW / 2;
   b.y = padding + cellH * row + cellH / 2;
 
-  // velocidades iniciais
   const speed = 0.3 + Math.random() * 0.25;
   const angle = Math.random() * Math.PI * 2;
   b.vx = Math.cos(angle) * speed;
@@ -232,15 +224,20 @@ function setInitialPosition(b, index, total, container) {
   }px)`;
 }
 
-
 // ===============================
-// ANIMAÇÃO + COLISÃO REAL
+// ANIMAÇÃO + COLISÃO
 // ===============================
 
 function startAnimation(container) {
   if (animationId) cancelAnimationFrame(animationId);
 
   const loop = () => {
+    // se mudou de aba e não é commodities, não anima nada
+    if (currentTab !== "commodities") {
+      animationId = requestAnimationFrame(loop);
+      return;
+    }
+
     const rect = container.getBoundingClientRect();
 
     for (const b of bubbles) {
@@ -272,7 +269,6 @@ function startAnimation(container) {
       b.vy *= 0.995;
     }
 
-    // Colisão com mais força + sem sobreposição
     const iterations = 3;
     for (let k = 0; k < iterations; k++) {
       for (let i = 0; i < bubbles.length; i++) {
@@ -294,7 +290,6 @@ function startAnimation(container) {
 
             a.x -= nx * overlap;
             a.y -= ny * overlap;
-
             b.x += nx * overlap;
             b.y += ny * overlap;
 
@@ -321,7 +316,6 @@ function startAnimation(container) {
   animationId = requestAnimationFrame(loop);
 }
 
-
 // ===============================
 // TRADINGVIEW MODAL
 // ===============================
@@ -346,14 +340,63 @@ function closeTradingView() {
   document.getElementById("tv-iframe").src = "";
 }
 
+// ===============================
+// ABA / TABS
+// ===============================
+
+function getTabLabel(tab) {
+  switch (tab) {
+    case "stocks":
+      return "Ações";
+    case "cryptos":
+      return "Criptos";
+    case "ranking":
+      return "Ranking";
+    case "brokers":
+      return "Corretoras";
+    case "commodities":
+    default:
+      return "Commodities";
+  }
+}
+
+function showPlaceholderTab(tab) {
+  const container = document.getElementById("bubble-container");
+  const titleEl = document.querySelector(".panel-header h1");
+  const subtitleEl = document.querySelector(".panel-subtitle");
+
+  if (animationId) cancelAnimationFrame(animationId);
+  animationId = null;
+  bubbles = [];
+  container.innerHTML = "";
+
+  const label = getTabLabel(tab);
+
+  titleEl.textContent = `Bolhas de ${label} (em breve)`;
+  subtitleEl.textContent = `A aba ${label} ainda será implementada no BUBLES. Em breve você verá as bolhas com dados em tempo real aqui.`;
+
+  const msg = document.createElement("div");
+  msg.className = "loading-text";
+  msg.textContent = `Em breve: visualização em bolhas para ${label}.`;
+  container.appendChild(msg);
+}
 
 // ===============================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO COMMODITIES
 // ===============================
 
 async function initCommodities() {
   const container = document.getElementById("bubble-container");
-  container.innerHTML = `<div class="loading-text">Carregando...</div>`;
+  const titleEl = document.querySelector(".panel-header h1");
+  const subtitleEl = document.querySelector(".panel-subtitle");
+
+  currentTab = "commodities";
+
+  titleEl.textContent = "Bolhas de Commodities (dados grátis – Yahoo Finance)";
+  subtitleEl.textContent =
+    "Ouro, Petróleo, Milho, Soja, Café, Açúcar em tempo quase real. Fonte: Yahoo Finance, via proxy público (sem chave de API).";
+
+  container.innerHTML = `<div class="loading-text">Carregando cotações de commodities...</div>`;
 
   try {
     const data = await fetchAllCommodities();
@@ -374,26 +417,58 @@ async function initCommodities() {
 
     startAnimation(container);
   } catch (e) {
+    console.error(e);
     container.innerHTML = `<div class="loading-text">Erro: ${e.message}</div>`;
   }
 }
-
 
 // ===============================
 // EVENTOS
 // ===============================
 
 document.addEventListener("DOMContentLoaded", () => {
+  // botões de navegação
+  const navBtns = document.querySelectorAll(".nav-btn");
+  navBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.tab;
+      if (!tab || tab === currentTab) return;
+
+      navBtns.forEach((b) => b.classList.toggle("active", b === btn));
+
+      currentTab = tab;
+
+      if (tab === "commodities") {
+        initCommodities();
+      } else {
+        showPlaceholderTab(tab);
+      }
+    });
+  });
+
+  // botão atualizar
+  const refreshBtn = document.getElementById("btn-refresh");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      if (currentTab === "commodities") {
+        initCommodities();
+      }
+    });
+  }
+
+  // modal
+  document.getElementById("tv-close").addEventListener("click", closeTradingView);
+  document
+    .querySelector(".tv-modal-backdrop")
+    .addEventListener("click", closeTradingView);
+
+  // primeira carga
   initCommodities();
 
-  document.getElementById("btn-refresh")
-    .addEventListener("click", initCommodities);
-
-  document.getElementById("tv-close")
-    .addEventListener("click", closeTradingView);
-
-  document.querySelector(".tv-modal-backdrop")
-    .addEventListener("click", closeTradingView);
-
-  setInterval(initCommodities, REFRESH_INTERVAL_MS);
+  // auto refresh apenas na aba commodities
+  setInterval(() => {
+    if (currentTab === "commodities") {
+      initCommodities();
+    }
+  }, REFRESH_INTERVAL_MS);
 });
