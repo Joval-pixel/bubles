@@ -2,19 +2,19 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>BUBLES – Commodities ao Vivo</title>
+  <title>BUBLES – Ações, Criptos e Commodities ao Vivo</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="header">
     <div class="logo-area">
       <span class="logo-text">BUBLES</span>
-      <span class="logo-sub">– Commodities ao Vivo</span>
+      <span class="logo-sub">– Ações ao Vivo</span>
     </div>
     <nav class="nav">
-      <button class="nav-btn" data-tab="stocks">Ações</button>
+      <button class="nav-btn active" data-tab="acoes">Ações</button>
       <button class="nav-btn" data-tab="cryptos">Criptos</button>
-      <button class="nav-btn active" data-tab="commodities">Commodities</button>
+      <button class="nav-btn" data-tab="commodities">Commodities</button>
       <button class="nav-btn" data-tab="ranking">Ranking</button>
       <button class="nav-btn" data-tab="brokers">Corretoras</button>
     </nav>
@@ -23,16 +23,15 @@
   <main class="main">
     <section class="panel">
       <div class="panel-header">
-        <h1>Bolhas de Commodities (dados grátis – Yahoo Finance)</h1>
+        <h1>Bolhas – carregando...</h1>
         <button id="btn-refresh" class="btn-refresh">Atualizar agora</button>
       </div>
       <p class="panel-subtitle">
-        Ouro, Petróleo, Milho, Soja, Café, Açúcar em tempo quase real.
-        Fonte: Yahoo Finance, via proxy público (sem chave de API).
+        Visualização de mercado em tempo quase real.
       </p>
 
       <div id="bubble-container" class="bubble-container">
-        <div class="loading-text">Carregando cotações de commodities...</div>
+        <div class="loading-text">Carregando dados...</div>
       </div>
 
       <p class="hint">
@@ -58,7 +57,7 @@
   </div>
 
   <footer class="footer">
-    <small>BUBLES – Projeto de visualização em bolhas | Dados: Yahoo Finance</small>
+    <small>BUBLES – Visualização em bolhas | Ações: Brapi | Criptos: Bybit | Commodities: Yahoo Finance</small>
   </footer>
 
   <script src="script.js"></script>
