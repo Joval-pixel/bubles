@@ -5,43 +5,43 @@
 const COMMODITIES = [
   {
     id: "gold",
-    nome: "Ouro",
+    nome: "OURO",
     simboloYahoo: "GC=F",
     simboloTV: "COMEX:GC1!"
   },
   {
     id: "wti",
-    nome: "Petróleo WTI",
+    nome: "PETRÓLEO WTI",
     simboloYahoo: "CL=F",
     simboloTV: "NYMEX:CL1!"
   },
   {
     id: "brent",
-    nome: "Petróleo Brent",
+    nome: "PETRÓLEO BRENT",
     simboloYahoo: "BZ=F",
     simboloTV: "ICEEU:BRN1!"
   },
   {
     id: "corn",
-    nome: "Milho",
+    nome: "MILHO",
     simboloYahoo: "ZC=F",
     simboloTV: "CBOT:ZC1!"
   },
   {
     id: "soy",
-    nome: "Soja",
+    nome: "SOJA",
     simboloYahoo: "ZS=F",
     simboloTV: "CBOT:ZS1!"
   },
   {
     id: "coffee",
-    nome: "Café",
+    nome: "CAFÉ",
     simboloYahoo: "KC=F",
     simboloTV: "ICEUS:KC1!"
   },
   {
     id: "sugar",
-    nome: "Açúcar",
+    nome: "AÇÚCAR",
     simboloYahoo: "SB=F",
     simboloTV: "ICEUS:SB1!"
   }
@@ -162,17 +162,38 @@ function createBubbleElement(parent, commodity, info, layoutIndex, total) {
 }
 
 function updateBubbleVisual(bubbleObj) {
-  const { el, priceEl, changeEl, price, changePct } = bubbleObj;
+  const { el, priceEl, changeEl, price, changePct, symbolEl } = bubbleObj;
   const change = Number(changePct) || 0;
 
-  // tamanho da bolha baseado na variação
-  const baseRadius = 46; // mínimo
-  const extra = Math.min(Math.abs(change) * 3.5, 70); // limite
-  const radius = baseRadius + extra;
+  // -------------------------------
+  // NOVO SISTEMA DE TAMANHO PROPORCIONAL
+  // -------------------------------
+  const minRadius = 55;   // tamanho mínimo da bolha
+  const maxRadius = 105;  // tamanho máximo da bolha
+
+  let varAbs = Math.abs(change);
+  if (varAbs > 10) varAbs = 10; // limita variações muito grandes
+
+  const radius = minRadius + (varAbs / 10) * (maxRadius - minRadius);
 
   bubbleObj.radius = radius;
   el.style.width = `${radius * 2}px`;
   el.style.height = `${radius * 2}px`;
+
+  // Ajuste fino de fonte (bolhas menores com fonte menor)
+  if (radius < 70) {
+    symbolEl.style.fontSize = "11px";
+    priceEl.style.fontSize = "10px";
+    changeEl.style.fontSize = "10px";
+  } else if (radius > 90) {
+    symbolEl.style.fontSize = "14px";
+    priceEl.style.fontSize = "12px";
+    changeEl.style.fontSize = "12px";
+  } else {
+    symbolEl.style.fontSize = "13px";
+    priceEl.style.fontSize = "11px";
+    changeEl.style.fontSize = "11px";
+  }
 
   // conteúdo
   if (!isNaN(price)) {
@@ -269,16 +290,14 @@ function startAnimation(container) {
 
         if (dist > 0 && dist < minDist) {
           const overlap = (minDist - dist) / 2;
-
           const nx = dx / dist;
           const ny = dy / dist;
 
-          a.x -= nx * overlap;
-          a.y -= ny * overlap;
-          b.x += nx * overlap;
-          b.y += ny * overlap;
+          a.x += nx * overlap;
+          a.y += ny * overlap;
+          b.x -= nx * overlap;
+          b.y -= ny * overlap;
 
-          // "rebote" simples trocando velocidades
           const tempVx = a.vx;
           const tempVy = a.vy;
           a.vx = b.vx;
@@ -306,7 +325,7 @@ function startAnimation(container) {
 // TRADINGVIEW MODAL
 // ===============================
 
-function openTradingView(commodity, bubbleObj) {
+function openTradingView(commodity) {
   const modal = document.getElementById("tv-modal");
   const iframe = document.getElementById("tv-iframe");
   const title = document.getElementById("tv-title");
@@ -379,7 +398,7 @@ function setupEvents() {
   if (closeBtn) closeBtn.addEventListener("click", closeTradingView);
   if (backdrop) backdrop.addEventListener("click", closeTradingView);
 
-  // Botões do menu (tabs) – só placeholder
+  // Botões do menu (tabs) – placeholder por enquanto
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const tab = btn.dataset.tab;
