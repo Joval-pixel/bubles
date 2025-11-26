@@ -1,61 +1,153 @@
 // ===============================
-// CONFIGURAÇÃO DAS COMMODITIES
+// CONFIGURAÇÃO GERAL
+// ===============================
+
+const PROXY = "https://api.allorigins.win/raw?url=";
+const BRAPI_TOKEN = "5bTDfSmR2ieax6y7JUqDAD"; // sua chave
+const REFRESH_INTERVAL_MS = 60000;
+
+const TABS = {
+  ACOES: "acoes",
+  CRYPTOS: "cryptos",
+  COMMODITIES: "commodities",
+  RANKING: "ranking",
+  BROKERS: "brokers"
+};
+
+let currentTab = TABS.ACOES;
+let bubbles = [];
+let animationId = null;
+
+// ===============================
+// LISTA FIXA DE COMMODITIES
 // ===============================
 
 const COMMODITIES = [
   {
     id: "gold",
-    nome: "OURO",
+    label: "OURO",
     simboloYahoo: "GC=F",
-    simboloTV: "COMEX:GC1!"
+    symbolTV: "COMEX:GC1!"
   },
   {
     id: "wti",
-    nome: "PETRÓLEO WTI",
+    label: "PETRÓLEO WTI",
     simboloYahoo: "CL=F",
-    simboloTV: "NYMEX:CL1!"
+    symbolTV: "NYMEX:CL1!"
   },
   {
     id: "brent",
-    nome: "PETRÓLEO BRENT",
+    label: "PETRÓLEO BRENT",
     simboloYahoo: "BZ=F",
-    simboloTV: "ICEEU:BRN1!"
+    symbolTV: "ICEEU:BRN1!"
   },
   {
     id: "corn",
-    nome: "MILHO",
+    label: "MILHO",
     simboloYahoo: "ZC=F",
-    simboloTV: "CBOT:ZC1!"
+    symbolTV: "CBOT:ZC1!"
   },
   {
     id: "soy",
-    nome: "SOJA",
+    label: "SOJA",
     simboloYahoo: "ZS=F",
-    simboloTV: "CBOT:ZS1!"
+    symbolTV: "CBOT:ZS1!"
   },
   {
     id: "coffee",
-    nome: "CAFÉ",
+    label: "CAFÉ",
     simboloYahoo: "KC=F",
-    simboloTV: "ICEUS:KC1!"
+    symbolTV: "ICEUS:KC1!"
   },
   {
     id: "sugar",
-    nome: "AÇÚCAR",
+    label: "AÇÚCAR",
     simboloYahoo: "SB=F",
-    simboloTV: "ICEUS:SB1!"
+    symbolTV: "ICEUS:SB1!"
   }
 ];
 
-const PROXY = "https://api.allorigins.win/raw?url=";
-const REFRESH_INTERVAL_MS = 60000;
+// ===============================
+// FETCH AÇÕES – BRAPI
+// ===============================
 
-let bubbles = [];
-let animationId = null;
-let currentTab = "commodities"; // aba atual
+async function fetchStocks() {
+  const url = `https://brapi.dev/api/quote/list?sortBy=volume&sortOrder=desc&limit=60&token=${BRAPI_TOKEN}`;
+
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("Brapi HTTP " + resp.status);
+
+  const json = await resp.json();
+  const list = json.stocks || json.results || [];
+
+  if (!Array.isArray(list) || list.length === 0) {
+    throw new Error("Nenhuma ação retornada pela Brapi.");
+  }
+
+  return list.map((s) => {
+    const code = s.stock || s.symbol || s.ticker;
+    const price = Number(
+      s.close ?? s.price ?? s.regularMarketPrice ?? s.lastPrice ?? 0
+    );
+    const changePct = Number(
+      s.change ?? s.regularMarketChangePercent ?? s.percent ?? 0
+    );
+
+    return {
+      id: code,
+      label: code,
+      price,
+      changePct,
+      symbolTV: code ? `BVMF:${code}` : ""
+    };
+  });
+}
 
 // ===============================
-// BUSCAR DADOS YAHOO FINANCE
+// FETCH CRIPTOS – BYBIT
+// ===============================
+
+async function fetchCryptos() {
+  const bybitUrl =
+    "https://api.bybit.com/v5/market/tickers?category=spot";
+
+  const url = `${PROXY}${encodeURIComponent(bybitUrl)}`;
+
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("Bybit HTTP " + resp.status);
+
+  const json = await resp.json();
+  const list = json?.result?.list || [];
+
+  if (!Array.isArray(list) || list.length === 0) {
+    throw new Error("Nenhuma cripto retornada pela Bybit.");
+  }
+
+  // ordena por volume (turnover24h)
+  list.sort(
+    (a, b) =>
+      Number(b.turnover24h || 0) - Number(a.turnover24h || 0)
+  );
+
+  const top = list.slice(0, 60);
+
+  return top.map((c) => {
+    const symbol = c.symbol;
+    const price = Number(c.lastPrice || 0);
+    const pct = Number(c.price24hPcnt || 0) * 100; // vem em decimal
+
+    return {
+      id: symbol,
+      label: symbol.replace("USDT", ""),
+      price,
+      changePct: pct,
+      symbolTV: `BYBIT:${symbol}`
+    };
+  });
+}
+
+// ===============================
+// FETCH COMMODITIES – YAHOO
 // ===============================
 
 async function fetchYahooQuote(symbol) {
@@ -64,47 +156,64 @@ async function fetchYahooQuote(symbol) {
   )}`;
 
   const resp = await fetch(url);
-  if (!resp.ok) throw new Error("HTTP " + resp.status);
+  if (!resp.ok) throw new Error("Yahoo HTTP " + resp.status);
 
   const json = await resp.json();
   const result = json?.chart?.result?.[0];
 
-  if (!result || !result.meta) throw new Error("Resposta inválida");
+  if (!result || !result.meta) throw new Error("Resposta inválida Yahoo");
 
   const price = result.meta.regularMarketPrice;
   const prevClose = result.meta.chartPreviousClose;
 
-  if (price == null || prevClose == null) throw new Error("Sem preços");
+  if (price == null || prevClose == null) {
+    throw new Error("Sem preço/fechamento Yahoo");
+  }
 
   const changePct = ((price - prevClose) / prevClose) * 100;
 
   return { price, changePct };
 }
 
-async function fetchAllCommodities() {
-  const data = {};
+async function fetchCommodities() {
+  const assets = [];
+
   for (const c of COMMODITIES) {
     try {
-      data[c.id] = await fetchYahooQuote(c.simboloYahoo);
+      const q = await fetchYahooQuote(c.simboloYahoo);
+      assets.push({
+        id: c.id,
+        label: c.label,
+        price: q.price,
+        changePct: q.changePct,
+        symbolTV: c.symbolTV
+      });
     } catch (e) {
-      console.error("Erro ao buscar:", c.nome, e);
-      data[c.id] = { price: NaN, changePct: 0 };
+      console.error("Erro commodity", c.label, e);
+      assets.push({
+        id: c.id,
+        label: c.label,
+        price: NaN,
+        changePct: 0,
+        symbolTV: c.symbolTV
+      });
     }
   }
-  return data;
+
+  return assets;
 }
 
 // ===============================
-// CRIAÇÃO DA BOLHA
+// BOLHAS – CRIAÇÃO E VISUAL
 // ===============================
 
-function createBubbleElement(parent, commodity, info, index, total) {
+function createBubbleElement(container, asset, index, total) {
   const bubble = document.createElement("div");
   bubble.className = "bubble";
 
   const symbolEl = document.createElement("div");
   symbolEl.className = "bubble-symbol";
-  symbolEl.textContent = commodity.nome;
+  symbolEl.textContent = asset.label;
 
   const priceEl = document.createElement("div");
   priceEl.className = "bubble-price";
@@ -115,11 +224,10 @@ function createBubbleElement(parent, commodity, info, index, total) {
   bubble.appendChild(symbolEl);
   bubble.appendChild(priceEl);
   bubble.appendChild(changeEl);
-  parent.appendChild(bubble);
+  container.appendChild(bubble);
 
   const obj = {
-    id: commodity.id,
-    commodity,
+    asset,
     el: bubble,
     symbolEl,
     priceEl,
@@ -128,25 +236,20 @@ function createBubbleElement(parent, commodity, info, index, total) {
     y: 0,
     vx: 0,
     vy: 0,
-    radius: 0,
-    price: info.price,
-    changePct: info.changePct
+    radius: 0
   };
 
   updateBubbleVisual(obj);
-  setInitialPosition(obj, index, total, parent);
+  setInitialPosition(obj, index, total, container);
 
-  bubble.addEventListener("click", () => openTradingView(commodity));
+  bubble.addEventListener("click", () => openTradingView(asset));
 
   return obj;
 }
 
-// ===============================
-// ESTILO DA BOLHA + TAMANHO PROPORCIONAL
-// ===============================
-
 function updateBubbleVisual(b) {
-  const change = Number(b.changePct) || 0;
+  const { asset, el, symbolEl, priceEl, changeEl } = b;
+  const change = Number(asset.changePct) || 0;
 
   const minRadius = 55;
   const maxRadius = 105;
@@ -155,44 +258,39 @@ function updateBubbleVisual(b) {
   if (v > 10) v = 10;
 
   const radius = minRadius + (v / 10) * (maxRadius - minRadius);
-
   b.radius = radius;
-  b.el.style.width = `${radius * 2}px`;
-  b.el.style.height = `${radius * 2}px`;
 
-  // Fonte adaptável
+  el.style.width = `${radius * 2}px`;
+  el.style.height = `${radius * 2}px`;
+
   if (radius < 70) {
-    b.symbolEl.style.fontSize = "11px";
-    b.priceEl.style.fontSize = "10px";
-    b.changeEl.style.fontSize = "10px";
+    symbolEl.style.fontSize = "11px";
+    priceEl.style.fontSize = "10px";
+    changeEl.style.fontSize = "10px";
   } else if (radius > 90) {
-    b.symbolEl.style.fontSize = "14px";
-    b.priceEl.style.fontSize = "12px";
-    b.changeEl.style.fontSize = "12px";
+    symbolEl.style.fontSize = "14px";
+    priceEl.style.fontSize = "12px";
+    changeEl.style.fontSize = "12px";
   } else {
-    b.symbolEl.style.fontSize = "13px";
-    b.priceEl.style.fontSize = "11px";
-    b.changeEl.style.fontSize = "11px";
+    symbolEl.style.fontSize = "13px";
+    priceEl.style.fontSize = "11px";
+    changeEl.style.fontSize = "11px";
   }
 
-  if (!isNaN(b.price)) {
-    b.priceEl.textContent = `Preço: ${b.price.toFixed(2)}`;
+  if (!isNaN(asset.price)) {
+    priceEl.textContent = `Preço: ${asset.price.toFixed(2)}`;
   } else {
-    b.priceEl.textContent = "Preço: —";
+    priceEl.textContent = "Preço: —";
   }
 
   const prefix = change > 0 ? "+" : "";
-  b.changeEl.textContent = `Variação: ${prefix}${change.toFixed(2)}%`;
+  changeEl.textContent = `Variação: ${prefix}${change.toFixed(2)}%`;
 
-  b.el.classList.remove("bubble-pos", "bubble-neg", "bubble-flat");
-  if (change > 0.05) b.el.classList.add("bubble-pos");
-  else if (change < -0.05) b.el.classList.add("bubble-neg");
-  else b.el.classList.add("bubble-flat");
+  el.classList.remove("bubble-pos", "bubble-neg", "bubble-flat");
+  if (change > 0.05) el.classList.add("bubble-pos");
+  else if (change < -0.05) el.classList.add("bubble-neg");
+  else el.classList.add("bubble-flat");
 }
-
-// ===============================
-// POSIÇÃO INICIAL EM GRID
-// ===============================
 
 function setInitialPosition(b, index, total, container) {
   const rect = container.getBoundingClientRect();
@@ -204,7 +302,6 @@ function setInitialPosition(b, index, total, container) {
   const row = Math.floor(index / cols);
 
   const padding = 40;
-
   const usableWidth = rect.width - padding * 2;
   const usableHeight = rect.height - padding * 2;
 
@@ -232,8 +329,9 @@ function startAnimation(container) {
   if (animationId) cancelAnimationFrame(animationId);
 
   const loop = () => {
-    // se mudou de aba e não é commodities, não anima nada
-    if (currentTab !== "commodities") {
+    if (
+      ![TABS.ACOES, TABS.CRYPTOS, TABS.COMMODITIES].includes(currentTab)
+    ) {
       animationId = requestAnimationFrame(loop);
       return;
     }
@@ -320,43 +418,47 @@ function startAnimation(container) {
 // TRADINGVIEW MODAL
 // ===============================
 
-function openTradingView(commodity) {
+function openTradingView(asset) {
   const modal = document.getElementById("tv-modal");
   const iframe = document.getElementById("tv-iframe");
   const title = document.getElementById("tv-title");
 
-  title.textContent = `${commodity.nome} – gráfico TradingView`;
+  title.textContent = `${asset.label} – gráfico TradingView`;
 
+  const symbol = asset.symbolTV || "BVMF:PETR4";
   const url = `https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(
-    commodity.simboloTV
-  )}&interval=60&hide_side_toolbar=1&theme=dark&style=1&locale=br`;
+    symbol
+  )}&interval=60&hidesidetoolbar=1&hidetoptoolbar=1&theme=dark&style=1&locale=br&hideideas=1`;
 
   iframe.src = url;
   modal.classList.remove("hidden");
 }
 
 function closeTradingView() {
-  document.getElementById("tv-modal").classList.add("hidden");
-  document.getElementById("tv-iframe").src = "";
+  const modal = document.getElementById("tv-modal");
+  const iframe = document.getElementById("tv-iframe");
+  iframe.src = "";
+  modal.classList.add("hidden");
 }
 
 // ===============================
-// ABA / TABS
+// PLACEHOLDER PARA RANKING/CORRETORAS
 // ===============================
 
 function getTabLabel(tab) {
   switch (tab) {
-    case "stocks":
+    case TABS.ACOES:
       return "Ações";
-    case "cryptos":
+    case TABS.CRYPTOS:
       return "Criptos";
-    case "ranking":
-      return "Ranking";
-    case "brokers":
-      return "Corretoras";
-    case "commodities":
-    default:
+    case TABS.COMMODITIES:
       return "Commodities";
+    case TABS.RANKING:
+      return "Ranking";
+    case TABS.BROKERS:
+      return "Corretoras";
+    default:
+      return "";
   }
 }
 
@@ -366,15 +468,14 @@ function showPlaceholderTab(tab) {
   const subtitleEl = document.querySelector(".panel-subtitle");
 
   if (animationId) cancelAnimationFrame(animationId);
-  animationId = null;
   bubbles = [];
-  container.innerHTML = "";
 
   const label = getTabLabel(tab);
 
   titleEl.textContent = `Bolhas de ${label} (em breve)`;
   subtitleEl.textContent = `A aba ${label} ainda será implementada no BUBLES. Em breve você verá as bolhas com dados em tempo real aqui.`;
 
+  container.innerHTML = "";
   const msg = document.createElement("div");
   msg.className = "loading-text";
   msg.textContent = `Em breve: visualização em bolhas para ${label}.`;
@@ -382,37 +483,57 @@ function showPlaceholderTab(tab) {
 }
 
 // ===============================
-// INICIALIZAÇÃO COMMODITIES
+// CARREGAR ABA (AÇÕES / CRIPTOS / COMMODITIES)
 // ===============================
 
-async function initCommodities() {
+async function loadTab(tab) {
   const container = document.getElementById("bubble-container");
   const titleEl = document.querySelector(".panel-header h1");
   const subtitleEl = document.querySelector(".panel-subtitle");
 
-  currentTab = "commodities";
+  if (![TABS.ACOES, TABS.CRYPTOS, TABS.COMMODITIES].includes(tab)) {
+    currentTab = tab;
+    showPlaceholderTab(tab);
+    return;
+  }
 
-  titleEl.textContent = "Bolhas de Commodities (dados grátis – Yahoo Finance)";
-  subtitleEl.textContent =
-    "Ouro, Petróleo, Milho, Soja, Café, Açúcar em tempo quase real. Fonte: Yahoo Finance, via proxy público (sem chave de API).";
+  currentTab = tab;
+  if (animationId) cancelAnimationFrame(animationId);
+  bubbles = [];
 
-  container.innerHTML = `<div class="loading-text">Carregando cotações de commodities...</div>`;
+  let fetchFn;
+  if (tab === TABS.ACOES) {
+    titleEl.textContent = "Bolhas de Ações (B3 – Brapi)";
+    subtitleEl.textContent =
+      "Maiores volumes da B3 em tempo quase real. Dados fornecidos pela API Brapi.";
+    fetchFn = fetchStocks;
+  } else if (tab === TABS.CRYPTOS) {
+    titleEl.textContent = "Bolhas de Criptos (Bybit)";
+    subtitleEl.textContent =
+      "Principais pares de criptomoedas negociados na Bybit. Dados spot em tempo quase real.";
+    fetchFn = fetchCryptos;
+  } else {
+    titleEl.textContent = "Bolhas de Commodities (Yahoo Finance)";
+    subtitleEl.textContent =
+      "Ouro, Petróleo, Milho, Soja, Café, Açúcar em tempo quase real. Fonte: Yahoo Finance via proxy.";
+    fetchFn = fetchCommodities;
+  }
+
+  container.innerHTML = `<div class="loading-text">Carregando dados...</div>`;
 
   try {
-    const data = await fetchAllCommodities();
+    const assets = await fetchFn();
     container.innerHTML = "";
     bubbles = [];
 
-    COMMODITIES.forEach((c, i) => {
-      const info = data[c.id] || { price: NaN, changePct: 0 };
-      const bubble = createBubbleElement(
+    assets.forEach((asset, index) => {
+      const b = createBubbleElement(
         container,
-        c,
-        info,
-        i,
-        COMMODITIES.length
+        asset,
+        index,
+        assets.length
       );
-      bubbles.push(bubble);
+      bubbles.push(b);
     });
 
     startAnimation(container);
@@ -423,52 +544,48 @@ async function initCommodities() {
 }
 
 // ===============================
-// EVENTOS
+// EVENTOS E INICIALIZAÇÃO
 // ===============================
 
 document.addEventListener("DOMContentLoaded", () => {
-  // botões de navegação
   const navBtns = document.querySelectorAll(".nav-btn");
+
   navBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       const tab = btn.dataset.tab;
       if (!tab || tab === currentTab) return;
 
-      navBtns.forEach((b) => b.classList.toggle("active", b === btn));
+      navBtns.forEach((b) =>
+        b.classList.toggle("active", b === btn)
+      );
 
-      currentTab = tab;
-
-      if (tab === "commodities") {
-        initCommodities();
-      } else {
-        showPlaceholderTab(tab);
-      }
+      loadTab(tab);
     });
   });
 
-  // botão atualizar
   const refreshBtn = document.getElementById("btn-refresh");
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
-      if (currentTab === "commodities") {
-        initCommodities();
-      }
+      loadTab(currentTab);
     });
   }
 
-  // modal
-  document.getElementById("tv-close").addEventListener("click", closeTradingView);
+  document
+    .getElementById("tv-close")
+    .addEventListener("click", closeTradingView);
   document
     .querySelector(".tv-modal-backdrop")
     .addEventListener("click", closeTradingView);
 
-  // primeira carga
-  initCommodities();
+  // primeira carga: AÇÕES
+  loadTab(TABS.ACOES);
 
-  // auto refresh apenas na aba commodities
+  // auto refresh
   setInterval(() => {
-    if (currentTab === "commodities") {
-      initCommodities();
+    if (
+      [TABS.ACOES, TABS.CRYPTOS, TABS.COMMODITIES].includes(currentTab)
+    ) {
+      loadTab(currentTab);
     }
   }, REFRESH_INTERVAL_MS);
 });
