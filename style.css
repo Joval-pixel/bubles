@@ -1,0 +1,347 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: radial-gradient(circle at top, #020617 0, #020617 40%, #000 100%);
+  color: #e5e7eb;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header / topo */
+
+.header {
+  padding: 12px 18px;
+  border-bottom: 1px solid #111827;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(3, 7, 18, 0.95);
+  backdrop-filter: blur(12px);
+}
+
+.logo-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.logo-text {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #fbbf24;
+}
+
+.logo-sub {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nav-btn {
+  border: 1px solid #1f2937;
+  background: #020617;
+  color: #d1d5db;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+
+.nav-btn:hover {
+  background: #111827;
+  box-shadow: 0 0 8px rgba(148, 163, 184, 0.4);
+  transform: translateY(-1px);
+}
+
+.nav-btn.active {
+  background: #22c55e;
+  color: #022c22;
+  border-color: #4ade80;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+}
+
+/* Main / painel */
+
+.main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: 16px;
+}
+
+.panel {
+  width: 100%;
+  max-width: 1200px;
+  background: radial-gradient(
+    circle at top left,
+    rgba(15, 23, 42, 0.85),
+    rgba(3, 7, 18, 0.98)
+  );
+  border-radius: 16px;
+  border: 1px solid #1f2937;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.75);
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.panel-header h1 {
+  font-size: 18px;
+}
+
+.btn-refresh {
+  border-radius: 999px;
+  border: none;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  background: #0ea5e9;
+  color: #e0f2fe;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+
+.btn-refresh:hover {
+  background: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.btn-refresh:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.panel-subtitle {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 10px;
+}
+
+/* Container de bolhas */
+
+.bubble-container {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  max-height: 540px;
+  border-radius: 14px;
+  border: 1px solid #1f2937;
+  background: radial-gradient(circle at center, #020617 0, #000 60%);
+  overflow: hidden;
+}
+
+.loading-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* Bolha */
+
+.bubble {
+  position: absolute;
+  border-radius: 999px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  will-change: transform;
+}
+
+.bubble:hover {
+  transform: scale(1.05);
+}
+
+/* Conteúdo interno da bolha */
+
+.bubble-symbol {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bubble-price {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.bubble-change {
+  font-size: 11px;
+  margin-top: 1px;
+  font-weight: 600;
+}
+
+/* Cores / estilos das bolhas */
+
+.bubble-pos {
+  background: radial-gradient(circle at 30% 20%, #bbf7d0 0, #22c55e 40%, #166534 100%);
+  border: 2px solid #f9fafb;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.9), 0 0 20px rgba(22, 163, 74, 0.9);
+  color: #022c22;
+}
+
+.bubble-neg {
+  background: radial-gradient(circle at 30% 20%, #fecaca 0, #ef4444 40%, #7f1d1d 100%);
+  border: 2px solid #f9fafb;
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.9), 0 0 20px rgba(185, 28, 28, 0.9);
+  color: #fef2f2;
+}
+
+.bubble-flat {
+  background: radial-gradient(circle at 30% 20%, #e5e7eb 0, #6b7280 40%, #111827 100%);
+  border: 2px solid #f9fafb;
+  box-shadow: 0 0 6px rgba(148, 163, 184, 0.9), 0 0 20px rgba(31, 41, 55, 0.9);
+  color: #f9fafb;
+}
+
+/* Dica abaixo das bolhas */
+
+.hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 8px;
+}
+
+/* Modal TradingView */
+
+.tv-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+.tv-modal.hidden {
+  display: none;
+}
+
+.tv-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.tv-modal-content {
+  position: relative;
+  width: 95%;
+  max-width: 900px;
+  height: 70vh;
+  background: #020617;
+  border-radius: 14px;
+  border: 1px solid #1f2937;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  z-index: 51;
+}
+
+.tv-modal-content h2 {
+  font-size: 15px;
+  margin-bottom: 6px;
+  color: #e5e7eb;
+}
+
+.tv-close {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.tv-close:hover {
+  color: #f97316;
+}
+
+.tv-iframe {
+  border: none;
+  flex: 1;
+  border-radius: 10px;
+}
+
+/* Rodapé */
+
+.footer {
+  padding: 8px 12px;
+  border-top: 1px solid #111827;
+  background: #020617;
+  font-size: 11px;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* Responsivo */
+
+@media (max-width: 768px) {
+  .header {
+    align-items: flex-start;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  .panel-header h1 {
+    font-size: 16px;
+  }
+
+  .bubble-container {
+    min-height: 360px;
+  }
+}
