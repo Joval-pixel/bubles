@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>BUBLES – Commodities ao Vivo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="logo-area">
+      <!-- Se tiver o logo em imagem, pode trocar o texto por <img> -->
+      <span class="logo-text">BUBLES</span>
+      <span class="logo-sub">– Commodities ao Vivo</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn" data-tab="stocks">Ações</button>
+      <button class="nav-btn" data-tab="cryptos">Criptos</button>
+      <button class="nav-btn active" data-tab="commodities">Commodities</button>
+      <button class="nav-btn" data-tab="ranking">Ranking</button>
+      <button class="nav-btn" data-tab="brokers">Corretoras</button>
+    </nav>
+  </header>
+
+  <main class="main">
+    <section class="panel">
+      <div class="panel-header">
+        <h1>Bolhas de Commodities (dados grátis – Yahoo Finance)</h1>
+        <button id="btn-refresh" class="btn-refresh">Atualizar agora</button>
+      </div>
+      <p class="panel-subtitle">
+        Ouro, Petróleo, Milho, Soja, Café, Açúcar em tempo quase real.  
+        Fonte: Yahoo Finance, via proxy público (sem chave de API).
+      </p>
+
+      <div id="bubble-container" class="bubble-container">
+        <!-- Bolhas criadas via JavaScript -->
+        <div class="loading-text">Carregando cotações de commodities...</div>
+      </div>
+
+      <p class="hint">
+        💡 Clique em uma bolha para abrir o gráfico no TradingView.
+      </p>
+    </section>
+  </main>
+
+  <!-- Modal TradingView -->
+  <div id="tv-modal" class="tv-modal hidden">
+    <div class="tv-modal-backdrop"></div>
+    <div class="tv-modal-content">
+      <button id="tv-close" class="tv-close">&times;</button>
+      <h2 id="tv-title">Gráfico</h2>
+      <iframe
+        id="tv-iframe"
+        class="tv-iframe"
+        src=""
+        loading="lazy"
+        allowfullscreen
+      ></iframe>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <small>BUBLES – Projeto de visualização em bolhas | Dados: Yahoo Finance</small>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
