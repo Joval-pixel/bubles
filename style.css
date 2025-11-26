@@ -160,9 +160,9 @@ body {
   position: relative;
   flex: 1;
   min-height: 420px;
-  max-height: 540px;
+  max-height: 640px;
   border-radius: 14px;
-  border: 1px solid #1f2937;
+  border: 2px solid #1f2937;
   background: radial-gradient(circle at center, #020617 0, #000 60%);
   overflow: hidden;
 }
@@ -201,19 +201,19 @@ body {
 /* Conteúdo interno da bolha */
 
 .bubble-symbol {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .bubble-price {
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 2px;
 }
 
 .bubble-change {
-  font-size: 11px;
+  font-size: 13px;
   margin-top: 1px;
   font-weight: 600;
 }
@@ -244,7 +244,7 @@ body {
 /* Dica abaixo das bolhas */
 
 .hint {
-  font-size: 12px;
+  font-size: 14px;
   color: #9ca3af;
   margin-top: 8px;
 }
