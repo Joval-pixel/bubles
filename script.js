@@ -292,6 +292,10 @@ function updateBubbleVisual(b) {
   else el.classList.add("bubble-flat");
 }
 
+// ===============================
+// POSIÇÃO INICIAL EM GRID (AGORA MAIS LENTA)
+// ===============================
+
 function setInitialPosition(b, index, total, container) {
   const rect = container.getBoundingClientRect();
 
@@ -311,7 +315,11 @@ function setInitialPosition(b, index, total, container) {
   b.x = padding + cellW * col + cellW / 2;
   b.y = padding + cellH * row + cellH / 2;
 
-  const speed = 0.3 + Math.random() * 0.25;
+  // 🔹 velocidade bem mais lenta
+  const baseSpeed = 0.08;               // antes ~0.3
+  const extraSpeed = Math.random() * 0.08; // antes ~0.25
+  const speed = baseSpeed + extraSpeed;
+
   const angle = Math.random() * Math.PI * 2;
   b.vx = Math.cos(angle) * speed;
   b.vy = Math.sin(angle) * speed;
@@ -322,7 +330,7 @@ function setInitialPosition(b, index, total, container) {
 }
 
 // ===============================
-// ANIMAÇÃO + COLISÃO
+// ANIMAÇÃO + COLISÃO (COM MAIS FREIO)
 // ===============================
 
 function startAnimation(container) {
@@ -363,8 +371,9 @@ function startAnimation(container) {
         b.vy = -Math.abs(b.vy);
       }
 
-      b.vx *= 0.995;
-      b.vy *= 0.995;
+      // 🔹 mais freio (antes 0.995)
+      b.vx *= 0.99;
+      b.vy *= 0.99;
     }
 
     const iterations = 3;
