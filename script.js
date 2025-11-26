@@ -47,18 +47,15 @@ const COMMODITIES = [
   }
 ];
 
-// Proxy público para liberar CORS no navegador
 const PROXY = "https://api.allorigins.win/raw?url=";
-
-// Intervalo de atualização de dados (ms)
 const REFRESH_INTERVAL_MS = 60000;
 
-// Bubbles em memória
 let bubbles = [];
 let animationId = null;
 
+
 // ===============================
-// FUNÇÕES DE DADOS – YAHOO FINANCE
+// BUSCAR DADOS YAHOO FINANCE
 // ===============================
 
 async function fetchYahooQuote(symbol) {
@@ -67,23 +64,17 @@ async function fetchYahooQuote(symbol) {
   )}`;
 
   const resp = await fetch(url);
-  if (!resp.ok) {
-    throw new Error(`HTTP ${resp.status} – ${resp.statusText}`);
-  }
+  if (!resp.ok) throw new Error("HTTP " + resp.status);
 
   const json = await resp.json();
   const result = json?.chart?.result?.[0];
 
-  if (!result || !result.meta) {
-    throw new Error("Resposta inesperada do Yahoo Finance");
-  }
+  if (!result || !result.meta) throw new Error("Resposta inválida");
 
   const price = result.meta.regularMarketPrice;
   const prevClose = result.meta.chartPreviousClose;
 
-  if (price == null || prevClose == null) {
-    throw new Error("Preço ou fechamento anterior não encontrado");
-  }
+  if (price == null || prevClose == null) throw new Error("Sem preços");
 
   const changePct = ((price - prevClose) / prevClose) * 100;
 
@@ -97,24 +88,21 @@ async function fetchAllCommodities() {
   const data = {};
   for (const c of COMMODITIES) {
     try {
-      const quote = await fetchYahooQuote(c.simboloYahoo);
-      data[c.id] = quote;
-    } catch (err) {
-      console.error(`Erro ao buscar ${c.nome}:`, err);
-      data[c.id] = {
-        price: NaN,
-        changePct: 0
-      };
+      data[c.id] = await fetchYahooQuote(c.simboloYahoo);
+    } catch (e) {
+      console.error("Erro ao buscar:", c.nome, e);
+      data[c.id] = { price: NaN, changePct: 0 };
     }
   }
   return data;
 }
 
+
 // ===============================
-// CRIAÇÃO E ANIMAÇÃO DAS BOLHAS
+// CRIAÇÃO DA BOLHA
 // ===============================
 
-function createBubbleElement(parent, commodity, info, layoutIndex, total) {
+function createBubbleElement(parent, commodity, info, index, total) {
   const bubble = document.createElement("div");
   bubble.className = "bubble";
 
@@ -131,10 +119,9 @@ function createBubbleElement(parent, commodity, info, layoutIndex, total) {
   bubble.appendChild(symbolEl);
   bubble.appendChild(priceEl);
   bubble.appendChild(changeEl);
-
   parent.appendChild(bubble);
 
-  const bubbleObj = {
+  const obj = {
     id: commodity.id,
     commodity,
     el: bubble,
@@ -150,99 +137,105 @@ function createBubbleElement(parent, commodity, info, layoutIndex, total) {
     changePct: info.changePct
   };
 
-  updateBubbleVisual(bubbleObj);
-  setInitialPosition(bubbleObj, layoutIndex, total, parent);
+  updateBubbleVisual(obj);
+  setInitialPosition(obj, index, total, parent);
 
-  // Clique -> abrir TradingView
-  bubble.addEventListener("click", () => {
-    openTradingView(commodity, bubbleObj);
-  });
+  bubble.addEventListener("click", () => openTradingView(commodity));
 
-  return bubbleObj;
+  return obj;
 }
 
-function updateBubbleVisual(bubbleObj) {
-  const { el, priceEl, changeEl, price, changePct, symbolEl } = bubbleObj;
-  const change = Number(changePct) || 0;
 
-  // -------------------------------
-  // NOVO SISTEMA DE TAMANHO PROPORCIONAL
-  // -------------------------------
-  const minRadius = 55;   // tamanho mínimo da bolha
-  const maxRadius = 105;  // tamanho máximo da bolha
+// ===============================
+// ESTILO DA BOLHA + TAMANHO PROPORCIONAL
+// ===============================
 
-  let varAbs = Math.abs(change);
-  if (varAbs > 10) varAbs = 10; // limita variações muito grandes
+function updateBubbleVisual(b) {
+  const change = Number(b.changePct) || 0;
 
-  const radius = minRadius + (varAbs / 10) * (maxRadius - minRadius);
+  const minRadius = 55;
+  const maxRadius = 105;
 
-  bubbleObj.radius = radius;
-  el.style.width = `${radius * 2}px`;
-  el.style.height = `${radius * 2}px`;
+  let v = Math.abs(change);
+  if (v > 10) v = 10;
 
-  // Ajuste fino de fonte (bolhas menores com fonte menor)
+  const radius = minRadius + (v / 10) * (maxRadius - minRadius);
+
+  b.radius = radius;
+  b.el.style.width = `${radius * 2}px`;
+  b.el.style.height = `${radius * 2}px`;
+
+  // Fonte adaptável
   if (radius < 70) {
-    symbolEl.style.fontSize = "11px";
-    priceEl.style.fontSize = "10px";
-    changeEl.style.fontSize = "10px";
+    b.symbolEl.style.fontSize = "11px";
+    b.priceEl.style.fontSize = "10px";
+    b.changeEl.style.fontSize = "10px";
   } else if (radius > 90) {
-    symbolEl.style.fontSize = "14px";
-    priceEl.style.fontSize = "12px";
-    changeEl.style.fontSize = "12px";
+    b.symbolEl.style.fontSize = "14px";
+    b.priceEl.style.fontSize = "12px";
+    b.changeEl.style.fontSize = "12px";
   } else {
-    symbolEl.style.fontSize = "13px";
-    priceEl.style.fontSize = "11px";
-    changeEl.style.fontSize = "11px";
+    b.symbolEl.style.fontSize = "13px";
+    b.priceEl.style.fontSize = "11px";
+    b.changeEl.style.fontSize = "11px";
   }
 
-  // conteúdo
-  if (!isNaN(price)) {
-    priceEl.textContent = `Preço: ${price.toFixed(2)}`;
+  // Texto
+  if (!isNaN(b.price)) {
+    b.priceEl.textContent = `Preço: ${b.price.toFixed(2)}`;
   } else {
-    priceEl.textContent = "Preço: —";
+    b.priceEl.textContent = "Preço: —";
   }
 
   const prefix = change > 0 ? "+" : "";
-  changeEl.textContent = `Variação: ${prefix}${change.toFixed(2)}%`;
+  b.changeEl.textContent = `Variação: ${prefix}${change.toFixed(2)}%`;
 
-  // cor
-  el.classList.remove("bubble-pos", "bubble-neg", "bubble-flat");
-  if (change > 0.05) el.classList.add("bubble-pos");
-  else if (change < -0.05) el.classList.add("bubble-neg");
-  else el.classList.add("bubble-flat");
+  b.el.classList.remove("bubble-pos", "bubble-neg", "bubble-flat");
+  if (change > 0.05) b.el.classList.add("bubble-pos");
+  else if (change < -0.05) b.el.classList.add("bubble-neg");
+  else b.el.classList.add("bubble-flat");
 }
 
-function setInitialPosition(bubbleObj, index, total, container) {
+
+// ===============================
+// POSIÇÃO INICIAL EM GRID
+// ===============================
+
+function setInitialPosition(b, index, total, container) {
   const rect = container.getBoundingClientRect();
+
   const cols = Math.ceil(Math.sqrt(total));
   const rows = Math.ceil(total / cols);
 
   const col = index % cols;
   const row = Math.floor(index / cols);
 
-  const padding = 30;
+  const padding = 40;
+
   const usableWidth = rect.width - padding * 2;
   const usableHeight = rect.height - padding * 2;
 
-  const cellWidth = usableWidth / cols;
-  const cellHeight = usableHeight / rows;
+  const cellW = usableWidth / cols;
+  const cellH = usableHeight / rows;
 
-  const cx = padding + cellWidth * col + cellWidth / 2;
-  const cy = padding + cellHeight * row + cellHeight / 2;
+  b.x = padding + cellW * col + cellW / 2;
+  b.y = padding + cellH * row + cellH / 2;
 
-  bubbleObj.x = cx;
-  bubbleObj.y = cy;
-
-  // velocidade suave aleatória
-  const speed = 0.25 + Math.random() * 0.35;
+  // velocidades iniciais
+  const speed = 0.3 + Math.random() * 0.25;
   const angle = Math.random() * Math.PI * 2;
-  bubbleObj.vx = Math.cos(angle) * speed;
-  bubbleObj.vy = Math.sin(angle) * speed;
+  b.vx = Math.cos(angle) * speed;
+  b.vy = Math.sin(angle) * speed;
 
-  bubbleObj.el.style.transform = `translate(${bubbleObj.x - bubbleObj.radius}px, ${
-    bubbleObj.y - bubbleObj.radius
+  b.el.style.transform = `translate(${b.x - b.radius}px, ${
+    b.y - b.radius
   }px)`;
 }
+
+
+// ===============================
+// ANIMAÇÃO + COLISÃO REAL
+// ===============================
 
 function startAnimation(container) {
   if (animationId) cancelAnimationFrame(animationId);
@@ -250,7 +243,6 @@ function startAnimation(container) {
   const loop = () => {
     const rect = container.getBoundingClientRect();
 
-    // movimento + colisão com bordas
     for (const b of bubbles) {
       b.x += b.vx;
       b.y += b.vy;
@@ -275,40 +267,48 @@ function startAnimation(container) {
         b.y = rect.height - b.radius;
         b.vy = -Math.abs(b.vy);
       }
+
+      b.vx *= 0.995;
+      b.vy *= 0.995;
     }
 
-    // colisão simples entre bolhas
-    for (let i = 0; i < bubbles.length; i++) {
-      for (let j = i + 1; j < bubbles.length; j++) {
-        const a = bubbles[i];
-        const b = bubbles[j];
+    // Colisão com mais força + sem sobreposição
+    const iterations = 3;
+    for (let k = 0; k < iterations; k++) {
+      for (let i = 0; i < bubbles.length; i++) {
+        for (let j = i + 1; j < bubbles.length; j++) {
+          const a = bubbles[i];
+          const b = bubbles[j];
 
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const minDist = a.radius + b.radius;
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;
 
-        if (dist > 0 && dist < minDist) {
-          const overlap = (minDist - dist) / 2;
-          const nx = dx / dist;
-          const ny = dy / dist;
+          const minDist = a.radius + b.radius + 12;
 
-          a.x += nx * overlap;
-          a.y += ny * overlap;
-          b.x -= nx * overlap;
-          b.y -= ny * overlap;
+          if (dist < minDist) {
+            const overlap = (minDist - dist) / 2;
 
-          const tempVx = a.vx;
-          const tempVy = a.vy;
-          a.vx = b.vx;
-          a.vy = b.vy;
-          b.vx = tempVx;
-          b.vy = tempVy;
+            const nx = dx / dist;
+            const ny = dy / dist;
+
+            a.x -= nx * overlap;
+            a.y -= ny * overlap;
+
+            b.x += nx * overlap;
+            b.y += ny * overlap;
+
+            const avx = a.vx;
+            const avy = a.vy;
+            a.vx = b.vx * 0.85;
+            a.vy = b.vy * 0.85;
+            b.vx = avx * 0.85;
+            b.vy = avy * 0.85;
+          }
         }
       }
     }
 
-    // aplicar transform
     for (const b of bubbles) {
       b.el.style.transform = `translate(${b.x - b.radius}px, ${
         b.y - b.radius
@@ -321,6 +321,7 @@ function startAnimation(container) {
   animationId = requestAnimationFrame(loop);
 }
 
+
 // ===============================
 // TRADINGVIEW MODAL
 // ===============================
@@ -332,21 +333,19 @@ function openTradingView(commodity) {
 
   title.textContent = `${commodity.nome} – gráfico TradingView`;
 
-  const symbol = commodity.simboloTV || "TVC:GOLD";
   const url = `https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(
-    symbol
-  )}&interval=60&hidesidetoolbar=1&hidetoptoolbar=1&symboledit=1&saveimage=0&toolbarbg=f1f3f6&studies=&hideideas=1&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&allow_symbol_change=1&locale=br`;
+    commodity.simboloTV
+  )}&interval=60&hide_side_toolbar=1&theme=dark&style=1&locale=br`;
 
   iframe.src = url;
   modal.classList.remove("hidden");
 }
 
 function closeTradingView() {
-  const modal = document.getElementById("tv-modal");
-  const iframe = document.getElementById("tv-iframe");
-  iframe.src = "";
-  modal.classList.add("hidden");
+  document.getElementById("tv-modal").classList.add("hidden");
+  document.getElementById("tv-iframe").src = "";
 }
+
 
 // ===============================
 // INICIALIZAÇÃO
@@ -354,65 +353,47 @@ function closeTradingView() {
 
 async function initCommodities() {
   const container = document.getElementById("bubble-container");
-  if (!container) return;
-
-  container.innerHTML = `<div class="loading-text">Carregando cotações de commodities...</div>`;
+  container.innerHTML = `<div class="loading-text">Carregando...</div>`;
 
   try {
     const data = await fetchAllCommodities();
     container.innerHTML = "";
-
     bubbles = [];
-    COMMODITIES.forEach((c, index) => {
+
+    COMMODITIES.forEach((c, i) => {
       const info = data[c.id] || { price: NaN, changePct: 0 };
-      const bubbleObj = createBubbleElement(
+      const bubble = createBubbleElement(
         container,
         c,
         info,
-        index,
+        i,
         COMMODITIES.length
       );
-      bubbles.push(bubbleObj);
+      bubbles.push(bubble);
     });
 
     startAnimation(container);
-  } catch (err) {
-    console.error(err);
-    container.innerHTML = `<div class="loading-text">Erro ao carregar dados: ${err.message}</div>`;
+  } catch (e) {
+    container.innerHTML = `<div class="loading-text">Erro: ${e.message}</div>`;
   }
 }
 
-function setupEvents() {
-  const refreshBtn = document.getElementById("btn-refresh");
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", () => {
-      initCommodities();
-    });
-  }
 
-  // Modal TradingView
-  const modal = document.getElementById("tv-modal");
-  const closeBtn = document.getElementById("tv-close");
-  const backdrop = document.querySelector(".tv-modal-backdrop");
-
-  if (closeBtn) closeBtn.addEventListener("click", closeTradingView);
-  if (backdrop) backdrop.addEventListener("click", closeTradingView);
-
-  // Botões do menu (tabs) – placeholder por enquanto
-  document.querySelectorAll(".nav-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const tab = btn.dataset.tab;
-      if (tab !== "commodities") {
-        alert(`A aba "${tab}" ainda não está implementada neste exemplo.`);
-      }
-    });
-  });
-}
+// ===============================
+// EVENTOS
+// ===============================
 
 document.addEventListener("DOMContentLoaded", () => {
-  setupEvents();
   initCommodities();
 
-  // Atualização automática
+  document.getElementById("btn-refresh")
+    .addEventListener("click", initCommodities);
+
+  document.getElementById("tv-close")
+    .addEventListener("click", closeTradingView);
+
+  document.querySelector(".tv-modal-backdrop")
+    .addEventListener("click", closeTradingView);
+
   setInterval(initCommodities, REFRESH_INTERVAL_MS);
 });
