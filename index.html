@@ -1,220 +1,117 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Termômetro Realtime</title>
-
-<!-- FONT + ICONS -->
-<link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600" rel="stylesheet">
-
-<!-- AMCHARTS -->
-<script src="https://cdn.amcharts.com/lib/4/core.js"></script>
-<script src="https://cdn.amcharts.com/lib/4/charts.js"></script>
-<script src="https://cdn.amcharts.com/lib/4/themes/animated.js"></script>
-<script src="https://cdn.amcharts.com/lib/4/themes/dark.js"></script>
-
-<style>
-body{
-  background:#091124;
-  color:white;
-  font-family:Poppins, sans-serif;
-  margin:0;
-  padding:0;
-}
-header{
-  padding:15px;
-  display:flex;
-  align-items:center;
-  background:#0F172A;
-  gap:20px;
-}
-.logo{
-  font-size:28px;
-  font-weight:600;
-}
-.panel{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:20px;
-  padding:20px;
-}
-.card{
-  background:#152032;
-  border-radius:12px;
-  padding:20px;
-}
-.card h1{
-  font-size:26px;
-  margin:0;
-}
-.card span{
-  opacity:.7;
-  font-size:14px;
-}
-.block-title{
-  margin:20px;
-  font-size:22px;
-  font-weight:600;
-}
-.table-box{
-  padding:0 20px 40px 20px;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-td{
-  padding:8px 6px;
-  border-bottom:1px solid rgba(255,255,255,.08);
-}
-.flag{
-  width:18px;
-}
-.positive{color:#1EC971;}
-.negative{color:#F04438;}
-.chart{
-  width:100%;
-  height:260px;
-  margin-bottom:35px;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4Selet Termômetro Realtime</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-<header>
-  <div class="logo">🔵 Termômetro</div>
-</header>
 
-<section class="panel">
-  <div class="card"><h1 id="dolarVar">-</h1><span>Índice Dólar (DXY)</span></div>
-  <div class="card"><h1 id="usdbrlVar">-</h1><span>USD/BRL</span></div>
-  <div class="card"><h1 id="indiceFut">-</h1><span>Índice Fut</span></div>
-  <div class="card"><h1 id="petroleo">-</h1><span>Petróleo WTI</span></div>
+<header><h1>4SELET - Termômetro Realtime</h1></header>
+
+<section id="cards">
+  <div class="card red"><h2>Dólar DXY</h2><div id="dxy"></div></div>
+  <div class="card red"><h2>USD/BRL</h2><div id="usdbrl"></div></div>
+  <div class="card green"><h2>WIN Futuro</h2><div id="win"></div></div>
+  <div class="card red"><h2>Petróleo WTI</h2><div id="wti"></div></div>
+  <div class="card teal"><h2>Telegram</h2><p>Notícias</p></div>
 </section>
 
-<div class="block-title">Profundidade de Mercado BTC/ETH</div>
-<div id="darkDepthChart" class="chart"></div>
-
-<div class="block-title">Mini Gráficos</div>
-<div id="marketsChartBtcLight" class="chart"></div>
-<div id="marketsChartEthLight" class="chart"></div>
-
-<div class="block-title">Índices Aconários - B3</div>
-<div class="table-box">
-<table id="table-b3"></table>
-</div>
-
-<script>
-/* ===========================================================
-    CARDS (DXY, USD/BRL, FUT, PETRÓLEO)
-=========================================================== */
-async function updateCards(){
-  const prices = [
-    {id:'dolarVar', url:'https://api.hgbrasil.com/finance?key=6ba1d68b'},
-    {id:'usdbrlVar', url:'https://economia.awesomeapi.com.br/json/last/USD-BRL'},
-    {id:'indiceFut', url:'https://economia.awesomeapi.com.br/json/last/IBOV'},
-    {id:'petroleo', url:'https://api.brentapi.com/v2/latest'}
-  ];
-  prices.forEach(async asset=>{
-    try{
-      const res=await fetch(asset.url);
-      const data=await res.json();
-      let v = (Math.random()*2-1).toFixed(2); // placeholder
-      document.getElementById(asset.id).innerHTML = 
-        (v>0?'+':'')+v+'%';
-    }catch(e){
-      document.getElementById(asset.id).innerHTML='--';
-    }
-  })
-}
-setInterval(updateCards,30000);
-updateCards();
-
-/* ===========================================================
-    B3 TABLE DUMMY (lista)
-=========================================================== */
-const indices = [
-  ['IBX', '69,018', '+0.27'],
-  ['IMAT', '6,345', '-0.18'],
-  ['IFNC', '17,680', '+0.32'],
-  ['SMALL', '2,344', '+0.19']
-];
-const t=document.querySelector('#table-b3');
-indices.forEach(i=>{
-  t.innerHTML+=`
-    <tr>
-      <td><img class="flag" src="https://flagcdn.com/w20/br.png"></td>
-      <td>${i[0]}</td>
-      <td>${i[1]}</td>
-      <td class="${i[2].includes('-')?'negative':'positive'}">${i[2]}</td>
-    </tr>`;
-});
-
-/* ===========================================================
-    DEPTH CHART (Poloniex)
-=========================================================== */
-am4core.useTheme(am4themes_dark);
-var chart = am4core.create('darkDepthChart', am4charts.XYChart);
-function DepthChart(){
-  chart.dataSource.url='https://poloniex.com/public?command=returnOrderBook&currencyPair=BTC_ETH&depth=50';
-  chart.dataSource.reloadFrequency=30000;
-  chart.dataSource.adapter.add('parsedData',function(data){
-    function proc(list,type,rev){
-      for(let i=0;i<list.length;i++){
-        list[i]={value:+list[i][0],volume:+list[i][1]};
+<!-- TradingView Cards -->
+<section id="widgets">
+  <div class="tv-box">
+    <div class="tradingview-widget-container">
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+      {
+        "symbol": "TVC:DXY",
+        "width": "100%",
+        "height": "160",
+        "locale": "br",
+        "dateRange": "1D",
+        "colorTheme": "dark"
       }
-      list.sort((a,b)=>a.value-b.value);
-      if(rev){
-        for(let i=list.length-1;i>=0;i--){
-          list[i].total=(i<list.length-1?list[i+1].total:0)+list[i].volume;
-          out.unshift({value:list[i].value,[type]:list[i].volume,[type+'t']:list[i].total});
-        }
-      }else{
-        for(let i=0;i<list.length;i++){
-          list[i].total=(i>0?list[i-1].total:0)+list[i].volume;
-          out.push({value:list[i].value,[type]:list[i].volume,[type+'t']:list[i].total});
-        }
-      }
+      </script>
+    </div>
+  </div>
+
+  <div class="tv-box">
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+    {
+      "symbol": "FX_IDC:USDBRL",
+      "width": "100%",
+      "height": "160",
+      "locale": "br",
+      "dateRange": "1D",
+      "colorTheme": "dark"
     }
-    var out=[];
-    proc(data.bids,'b',true);
-    proc(data.asks,'a',false);
-    return out;
-  });
-}
-DepthChart();
+    </script>
+  </div>
 
-/* ===========================================================
-    MINI CHARTS (fake realtime)
-=========================================================== */
-function mini(id,color){
-  let c = am4core.create(id,am4charts.XYChart);
-  function gen(){
-    let r=[];let d=new Date();d.setMinutes(d.getMinutes()-300);
-    let p=500;
-    for(let i=0;i<300;i++){
-      let nd=new Date(d);nd.setMinutes(nd.getMinutes()+i);
-      p+=(Math.random()<.5?1:-1)*Math.random()*8;
-      r.push({date:nd,price:p});
-    }return r;
-  }
-  c.data=gen();
-  let da=c.xAxes.push(new am4charts.DateAxis());
-  da.renderer.grid.template.disabled=true;
-  let va=c.yAxes.push(new am4charts.ValueAxis());
-  va.renderer.grid.template.disabled=true;
-  let s=c.series.push(new am4charts.LineSeries());
-  s.dataFields.dateX='date';
-  s.dataFields.valueY='price';
-  s.stroke=am4core.color(color);
-  s.fill=am4core.color(color);
-  s.fillOpacity=.1;
-}
-mini('marketsChartBtcLight','#00cc93');
-mini('marketsChartEthLight','#ff4745');
+  <div class="tv-box">
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+    {
+      "symbol": "BMFBOVESPA:WINQ2024",
+      "width": "100%",
+      "height": "160",
+      "locale": "br",
+      "dateRange": "1D",
+      "colorTheme": "dark"
+    }
+    </script>
+  </div>
 
+  <div class="tv-box">
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+    {
+      "symbol": "TVC:USOIL",
+      "width": "100%",
+      "height": "160",
+      "locale": "br",
+      "dateRange": "1D",
+      "colorTheme": "dark"
+    }
+    </script>
+  </div>
+</section>
+
+<hr>
+
+<!-- Ticker Scrolling -->
+<section id="ticker">
+<script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+{
+  "symbols": [
+    {"proName":"BINANCE:BTCUSDT","title":"BTC"},
+    {"proName":"NASDAQ:TSLA","title":"Tesla"},
+    {"proName":"SP:IBOV","title":"Ibovespa"},
+    {"proName":"BMFBOVESPA:VALE3","title":"VALE3"},
+    {"proName":"BMFBOVESPA:PETR4","title":"PETR4"}
+  ],
+  "colorTheme": "dark",
+  "isTransparent": false,
+  "displayMode": "adaptive",
+  "locale": "br"
+}
 </script>
+</section>
 
+<hr>
+
+<!-- Tabela B3 -->
+<section>
+  <h2>Principais Ações B3</h2>
+  <table id="b3-table">
+    <thead><tr><th>Ativo</th><th>Último</th><th>Var%</th></tr></thead>
+    <tbody id="b3body"></tbody>
+  </table>
+</section>
+
+<footer>
+  <p>4Selet Realtime © 2026</p>
+</footer>
+
+<script src="script.js"></script>
 </body>
 </html>
