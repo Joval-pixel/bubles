@@ -1,33 +1,37 @@
 * {
-  box-sizing: border-box;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, Ubuntu, sans-serif;
-  background: #0b1220;
-  color: #ffffff;
+  background: linear-gradient(180deg, #020617, #020617);
+  color: #e5e7eb;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
 }
 
 .container {
-  width: 100%;
-  max-width: 1100px;
+  max-width: 1140px;
   margin: 0 auto;
-  padding: 60px 20px;
+  padding: 80px 20px;
 }
 
+/* HERO */
 .hero {
-  min-height: 80vh;
+  min-height: 90vh;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
 }
 
 .hero h1 {
-  font-size: 3rem;
-  line-height: 1.2;
+  font-size: 3.2rem;
+  line-height: 1.15;
   margin-bottom: 20px;
 }
 
@@ -36,33 +40,32 @@ body {
 }
 
 .subtitle {
-  max-width: 700px;
-  font-size: 1.1rem;
+  max-width: 720px;
+  font-size: 1.15rem;
   opacity: 0.9;
-  margin-bottom: 30px;
+  margin-bottom: 35px;
 }
 
 .buttons {
   display: flex;
-  gap: 15px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .btn {
-  padding: 14px 26px;
-  border-radius: 8px;
-  text-decoration: none;
+  padding: 16px 30px;
+  border-radius: 10px;
   font-weight: 600;
   transition: 0.2s;
 }
 
 .btn.primary {
-  background: #38bdf8;
-  color: #0b1220;
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  color: #020617;
 }
 
 .btn.primary:hover {
-  background: #0ea5e9;
+  opacity: 0.9;
 }
 
 .btn.secondary {
@@ -70,25 +73,20 @@ body {
   color: #38bdf8;
 }
 
+/* SECTIONS */
 .section {
   margin-top: 120px;
 }
 
 .section h2 {
-  font-size: 2rem;
+  font-size: 2.2rem;
   margin-bottom: 20px;
 }
 
 .section p {
-  max-width: 700px;
+  max-width: 720px;
   opacity: 0.9;
   margin-bottom: 15px;
-}
-
-.section.dark {
-  background: #0f172a;
-  padding: 60px;
-  border-radius: 16px;
 }
 
 .list {
@@ -101,42 +99,40 @@ body {
   font-size: 1.05rem;
 }
 
+/* CTA */
 .cta {
-  margin-top: 120px;
-  text-align: center;
+  margin-top: 140px;
   background: linear-gradient(135deg, #0ea5e9, #38bdf8);
-  color: #0b1220;
-  padding: 80px 30px;
-  border-radius: 20px;
+  color: #020617;
+  padding: 90px 30px;
+  border-radius: 24px;
+  text-align: center;
 }
 
 .cta h2 {
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   margin-bottom: 20px;
 }
 
 .cta p {
-  max-width: 700px;
+  max-width: 720px;
   margin: 0 auto 30px;
 }
+
+/* WHATSAPP FLOAT */
 .whatsapp-float {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: #25d366;
+  bottom: 22px;
+  right: 22px;
+  background: #25d366;
   color: #fff;
-  width: 56px;
-  height: 56px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  text-decoration: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  z-index: 1000;
-}
-
-.whatsapp-float:hover {
-  background-color: #1ebe5d;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  z-index: 999;
 }
