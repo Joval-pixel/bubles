@@ -1,30 +1,41 @@
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
-      <h1 className="text-4xl md:text-5xl font-bold text-center text-gray-900">
-        Curso ChatGPT Iniciante 🚀
-      </h1>
+    <main className="container">
+      <section className="hero">
+        <h1>
+          Aprenda a usar <span>ChatGPT & IA</span> para ganhar tempo e dinheiro
+        </h1>
 
-      <p className="mt-6 text-lg text-center text-gray-600 max-w-2xl">
-        Aprenda a usar o ChatGPT do zero até aplicações práticas para ganhar
-        produtividade, criar conteúdos e gerar renda com Inteligência Artificial.
-      </p>
+        <p>
+          Curso prático para iniciantes e profissionais que querem usar
+          Inteligência Artificial no dia a dia e nos negócios.
+        </p>
 
-      <div className="mt-8 flex gap-4">
-        <a
-          href="#"
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition"
-        >
-          Quero aprender agora
-        </a>
+        <div className="actions">
+          <a
+            href="https://wa.me/55SEUNUMEROAQUI"
+            className="btn primary"
+            target="_blank"
+          >
+            Quero aprender agora
+          </a>
 
-        <a
-          href="#"
-          className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-50 transition"
-        >
-          Ver conteúdo
-        </a>
-      </div>
+          <a href="#conteudo" className="btn secondary">
+            Ver conteúdo
+          </a>
+        </div>
+      </section>
+
+      <section id="conteudo" className="features">
+        <h2>O que você vai aprender</h2>
+
+        <ul>
+          <li>✔️ Como usar o ChatGPT do zero</li>
+          <li>✔️ Criar textos, anúncios e posts com IA</li>
+          <li>✔️ Usar IA para trabalho e negócios</li>
+          <li>✔️ Automatizar tarefas e ganhar produtividade</li>
+        </ul>
+      </section>
     </main>
-  );
+  )
 }
