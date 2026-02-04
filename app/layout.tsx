@@ -1,10 +1,6 @@
 import "./globals.css";
-
-export const metadata = {
-  title: "Bubles IA | ChatGPT e Inteligência Artificial",
-  description:
-    "Aprenda a usar ChatGPT e Inteligência Artificial para ganhar tempo, produtividade e dinheiro.",
-};
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
 export default function RootLayout({
   children,
@@ -13,7 +9,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <Header />
+        {children}
+        <Footer />
+      </body>
     </html>
   );
 }
