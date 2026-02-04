@@ -1,130 +1,42 @@
-/* ===== BASE ===== */
-body {
-  background: linear-gradient(180deg, #020617, #020617);
-  color: #e5e7eb;
+/* ===== HEADER ===== */
+.header {
+  border-bottom: 1px solid #1e293b;
+  padding: 16px 0;
 }
 
-/* ===== UTIL ===== */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 24px;
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-span {
-  color: #38bdf8;
+.logo {
+  font-size: 20px;
+  font-weight: 700;
 }
 
-/* ===== BOTÕES ===== */
-.btn {
-  display: inline-block;
-  padding: 14px 28px;
-  border-radius: 10px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: 0.2s;
-}
-
-.btn.primary {
-  background: #38bdf8;
-  color: #020617;
-}
-
-.btn.primary:hover {
-  background: #0ea5e9;
-}
-
-/* ===== HERO ===== */
-.course-hero {
-  padding: 120px 0;
-}
-
-.badge {
-  display: inline-block;
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-
-.course-hero h1 {
-  font-size: 48px;
-  line-height: 1.2;
-  margin-bottom: 20px;
-}
-
-.subtitle {
-  font-size: 18px;
-  max-width: 720px;
-  margin-bottom: 32px;
+.header nav a {
+  margin-left: 24px;
   color: #cbd5f5;
+  text-decoration: none;
+  font-weight: 500;
 }
 
-.guarantee {
-  margin-top: 16px;
-  font-size: 14px;
-  color: #94a3b8;
-}
-
-/* ===== SEÇÕES ===== */
-.course-content,
-.course-for,
-.course-offer {
-  padding: 80px 0;
-}
-
-.course-content h2,
-.course-for h2,
-.course-offer h2 {
-  font-size: 32px;
-  margin-bottom: 24px;
-}
-
-.course-content ul,
-.course-for ul {
-  list-style: none;
-  padding: 0;
-}
-
-.course-content li,
-.course-for li {
-  margin-bottom: 12px;
-  font-size: 18px;
-}
-
-/* ===== OFERTA ===== */
-.offer-box {
-  background: linear-gradient(180deg, #020617, #020617);
-  border: 1px solid #1e293b;
-  border-radius: 16px;
-  padding: 40px;
-  max-width: 520px;
-}
-
-.offer-box p {
-  margin-bottom: 12px;
-  font-size: 18px;
-}
-
-.price {
-  margin: 24px 0;
-}
-
-.price span {
-  display: block;
-  font-size: 14px;
-  color: #94a3b8;
-}
-
-.price strong {
-  font-size: 36px;
+.header nav a:hover {
   color: #38bdf8;
 }
 
-.secure {
-  font-size: 14px;
+/* ===== FOOTER ===== */
+.footer {
+  border-top: 1px solid #1e293b;
+  padding: 32px 0;
+  margin-top: 80px;
   color: #94a3b8;
-  margin-top: 16px;
+  text-align: center;
+}
+
+.footer small {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
 }
