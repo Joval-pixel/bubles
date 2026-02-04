@@ -13,10 +13,14 @@ export default function Home() {
           e empreendedores que querem usar IA no dia a dia e nos negócios.
         </p>
 
-        <div className="buttons">
-          <a href="#conteudo" className="btn primary">
-            Quero aprender agora
-          </a>
+        <a
+  href="https://wa.me/5517981813000?text=Ol%C3%A1!%20Quero%20aprender%20a%20usar%20ChatGPT%20e%20IA%20para%20ganhar%20tempo%20e%20dinheiro.%20Pode%20me%20explicar%20como%20funciona%20o%20curso?"
+  target="_blank"
+  className="btn primary"
+>
+  Quero aprender agora
+</a>
+
           <a href="#conteudo" className="btn secondary">
             Ver o que vou aprender
           </a>
