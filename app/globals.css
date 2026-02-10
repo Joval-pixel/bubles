@@ -1,67 +1,48 @@
-.upsell {
-  background: #07152b;
+.downsell {
+  background: #0a0f1f;
   color: white;
   padding: 60px 20px;
-  font-family: Arial, sans-serif;
   text-align: center;
 }
 
-.upsell h1 {
-  font-size: 32px;
-  color: #ff4d4d;
+.downsell h1 {
+  color: #ffcc00;
+  font-size: 30px;
 }
 
-.upsell h2 {
-  margin-top: 40px;
-  font-size: 26px;
+.downsell h2 {
+  margin-top: 30px;
   color: #00d4ff;
 }
 
-.upsell p {
-  max-width: 700px;
-  margin: 15px auto;
-  font-size: 18px;
-}
-
-.upsell ul {
+.downsell ul {
   list-style: none;
   padding: 0;
+}
+
+.downsell li {
+  margin: 10px 0;
+}
+
+.price-old {
+  text-decoration: line-through;
+  color: #aaa;
   margin-top: 20px;
 }
 
-.upsell li {
-  margin: 10px 0;
-  font-size: 18px;
-}
-
-.old-price {
-  text-decoration: line-through;
-  color: #aaa;
-  font-size: 20px;
-}
-
-.new-price {
-  font-size: 36px;
+.price-new {
+  font-size: 32px;
   color: #00ff88;
   font-weight: bold;
 }
 
-.btn-aceitar {
+.btn-downsell {
   display: inline-block;
-  margin-top: 30px;
+  margin-top: 25px;
   background: linear-gradient(90deg, #00ff88, #00d4ff);
-  padding: 18px 30px;
-  color: black;
-  font-weight: bold;
-  text-decoration: none;
+  padding: 15px 30px;
   border-radius: 8px;
-  font-size: 18px;
-}
-
-.btn-recusar {
-  display: inline-block;
-  margin-top: 20px;
-  color: #ccc;
-  font-size: 14px;
-  text-decoration: underline;
+  font-weight: bold;
+  color: black;
+  text-decoration: none;
 }
