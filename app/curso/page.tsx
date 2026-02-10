@@ -1,62 +1,57 @@
 export default function Curso() {
   return (
     <main>
-      <section className="section">
+      <section className="hero">
         <div className="container">
           <span className="badge">PLANO PREMIUM</span>
 
           <h1>
-            Curso Bubles IA — <span style={{ color: "#38bdf8" }}>Premium</span>
+            Domine <span className="highlight">ChatGPT & IA</span> 
+            <br /> e transforme tempo em dinheiro
           </h1>
 
-          <p>
-            Aprenda a usar ChatGPT e Inteligência Artificial de forma prática
-            para ganhar tempo, produtividade e dinheiro.
+          <p className="subtitle">
+            Método direto ao ponto para sair do zero e começar a usar
+            Inteligência Artificial para gerar resultados reais.
           </p>
 
-          <a
-            href="https://wa.me/5517981813000?text=Quero%20entrar%20no%20Curso%20Bubles%20IA%20Premium"
-            target="_blank"
-            className="btn primary"
-          >
-            Quero entrar agora
-          </a>
+          <div className="price-box">
+            <p>Acesso completo ao curso</p>
+
+            <div className="price">R$ 197,00</div>
+
+            <a
+              href="https://pay.kiwify.com.br/3veb8Bd"
+              target="_blank"
+              className="btn primary"
+            >
+              🔒 Garantir minha vaga agora
+            </a>
+
+            <p className="guarantee">
+              🔐 Garantia de 7 dias ou seu dinheiro de volta
+            </p>
+          </div>
         </div>
       </section>
 
-      <section className="section" style={{ background: "#0f172a" }}>
+      <section className="section">
         <div className="container">
-          <h2>O que você vai aprender</h2>
+          <h2>O que você recebe</h2>
 
-          <p>✓ ChatGPT do zero ao avançado</p>
-          <p>✓ Criação de prompts profissionais</p>
-          <p>✓ Automatização com IA</p>
-          <p>✓ Aplicação em vendas e marketing</p>
-          <p>✓ Estratégias para ganhar dinheiro com IA</p>
-
-          <h2 style={{ marginTop: "50px" }}>Bônus Exclusivos</h2>
-
-          <p>🎁 Pack de prompts profissionais</p>
-          <p>🎁 Modelos prontos para negócios</p>
-          <p>🎁 Suporte direto via WhatsApp</p>
-          <p>🎁 Atualizações vitalícias</p>
-
-          <h2 style={{ marginTop: "50px" }}>Investimento</h2>
-
-          <p style={{ fontSize: "24px", fontWeight: "bold" }}>
-            De R$ 497 por R$ 197 à vista
-          </p>
-
-          <a
-            href="https://wa.me/5517981813000?text=Quero%20garantir%20minha%20vaga%20no%20Curso%20Bubles%20IA"
-            target="_blank"
-            className="btn primary"
-            style={{ marginTop: "20px" }}
-          >
-            Garantir minha vaga
-          </a>
+          <ul>
+            <li>✔ Curso completo do básico ao avançado</li>
+            <li>✔ Pack de prompts profissionais</li>
+            <li>✔ Modelos prontos para negócios</li>
+            <li>✔ Atualizações futuras incluídas</li>
+            <li>✔ Suporte direto</li>
+          </ul>
         </div>
       </section>
+
+      <div className="footer">
+        © 2026 Bubles IA — Curso Premium
+      </div>
     </main>
   );
 }
