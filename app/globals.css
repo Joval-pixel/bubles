@@ -1,40 +1,33 @@
-.video {
-  background: #061b3f;
-}
-
-.video-box {
-  margin-top: 30px;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.testimonials {
-  background: #08204a;
-}
-
-.timer {
-  font-size: 32px;
-  color: #ff4444;
+.alert {
+  background: #ff4444;
+  padding: 8px 15px;
+  border-radius: 6px;
   font-weight: bold;
-  margin: 20px 0;
+  display: inline-block;
+  margin-bottom: 20px;
 }
 
-.faq {
-  background: #020e22;
+.pain {
+  background: #061b3f;
+  text-align: center;
+  padding: 60px 20px;
 }
 
-.faq-item {
+.simulator {
+  background: #04142e;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.sim-value {
+  font-size: 24px;
+  color: #00bfff;
+  font-weight: bold;
   margin-top: 20px;
 }
 
-.floating {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #00bfff;
-  padding: 15px 25px;
-  color: #000;
-  font-weight: bold;
-  border-radius: 8px;
-  text-decoration: none;
+.micro {
+  margin-top: 15px;
+  font-size: 14px;
+  opacity: 0.8;
 }
