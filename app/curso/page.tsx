@@ -1,8 +1,8 @@
 export default function Curso() {
   return (
-    <main className="sales-page">
+    <main className="sales">
 
-      {/* HERO */}
+      {/* HERO IMPACTANTE */}
       <section className="hero">
         <div className="container">
           <h1>
@@ -12,77 +12,64 @@ export default function Curso() {
           </h1>
 
           <p className="subtitle">
-            Mesmo que você esteja começando do zero e não entenda nada de tecnologia.
+            Aprenda a usar IA de forma prática para ganhar produtividade,
+            clientes e renda extra — mesmo começando do zero.
           </p>
 
           <a
             href="https://pay.kiwify.com.br/3veb8Bd"
             target="_blank"
-            className="btn-primary"
+            className="cta"
           >
-            👉 QUERO ACESSAR AGORA
+            🚀 QUERO ACESSO IMEDIATO
           </a>
         </div>
       </section>
 
-      {/* QUEBRA DE CRENÇA */}
-      <section className="break">
+      {/* BLOCO DOR */}
+      <section className="pain">
         <div className="container">
-          <h2>A Inteligência Artificial já está gerando dinheiro todos os dias.</h2>
+          <h2>Você está ficando para trás?</h2>
           <p>
-            A única diferença entre quem ganha e quem fica para trás é o conhecimento.
+            Enquanto você pensa, milhares de pessoas já estão usando
+            Inteligência Artificial para economizar horas e gerar dinheiro.
           </p>
         </div>
       </section>
 
-      {/* O QUE VOCÊ VAI APRENDER */}
-      <section className="learn">
+      {/* APRENDIZADO */}
+      <section className="content">
         <div className="container">
-          <h2>🚀 O que você vai aprender</h2>
-          <ul>
-            <li>✔ Criar prompts profissionais</li>
-            <li>✔ Automatizar tarefas com IA</li>
-            <li>✔ Usar IA para vender mais</li>
-            <li>✔ Criar renda extra com Inteligência Artificial</li>
-            <li>✔ Economizar horas todos os dias</li>
-          </ul>
+          <h2>O que você vai dominar</h2>
+          <div className="grid">
+            <div className="card">✔ Criar prompts profissionais</div>
+            <div className="card">✔ Automatizar tarefas</div>
+            <div className="card">✔ Usar IA para vender mais</div>
+            <div className="card">✔ Criar renda extra</div>
+            <div className="card">✔ Ferramentas práticas</div>
+            <div className="card">✔ Estratégias reais</div>
+          </div>
         </div>
       </section>
 
-      {/* BÔNUS */}
-      <section className="bonus">
+      {/* PREÇO IMPACTANTE */}
+      <section className="offer">
         <div className="container">
-          <h2>🎁 BÔNUS EXCLUSIVOS</h2>
-          <ul>
-            <li>🎯 Pack de Prompts Profissionais</li>
-            <li>📄 Modelos prontos para negócios</li>
-            <li>📱 Suporte direto</li>
-            <li>🔄 Atualizações futuras inclusas</li>
-          </ul>
-        </div>
-      </section>
+          <h2>OFERTA ESPECIAL</h2>
 
-      {/* PREÇO */}
-      <section className="price">
-        <div className="container">
-          <h2>💰 Investimento</h2>
-
-          <p className="old-price">De R$ 997</p>
-          <p className="new-price">Por apenas R$ 197</p>
-          <p>ou até 12x no cartão</p>
+          <p className="old">De R$ 997</p>
+          <p className="new">Por apenas R$ 197</p>
 
           <a
             href="https://pay.kiwify.com.br/3veb8Bd"
             target="_blank"
-            className="btn-primary large"
+            className="cta large"
           >
-            🔥 SIM, QUERO ENTRAR AGORA
+            🔥 GARANTIR MINHA VAGA AGORA
           </a>
 
           <p className="guarantee">
-            🔒 7 dias de garantia incondicional.
-            <br />
-            Se não gostar, devolvemos 100% do seu dinheiro.
+            🔒 7 dias de garantia incondicional
           </p>
         </div>
       </section>
