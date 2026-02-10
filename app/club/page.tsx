@@ -2,33 +2,40 @@ export default function ClubPage() {
   return (
     <main className="club">
 
-      <section>
+      <section className="club-hero">
         <h1>Bubles IA Club</h1>
-
         <p>
-          A comunidade oficial para quem quer evoluir com Inteligência Artificial
-          todos os meses.
+          Evolua com Inteligência Artificial todos os meses.
+          Aplicação prática, estratégica e atualizada.
         </p>
+      </section>
 
-        <h2>O que você recebe:</h2>
+      <section className="club-benefits">
+        <h2>O que você recebe como membro:</h2>
 
         <ul>
-          <li>✔ Prompts novos todo mês</li>
-          <li>✔ Atualizações exclusivas</li>
-          <li>✔ Estratégias práticas</li>
-          <li>✔ Templates e modelos prontos</li>
-          <li>✔ Acesso à comunidade</li>
+          <li>✔ Biblioteca crescente de prompts estratégicos</li>
+          <li>✔ Aula prática nova todo mês</li>
+          <li>✔ Templates prontos para aplicar</li>
+          <li>✔ Atualizações sobre ferramentas de IA</li>
+          <li>✔ Comunidade exclusiva de membros</li>
         </ul>
+      </section>
 
-        <p className="price">R$47 / mês</p>
+      <section className="club-price">
+        <h2>Acesso completo por apenas</h2>
+        <p className="club-value">R$49 / mês</p>
 
         <a
           href="LINK_ASSINATURA_KIWIFY"
           className="btn-club"
         >
-          Quero entrar no Club agora
+          Quero entrar para o Club agora
         </a>
 
+        <p className="club-note">
+          Cancelamento simples a qualquer momento.
+        </p>
       </section>
 
     </main>
