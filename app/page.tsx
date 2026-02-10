@@ -2,11 +2,13 @@
 import { useEffect, useState } from "react";
 
 export default function Curso() {
-  const [timeLeft, setTimeLeft] = useState(3600);
+  const [timeLeft, setTimeLeft] = useState(5400);
+  const [online, setOnline] = useState(127);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      setOnline((prev) => prev + (Math.random() > 0.7 ? 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -21,35 +23,38 @@ export default function Curso() {
       {/* HERO */}
       <section className="hero">
         <div className="container">
+          <div className="alert">
+            🔴 {online} pessoas estão vendo essa oferta agora
+          </div>
+
           <h1>
-            DOMINE O <span>CHATGPT</span> E A <span>INTELIGÊNCIA ARTIFICIAL</span>
-            <br /> E TRANSFORME TEMPO EM DINHEIRO
+            PARE DE PERDER DINHEIRO POR NÃO SABER USAR
+            <span> CHATGPT & IA </span>
           </h1>
 
           <p className="subtitle">
-            Aprenda IA do zero ao avançado e comece a gerar resultados reais.
+            Em poucas semanas você pode automatizar tarefas, vender mais e criar renda extra usando Inteligência Artificial.
           </p>
 
           <a href="https://pay.kiwify.com.br/3veb8Bd" target="_blank" className="cta">
             🚀 QUERO ACESSO IMEDIATO
           </a>
+
+          <p className="micro">
+            ✔ Acesso vitalício • ✔ Atualizações incluídas • ✔ Garantia 7 dias
+          </p>
         </div>
       </section>
 
-      {/* VÍDEO */}
-      <section className="video">
+      {/* BLOCO DOR */}
+      <section className="pain">
         <div className="container">
-          <h2>Assista e entenda tudo em 2 minutos</h2>
-          <div className="video-box">
-            <iframe
-              width="100%"
-              height="400"
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-              title="Video"
-              frameBorder="0"
-              allowFullScreen
-            ></iframe>
-          </div>
+          <h2>Quanto você já deixou de ganhar por não usar IA?</h2>
+          <p>
+            Empresas estão economizando horas por dia com automação.
+            Profissionais estão produzindo 3x mais.
+            Enquanto isso, quem não sabe usar IA está ficando para trás.
+          </p>
         </div>
       </section>
 
@@ -68,15 +73,13 @@ export default function Curso() {
         </div>
       </section>
 
-      {/* DEPOIMENTOS */}
-      <section className="testimonials">
+      {/* SIMULADOR */}
+      <section className="simulator">
         <div className="container">
-          <h2>Resultados de alunos</h2>
-          <div className="grid">
-            <div className="card">💬 “Consegui automatizar meu negócio em 1 semana.”</div>
-            <div className="card">💬 “Já paguei o curso no primeiro mês.”</div>
-            <div className="card">💬 “Hoje uso IA todos os dias no trabalho.”</div>
-          </div>
+          <h2>Simule seu ganho mensal com IA</h2>
+          <p className="sim-value">
+            Se você economizar apenas 2h por dia, isso pode gerar +R$ 1.500/mês.
+          </p>
         </div>
       </section>
 
@@ -92,31 +95,12 @@ export default function Curso() {
           <p className="new">Por apenas R$ 197</p>
 
           <a href="https://pay.kiwify.com.br/3veb8Bd" target="_blank" className="cta large">
-            🔥 GARANTIR MINHA VAGA
+            🔥 GARANTIR MINHA VAGA AGORA
           </a>
 
           <p className="guarantee">
             🔒 Garantia incondicional de 7 dias
           </p>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="faq">
-        <div className="container">
-          <h2>Perguntas Frequentes</h2>
-          <div className="faq-item">
-            <strong>Preciso saber tecnologia?</strong>
-            <p>Não. O curso é para iniciantes.</p>
-          </div>
-          <div className="faq-item">
-            <strong>Por quanto tempo tenho acesso?</strong>
-            <p>Acesso vitalício + atualizações.</p>
-          </div>
-          <div className="faq-item">
-            <strong>Tem garantia?</strong>
-            <p>Sim, 7 dias para testar sem risco.</p>
-          </div>
         </div>
       </section>
 
