@@ -1,45 +1,79 @@
-export default function Home() {
+export default function Curso() {
   return (
-    <main>
+    <main className="sales">
+
+      {/* HERO IMPACTANTE */}
       <section className="hero">
         <div className="container">
           <h1>
-            Aprenda a usar <span className="highlight">ChatGPT & IA</span> 
-            <br /> para ganhar tempo e dinheiro
+            DOMINE O <span>CHATGPT</span> E A <span>INTELIGÊNCIA ARTIFICIAL</span>
+            <br />
+            E TRANSFORME TEMPO EM DINHEIRO
           </h1>
 
           <p className="subtitle">
-            Curso prático para iniciantes e profissionais que querem usar
-            Inteligência Artificial no dia a dia e nos negócios.
+            Aprenda a usar IA de forma prática para ganhar produtividade,
+            clientes e renda extra — mesmo começando do zero.
           </p>
 
-          <a href="/curso" className="btn primary">
-            Ver plano Premium
-          </a>
-
-          <a href="/curso" className="btn secondary">
-            Ver detalhes
+          <a
+            href="https://pay.kiwify.com.br/3veb8Bd"
+            target="_blank"
+            className="cta"
+          >
+            🚀 QUERO ACESSO IMEDIATO
           </a>
         </div>
       </section>
 
-      <section className="section">
+      {/* BLOCO DOR */}
+      <section className="pain">
         <div className="container">
-          <h2>O que você vai aprender</h2>
-
-          <ul>
-            <li>✔ Como usar ChatGPT do zero</li>
-            <li>✔ Criar prompts profissionais</li>
-            <li>✔ Automatizar tarefas com IA</li>
-            <li>✔ Aplicar IA para vendas</li>
-            <li>✔ Estratégias para ganhar dinheiro com IA</li>
-          </ul>
+          <h2>Você está ficando para trás?</h2>
+          <p>
+            Enquanto você pensa, milhares de pessoas já estão usando
+            Inteligência Artificial para economizar horas e gerar dinheiro.
+          </p>
         </div>
       </section>
 
-      <div className="footer">
-        © 2026 Bubles IA — Todos os direitos reservados
-      </div>
+      {/* APRENDIZADO */}
+      <section className="content">
+        <div className="container">
+          <h2>O que você vai dominar</h2>
+          <div className="grid">
+            <div className="card">✔ Criar prompts profissionais</div>
+            <div className="card">✔ Automatizar tarefas</div>
+            <div className="card">✔ Usar IA para vender mais</div>
+            <div className="card">✔ Criar renda extra</div>
+            <div className="card">✔ Ferramentas práticas</div>
+            <div className="card">✔ Estratégias reais</div>
+          </div>
+        </div>
+      </section>
+
+      {/* PREÇO IMPACTANTE */}
+      <section className="offer">
+        <div className="container">
+          <h2>OFERTA ESPECIAL</h2>
+
+          <p className="old">De R$ 997</p>
+          <p className="new">Por apenas R$ 197</p>
+
+          <a
+            href="https://pay.kiwify.com.br/3veb8Bd"
+            target="_blank"
+            className="cta large"
+          >
+            🔥 GARANTIR MINHA VAGA AGORA
+          </a>
+
+          <p className="guarantee">
+            🔒 7 dias de garantia incondicional
+          </p>
+        </div>
+      </section>
+
     </main>
   );
 }
