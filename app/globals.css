@@ -1,35 +1,101 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
+.curso-premium {
   background: #0b1426;
   color: white;
 }
 
-.container {
-  max-width: 1000px;
-  margin: auto;
-  padding: 60px 20px;
-}
-
-.hero {
-  background: linear-gradient(135deg, #07152b, #0d1f3a);
-  text-align: center;
+.hero-exec {
   padding: 120px 20px;
+  background: linear-gradient(135deg, #07152b, #0e1f3f);
 }
 
-.hero h1 {
-  font-size: 40px;
-  line-height: 1.3;
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 40px;
 }
 
-.hero span {
+.hero-text h1 {
+  font-size: 48px;
+  line-height: 1.2;
+}
+
+.hero-text span {
   color: #00d4ff;
 }
 
-.hero p {
-  margin: 20px 0 30px;
+.hero-text p {
+  margin: 20px 0;
   font-size: 18px;
   opacity: 0.9;
+}
+
+.hero-badges {
+  margin-top: 20px;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.mockup-box {
+  background: #101c33;
+  padding: 60px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: bold;
+  border: 1px solid #1c2d55;
+}
+
+.section {
+  padding: 80px 20px;
+}
+
+.section-dark {
+  padding: 80px 20px;
+  background: #07152b;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #101c33;
+  padding: 25px;
+  border-radius: 10px;
+  border: 1px solid #1c2d55;
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  border-color: #00d4ff;
+}
+
+.modules div {
+  background: #101c33;
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: 1px solid #1c2d55;
+}
+
+.offer-exec {
+  padding: 100px 20px;
+  text-align: center;
+  background: linear-gradient(135deg, #0e1f3f, #07152b);
+}
+
+.price-old {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.price-new {
+  font-size: 36px;
+  color: #00ff88;
+  font-weight: bold;
 }
 
 .btn-primary {
@@ -41,62 +107,4 @@ body {
   font-weight: bold;
   text-decoration: none;
   margin-top: 20px;
-}
-
-.btn-primary.large {
-  font-size: 18px;
-  padding: 18px 50px;
-}
-
-.badges {
-  margin-top: 20px;
-  font-size: 14px;
-  opacity: 0.8;
-}
-
-.section {
-  background: #0b1426;
-}
-
-.section-dark {
-  background: #07152b;
-}
-
-.section h2,
-.section-dark h2 {
-  font-size: 28px;
-  margin-bottom: 20px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.card {
-  background: #101c33;
-  padding: 20px;
-  border-radius: 8px;
-}
-
-.offer {
-  text-align: center;
-  background: #07152b;
-}
-
-.price-old {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-.price-new {
-  font-size: 32px;
-  color: #00ff88;
-  font-weight: bold;
-}
-
-.guarantee {
-  margin-top: 15px;
-  opacity: 0.8;
 }
