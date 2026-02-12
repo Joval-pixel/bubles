@@ -1,17 +1,18 @@
-export default function CursoPage() {
+export default function Curso() {
   return (
     <main>
 
-      {/* HERO EXECUTIVO */}
-      <section className="hero-exec">
-        <div className="container hero-text">
+      {/* HERO */}
+      <section className="hero">
+        <div className="container">
           <h1>
-            Transforme <span>ChatGPT & IA</span><br />
+            Transforme <span className="highlight">ChatGPT & IA</span><br />
             em uma máquina de gerar resultado
           </h1>
-          <p>
-            Formação estruturada para aplicar Inteligência Artificial no seu negócio,
-            aumentar produtividade e gerar novas fontes de renda — mesmo começando do zero.
+
+          <p className="subtitle">
+            Formação executiva prática para aplicar Inteligência Artificial
+            no seu negócio, produtividade e geração de renda.
           </p>
 
           <a
@@ -21,94 +22,116 @@ export default function CursoPage() {
             Quero acesso imediato
           </a>
 
-          <p style={{ marginTop: 15, fontSize: 14, opacity: 0.7 }}>
-            ✓ Acesso vitalício • ✓ Atualizações incluídas • ✓ Garantia 7 dias
-          </p>
+          <div className="hero-info">
+            ✔ Acesso vitalício &nbsp; • &nbsp;
+            ✔ Atualizações inclusas &nbsp; • &nbsp;
+            ✔ Garantia 7 dias
+          </div>
         </div>
       </section>
 
-      {/* MERCADO */}
+
+      {/* AUTORIDADE */}
       <section className="section">
         <div className="container">
-          <h2>A IA já está redefinindo o mercado</h2>
+          <h2>Formação desenvolvida para aplicação real</h2>
           <p>
-            Empresas estão reduzindo custos e aumentando lucro com automação.
-            Profissionais estão produzindo mais em menos tempo.
-            Quem aprende agora sai na frente.
+            O mercado não precisa de mais teoria sobre IA.
+            Precisa de profissionais que saibam aplicar, automatizar
+            e gerar resultado imediato.
           </p>
         </div>
       </section>
 
-      {/* DOMÍNIO */}
+
+      {/* O QUE VAI DOMINAR */}
       <section className="section">
         <div className="container">
           <h2>O que você vai dominar</h2>
 
           <div className="grid">
-            <div className="card">Criar prompts estratégicos</div>
-            <div className="card">Automatizar tarefas repetitivas</div>
-            <div className="card">Aplicar IA em marketing e vendas</div>
-            <div className="card">Criar produtos digitais com IA</div>
-            <div className="card">Aumentar produtividade e margem</div>
+            <div className="card">Criação de prompts estratégicos</div>
+            <div className="card">Automação de tarefas repetitivas</div>
+            <div className="card">Aplicação de IA em marketing e vendas</div>
+            <div className="card">Criação de produtos digitais com IA</div>
+            <div className="card">Aumento de produtividade e margem</div>
             <div className="card">Implementação prática imediata</div>
           </div>
         </div>
       </section>
 
-      {/* ESTRUTURA */}
+
+      {/* RESULTADOS */}
+      <section className="section dark-section">
+        <div className="container">
+          <h2>O que acontece quando você aplica</h2>
+
+          <div className="grid">
+            <div className="card">Economia de horas por semana</div>
+            <div className="card">Escala de conteúdo com IA</div>
+            <div className="card">Redução de custos operacionais</div>
+            <div className="card">Novas fontes de renda</div>
+          </div>
+
+          <div style={{ marginTop: 40 }}>
+            <a
+              href="https://pay.kiwify.com.br/3veb8Bd"
+              className="btn-primary"
+            >
+              Quero começar agora
+            </a>
+          </div>
+        </div>
+      </section>
+
+
+      {/* PROVA SOCIAL */}
       <section className="section">
         <div className="container">
-          <h2>Estrutura da Formação</h2>
+          <h2>Quem aplica vê resultado</h2>
 
-          <div className="accordion">Módulo 1 — Fundamentos da IA aplicada</div>
-          <div className="accordion">Módulo 2 — Engenharia de Prompt</div>
-          <div className="accordion">Módulo 3 — Aplicações práticas em negócios</div>
-          <div className="accordion">Módulo 4 — Marketing e vendas com IA</div>
-          <div className="accordion">Módulo 5 — Automação e escala</div>
+          <div className="grid">
+            <div className="card">
+              “Consegui automatizar meu atendimento e economizar 2h por dia.”
+              <br /><br />— Empreendedor Digital
+            </div>
+
+            <div className="card">
+              “Hoje uso IA para criar ofertas e conteúdos em minutos.”
+              <br /><br />— Profissional de Marketing
+            </div>
+
+            <div className="card">
+              “Comecei do zero e já estou criando renda extra.”
+              <br /><br />— Aluno iniciante
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* SOBRE */}
-      <section className="about">
-        <div className="container">
-          <h2>Sobre a Bubles IA</h2>
-          <p>
-            A Bubles IA é uma iniciativa educacional focada na aplicação prática
-            da Inteligência Artificial em negócios, produtividade e geração de renda.
-          </p>
-          <p style={{ marginTop: 15 }}>
-            Nosso objetivo é simplificar o uso de ferramentas como ChatGPT
-            e torná-las acessíveis para profissionais e empreendedores.
-          </p>
-        </div>
-      </section>
 
       {/* OFERTA */}
-      <section className="offer-exec">
+      <section className="section offer">
         <div className="container">
-          <h2>Investimento na Formação</h2>
+          <h2>Oferta especial por tempo limitado</h2>
 
-          <p className="price-old">De R$ 997</p>
-          <div className="price-new">Por apenas R$ 197</div>
+          <p className="old-price">De R$ 997</p>
+
+          <p className="price">Por apenas R$ 197</p>
 
           <a
             href="https://pay.kiwify.com.br/3veb8Bd"
-            className="btn-primary"
+            className="btn-primary large"
           >
             Garantir minha vaga agora
           </a>
 
-          <p style={{ marginTop: 15, fontSize: 14, opacity: 0.7 }}>
+          <p className="guarantee">
             Garantia incondicional de 7 dias.
           </p>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="footer">
-        © 2026 Bubles IA — Todos os direitos reservados
-      </footer>
-
     </main>
-  );
+  )
 }
