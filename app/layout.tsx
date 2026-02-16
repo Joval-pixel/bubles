@@ -1,30 +1,30 @@
-import "./globals.css"
-import type { Metadata } from "next"
+import "./globals.css";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Bubles AI™",
   description: "Programa Executivo Bubles AI",
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-br">
       <body>
         <header className="header">
-          <div className="container header-inner">
+          <div className="container nav">
             <div className="logo">Bubles AI™</div>
 
-            <nav className="nav">
-              <a href="#">Início</a>
-              <a href="#">Programa Executivo</a>
-              <a href="#">Garantia</a>
+            <nav className="menu">
+              <a href="#inicio">Início</a>
+              <a href="#programa">Programa Executivo</a>
+              <a href="#garantia">Garantia</a>
             </nav>
 
-            <a href="#comprar" className="btn-header">
+            <a href="#ingressar" className="btn-header">
               Ingressar
             </a>
           </div>
@@ -33,5 +33,5 @@ export default function RootLayout({
         {children}
       </body>
     </html>
-  )
+  );
 }
