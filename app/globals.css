@@ -1,5 +1,4 @@
 /* RESET */
-
 * {
   margin: 0;
   padding: 0;
@@ -7,32 +6,30 @@
 }
 
 html, body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  background: #071a2f;
-  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #081b2e;
+  color: white;
   scroll-behavior: smooth;
 }
 
-
 /* CONTAINER */
-
 .container {
+  width: 90%;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 20px;
 }
 
-
 /* NAVBAR */
-
 .navbar {
-  width: 100%;
-  background: #061424;
-  padding: 20px 0;
   position: fixed;
+  width: 100%;
   top: 0;
+  left: 0;
+  background: rgba(5, 20, 40, 0.95);
+  backdrop-filter: blur(6px);
+  padding: 18px 0;
   z-index: 999;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .nav-container {
@@ -46,189 +43,123 @@ html, body {
   font-size: 20px;
 }
 
+.nav-links {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+}
+
 .nav-links a {
-  margin-left: 25px;
+  color: white;
   text-decoration: none;
-  color: #ffffff;
-  font-weight: 500;
+  font-size: 15px;
+  opacity: 0.8;
 }
 
+.nav-links a:hover {
+  opacity: 1;
+}
+
+/* BOTÃO NAV */
 .btn-nav {
-  background: linear-gradient(90deg, #00d4ff, #00ffb7);
+  background: linear-gradient(90deg, #00d4ff, #00ffa3);
   padding: 10px 18px;
-  border-radius: 8px;
-  color: #000;
+  border-radius: 10px;
   font-weight: 600;
+  color: black !important;
 }
-
 
 /* HERO */
-
 .hero {
-  padding: 140px 0 100px 0;
-  background: radial-gradient(circle at top left, #0b2d50, #071a2f);
+  padding-top: 140px; /* COMPENSA HEADER */
+  padding-bottom: 100px;
   text-align: center;
-}
-
-.tag {
-  font-size: 13px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  opacity: 0.7;
-  margin-bottom: 15px;
+  background: radial-gradient(circle at top, #0f2c4d 0%, #081b2e 60%);
 }
 
 .hero h1 {
-  font-size: 46px;
+  font-size: 42px;
   line-height: 1.2;
+  margin-bottom: 20px;
 }
 
-.hero span {
-  color: #3ad6ff;
+.hero h1 span {
+  color: #33d6ff;
 }
 
-.subtitle {
-  margin-top: 25px;
-  font-size: 20px;
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-  opacity: 0.9;
-}
-
-.positioning {
-  margin-top: 20px;
+.hero p {
   font-size: 18px;
-  opacity: 0.8;
+  opacity: 0.85;
+  max-width: 600px;
+  margin: 0 auto 30px;
 }
 
-.old-price {
-  margin-top: 40px;
+/* PREÇO */
+.price-old {
   text-decoration: line-through;
   opacity: 0.6;
-  font-size: 18px;
+  margin-bottom: 10px;
 }
 
-.highlight-price {
-  font-size: 32px;
-  margin-top: 10px;
-  color: #00ffb7;
-  font-weight: 700;
+.price-main {
+  font-size: 28px;
+  font-weight: bold;
+  color: #00ffa3;
+  margin-bottom: 5px;
 }
-
-.installments {
-  margin-top: 10px;
-  opacity: 0.8;
-}
-
 
 /* BOTÃO PRINCIPAL */
-
 .btn-primary {
   display: inline-block;
-  margin-top: 30px;
-  background: linear-gradient(90deg, #00d4ff, #00ffb7);
-  padding: 18px 32px;
-  border-radius: 12px;
-  color: #000;
+  margin-top: 25px;
+  padding: 16px 28px;
+  border-radius: 14px;
+  font-size: 16px;
   font-weight: 700;
   text-decoration: none;
+  background: linear-gradient(90deg, #00d4ff, #00ffa3);
+  color: black;
   transition: 0.3s;
 }
 
 .btn-primary:hover {
   transform: scale(1.05);
-  opacity: 0.9;
 }
-
-.trust-line {
-  margin-top: 20px;
-  font-size: 14px;
-  opacity: 0.7;
-}
-
-
-/* SEÇÕES */
-
-.section {
-  padding: 90px 0;
-}
-
-.section.dark {
-  background: #0a223d;
-}
-
-.section h2 {
-  font-size: 32px;
-  margin-bottom: 20px;
-}
-
-.section p {
-  max-width: 700px;
-  margin-bottom: 15px;
-  opacity: 0.85;
-}
-
-
-/* LISTAS */
-
-.list {
-  margin-top: 25px;
-  list-style: none;
-}
-
-.list li {
-  margin-bottom: 12px;
-  font-size: 18px;
-}
-
-
-/* OFERTA FINAL */
-
-.offer {
-  padding: 100px 0;
-  background: linear-gradient(135deg, #0a223d, #071a2f);
-  text-align: center;
-}
-
 
 /* BOTÃO FLUTUANTE MOBILE */
-
 .mobile-cta {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: linear-gradient(90deg, #00d4ff, #00ffb7);
-  text-align: center;
-  padding: 18px 10px;
   display: none;
 }
 
-.mobile-cta a {
-  color: #000;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-
-/* RESPONSIVO */
-
 @media (max-width: 768px) {
+  .nav-links {
+    gap: 15px;
+  }
 
   .hero h1 {
-    font-size: 32px;
+    font-size: 30px;
   }
 
-  .subtitle {
-    font-size: 18px;
-  }
-
-  .highlight-price {
-    font-size: 26px;
+  .hero {
+    padding-top: 120px;
   }
 
   .mobile-cta {
     display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(90deg, #00d4ff, #00ffa3);
+    text-align: center;
+    padding: 16px;
+    font-weight: 700;
+    z-index: 1000;
   }
 
+  .mobile-cta a {
+    color: black;
+    text-decoration: none;
+    font-size: 16px;
+  }
 }
