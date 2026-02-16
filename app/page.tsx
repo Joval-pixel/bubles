@@ -1,48 +1,42 @@
 import Link from "next/link";
 
-export default function Home() {
+export default function Curso() {
   return (
     <div>
+
       {/* HERO */}
-      <section className="hero">
-        <div className="container hero-grid">
-          <div>
-            <h1>
-              Transforme Inteligência Artificial em 
-              <span> vantagem competitiva real</span>
-            </h1>
+      <section className="hero-curso">
+        <div className="container center">
 
-            <p className="subtitle">
-              A Bubles IA é uma formação prática focada em aplicação estratégica
-              de IA para negócios, produtividade e geração de renda.
-            </p>
+          <span className="badge">FORMAÇÃO EXECUTIVA EM IA</span>
 
-            <div className="hero-buttons">
-              <Link href="/curso" className="btn-primary">
-                Conhecer Formação
-              </Link>
+          <h1>
+            Transforme Inteligência Artificial em
+            <span> vantagem competitiva real</span>
+          </h1>
 
-              <Link href="/pack" className="btn-outline">
-                Ver Biblioteca
-              </Link>
-            </div>
-          </div>
+          <p className="subtitle">
+            Método estruturado para aplicar IA em negócios, produtividade e
+            geração de renda — mesmo começando do zero.
+          </p>
 
-          <div className="hero-card">
-            <h3>O que você vai dominar</h3>
-            <ul>
-              <li>✔ Automação com IA</li>
-              <li>✔ Prompt Engineering estratégico</li>
-              <li>✔ IA aplicada a marketing e vendas</li>
-              <li>✔ Criação de produtos digitais</li>
-              <li>✔ Implementação prática imediata</li>
-            </ul>
-          </div>
+          <Link
+            href="https://pay.kiwify.com.br/dup2Pxz"
+            className="btn-primary big"
+          >
+            Garantir minha vaga agora
+          </Link>
+
+          <p className="small">
+            ✔ Acesso vitalício &nbsp; ✔ Atualizações incluídas &nbsp; ✔ Garantia 7 dias
+          </p>
+
         </div>
       </section>
 
-      {/* POSICIONAMENTO */}
-      <section className="section-dark">
+
+      {/* AUTORIDADE */}
+      <section className="section-light">
         <div className="container center">
           <h2>A IA já está redefinindo o mercado</h2>
           <p>
@@ -53,60 +47,96 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ECOSSISTEMA */}
+
+      {/* O QUE VOCÊ VAI DOMINAR */}
       <section className="section">
         <div className="container">
-          <h2 className="center">Ecossistema Bubles IA</h2>
+          <h2 className="center">O que você vai dominar</h2>
 
-          <div className="cards-3">
-            <div className="card">
-              <h3>🎓 Formação Executiva</h3>
+          <div className="grid-3">
+            <div className="box">Automação com IA</div>
+            <div className="box">Prompt Engineering profissional</div>
+            <div className="box">IA aplicada a marketing</div>
+            <div className="box">IA aplicada a vendas</div>
+            <div className="box">Criação de produtos digitais</div>
+            <div className="box">Implementação prática imediata</div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* ESTRUTURA DO CURSO */}
+      <section className="section-light">
+        <div className="container">
+          <h2 className="center">Estrutura da Formação</h2>
+
+          <div className="modules">
+            <div className="module">Módulo 1 — Fundamentos da IA</div>
+            <div className="module">Módulo 2 — Engenharia de Prompts</div>
+            <div className="module">Módulo 3 — IA aplicada a negócios</div>
+            <div className="module">Módulo 4 — Monetização com IA</div>
+            <div className="module">Módulo 5 — Automação estratégica</div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* PROVA SOCIAL */}
+      <section className="section">
+        <div className="container">
+          <h2 className="center">O que estão dizendo</h2>
+
+          <div className="grid-3">
+            <div className="testimonial">
               <p>
-                Método estruturado para aplicar IA de forma estratégica
-                em negócios e carreira.
+                “Consegui estruturar minha oferta usando IA e organizar meu
+                negócio de forma estratégica.”
               </p>
-              <Link href="/curso" className="btn-small">
-                Acessar
-              </Link>
+              <span>— Empreendedor Digital</span>
             </div>
 
-            <div className="card">
-              <h3>📚 Biblioteca de Prompts</h3>
+            <div className="testimonial">
               <p>
-                Prompts profissionais prontos para aplicar e gerar resultado
-                imediato.
+                “Antes eu usava IA de forma aleatória. Agora tenho método.
+                Minha produtividade mudou completamente.”
               </p>
-              <Link href="/pack" className="btn-small">
-                Ver Biblioteca
-              </Link>
+              <span>— Profissional Autônomo</span>
             </div>
 
-            <div className="card">
-              <h3>🤝 Programa Embaixadores</h3>
+            <div className="testimonial">
               <p>
-                Divulgue a Bubles IA e receba comissões recorrentes.
+                “Não é teoria. É aplicação prática organizada.”
               </p>
-              <Link href="/embaixadores" className="btn-small">
-                Participar
-              </Link>
+              <span>— Aluno da Formação</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA FINAL */}
+
+      {/* OFERTA */}
       <section className="cta-section">
         <div className="container center">
-          <h2>Decisão estratégica é agir antes da maioria</h2>
-          <p>
-            Quem aprende IA hoje constrói margem, velocidade e escala amanhã.
+
+          <h2>Oferta especial de lançamento</h2>
+
+          <p className="price-old">De R$ 997</p>
+          <p className="price">Por apenas R$ 197</p>
+
+          <Link
+            href="https://pay.kiwify.com.br/dup2Pxz"
+            className="btn-primary big"
+          >
+            Garantir minha vaga agora
+          </Link>
+
+          <p className="small">
+            Garantia incondicional de 7 dias.
           </p>
 
-          <Link href="/curso" className="btn-primary big">
-            Entrar na Formação
-          </Link>
         </div>
       </section>
+
     </div>
   );
 }
