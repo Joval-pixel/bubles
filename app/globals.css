@@ -138,3 +138,43 @@ p {
     font-size: 16px;
   }
 }
+/* CURSO */
+
+.hero-curso {
+  padding: 120px 0;
+  text-align: center;
+  background: radial-gradient(circle at top, #111c3a, #050914 70%);
+}
+
+.hero-curso h1 {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.hero-curso h1 span {
+  color: #38bdf8;
+}
+
+.price-old {
+  text-decoration: line-through;
+  opacity: 0.6;
+  margin-top: 20px;
+}
+
+.price-new {
+  font-size: 32px;
+  font-weight: bold;
+  color: #38bdf8;
+  margin-bottom: 20px;
+}
+
+.btn-primary.large {
+  padding: 18px 36px;
+  font-size: 18px;
+}
+
+.small {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-top: 10px;
+}
