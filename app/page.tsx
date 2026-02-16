@@ -1,140 +1,112 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
-    <main>
-
-      {/* HERO PRINCIPAL */}
+    <div>
+      {/* HERO */}
       <section className="hero">
-        <div className="container">
-          <h1>
-            Bubles IA <span className="highlight">Premium</span>
-          </h1>
+        <div className="container hero-grid">
+          <div>
+            <h1>
+              Transforme Inteligência Artificial em 
+              <span> vantagem competitiva real</span>
+            </h1>
 
-          <p className="subtitle">
-            Plataforma estratégica de aplicação de Inteligência Artificial
-            para empreendedores que desejam estruturar, automatizar e escalar.
-          </p>
+            <p className="subtitle">
+              A Bubles IA é uma formação prática focada em aplicação estratégica
+              de IA para negócios, produtividade e geração de renda.
+            </p>
 
-          <a
-            href="https://kiwify.app/E1GPb6s"
-            className="btn-primary large"
-          >
-            Tornar-se membro Premium
-          </a>
+            <div className="hero-buttons">
+              <Link href="/curso" className="btn-primary">
+                Conhecer Formação
+              </Link>
 
-          <div className="hero-info">
-            Plano Founder – R$49/mês • Cancelamento simples
+              <Link href="/pack" className="btn-outline">
+                Ver Biblioteca
+              </Link>
+            </div>
+          </div>
+
+          <div className="hero-card">
+            <h3>O que você vai dominar</h3>
+            <ul>
+              <li>✔ Automação com IA</li>
+              <li>✔ Prompt Engineering estratégico</li>
+              <li>✔ IA aplicada a marketing e vendas</li>
+              <li>✔ Criação de produtos digitais</li>
+              <li>✔ Implementação prática imediata</li>
+            </ul>
           </div>
         </div>
       </section>
 
-
-      {/* PROBLEMA DE MERCADO */}
-      <section className="section">
-        <div className="container">
-          <h2>A maioria usa IA de forma superficial</h2>
-
+      {/* POSICIONAMENTO */}
+      <section className="section-dark">
+        <div className="container center">
+          <h2>A IA já está redefinindo o mercado</h2>
           <p>
-            Perguntas aleatórias não geram vantagem competitiva.
-            O que gera resultado é estrutura, método e aplicação estratégica.
+            Empresas estão reduzindo custos e aumentando margens.
+            Profissionais estão produzindo mais em menos tempo.
+            Quem aprende agora constrói vantagem estrutural.
           </p>
         </div>
       </section>
 
-
-      {/* O QUE É A PLATAFORMA */}
-      <section className="section dark-section">
-        <div className="container">
-          <h2>O que é o Bubles IA Premium</h2>
-
-          <div className="grid">
-            <div className="card">
-              <strong>Sistemas Estratégicos</strong>
-              <p style={{ marginTop: 10 }}>
-                Método organizado para aplicar IA em negócios.
-              </p>
-            </div>
-
-            <div className="card">
-              <strong>Biblioteca Atualizada</strong>
-              <p style={{ marginTop: 10 }}>
-                Prompts e frameworks adicionados continuamente.
-              </p>
-            </div>
-
-            <div className="card">
-              <strong>Playbooks Mensais</strong>
-              <p style={{ marginTop: 10 }}>
-                Novos sistemas de marketing e vendas todo mês.
-              </p>
-            </div>
-
-            <div className="card">
-              <strong>Ferramentas Futuras Incluídas</strong>
-              <p style={{ marginTop: 10 }}>
-                Planilhas, modelos e estruturas adicionadas ao longo do tempo.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
-      {/* COMPARAÇÃO RÁPIDA */}
+      {/* ECOSSISTEMA */}
       <section className="section">
         <div className="container">
-          <h2>Produto único ou acesso completo?</h2>
+          <h2 className="center">Ecossistema Bubles IA</h2>
 
-          <div className="grid">
+          <div className="cards-3">
+            <div className="card">
+              <h3>🎓 Formação Executiva</h3>
+              <p>
+                Método estruturado para aplicar IA de forma estratégica
+                em negócios e carreira.
+              </p>
+              <Link href="/curso" className="btn-small">
+                Acessar
+              </Link>
+            </div>
 
             <div className="card">
-              <h3>Sistema Bubles IA</h3>
-              <p>Pagamento único de R$197</p>
-              <p style={{ marginTop: 10 }}>
-                Ideal para quem quer acesso apenas ao método base.
+              <h3>📚 Biblioteca de Prompts</h3>
+              <p>
+                Prompts profissionais prontos para aplicar e gerar resultado
+                imediato.
               </p>
-              <a
-                href="https://pay.kiwify.com.br/dup2Pxz"
-                className="btn-primary"
-                style={{ marginTop: 20 }}
-              >
-                Comprar Sistema
-              </a>
+              <Link href="/pack" className="btn-small">
+                Ver Biblioteca
+              </Link>
             </div>
 
-            <div className="card" style={{ border: "2px solid #00e0a4" }}>
-              <h3>Bubles IA Premium</h3>
-              <p>R$49 por mês</p>
-              <p style={{ marginTop: 10 }}>
-                Inclui todos os sistemas + atualizações contínuas.
+            <div className="card">
+              <h3>🤝 Programa Embaixadores</h3>
+              <p>
+                Divulgue a Bubles IA e receba comissões recorrentes.
               </p>
-              <a
-                href="https://kiwify.app/E1GPb6s"
-                className="btn-primary large"
-                style={{ marginTop: 20 }}
-              >
-                Assinar Premium
-              </a>
+              <Link href="/embaixadores" className="btn-small">
+                Participar
+              </Link>
             </div>
-
           </div>
         </div>
       </section>
-
 
       {/* CTA FINAL */}
-      <section className="section dark-section">
-        <div className="container">
-          <h2>Comece a aplicar IA com estrutura</h2>
+      <section className="cta-section">
+        <div className="container center">
+          <h2>Decisão estratégica é agir antes da maioria</h2>
+          <p>
+            Quem aprende IA hoje constrói margem, velocidade e escala amanhã.
+          </p>
 
-          <a
-            href="https://kiwify.app/E1GPb6s"
-            className="btn-primary large"
-          >
-            Quero acesso Premium
-          </a>
+          <Link href="/curso" className="btn-primary big">
+            Entrar na Formação
+          </Link>
         </div>
       </section>
-
-    </main>
-  )
+    </div>
+  );
 }
