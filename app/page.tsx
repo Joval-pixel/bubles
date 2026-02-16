@@ -1,134 +1,137 @@
-export default function Curso() {
+export default function Home() {
   return (
     <main>
 
-      {/* HERO */}
+      {/* HERO PRINCIPAL */}
       <section className="hero">
         <div className="container">
           <h1>
-            Transforme <span className="highlight">ChatGPT & IA</span><br />
-            em uma máquina de gerar resultado
+            Bubles IA <span className="highlight">Premium</span>
           </h1>
 
           <p className="subtitle">
-            Formação executiva prática para aplicar Inteligência Artificial
-            no seu negócio, produtividade e geração de renda.
+            Plataforma estratégica de aplicação de Inteligência Artificial
+            para empreendedores que desejam estruturar, automatizar e escalar.
           </p>
 
           <a
-            href="https://pay.kiwify.com.br/3veb8Bd"
-            className="btn-primary"
+            href="https://kiwify.app/E1GPb6s"
+            className="btn-primary large"
           >
-            Quero acesso imediato
+            Tornar-se membro Premium
           </a>
 
           <div className="hero-info">
-            ✔ Acesso vitalício &nbsp; • &nbsp;
-            ✔ Atualizações inclusas &nbsp; • &nbsp;
-            ✔ Garantia 7 dias
+            Plano Founder – R$49/mês • Cancelamento simples
           </div>
         </div>
       </section>
 
 
-      {/* AUTORIDADE */}
+      {/* PROBLEMA DE MERCADO */}
       <section className="section">
         <div className="container">
-          <h2>Formação desenvolvida para aplicação real</h2>
+          <h2>A maioria usa IA de forma superficial</h2>
+
           <p>
-            O mercado não precisa de mais teoria sobre IA.
-            Precisa de profissionais que saibam aplicar, automatizar
-            e gerar resultado imediato.
+            Perguntas aleatórias não geram vantagem competitiva.
+            O que gera resultado é estrutura, método e aplicação estratégica.
           </p>
         </div>
       </section>
 
 
-      {/* O QUE VAI DOMINAR */}
-      <section className="section">
-        <div className="container">
-          <h2>O que você vai dominar</h2>
-
-          <div className="grid">
-            <div className="card">Criação de prompts estratégicos</div>
-            <div className="card">Automação de tarefas repetitivas</div>
-            <div className="card">Aplicação de IA em marketing e vendas</div>
-            <div className="card">Criação de produtos digitais com IA</div>
-            <div className="card">Aumento de produtividade e margem</div>
-            <div className="card">Implementação prática imediata</div>
-          </div>
-        </div>
-      </section>
-
-
-      {/* RESULTADOS */}
+      {/* O QUE É A PLATAFORMA */}
       <section className="section dark-section">
         <div className="container">
-          <h2>O que acontece quando você aplica</h2>
+          <h2>O que é o Bubles IA Premium</h2>
 
           <div className="grid">
-            <div className="card">Economia de horas por semana</div>
-            <div className="card">Escala de conteúdo com IA</div>
-            <div className="card">Redução de custos operacionais</div>
-            <div className="card">Novas fontes de renda</div>
-          </div>
+            <div className="card">
+              <strong>Sistemas Estratégicos</strong>
+              <p style={{ marginTop: 10 }}>
+                Método organizado para aplicar IA em negócios.
+              </p>
+            </div>
 
-          <div style={{ marginTop: 40 }}>
-            <a
-              href="https://pay.kiwify.com.br/3veb8Bd"
-              className="btn-primary"
-            >
-              Quero começar agora
-            </a>
+            <div className="card">
+              <strong>Biblioteca Atualizada</strong>
+              <p style={{ marginTop: 10 }}>
+                Prompts e frameworks adicionados continuamente.
+              </p>
+            </div>
+
+            <div className="card">
+              <strong>Playbooks Mensais</strong>
+              <p style={{ marginTop: 10 }}>
+                Novos sistemas de marketing e vendas todo mês.
+              </p>
+            </div>
+
+            <div className="card">
+              <strong>Ferramentas Futuras Incluídas</strong>
+              <p style={{ marginTop: 10 }}>
+                Planilhas, modelos e estruturas adicionadas ao longo do tempo.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
 
-      {/* PROVA SOCIAL */}
+      {/* COMPARAÇÃO RÁPIDA */}
       <section className="section">
         <div className="container">
-          <h2>Quem aplica vê resultado</h2>
+          <h2>Produto único ou acesso completo?</h2>
 
           <div className="grid">
-            <div className="card">
-              “Consegui automatizar meu atendimento e economizar 2h por dia.”
-              <br /><br />— Empreendedor Digital
-            </div>
 
             <div className="card">
-              “Hoje uso IA para criar ofertas e conteúdos em minutos.”
-              <br /><br />— Profissional de Marketing
+              <h3>Sistema Bubles IA</h3>
+              <p>Pagamento único de R$197</p>
+              <p style={{ marginTop: 10 }}>
+                Ideal para quem quer acesso apenas ao método base.
+              </p>
+              <a
+                href="https://pay.kiwify.com.br/dup2Pxz"
+                className="btn-primary"
+                style={{ marginTop: 20 }}
+              >
+                Comprar Sistema
+              </a>
             </div>
 
-            <div className="card">
-              “Comecei do zero e já estou criando renda extra.”
-              <br /><br />— Aluno iniciante
+            <div className="card" style={{ border: "2px solid #00e0a4" }}>
+              <h3>Bubles IA Premium</h3>
+              <p>R$49 por mês</p>
+              <p style={{ marginTop: 10 }}>
+                Inclui todos os sistemas + atualizações contínuas.
+              </p>
+              <a
+                href="https://kiwify.app/E1GPb6s"
+                className="btn-primary large"
+                style={{ marginTop: 20 }}
+              >
+                Assinar Premium
+              </a>
             </div>
+
           </div>
         </div>
       </section>
 
 
-      {/* OFERTA */}
-      <section className="section offer">
+      {/* CTA FINAL */}
+      <section className="section dark-section">
         <div className="container">
-          <h2>Oferta especial por tempo limitado</h2>
-
-          <p className="old-price">De R$ 997</p>
-
-          <p className="price">Por apenas R$ 197</p>
+          <h2>Comece a aplicar IA com estrutura</h2>
 
           <a
-            href="https://pay.kiwify.com.br/3veb8Bd"
+            href="https://kiwify.app/E1GPb6s"
             className="btn-primary large"
           >
-            Garantir minha vaga agora
+            Quero acesso Premium
           </a>
-
-          <p className="guarantee">
-            Garantia incondicional de 7 dias.
-          </p>
         </div>
       </section>
 
