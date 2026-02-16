@@ -2,9 +2,11 @@ export default function Home() {
   return (
     <main>
 
-      {/* HERO */}
+      {/* HERO EXECUTIVO */}
       <section className="hero">
         <div className="container">
+
+          <p className="tag">Centro Executivo de Formação</p>
 
           <h1>
             Programa Executivo<br />
@@ -12,14 +14,19 @@ export default function Home() {
           </h1>
 
           <p className="subtitle">
-            Método estruturado para implementar Inteligência Artificial
-            em marketing, vendas e operação com foco direto em lucro e escala.
+            Formação estruturada para aplicação estratégica de Inteligência Artificial
+            em marketing, vendas e operação.
+          </p>
+
+          <p className="positioning">
+            Não é sobre usar IA.  
+            É sobre estruturar vantagem competitiva.
           </p>
 
           <p className="old-price">De R$ 997</p>
 
           <p className="highlight-price">
-            Investimento único: R$ 197
+            Investimento executivo: R$ 197
           </p>
 
           <p className="installments">ou 12x no cartão</p>
@@ -28,12 +35,12 @@ export default function Home() {
             href="https://pay.kiwify.com.br/dup2Pxz"
             className="btn-primary"
           >
-            🔥 Garantir vaga agora
+            Garantir participação
           </a>
 
           <p className="trust-line">
             ✔ Acesso vitalício <br />
-            ✔ Atualizações incluídas <br />
+            ✔ Atualizações estratégicas incluídas <br />
             ✔ Garantia incondicional de 7 dias
           </p>
 
@@ -41,81 +48,78 @@ export default function Home() {
       </section>
 
 
-      {/* PROBLEMA */}
+      {/* CONTEXTO MERCADO */}
       <section className="section">
         <div className="container">
-          <h2>O mercado já mudou.</h2>
+
+          <h2>A Inteligência Artificial já redefiniu o mercado.</h2>
+
           <p>
-            Empresas que aplicam IA estão reduzindo custos,
-            automatizando processos e aumentando margem.
+            Empresas que aplicam IA de forma estruturada estão reduzindo custos,
+            aumentando margem e escalando operação.
           </p>
+
           <p>
-            Quem não se posicionar agora, vai competir por preço.
+            A diferença não está na ferramenta.  
+            Está no método.
           </p>
+
         </div>
       </section>
 
 
-      {/* PARA QUEM É */}
+      {/* DIFERENCIAL */}
       <section className="section dark">
         <div className="container">
-          <h2>Para quem é o Programa Executivo</h2>
+
+          <h2>O Diferencial Bubles AI™</h2>
 
           <ul className="list">
-            <li>✔ Empresários que querem escalar com estrutura</li>
-            <li>✔ Profissionais que desejam aumentar produtividade</li>
-            <li>✔ Gestores que precisam automatizar processos</li>
-            <li>✔ Quem quer aplicar IA com método, não achismo</li>
+            <li>✔ Estrutura de aplicação prática</li>
+            <li>✔ Implementação orientada a resultado</li>
+            <li>✔ IA aplicada à geração de lucro</li>
+            <li>✔ Processo replicável e escalável</li>
           </ul>
+
         </div>
       </section>
 
 
-      {/* O QUE VOCÊ VAI DOMINAR */}
+      {/* ESTRUTURA */}
       <section className="section">
         <div className="container">
-          <h2>O que você vai dominar</h2>
+
+          <h2>Estrutura da Formação</h2>
 
           <ul className="list">
-            <li>✔ Estruturação de prompts estratégicos</li>
-            <li>✔ Automação de tarefas repetitivas</li>
-            <li>✔ IA aplicada a marketing e vendas</li>
-            <li>✔ Criação de ativos digitais com IA</li>
-            <li>✔ Implementação prática imediata</li>
+            <li>Módulo 1 — Fundamentos estratégicos de IA</li>
+            <li>Módulo 2 — Estruturação de processos</li>
+            <li>Módulo 3 — IA aplicada a marketing e vendas</li>
+            <li>Módulo 4 — Automação operacional</li>
+            <li>Módulo 5 — Escala e posicionamento</li>
           </ul>
+
         </div>
       </section>
 
 
-      {/* MÉTODO */}
-      <section className="section dark">
-        <div className="container">
-          <h2>Método Bubles AI™</h2>
-
-          <p><strong>Estrutura:</strong> Organização clara de processos.</p>
-          <p><strong>Aplicação:</strong> Implementação prática e estratégica.</p>
-          <p><strong>Escala:</strong> IA como alavanca de crescimento.</p>
-        </div>
-      </section>
-
-
-      {/* OFERTA FINAL */}
+      {/* POSICIONAMENTO FINAL */}
       <section className="offer">
         <div className="container">
 
-          <h2>Invista na sua vantagem competitiva</h2>
+          <h2>Posicione-se na nova economia.</h2>
 
           <p className="old-price">De R$ 997</p>
 
           <p className="highlight-price">
-            Hoje por apenas R$ 197
+            Investimento executivo: R$ 197
           </p>
 
           <a
             href="https://pay.kiwify.com.br/dup2Pxz"
             className="btn-primary"
           >
-            🔥 Garantir minha vaga por R$ 197
+            Iniciar minha formação
           </a>
 
           <p className="trust-line">
@@ -129,7 +133,7 @@ export default function Home() {
       {/* BOTÃO FLUTUANTE */}
       <div className="mobile-cta">
         <a href="https://pay.kiwify.com.br/dup2Pxz">
-          🔥 Garantir vaga por R$ 197
+          Garantir vaga por R$ 197
         </a>
       </div>
 
