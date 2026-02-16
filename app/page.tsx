@@ -1,4 +1,22 @@
+"use client"
+import { useEffect, useState } from "react"
+
 export default function Home() {
+  const [showFixed, setShowFixed] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowFixed(true)
+      } else {
+        setShowFixed(false)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
   return (
     <main className="page">
 
@@ -22,9 +40,9 @@ export default function Home() {
 
         <p className="installments">ou 12x no cartão</p>
 
-        <button className="cta-main">
+        <a href="#comprar" className="cta-main">
           🔥 Garantir minha vaga
-        </button>
+        </a>
       </section>
 
       <section className="content">
@@ -49,9 +67,11 @@ export default function Home() {
         </p>
       </section>
 
-      <a href="#" className="cta-fixed">
-        🔥 Garantir vaga por R$ 197
-      </a>
+      {showFixed && (
+        <a href="#comprar" className="cta-fixed">
+          🔥 Garantir vaga por R$ 197
+        </a>
+      )}
 
     </main>
   )
