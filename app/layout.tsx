@@ -1,9 +1,9 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Bubles AI™",
-  description: "Centro executivo de formação em Inteligência Artificial aplicada.",
+export const metadata = {
+  title: "Bubles AI",
+  description: "Programa Executivo Bubles AI",
 };
 
 export default function RootLayout({
@@ -15,15 +15,16 @@ export default function RootLayout({
     <html lang="pt-br">
       <body>
         <header className="navbar">
-          <div className="container nav-container">
+          <div className="nav-container">
             <div className="logo">Bubles AI™</div>
 
             <nav className="nav-links">
-              <a href="/">Início</a>
-              <a href="/curso">Programa Executivo</a>
+              <Link href="/">Início</Link>
+              <Link href="/curso">Programa Executivo</Link>
               <a
-                href="https://pay.kiwify.com.br/dup2Pxz"
-                className="btn-nav"
+                href="https://kiwify.app/E1GPb6s"
+                target="_blank"
+                className="btn-login"
               >
                 Ingressar
               </a>
@@ -33,11 +34,13 @@ export default function RootLayout({
 
         {children}
 
-        <div className="mobile-cta">
-          <a href="https://pay.kiwify.com.br/dup2Pxz">
-            🔥 Garantir vaga por R$ 197
-          </a>
-        </div>
+        <a
+          href="https://pay.kiwify.com.br/dup2Pxz"
+          target="_blank"
+          className="floating-cta"
+        >
+          🔥 Garantir vaga por R$ 197
+        </a>
       </body>
     </html>
   );
