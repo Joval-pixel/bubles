@@ -10,7 +10,7 @@ export default function Comparativo() {
           </h1>
 
           <p className="subtitle">
-            Compare o Sistema Bubles IA com o Bubles IA Premium.
+            Compare o Sistema Bubles IA com a Assinatura Premium.
           </p>
         </div>
       </section>
@@ -41,7 +41,7 @@ export default function Comparativo() {
               </p>
 
               <a
-                href="https://pay.kiwify.com.br/SEU_LINK_SISTEMA"
+                href="https://pay.kiwify.com.br/dup2Pxz"
                 className="btn-primary"
               >
                 Comprar Sistema
@@ -68,7 +68,7 @@ export default function Comparativo() {
               </p>
 
               <a
-                href="https://pay.kiwify.com.br/SEU_LINK_PREMIUM"
+                href="https://kiwify.app/E1GPb6s"
                 className="btn-primary large"
               >
                 Tornar-se Premium
