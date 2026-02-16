@@ -23,7 +23,7 @@ export default function Home() {
             ou 12x no cartão
           </div>
 
-          <a href="#ingressar" className="btn-primary">
+          <a href="#garantia" className="btn-primary">
             🔥 Garantir minha vaga
           </a>
         </div>
