@@ -9,11 +9,9 @@ html {
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  background: linear-gradient(135deg, #02162b, #062a46);
-  color: white;
-  padding-top: 90px;
-  padding-bottom: 170px; /* espaço para botão flutuante */
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #061a2b, #0b2d45);
+  color: #fff;
 }
 
 /* HEADER */
@@ -22,11 +20,11 @@ body {
   position: fixed;
   top: 0;
   width: 100%;
-  background: #02162b;
+  background: #061a2b;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 30px;
   z-index: 1000;
 }
 
@@ -37,110 +35,88 @@ body {
 
 .nav {
   display: flex;
-  gap: 25px;
+  gap: 18px;
   align-items: center;
 }
 
 .nav a {
-  color: white;
+  color: #fff;
   text-decoration: none;
   font-size: 14px;
 }
 
 .btn-header {
-  background: linear-gradient(90deg, #18c8ff, #1df2a0);
-  padding: 10px 18px;
+  background: linear-gradient(90deg, #1ec6ff, #2aff9a);
+  padding: 8px 16px;
   border-radius: 25px;
+  color: #000 !important;
   font-weight: bold;
-  color: black !important;
 }
 
 /* HERO */
 
 .hero {
+  padding: 140px 20px 80px 20px;
   text-align: center;
-  padding: 80px 20px 60px 20px;
 }
 
 .hero h1 {
-  font-size: 34px;
-  margin-bottom: 20px;
+  font-size: 32px;
+  line-height: 1.2;
 }
 
-.hero span {
-  background: linear-gradient(90deg, #18c8ff, #1df2a0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.hero h1 span {
+  color: #2aff9a;
 }
 
 .hero p {
-  max-width: 600px;
-  margin: 0 auto 30px auto;
-  line-height: 1.6;
-  color: #cfd8e3;
+  margin-top: 20px;
+  font-size: 16px;
+  opacity: 0.85;
 }
 
 .price-old {
+  margin-top: 30px;
   text-decoration: line-through;
-  opacity: 0.7;
-  margin-bottom: 10px;
+  opacity: 0.6;
 }
 
 .price-new {
-  font-size: 22px;
+  margin-top: 10px;
+  font-size: 20px;
   font-weight: bold;
-  margin-bottom: 5px;
 }
 
 .installments {
-  margin-bottom: 25px;
+  margin-top: 8px;
   opacity: 0.8;
 }
 
-/* BOTÃO PRINCIPAL */
-
 .btn-primary {
   display: inline-block;
-  background: linear-gradient(90deg, #18c8ff, #1df2a0);
-  padding: 16px 28px;
+  margin-top: 30px;
+  background: linear-gradient(90deg, #1ec6ff, #2aff9a);
+  padding: 14px 28px;
   border-radius: 40px;
+  color: #000;
   font-weight: bold;
-  color: black;
   text-decoration: none;
-  margin-bottom: 25px;
-}
-
-/* LINKS ABAIXO DO BOTÃO */
-
-.anchors {
-  display: flex;
-  justify-content: center;
-  gap: 25px;
-  margin-top: 10px;
-}
-
-.anchors a {
-  color: #1df2a0;
-  text-decoration: none;
-  font-size: 14px;
 }
 
 /* SECTIONS */
 
 .section {
-  padding: 70px 20px;
-  max-width: 800px;
-  margin: auto;
+  padding: 80px 20px;
 }
 
 .section h2 {
-  font-size: 28px;
+  font-size: 26px;
   margin-bottom: 20px;
 }
 
 .section p {
+  opacity: 0.85;
   line-height: 1.6;
-  color: #cfd8e3;
 }
 
 .section ul {
@@ -152,21 +128,25 @@ body {
   margin-bottom: 10px;
 }
 
-/* BOTÃO FLUTUANTE */
+/* BOTÃO FLUTUANTE CORRIGIDO */
 
 .floating-cta {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(90deg, #18c8ff, #1df2a0);
+  background: linear-gradient(90deg, #1ec6ff, #2aff9a);
+  padding: 14px;
   text-align: center;
-  padding: 20px 0;
   z-index: 999;
+
+  /* ESSA LINHA RESOLVE O BLOQUEIO */
+  pointer-events: auto;
 }
 
 .floating-cta a {
-  color: black;
+  color: #000;
   font-weight: bold;
   text-decoration: none;
+  display: block;
 }
