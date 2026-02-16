@@ -1,94 +1,114 @@
-import Link from "next/link";
-
-export default function Home() {
+export default function Curso() {
   return (
-    <main>
+    <main className="curso">
 
-      {/* HERO INSTITUCIONAL */}
-      <section className="hero">
-        <div className="container center">
+      {/* HERO */}
+      <section className="hero-curso">
+        <div className="container narrow">
+          <span className="badge">Programa Executivo</span>
+
           <h1>
-            Bubles AI
+            Formação Executiva em <span>IA Aplicada</span>
           </h1>
-          <h2 className="subtitle">
-            Centro Executivo de Aplicação Estratégica em Inteligência Artificial
-          </h2>
 
-          <p className="description">
-            Aplicação estruturada de IA para empresas, empresários e gestores
-            que desejam transformar tecnologia em vantagem competitiva real.
+          <p className="subtitle">
+            Método estruturado para aplicar Inteligência Artificial
+            em marketing, vendas, produtividade e operação.
           </p>
 
-          <div className="buttons">
-            <Link href="/programa" className="btn-primary">
-              Conhecer o Programa Executivo
-            </Link>
-          </div>
+          <a
+            href="https://pay.kiwify.com.br/dup2Pxz"
+            className="btn-primary"
+          >
+            Garantir minha vaga
+          </a>
+
+          <p className="small">
+            Acesso imediato • Garantia de 7 dias
+          </p>
         </div>
       </section>
 
-
-      {/* SOBRE */}
+      {/* PROBLEMA */}
       <section className="section">
-        <div className="container">
-          <h2>Sobre a Bubles AI</h2>
+        <div className="container narrow">
+          <h2>A maioria usa IA de forma amadora</h2>
           <p>
-            A Bubles AI é um centro executivo focado na aplicação prática
-            de Inteligência Artificial em ambientes reais de negócio.
+            Copiam prompts soltos, testam ferramentas aleatórias e não
+            conseguem gerar resultado real.
           </p>
           <p>
-            Não se trata de teoria técnica. Trata-se de método,
-            estrutura e implementação estratégica.
+            O problema não é a ferramenta. É a falta de método.
           </p>
         </div>
       </section>
-
 
       {/* MÉTODO */}
       <section className="section dark">
         <div className="container">
-          <h2>Método Bubles AI™</h2>
+          <h2>O Método Bubles IA™</h2>
 
-          <div className="grid">
+          <div className="grid-3">
             <div className="card">
-              <h3>Estrutura</h3>
-              <p>Organização estratégica de processos com IA.</p>
+              <h3>1. Estrutura</h3>
+              <p>
+                Organização estratégica de processos e fluxos com IA.
+              </p>
             </div>
 
             <div className="card">
-              <h3>Aplicação</h3>
-              <p>Implementação prática em marketing, vendas e operação.</p>
+              <h3>2. Aplicação</h3>
+              <p>
+                Implementação prática em marketing, vendas e operação.
+              </p>
             </div>
 
             <div className="card">
-              <h3>Escala</h3>
-              <p>Otimização contínua e crescimento estruturado.</p>
+              <h3>3. Escala</h3>
+              <p>
+                Automação e ganho real de produtividade.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-
-      {/* PÚBLICO */}
+      {/* O QUE VOCÊ VAI DOMINAR */}
       <section className="section">
         <div className="container">
-          <h2>Para quem é</h2>
-          <ul className="list">
-            <li>Empresários que desejam aumentar margem e eficiência</li>
-            <li>Gestores que buscam automação estratégica</li>
-            <li>Profissionais que querem produtividade executiva</li>
-          </ul>
+          <h2>Você vai dominar</h2>
+
+          <div className="grid-3">
+            <div className="card">Criação de prompts estratégicos</div>
+            <div className="card">Automação de tarefas repetitivas</div>
+            <div className="card">Aplicação em marketing e vendas</div>
+            <div className="card">Criação de produtos digitais com IA</div>
+            <div className="card">Produtividade executiva</div>
+            <div className="card">Implementação prática imediata</div>
+          </div>
         </div>
       </section>
 
+      {/* INVESTIMENTO */}
+      <section className="section center dark">
+        <div className="container narrow">
 
-      {/* CTA */}
-      <section className="cta">
-        <div className="container center">
-          <h2>Conheça o Programa Executivo</h2>
-          <Link href="/programa" className="btn-primary">
-            Acessar Programa
-          </Link>
+          <h2>Investimento no Programa Executivo</h2>
+
+          <p className="price-old">De R$ 997</p>
+          <p className="price-new">Por apenas R$ 197</p>
+
+          <a
+            href="https://pay.kiwify.com.br/dup2Pxz"
+            className="btn-primary large"
+          >
+            Garantir minha vaga agora
+          </a>
+
+          <p className="small">
+            Garantia incondicional de 7 dias.
+          </p>
+
         </div>
       </section>
 
