@@ -93,3 +93,9 @@ const cardStyle = {
   borderRadius: "12px",
   backdropFilter: "blur(6px)",
 };
+      {/* BOTÃO MOBILE FIXO */}
+      <div className="mobile-cta">
+        <a href="https://pay.kiwify.com.br/dup2Pxz">
+          🔥 Garantir vaga por R$ 197
+        </a>
+      </div>
