@@ -1,10 +1,10 @@
 import "./globals.css";
-import Link from "next/link";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Bubles AI",
+export const metadata: Metadata = {
+  title: "Bubles AI™ | Programa Executivo",
   description:
-    "Centro Executivo de Aplicação Estratégica em Inteligência Artificial",
+    "Formação executiva para aplicar Inteligência Artificial em marketing, vendas e operação com foco em lucro e escala.",
 };
 
 export default function RootLayout({
@@ -15,78 +15,29 @@ export default function RootLayout({
   return (
     <html lang="pt-br">
       <body>
-
-        {/* HEADER */}
         <header className="header">
           <div className="container nav">
-
-            <div className="logo">
-              <Link href="/">Bubles AI</Link>
-            </div>
-
-            <nav className="menu">
-              <Link href="/">Início</Link>
-              <Link href="/metodo">Método</Link>
-              <Link href="/curso">Programa Executivo</Link>
-              <Link href="/comparativo">Comparativo</Link>
-              <Link href="/sobre">Sobre</Link>
+            <div className="logo">Bubles AI™</div>
+            <nav>
+              <a href="/">Início</a>
+              <a href="/curso">Programa Executivo</a>
             </nav>
-
-            <div className="cta-header">
-              <Link href="/curso" className="btn-header">
-                Ingressar
-              </Link>
-            </div>
-
+            <a
+              href="https://pay.kiwify.com.br/dup2Pxz"
+              className="btn-nav"
+            >
+              Ingressar
+            </a>
           </div>
         </header>
 
-        {/* CONTEÚDO */}
-        <main>{children}</main>
+        {children}
 
-        {/* FOOTER */}
         <footer className="footer">
-          <div className="container footer-grid">
-
-            <div>
-              <h4>Bubles AI</h4>
-              <p>
-                Centro Executivo de Aplicação Estratégica
-                em Inteligência Artificial.
-              </p>
-            </div>
-
-            <div>
-              <h4>Institucional</h4>
-              <ul>
-                <li><Link href="/sobre">Sobre</Link></li>
-                <li><Link href="/metodo">Método</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4>Programas</h4>
-              <ul>
-                <li><Link href="/curso">Programa Executivo</Link></li>
-                <li><Link href="/comparativo">Comparativo</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4>Contato</h4>
-              <ul>
-                <li>Email: contato@bubles.com.br</li>
-                <li>Brasil</li>
-              </ul>
-            </div>
-
-          </div>
-
-          <div className="footer-bottom">
-            © {new Date().getFullYear()} Bubles AI. Todos os direitos reservados.
+          <div className="container">
+            © {new Date().getFullYear()} Bubles AI™ — Centro Executivo de Formação
           </div>
         </footer>
-
       </body>
     </html>
   );
