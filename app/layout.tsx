@@ -37,7 +37,40 @@ export default function RootLayout({
           </div>
         </header>
 
-        {children}
+        <main>{children}</main>
+
+        {/* FOOTER */}
+        <footer className="footer">
+          <div className="container footer-grid">
+
+            <div>
+              <h4>Bubles AI</h4>
+              <p>
+                Centro Executivo de Aplicação Estratégica em Inteligência Artificial.
+              </p>
+            </div>
+
+            <div>
+              <h4>Programa</h4>
+              <ul>
+                <li><Link href="/curso">Programa Executivo</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4>Contato</h4>
+              <ul>
+                <li>Email: contato@bubles.com.br</li>
+                <li>Brasil</li>
+              </ul>
+            </div>
+
+          </div>
+
+          <div className="footer-bottom">
+            © {new Date().getFullYear()} Bubles AI. Todos os direitos reservados.
+          </div>
+        </footer>
 
       </body>
     </html>
