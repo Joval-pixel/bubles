@@ -1,29 +1,47 @@
-import "./globals.css";
-import Script from "next/script";
+import "./globals.css"
+
+export const metadata = {
+  title: "Bubles IA",
+  description: "Plataforma estratégica de aplicação de Inteligência Artificial"
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="pt-br">
-      <head>
-        {/* Google Analytics */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-6P13LYG03P"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-6P13LYG03P');
-          `}
-        </Script>
-      </head>
-      <body>{children}</body>
+      <body>
+
+        {/* NAVBAR */}
+        <header className="navbar">
+          <div className="nav-container">
+
+            <div className="logo">
+              Bubles IA
+            </div>
+
+            <nav className="nav-links">
+              <a href="/">Home</a>
+              <a href="/sistema">Sistema</a>
+              <a href="/premium">Premium</a>
+              <a href="/comparativo">Comparativo</a>
+            </nav>
+
+            <a
+              href="https://kiwify.app/E1GPb6s"
+              className="btn-nav"
+            >
+              Assinar Premium
+            </a>
+
+          </div>
+        </header>
+
+        {children}
+
+      </body>
     </html>
-  );
+  )
 }
