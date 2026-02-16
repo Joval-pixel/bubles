@@ -239,3 +239,52 @@ p {
 .btn-header:hover {
   transform: translateY(-2px);
 }
+/* FOOTER */
+
+.footer {
+  background: #050914;
+  border-top: 1px solid #1f2a44;
+  padding: 60px 20px 30px;
+  margin-top: 80px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 40px;
+}
+
+.footer h4 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: #ffffff;
+}
+
+.footer p,
+.footer li {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.footer ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer a {
+  text-decoration: none;
+  color: #9ca3af;
+  transition: color 0.2s ease;
+}
+
+.footer a:hover {
+  color: #38bdf8;
+}
+
+.footer-bottom {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 13px;
+  color: #6b7280;
+}
