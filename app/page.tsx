@@ -1,99 +1,47 @@
-export default function Metodo() {
+export default function Curso() {
   return (
-    <main>
-
-      {/* HERO */}
+    <>
       <section className="hero">
-        <div className="container center">
-          <p className="eyebrow">METODOLOGIA PROPRIETÁRIA</p>
-          <h1>Método Bubles AI™</h1>
-          <p className="subtitle">
-            Estrutura estratégica para aplicar Inteligência Artificial
-            em negócios de forma organizada e escalável.
-          </p>
-        </div>
-      </section>
-
-      {/* INTRO */}
-      <section className="section">
-        <div className="container center">
-          <h2>Por que método importa?</h2>
-          <p>
-            A maioria das pessoas utiliza IA de forma desorganizada.
-            Testam prompts soltos e ferramentas isoladas.
-          </p>
-          <p>
-            O Método Bubles AI™ foi estruturado para transformar
-            tecnologia em vantagem competitiva real.
-          </p>
-        </div>
-      </section>
-
-      {/* ESTRUTURA */}
-      <section className="section dark">
         <div className="container">
-          <h2>Os 3 Pilares do Método</h2>
+          <h1>
+            Programa Executivo <br />
+            <span>Bubles AI™</span>
+          </h1>
 
-          <div className="grid-3">
+          <p>
+            Método estruturado para implementar Inteligência Artificial em
+            marketing, vendas e operação com foco em lucro e escala.
+          </p>
 
-            <div className="card">
-              <h3>1. Estrutura</h3>
-              <p>
-                Organização estratégica de processos, definição clara
-                de objetivos e padronização de aplicação.
-              </p>
-            </div>
-
-            <div className="card">
-              <h3>2. Aplicação</h3>
-              <p>
-                Implementação prática em marketing, vendas,
-                produtividade e operação.
-              </p>
-            </div>
-
-            <div className="card">
-              <h3>3. Escala</h3>
-              <p>
-                Transformação de eficiência operacional
-                em crescimento sustentável.
-              </p>
-            </div>
-
+          <div className="price-hero">
+            <div className="old-price">De R$ 997</div>
+            <div className="current-price">Investimento único: R$ 197</div>
+            <div className="installments">ou 12x no cartão</div>
           </div>
-        </div>
-      </section>
 
-      {/* DIFERENCIAL */}
-      <section className="section">
-        <div className="container center">
-          <h2>Diferencial Estratégico</h2>
-
-          <p>
-            Não ensinamos apenas ferramentas.
-          </p>
-
-          <p>
-            Estruturamos implementação.
-          </p>
-
-          <p>
-            IA aplicada com método gera resultado.
-            IA aplicada sem estrutura gera confusão.
-          </p>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="section dark center">
-        <div className="container">
-          <h2>Conheça o Programa Executivo</h2>
-          <a href="/curso" className="btn-primary">
-            Aplicar o Método Bubles AI™
+          <a
+            href="https://pay.kiwify.com.br/dup2Pxz"
+            className="btn-main"
+          >
+            Garantir minha vaga
           </a>
         </div>
       </section>
 
-    </main>
+      <section className="section">
+        <div className="container">
+          <h2>Sobre o Programa</h2>
+          <p>
+            A Bubles AI™ é um centro executivo de formação focado na aplicação
+            estruturada de Inteligência Artificial em ambientes reais de
+            negócio.
+          </p>
+          <p>
+            Não se trata de teoria técnica. Trata-se de método, estrutura e
+            implementação estratégica.
+          </p>
+        </div>
+      </section>
+    </>
   );
 }
