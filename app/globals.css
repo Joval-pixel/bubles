@@ -9,9 +9,16 @@ html {
 }
 
 body {
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #061a2b, #0b2d45);
-  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(180deg, #041c2c 0%, #052b42 100%);
+  color: #ffffff;
+  padding-bottom: 90px; /* espaço para botão fixo */
+}
+
+.container {
+  width: 90%;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 /* HEADER */
@@ -20,12 +27,15 @@ body {
   position: fixed;
   top: 0;
   width: 100%;
-  background: #061a2b;
-  padding: 16px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background: #031a2a;
+  padding: 18px 0;
   z-index: 1000;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .logo {
@@ -33,120 +43,118 @@ body {
   font-size: 20px;
 }
 
-.nav {
+.menu {
   display: flex;
-  gap: 18px;
-  align-items: center;
+  gap: 25px;
 }
 
-.nav a {
-  color: #fff;
+.menu a {
+  color: #ffffff;
   text-decoration: none;
   font-size: 14px;
 }
 
-.btn-header {
-  background: linear-gradient(90deg, #1ec6ff, #2aff9a);
-  padding: 8px 16px;
+.btn-small {
+  background: linear-gradient(90deg, #21c8f6, #1ef2a6);
+  padding: 8px 18px;
   border-radius: 25px;
-  color: #000 !important;
+  text-decoration: none;
+  color: #000;
   font-weight: bold;
 }
 
 /* HERO */
 
 .hero {
-  padding: 140px 20px 80px 20px;
+  padding-top: 140px;
+  padding-bottom: 80px;
   text-align: center;
 }
 
 .hero h1 {
-  font-size: 32px;
-  line-height: 1.2;
+  font-size: 38px;
+  margin-bottom: 20px;
 }
 
-.hero h1 span {
-  color: #2aff9a;
+.hero span {
+  background: linear-gradient(90deg, #21c8f6, #1ef2a6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.hero p {
-  margin-top: 20px;
-  font-size: 16px;
-  opacity: 0.85;
+.subtitle {
+  max-width: 600px;
+  margin: 0 auto 30px;
+  opacity: 0.9;
 }
 
-.price-old {
-  margin-top: 30px;
+.old-price {
   text-decoration: line-through;
   opacity: 0.6;
+  margin-bottom: 10px;
 }
 
-.price-new {
-  margin-top: 10px;
-  font-size: 20px;
+.price {
+  font-size: 22px;
   font-weight: bold;
+  margin-bottom: 8px;
 }
 
 .installments {
-  margin-top: 8px;
-  opacity: 0.8;
+  margin-bottom: 30px;
 }
 
 .btn-primary {
   display: inline-block;
-  margin-top: 30px;
-  background: linear-gradient(90deg, #1ec6ff, #2aff9a);
-  padding: 14px 28px;
+  padding: 14px 35px;
   border-radius: 40px;
+  background: linear-gradient(90deg, #21c8f6, #1ef2a6);
+  text-decoration: none;
   color: #000;
   font-weight: bold;
-  text-decoration: none;
 }
 
-/* SECTIONS */
+/* SEÇÕES */
 
 .section {
-  padding: 80px 20px;
+  padding: 80px 0;
 }
 
 .section h2 {
-  font-size: 26px;
   margin-bottom: 20px;
+  font-size: 28px;
 }
 
 .section p {
-  opacity: 0.85;
-  line-height: 1.6;
+  max-width: 700px;
+  opacity: 0.9;
 }
 
-.section ul {
+.darker {
+  background: #031a2a;
+}
+
+.list {
   list-style: none;
   margin-top: 20px;
 }
 
-.section li {
-  margin-bottom: 10px;
+.list li {
+  margin-bottom: 12px;
 }
 
-/* BOTÃO FLUTUANTE CORRIGIDO */
+/* BOTÃO FLUTUANTE */
 
-.floating-cta {
+.floating-btn {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: linear-gradient(90deg, #1ec6ff, #2aff9a);
-  padding: 14px;
-  text-align: center;
-  z-index: 999;
-
-  /* ESSA LINHA RESOLVE O BLOQUEIO */
-  pointer-events: auto;
-}
-
-.floating-cta a {
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #21c8f6, #1ef2a6);
+  padding: 14px 30px;
+  border-radius: 40px;
+  text-decoration: none;
   color: #000;
   font-weight: bold;
-  text-decoration: none;
-  display: block;
+  z-index: 1000;
 }
