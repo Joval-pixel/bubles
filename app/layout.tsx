@@ -3,7 +3,8 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Bubles AI",
-  description: "Centro Executivo de Aplicação Estratégica em Inteligência Artificial",
+  description:
+    "Centro Executivo de Aplicação Estratégica em Inteligência Artificial",
 };
 
 export default function RootLayout({
@@ -25,7 +26,10 @@ export default function RootLayout({
 
             <nav className="menu">
               <Link href="/">Início</Link>
+              <Link href="/metodo">Método</Link>
               <Link href="/curso">Programa Executivo</Link>
+              <Link href="/comparativo">Comparativo</Link>
+              <Link href="/sobre">Sobre</Link>
             </nav>
 
             <div className="cta-header">
@@ -37,6 +41,7 @@ export default function RootLayout({
           </div>
         </header>
 
+        {/* CONTEÚDO */}
         <main>{children}</main>
 
         {/* FOOTER */}
@@ -46,14 +51,24 @@ export default function RootLayout({
             <div>
               <h4>Bubles AI</h4>
               <p>
-                Centro Executivo de Aplicação Estratégica em Inteligência Artificial.
+                Centro Executivo de Aplicação Estratégica
+                em Inteligência Artificial.
               </p>
             </div>
 
             <div>
-              <h4>Programa</h4>
+              <h4>Institucional</h4>
+              <ul>
+                <li><Link href="/sobre">Sobre</Link></li>
+                <li><Link href="/metodo">Método</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4>Programas</h4>
               <ul>
                 <li><Link href="/curso">Programa Executivo</Link></li>
+                <li><Link href="/comparativo">Comparativo</Link></li>
               </ul>
             </div>
 
