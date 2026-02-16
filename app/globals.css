@@ -4,7 +4,7 @@
   box-sizing: border-box;
 }
 
-html {
+html, body {
   scroll-behavior: smooth;
 }
 
@@ -13,6 +13,7 @@ body {
   background: linear-gradient(135deg, #02162b, #062a46);
   color: white;
   padding-top: 80px;
+  padding-bottom: 110px; /* espaço pro botão fixo */
 }
 
 /* CONTAINER */
@@ -27,11 +28,9 @@ body {
   position: fixed;
   top: 0;
   width: 100%;
-  background: #031b31;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  z-index: 999;
+  background: #02162b;
+  padding: 15px 0;
+  z-index: 1000;
 }
 
 .header-inner {
@@ -42,52 +41,101 @@ body {
 
 .logo {
   font-weight: 700;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .nav {
   display: flex;
-  gap: 25px;
+  gap: 20px;
+  align-items: center;
 }
 
 .nav a {
-  color: white;
   text-decoration: none;
-  font-size: 15px;
+  color: white;
+  font-size: 14px;
+  opacity: 0.85;
 }
 
 .nav a:hover {
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .btn-header {
   background: linear-gradient(90deg, #18c8ff, #1df2a0);
-  padding: 10px 20px;
-  border-radius: 25px;
+  padding: 8px 16px;
+  border-radius: 20px;
   color: black;
   font-weight: 600;
-  text-decoration: none;
 }
 
-/* SECTIONS */
-section {
-  padding: 100px 0;
+/* HERO */
+.hero {
+  text-align: center;
+  padding: 80px 0 60px;
+}
+
+.hero h1 {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.hero h2 {
+  font-size: 28px;
+  background: linear-gradient(90deg, #18c8ff, #1df2a0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 20px;
+}
+
+.hero p {
+  max-width: 600px;
+  margin: 0 auto 25px;
+  opacity: 0.85;
+  line-height: 1.6;
+}
+
+/* PREÇO */
+.price-old {
+  text-decoration: line-through;
+  opacity: 0.6;
+  margin-bottom: 10px;
+}
+
+.price-new {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.price-installments {
+  opacity: 0.8;
+  margin-bottom: 30px;
 }
 
 /* BOTÃO PRINCIPAL */
-.btn-primary {
+.cta-button {
   display: inline-block;
   background: linear-gradient(90deg, #18c8ff, #1df2a0);
-  padding: 16px 35px;
-  border-radius: 40px;
-  font-weight: bold;
+  padding: 15px 30px;
+  border-radius: 30px;
+  font-weight: 700;
   color: black;
   text-decoration: none;
-  transition: 0.3s;
 }
 
-.btn-primary:hover {
-  transform: scale(1.05);
+/* SEÇÕES */
+.section {
+  padding: 60px 0;
+}
+
+.section h2 {
+  margin-bottom: 20px;
+}
+
+.section p {
+  opacity: 0.85;
+  line-height: 1.6;
 }
 
 /* BOTÃO FLUTUANTE */
@@ -97,13 +145,13 @@ section {
   width: 100%;
   background: linear-gradient(90deg, #18c8ff, #1df2a0);
   text-align: center;
-  padding: 15px 0;
+  padding: 18px 0;
   z-index: 999;
+  box-shadow: 0 -4px 15px rgba(0,0,0,0.3);
 }
 
 .floating-cta a {
   color: black;
   font-weight: bold;
   text-decoration: none;
-  font-size: 18px;
 }
