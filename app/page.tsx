@@ -6,7 +6,7 @@ export default function Home() {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 400) {
+      if (window.scrollY > 500) {
         setShowFixed(true)
       } else {
         setShowFixed(false)
@@ -19,7 +19,6 @@ export default function Home() {
 
   return (
     <main className="page">
-
       <section className="hero">
         <h1>
           Programa Executivo
@@ -72,7 +71,6 @@ export default function Home() {
           🔥 Garantir vaga por R$ 197
         </a>
       )}
-
     </main>
   )
 }
