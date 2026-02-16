@@ -11,8 +11,8 @@ html {
 body {
   font-family: Arial, Helvetica, sans-serif;
   background: linear-gradient(180deg, #041c2c 0%, #052b42 100%);
-  color: #ffffff;
-  padding-bottom: 90px; /* espaço para botão fixo */
+  color: #fff;
+  padding-bottom: 120px; /* espaço real para botão fixo */
 }
 
 .container {
@@ -49,7 +49,7 @@ body {
 }
 
 .menu a {
-  color: #ffffff;
+  color: #fff;
   text-decoration: none;
   font-size: 14px;
 }
@@ -66,7 +66,7 @@ body {
 /* HERO */
 
 .hero {
-  padding-top: 140px;
+  padding-top: 150px;
   padding-bottom: 80px;
   text-align: center;
 }
@@ -112,6 +112,7 @@ body {
   text-decoration: none;
   color: #000;
   font-weight: bold;
+  margin-bottom: 40px; /* espaço antes do botão fixo */
 }
 
 /* SEÇÕES */
@@ -122,39 +123,24 @@ body {
 
 .section h2 {
   margin-bottom: 20px;
-  font-size: 28px;
-}
-
-.section p {
-  max-width: 700px;
-  opacity: 0.9;
 }
 
 .darker {
   background: #031a2a;
 }
 
-.list {
-  list-style: none;
-  margin-top: 20px;
-}
-
-.list li {
-  margin-bottom: 12px;
-}
-
-/* BOTÃO FLUTUANTE */
+/* BOTÃO FIXO */
 
 .floating-btn {
   position: fixed;
-  bottom: 15px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   background: linear-gradient(90deg, #21c8f6, #1ef2a6);
-  padding: 14px 30px;
-  border-radius: 40px;
+  padding: 16px 35px;
+  border-radius: 50px;
   text-decoration: none;
   color: #000;
   font-weight: bold;
-  z-index: 1000;
+  z-index: 999;
 }
