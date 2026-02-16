@@ -12,25 +12,23 @@ export default function Home() {
           </h1>
 
           <p className="subtitle">
-            Formação executiva para aplicar Inteligência Artificial em marketing,
-            vendas e operação com foco em lucro real e escala previsível.
+            Método estruturado para implementar Inteligência Artificial
+            em marketing, vendas e operação com foco direto em lucro e escala.
           </p>
 
           <p className="old-price">De R$ 997</p>
 
           <p className="highlight-price">
-            Hoje por apenas R$ 197
+            Investimento único: R$ 197
           </p>
 
-          <p className="installments">
-            ou 12x no cartão
-          </p>
+          <p className="installments">ou 12x no cartão</p>
 
           <a
             href="https://pay.kiwify.com.br/dup2Pxz"
             className="btn-primary"
           >
-            🔥 Garantir vaga por R$ 197
+            🔥 Garantir vaga agora
           </a>
 
           <p className="trust-line">
@@ -43,25 +41,92 @@ export default function Home() {
       </section>
 
 
-      {/* SEÇÃO AUTORIDADE */}
-      <section className="authority">
+      {/* PROBLEMA */}
+      <section className="section">
         <div className="container">
-          <h2>Centro Executivo de Formação</h2>
-
+          <h2>O mercado já mudou.</h2>
           <p>
-            A Bubles AI é um centro de formação focado na aplicação estruturada
-            de Inteligência Artificial em ambientes reais de negócio.
+            Empresas que aplicam IA estão reduzindo custos,
+            automatizando processos e aumentando margem.
           </p>
-
           <p>
-            Não se trata de teoria técnica.
-            Trata-se de método, estrutura e implementação estratégica.
+            Quem não se posicionar agora, vai competir por preço.
           </p>
         </div>
       </section>
 
 
-      {/* BOTÃO FLUTUANTE MOBILE */}
+      {/* PARA QUEM É */}
+      <section className="section dark">
+        <div className="container">
+          <h2>Para quem é o Programa Executivo</h2>
+
+          <ul className="list">
+            <li>✔ Empresários que querem escalar com estrutura</li>
+            <li>✔ Profissionais que desejam aumentar produtividade</li>
+            <li>✔ Gestores que precisam automatizar processos</li>
+            <li>✔ Quem quer aplicar IA com método, não achismo</li>
+          </ul>
+        </div>
+      </section>
+
+
+      {/* O QUE VOCÊ VAI DOMINAR */}
+      <section className="section">
+        <div className="container">
+          <h2>O que você vai dominar</h2>
+
+          <ul className="list">
+            <li>✔ Estruturação de prompts estratégicos</li>
+            <li>✔ Automação de tarefas repetitivas</li>
+            <li>✔ IA aplicada a marketing e vendas</li>
+            <li>✔ Criação de ativos digitais com IA</li>
+            <li>✔ Implementação prática imediata</li>
+          </ul>
+        </div>
+      </section>
+
+
+      {/* MÉTODO */}
+      <section className="section dark">
+        <div className="container">
+          <h2>Método Bubles AI™</h2>
+
+          <p><strong>Estrutura:</strong> Organização clara de processos.</p>
+          <p><strong>Aplicação:</strong> Implementação prática e estratégica.</p>
+          <p><strong>Escala:</strong> IA como alavanca de crescimento.</p>
+        </div>
+      </section>
+
+
+      {/* OFERTA FINAL */}
+      <section className="offer">
+        <div className="container">
+
+          <h2>Invista na sua vantagem competitiva</h2>
+
+          <p className="old-price">De R$ 997</p>
+
+          <p className="highlight-price">
+            Hoje por apenas R$ 197
+          </p>
+
+          <a
+            href="https://pay.kiwify.com.br/dup2Pxz"
+            className="btn-primary"
+          >
+            🔥 Garantir minha vaga por R$ 197
+          </a>
+
+          <p className="trust-line">
+            Garantia total de 7 dias. Risco zero.
+          </p>
+
+        </div>
+      </section>
+
+
+      {/* BOTÃO FLUTUANTE */}
       <div className="mobile-cta">
         <a href="https://pay.kiwify.com.br/dup2Pxz">
           🔥 Garantir vaga por R$ 197
