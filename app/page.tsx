@@ -1,53 +1,77 @@
 export default function Home() {
   return (
     <>
-      <section id="inicio" className="hero">
-        <h1>
-          Programa Executivo <br />
-          <span>Bubles AI™</span>
-        </h1>
+      <header className="header">
+        <div className="container nav">
+          <div className="logo">Bubles AI™</div>
+          <div className="menu">
+            <a href="#como">Início</a>
+            <a href="#conteudo">Programa Executivo</a>
+            <a href="#">Ingresar</a>
+          </div>
+        </div>
+      </header>
 
-        <p>
-          Método estruturado para implementar Inteligência Artificial em
-          marketing, vendas e operação com foco em lucro e escala.
-        </p>
+      <section className="hero">
+        <div className="container">
+          <h1>
+            Programa Executivo <br />
+            <span>Bubles AI™</span>
+          </h1>
 
-        <p className="old-price">De R$ 997</p>
-        <p className="new-price">Investimento único: R$ 197</p>
-        <p className="installments">ou 12x no cartão</p>
+          <p>
+            Método estruturado para implementar Inteligência Artificial em marketing,
+            vendas e operação com foco em lucro e escala.
+          </p>
 
-        <a id="comprar" href="#" className="btn-primary">
-          🔥 Garantir minha vaga
-        </a>
+          <div className="price-old">De R$ 997</div>
+          <div className="price-new">Investimento único: R$ 197</div>
+          <div className="installments">ou 12x no cartão</div>
+
+          <a href="#" className="btn-primary">
+            🔥 Garantir minha vaga
+          </a>
+
+          <div className="hero-links">
+            <a href="#como">Como funciona</a>
+            <a href="#conteudo">O que você aprende</a>
+            <a href="#garantia">Garantia</a>
+          </div>
+        </div>
       </section>
 
-      <section id="programa" className="section">
-        <h2>Como funciona o programa</h2>
-        <p>
-          Formação dividida em módulos estratégicos com aplicação prática.
-          Você aprende, estrutura e implementa imediatamente.
-        </p>
+      <section id="como" className="section">
+        <div className="container">
+          <h2>Como funciona o programa</h2>
+          <p>
+            Formação dividida em módulos estratégicos com aplicação prática.
+            Você aprende, estrutura e implementa imediatamente.
+          </p>
+        </div>
+      </section>
 
-        <h3>O que você vai dominar</h3>
-        <ul>
-          <li>✔ Estrutura estratégica com IA</li>
-          <li>✔ Automação de marketing</li>
-          <li>✔ Processos e escala</li>
-          <li>✔ Aplicação prática real</li>
-        </ul>
+      <section id="conteudo" className="section">
+        <div className="container">
+          <h2>O que você vai dominar</h2>
+          <p>✔ Estrutura estratégica com IA</p>
+          <p>✔ Automação de marketing</p>
+          <p>✔ Processos e escala</p>
+        </div>
       </section>
 
       <section id="garantia" className="section">
-        <h2>Garantia</h2>
-        <p>
-          Você tem 7 dias de garantia total. Se não fizer sentido para seu
-          negócio, devolvemos 100% do investimento.
-        </p>
+        <div className="container">
+          <h2>Garantia incondicional</h2>
+          <p>
+            Você tem 7 dias de garantia total. Se não fizer sentido para você,
+            devolvemos 100% do valor.
+          </p>
+        </div>
       </section>
 
-      <div className="floating-cta">
-        <a href="#">🔥 Garantir vaga por R$ 197</a>
-      </div>
+      <a href="#" className="floating-btn">
+        🔥 Garantir vaga por R$ 197
+      </a>
     </>
   );
 }
