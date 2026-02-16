@@ -6,160 +6,221 @@
 }
 
 html, body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #081b2e;
-  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #0a1a2f;
+  color: #ffffff;
   scroll-behavior: smooth;
 }
 
-/* CONTAINER */
+/* CONTAINER PADRÃO */
 .container {
-  width: 90%;
   max-width: 1100px;
   margin: 0 auto;
+  padding: 0 20px;
 }
 
-/* NAVBAR */
-.navbar {
+/* ========================= */
+/* HEADER */
+/* ========================= */
+
+.header {
   position: fixed;
-  width: 100%;
   top: 0;
-  left: 0;
-  background: rgba(5, 20, 40, 0.95);
-  backdrop-filter: blur(6px);
-  padding: 18px 0;
+  width: 100%;
+  background: rgba(5, 15, 30, 0.95);
+  backdrop-filter: blur(10px);
   z-index: 999;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
-.nav-container {
+.header-inner {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 18px 0;
 }
 
 .logo {
-  font-weight: 700;
   font-size: 20px;
+  font-weight: 700;
 }
 
-.nav-links {
+.nav {
   display: flex;
   gap: 25px;
   align-items: center;
 }
 
-.nav-links a {
-  color: white;
+.nav a {
   text-decoration: none;
+  color: #ffffff;
   font-size: 15px;
   opacity: 0.8;
+  transition: 0.3s;
 }
 
-.nav-links a:hover {
+.nav a:hover {
   opacity: 1;
 }
 
-/* BOTÃO NAV */
-.btn-nav {
+.nav-btn {
   background: linear-gradient(90deg, #00d4ff, #00ffa3);
   padding: 10px 18px;
   border-radius: 10px;
   font-weight: 600;
-  color: black !important;
+  color: #000 !important;
 }
 
+/* ========================= */
 /* HERO */
+/* ========================= */
+
 .hero {
-  padding-top: 140px; /* COMPENSA HEADER */
-  padding-bottom: 100px;
+  padding-top: 140px;
+  padding-bottom: 120px;
   text-align: center;
-  background: radial-gradient(circle at top, #0f2c4d 0%, #081b2e 60%);
+  background: radial-gradient(circle at top, #0f2747, #081424);
 }
 
 .hero h1 {
-  font-size: 42px;
+  font-size: 38px;
+  font-weight: 700;
   line-height: 1.2;
   margin-bottom: 20px;
 }
 
 .hero h1 span {
-  color: #33d6ff;
+  color: #00d4ff;
 }
 
 .hero p {
   font-size: 18px;
   opacity: 0.85;
-  max-width: 600px;
-  margin: 0 auto 30px;
+  max-width: 700px;
+  margin: 0 auto 40px auto;
 }
 
-/* PREÇO */
 .price-old {
   text-decoration: line-through;
   opacity: 0.6;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.price-main {
+.price-new {
   font-size: 28px;
-  font-weight: bold;
+  font-weight: 700;
   color: #00ffa3;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+}
+
+.price-installments {
+  opacity: 0.8;
+  margin-bottom: 30px;
 }
 
 /* BOTÃO PRINCIPAL */
+
 .btn-primary {
   display: inline-block;
-  margin-top: 25px;
+  background: linear-gradient(90deg, #00d4ff, #00ffa3);
   padding: 16px 28px;
   border-radius: 14px;
-  font-size: 16px;
   font-weight: 700;
   text-decoration: none;
-  background: linear-gradient(90deg, #00d4ff, #00ffa3);
-  color: black;
+  color: #000;
   transition: 0.3s;
 }
 
 .btn-primary:hover {
-  transform: scale(1.05);
+  transform: translateY(-3px);
 }
 
+/* ========================= */
+/* SECTIONS */
+/* ========================= */
+
+.section {
+  padding: 100px 0;
+}
+
+.section h2 {
+  text-align: center;
+  margin-bottom: 50px;
+  font-size: 30px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+}
+
+.card {
+  background: #0f1f36;
+  padding: 25px;
+  border-radius: 14px;
+  text-align: center;
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  background: #132845;
+}
+
+/* ========================= */
+/* FOOTER */
+/* ========================= */
+
+.footer {
+  padding: 40px 0;
+  text-align: center;
+  background: #07121f;
+  opacity: 0.8;
+}
+
+/* ========================= */
 /* BOTÃO FLUTUANTE MOBILE */
+/* ========================= */
+
 .mobile-cta {
   display: none;
 }
 
 @media (max-width: 768px) {
-  .nav-links {
-    gap: 15px;
+
+  body {
+    padding-bottom: 100px; /* evita sobreposição */
   }
 
   .hero h1 {
-    font-size: 30px;
+    font-size: 28px;
   }
 
-  .hero {
-    padding-top: 120px;
+  .hero p {
+    font-size: 16px;
   }
 
   .mobile-cta {
     display: block;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 92%;
+    max-width: 500px;
     background: linear-gradient(90deg, #00d4ff, #00ffa3);
     text-align: center;
     padding: 16px;
+    border-radius: 16px;
     font-weight: 700;
     z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
   }
 
   .mobile-cta a {
     color: black;
     text-decoration: none;
     font-size: 16px;
+    display: block;
   }
 }
