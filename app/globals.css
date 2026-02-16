@@ -8,7 +8,6 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: linear-gradient(135deg, #071a2f, #0c2a4d);
   color: white;
- iivpr;
   scroll-behavior: smooth;
 }
 
@@ -19,21 +18,18 @@ html, body {
   padding: 0 20px;
 }
 
-/* HEADER FIXO */
+/* HEADER */
 .header {
   position: fixed;
   top: 0;
   width: 100%;
   background: rgba(5, 20, 40, 0.95);
-  backdrop-filter: blur(10px);
   padding: 18px 0;
   z-index: 1000;
 }
 
-/* ESPAÇO REAL DO HEADER */
 body {
-  padding-top: 80px; /* compensação correta */
-  padding-bottom: 70px; /* botão flutuante */
+  padding-top: 80px;
 }
 
 /* NAV */
@@ -48,10 +44,14 @@ body {
   font-size: 22px;
 }
 
+.menu {
+  display: flex;
+  gap: 20px;
+}
+
 .menu a {
   color: #cbd5e1;
   text-decoration: none;
-  margin-left: 25px;
   font-weight: 500;
 }
 
@@ -69,14 +69,14 @@ body {
 
 /* HERO */
 .hero {
-  padding: 60px 20px 80px 20px; /* removido padding-top exagerado */
+  padding: 60px 20px 60px 20px;
   text-align: center;
   max-width: 900px;
   margin: auto;
 }
 
 .hero h1 {
-  font-size: 36px;
+  font-size: 34px;
   margin-bottom: 20px;
 }
 
@@ -89,7 +89,7 @@ body {
 .hero p {
   font-size: 18px;
   color: #cbd5e1;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
   line-height: 1.6;
 }
 
@@ -111,7 +111,7 @@ body {
   margin-bottom: 25px;
 }
 
-/* BOTÃO */
+/* BOTÃO PRINCIPAL */
 .btn-primary {
   display: inline-block;
   padding: 16px 28px;
@@ -122,27 +122,10 @@ body {
   color: black;
   text-decoration: none;
   transition: 0.3s;
-  margin-bottom: 15px;
 }
 
 .btn-primary:hover {
   transform: scale(1.05);
-}
-
-/* LINKS ABAIXO DO BOTÃO */
-.hero-links {
-  margin-top: 5px;
-}
-
-.hero-links a {
-  color: #00c6ff;
-  margin: 0 10px;
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.hero-links a:hover {
-  text-decoration: underline;
 }
 
 /* SEÇÕES */
@@ -152,31 +135,38 @@ body {
   margin: auto;
 }
 
-/* BOTÃO FLUTUANTE */
+/* BOTÃO FLUTUANTE (CORRIGIDO) */
 .floating-cta {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: linear-gradient(90deg, #00c6ff, #00ff9d);
-  text-align: center;
-  padding: 15px;
-  z-index: 999;
+  display: none;
 }
 
-.floating-cta a {
-  color: black;
-  font-weight: 700;
-  text-decoration: none;
-  font-size: 18px;
-}
-
-/* MOBILE */
+/* SÓ MOSTRA NO MOBILE */
 @media (max-width: 768px) {
-  .hero h1 {
-    font-size: 28px;
-  }
 
   .menu {
     display: none;
   }
+
+  .floating-cta {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(90deg, #00c6ff, #00ff9d);
+    text-align: center;
+    padding: 15px;
+    z-index: 999;
+  }
+
+  .floating-cta a {
+    color: black;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 18px;
+  }
+
+  body {
+    padding-bottom: 70px; /* espaço para botão fixo */
+  }
+
 }
