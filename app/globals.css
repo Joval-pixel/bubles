@@ -4,80 +4,29 @@
   box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  background: linear-gradient(180deg, #041c2c 0%, #052b42 100%);
+html, body {
+  background: linear-gradient(135deg, #071b2c, #0a2d46);
+  font-family: Arial, sans-serif;
   color: #fff;
-  padding-bottom: 120px; /* espaço real para botão fixo */
 }
 
-.container {
-  width: 90%;
-  max-width: 1100px;
-  margin: 0 auto;
+.page {
+  padding-bottom: 120px; /* ESPAÇO PARA O BOTÃO FIXO */
 }
-
-/* HEADER */
-
-.header {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  background: #031a2a;
-  padding: 18px 0;
-  z-index: 1000;
-}
-
-.nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo {
-  font-weight: bold;
-  font-size: 20px;
-}
-
-.menu {
-  display: flex;
-  gap: 25px;
-}
-
-.menu a {
-  color: #fff;
-  text-decoration: none;
-  font-size: 14px;
-}
-
-.btn-small {
-  background: linear-gradient(90deg, #21c8f6, #1ef2a6);
-  padding: 8px 18px;
-  border-radius: 25px;
-  text-decoration: none;
-  color: #000;
-  font-weight: bold;
-}
-
-/* HERO */
 
 .hero {
-  padding-top: 150px;
-  padding-bottom: 80px;
   text-align: center;
+  padding: 100px 20px 60px;
 }
 
 .hero h1 {
-  font-size: 38px;
+  font-size: 42px;
+  font-weight: 700;
   margin-bottom: 20px;
 }
 
-.hero span {
-  background: linear-gradient(90deg, #21c8f6, #1ef2a6);
+.hero h1 span {
+  background: linear-gradient(90deg, #27c2ff, #19f5a6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -85,62 +34,73 @@ body {
 .subtitle {
   max-width: 600px;
   margin: 0 auto 30px;
-  opacity: 0.9;
+  color: #c9d6e3;
 }
 
 .old-price {
   text-decoration: line-through;
-  opacity: 0.6;
+  color: #9fb3c8;
   margin-bottom: 10px;
 }
 
 .price {
   font-size: 22px;
-  font-weight: bold;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .installments {
+  color: #9fb3c8;
   margin-bottom: 30px;
 }
 
-.btn-primary {
-  display: inline-block;
-  padding: 14px 35px;
+.cta-main {
+  padding: 16px 32px;
   border-radius: 40px;
-  background: linear-gradient(90deg, #21c8f6, #1ef2a6);
-  text-decoration: none;
-  color: #000;
+  border: none;
   font-weight: bold;
-  margin-bottom: 40px; /* espaço antes do botão fixo */
+  font-size: 16px;
+  background: linear-gradient(90deg, #27c2ff, #19f5a6);
+  color: #000;
+  cursor: pointer;
 }
 
-/* SEÇÕES */
-
-.section {
-  padding: 80px 0;
+.content {
+  padding: 60px 20px;
+  max-width: 700px;
+  margin: 0 auto;
 }
 
-.section h2 {
+.content h2 {
+  font-size: 28px;
+  margin: 40px 0 15px;
+}
+
+.content p {
+  color: #c9d6e3;
   margin-bottom: 20px;
 }
 
-.darker {
-  background: #031a2a;
+.content ul {
+  list-style: none;
 }
 
-/* BOTÃO FIXO */
+.content li {
+  margin-bottom: 12px;
+  color: #c9d6e3;
+}
 
-.floating-btn {
+.cta-fixed {
   position: fixed;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(90deg, #21c8f6, #1ef2a6);
-  padding: 16px 35px;
-  border-radius: 50px;
-  text-decoration: none;
-  color: #000;
+  width: 90%;
+  max-width: 500px;
+  text-align: center;
+  padding: 18px;
+  border-radius: 40px;
   font-weight: bold;
-  z-index: 999;
+  text-decoration: none;
+  background: linear-gradient(90deg, #27c2ff, #19f5a6);
+  color: #000;
 }
