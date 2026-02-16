@@ -17,7 +17,7 @@ export default function Comparativo() {
           {/* PACK */}
           <div className="card-pricing">
             <h2>Pack Prompts IA</h2>
-            <p className="small">Para quem quer começar</p>
+            <p className="small">Ideal para começar</p>
 
             <ul>
               <li>✔ Biblioteca de prompts prontos</li>
@@ -30,7 +30,7 @@ export default function Comparativo() {
             <p className="price">R$ 39</p>
 
             <a
-              href="https://pay.kiwify.com.br/SEU_LINK_PACK"
+              href="#"
               className="btn-outline"
             >
               Quero começar
@@ -43,14 +43,14 @@ export default function Comparativo() {
             <p className="small">Implementação estratégica completa</p>
 
             <ul>
-              <li>✔ Método estruturado</li>
+              <li>✔ Método estruturado completo</li>
               <li>✔ Aplicação em marketing e vendas</li>
               <li>✔ Estruturação de processos</li>
               <li>✔ Automação prática</li>
               <li>✔ Atualizações incluídas</li>
             </ul>
 
-            <p className="price">R$ 197</p>
+            <p className="price">R$ 297</p>
 
             <a
               href="https://pay.kiwify.com.br/dup2Pxz"
