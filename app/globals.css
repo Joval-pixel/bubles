@@ -5,29 +5,30 @@
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  background: linear-gradient(180deg, #041c2c, #062a3f);
-  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(180deg, #041b2d, #062c45);
+  color: white;
 }
 
 .container {
-  width: 90%;
   max-width: 1100px;
-  margin: auto;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
-/* HEADER */
+.center {
+  text-align: center;
+}
 
 .header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  width: 100%;
-  background: #041c2c;
-  z-index: 1000;
+  background: #041b2d;
   padding: 20px 0;
+  z-index: 1000;
 }
 
-.header-inner {
+.nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -35,131 +36,92 @@ body {
 
 .logo {
   font-weight: bold;
-  font-size: 20px;
+  font-size: 22px;
 }
 
-.nav {
+.menu {
   display: flex;
-  gap: 25px;
+  gap: 30px;
 }
 
-.nav a {
-  color: #fff;
+.menu a {
+  color: white;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .btn-header {
-  background: linear-gradient(90deg, #27c2ff, #19f5a6);
+  background: linear-gradient(90deg, #00c6ff, #00ff9d);
   padding: 10px 20px;
-  border-radius: 30px;
+  border-radius: 25px;
+  color: black;
   font-weight: bold;
   text-decoration: none;
-  color: #000;
-}
-
-/* HERO */
-
-.page {
-  padding-top: 120px;
 }
 
 .hero {
-  text-align: center;
-  padding: 80px 20px;
+  padding: 100px 0;
 }
 
 .hero h1 {
-  font-size: 42px;
-  line-height: 1.2;
+  font-size: 48px;
   margin-bottom: 20px;
 }
 
 .hero h1 span {
-  background: linear-gradient(90deg, #27c2ff, #19f5a6);
+  display: block;
+  background: linear-gradient(90deg, #00c6ff, #00ff9d);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.subtitle {
+.hero p {
   max-width: 700px;
-  margin: 0 auto 30px auto;
-  font-size: 18px;
-  line-height: 1.6;
-  color: #cfd8dc;
+  margin: 20px auto;
+  font-size: 20px;
+  color: #cbd5e1;
 }
 
-.old-price {
+.price-old {
   text-decoration: line-through;
-  opacity: 0.6;
-  margin-bottom: 10px;
+  color: #aaa;
+  margin-top: 30px;
 }
 
 .price {
-  font-size: 26px;
-  margin-bottom: 10px;
+  font-size: 28px;
+  font-weight: bold;
+  margin-top: 10px;
 }
 
 .installments {
-  margin-bottom: 30px;
-  opacity: 0.8;
+  margin-top: 10px;
+  color: #cbd5e1;
 }
 
-/* BOTÃO PRINCIPAL */
-
-.cta-main {
+.btn-primary {
   display: inline-block;
+  margin-top: 40px;
   padding: 18px 40px;
   border-radius: 40px;
-  background: linear-gradient(90deg, #27c2ff, #19f5a6);
+  background: linear-gradient(90deg, #00c6ff, #00ff9d);
+  color: black;
   font-weight: bold;
   text-decoration: none;
-  color: #000;
+  font-size: 18px;
 }
 
-/* CONTEÚDO */
-
-.content {
-  padding: 80px 20px;
-  max-width: 800px;
-  margin: auto;
+.section {
+  padding: 100px 0;
 }
 
-.content h2 {
-  font-size: 30px;
-  margin-bottom: 20px;
-}
-
-.content p {
+.section h2 {
+  font-size: 36px;
   margin-bottom: 30px;
-  line-height: 1.6;
-  color: #cfd8dc;
 }
 
-.content ul {
+.list {
   list-style: none;
-  margin-bottom: 40px;
-}
-
-.content li {
-  margin-bottom: 12px;
-}
-
-/* BOTÃO FIXO */
-
-.cta-fixed {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 500px;
-  text-align: center;
-  padding: 18px;
-  border-radius: 40px;
-  font-weight: bold;
-  text-decoration: none;
-  background: linear-gradient(90deg, #27c2ff, #19f5a6);
-  color: #000;
-  z-index: 9999;
+  font-size: 20px;
+  line-height: 2;
 }
