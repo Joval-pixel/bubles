@@ -6,114 +6,103 @@
 }
 
 html, body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0a1a2f;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  background: linear-gradient(135deg, #021c2f, #01203a);
   color: #ffffff;
   scroll-behavior: smooth;
 }
 
-/* CONTAINER PADRÃO */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
+/* NAVBAR */
 
-/* ========================= */
-/* HEADER */
-/* ========================= */
-
-.header {
+.navbar {
   position: fixed;
-  top: 0;
   width: 100%;
-  background: rgba(5, 15, 30, 0.95);
-  backdrop-filter: blur(10px);
-  z-index: 999;
+  top: 0;
+  background: #021c2f;
+  padding: 18px 20px;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
-.header-inner {
+.nav-container {
+  max-width: 1100px;
+  margin: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 0;
 }
 
 .logo {
-  font-size: 20px;
   font-weight: 700;
+  font-size: 18px;
+  color: #fff;
 }
 
-.nav {
-  display: flex;
-  gap: 25px;
-  align-items: center;
-}
-
-.nav a {
-  text-decoration: none;
+nav a {
   color: #ffffff;
-  font-size: 15px;
+  text-decoration: none;
+  margin-left: 24px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+nav a:hover {
   opacity: 0.8;
-  transition: 0.3s;
 }
 
-.nav a:hover {
-  opacity: 1;
-}
-
-.nav-btn {
-  background: linear-gradient(90deg, #00d4ff, #00ffa3);
-  padding: 10px 18px;
+.btn-login {
+  background: linear-gradient(90deg, #16d9ff, #00ff94);
+  padding: 8px 18px;
   border-radius: 10px;
+  color: #000;
   font-weight: 600;
-  color: #000 !important;
 }
 
-/* ========================= */
 /* HERO */
-/* ========================= */
 
 .hero {
-  padding-top: 140px;
-  padding-bottom: 120px;
+  padding: 140px 20px 200px;
   text-align: center;
-  background: radial-gradient(circle at top, #0f2747, #081424);
+  max-width: 900px;
+  margin: auto;
 }
 
 .hero h1 {
-  font-size: 38px;
+  font-size: 40px;
   font-weight: 700;
-  line-height: 1.2;
   margin-bottom: 20px;
 }
 
-.hero h1 span {
-  color: #00d4ff;
+.hero span {
+  color: #16d9ff;
 }
 
 .hero p {
   font-size: 18px;
+  line-height: 1.6;
   opacity: 0.85;
-  max-width: 700px;
-  margin: 0 auto 40px auto;
+  margin-bottom: 30px;
 }
 
-.price-old {
+/* PREÇO */
+
+.old-price {
   text-decoration: line-through;
-  opacity: 0.6;
-  margin-bottom: 8px;
+  opacity: 0.5;
+  margin-bottom: 10px;
+  font-size: 18px;
 }
 
-.price-new {
-  font-size: 28px;
+.price {
+  font-size: 32px;
   font-weight: 700;
-  color: #00ffa3;
+  color: #00ff94;
   margin-bottom: 8px;
 }
 
-.price-installments {
-  opacity: 0.8;
+.installments {
+  opacity: 0.7;
   margin-bottom: 30px;
 }
 
@@ -121,106 +110,52 @@ html, body {
 
 .btn-primary {
   display: inline-block;
-  background: linear-gradient(90deg, #00d4ff, #00ffa3);
-  padding: 16px 28px;
+  background: linear-gradient(90deg, #16d9ff, #00ff94);
+  padding: 16px 40px;
   border-radius: 14px;
   font-weight: 700;
-  text-decoration: none;
   color: #000;
-  transition: 0.3s;
+  text-decoration: none;
+  transition: 0.3s ease;
 }
 
 .btn-primary:hover {
-  transform: translateY(-3px);
+  transform: scale(1.05);
 }
 
-/* ========================= */
-/* SECTIONS */
-/* ========================= */
+/* BOTÃO FLUTUANTE */
 
-.section {
-  padding: 100px 0;
-}
-
-.section h2 {
+.floating-cta {
+  position: fixed;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 420px;
   text-align: center;
-  margin-bottom: 50px;
-  font-size: 30px;
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 25px;
-}
-
-.card {
-  background: #0f1f36;
-  padding: 25px;
+  padding: 16px;
   border-radius: 14px;
-  text-align: center;
-  transition: 0.3s;
+  font-weight: 700;
+  background: linear-gradient(90deg, #16d9ff, #00ff94);
+  color: #000;
+  text-decoration: none;
+  z-index: 999;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
-.card:hover {
-  transform: translateY(-5px);
-  background: #132845;
-}
-
-/* ========================= */
-/* FOOTER */
-/* ========================= */
-
-.footer {
-  padding: 40px 0;
-  text-align: center;
-  background: #07121f;
-  opacity: 0.8;
-}
-
-/* ========================= */
-/* BOTÃO FLUTUANTE MOBILE */
-/* ========================= */
-
-.mobile-cta {
-  display: none;
-}
+/* RESPONSIVO */
 
 @media (max-width: 768px) {
-
-  body {
-    padding-bottom: 100px; /* evita sobreposição */
-  }
-
   .hero h1 {
     font-size: 28px;
   }
 
-  .hero p {
-    font-size: 16px;
+  .hero {
+    padding: 120px 20px 220px;
   }
 
-  .mobile-cta {
-    display: block;
-    position: fixed;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 92%;
-    max-width: 500px;
-    background: linear-gradient(90deg, #00d4ff, #00ffa3);
-    text-align: center;
-    padding: 16px;
-    border-radius: 16px;
-    font-weight: 700;
-    z-index: 1000;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  }
-
-  .mobile-cta a {
-    color: black;
-    text-decoration: none;
-    font-size: 16px;
-    display: block;
+  nav a {
+    margin-left: 14px;
+    font-size: 13px;
   }
 }
