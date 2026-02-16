@@ -1,201 +1,37 @@
-/* =========================
-   RESET
-========================= */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen;
+.hero-executive {
+  padding: 160px 20px;
   background: linear-gradient(180deg, #061427, #0b1f3a);
-  color: #ffffff;
-  line-height: 1.6;
 }
 
-/* =========================
-   CONTAINER
-========================= */
-.container {
-  max-width: 1100px;
-  margin: auto;
-  padding: 80px 20px;
-  text-align: center;
-}
-
-/* =========================
-   NAVBAR
-========================= */
-.navbar {
-  position: sticky;
-  top: 0;
-  background: #061427;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  z-index: 1000;
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: auto;
-  padding: 18px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-}
-
-.nav-links a {
-  margin: 0 15px;
-  text-decoration: none;
-  color: #ffffff;
-  opacity: 0.7;
-  font-size: 14px;
-  transition: 0.3s ease;
-}
-
-.nav-links a:hover {
-  opacity: 1;
-}
-
-.btn-nav {
-  background: #00e0a4;
-  color: #000;
-  padding: 8px 16px;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 14px;
-  transition: 0.3s ease;
-}
-
-.btn-nav:hover {
-  opacity: 0.85;
-}
-
-/* =========================
-   HERO
-========================= */
-.hero {
-  padding: 120px 20px;
-}
-
-h1 {
-  font-size: 42px;
-  line-height: 1.3;
-}
-
-.highlight {
-  color: #00e0a4;
-}
-
-.subtitle {
-  margin-top: 20px;
-  font-size: 18px;
+.subtitle-strong {
+  font-size: 20px;
+  max-width: 700px;
+  margin: 20px auto 0 auto;
   opacity: 0.9;
 }
 
-.hero-info {
-  margin-top: 20px;
-  font-size: 14px;
-  opacity: 0.8;
-}
-
-/* =========================
-   SEÇÕES
-========================= */
-.section {
-  padding: 100px 20px;
-}
-
-.dark-section {
-  background: rgba(0,0,0,0.25);
-}
-
-h2 {
-  margin-bottom: 40px;
-  font-size: 28px;
-}
-
-/* =========================
-   GRID & CARDS
-========================= */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 25px;
-}
-
-.card {
+.pillar {
   background: rgba(255,255,255,0.05);
-  padding: 30px;
+  padding: 40px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.program-card {
+  background: rgba(255,255,255,0.05);
+  padding: 40px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.08);
-  transition: 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-6px);
-  border-color: #00e0a4;
-}
-
-/* =========================
-   BOTÕES
-========================= */
-.btn-primary {
-  display: inline-block;
-  background: #00e0a4;
-  color: #000;
-  padding: 14px 30px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: bold;
-  margin-top: 25px;
-  transition: 0.3s ease;
-}
-
-.btn-primary:hover {
-  transform: scale(1.05);
-}
-
-.btn-primary.large {
-  padding: 18px 40px;
-  font-size: 18px;
-}
-
-/* =========================
-   PREÇO
-========================= */
-.old-price {
-  text-decoration: line-through;
-  opacity: 0.6;
-  margin-top: 10px;
-}
-
-.price {
-  font-size: 32px;
-  font-weight: bold;
-  margin: 15px 0;
-}
-
-.guarantee {
-  font-size: 14px;
-  opacity: 0.8;
-  margin-top: 15px;
-}
-
-/* =========================
-   FOOTER (caso adicione)
-========================= */
-.footer {
   text-align: center;
-  padding: 40px 20px;
-  font-size: 14px;
-  opacity: 0.6;
-  border-top: 1px solid rgba(255,255,255,0.08);
-  margin-top: 80px;
+}
+
+.btn-outline {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 12px 25px;
+  border: 1px solid #00e0a4;
+  color: #00e0a4;
+  text-decoration: none;
+  border-radius: 6px;
 }
