@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Home() {
@@ -7,11 +8,7 @@ export default function Home() {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 400) {
-        setShowCTA(true);
-      } else {
-        setShowCTA(false);
-      }
+      setShowCTA(window.scrollY > 400);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -23,11 +20,14 @@ export default function Home() {
       {/* HEADER */}
       <header className="header">
         <div className="logo">Bubles AI™</div>
+
         <nav className="nav">
           <a href="#inicio">Início</a>
           <a href="#programa">Programa Executivo</a>
           <a href="#garantia">Garantia</a>
-          <a href="#" className="btn-header">Ingressar</a>
+          <Link href="/login" className="btn-header">
+            Ingressar
+          </Link>
         </nav>
       </header>
 
@@ -47,7 +47,7 @@ export default function Home() {
         <div className="price-new">Investimento único: R$ 197</div>
         <div className="installments">ou 12x no cartão</div>
 
-        <a href="#" className="btn-primary">
+        <a href="#garantia" className="btn-primary">
           🔥 Garantir minha vaga
         </a>
       </section>
@@ -84,7 +84,9 @@ export default function Home() {
       {/* BOTÃO FLUTUANTE */}
       {showCTA && (
         <div className="floating-cta">
-          <a href="#">🔥 Garantir vaga por R$ 197</a>
+          <a href="#garantia">
+            🔥 Garantir vaga por R$ 197
+          </a>
         </div>
       )}
     </>
