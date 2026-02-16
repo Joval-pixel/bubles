@@ -4,7 +4,7 @@ export default function Curso() {
 
       {/* HERO */}
       <section className="hero">
-        <div className="container">
+        <div className="container center">
           <h1>
             Programa Executivo <span>Bubles AI™</span>
           </h1>
@@ -29,7 +29,7 @@ export default function Curso() {
 
       {/* POSICIONAMENTO */}
       <section className="section-dark">
-        <div className="container">
+        <div className="container center">
           <h2>Não é um curso comum sobre IA</h2>
 
           <p>
@@ -40,11 +40,6 @@ export default function Curso() {
             É um método estruturado para aplicar Inteligência Artificial
             com estratégia, clareza e foco em resultado real.
           </p>
-
-          <p>
-            Estruturamos processos, modelos e aplicações práticas
-            para transformar IA em vantagem competitiva.
-          </p>
         </div>
       </section>
 
@@ -53,7 +48,7 @@ export default function Curso() {
         <div className="container">
           <h2>O que você vai dominar</h2>
 
-          <div className="grid">
+          <div className="grid-3">
             <div className="card">Estruturação de processos com IA</div>
             <div className="card">Automação de tarefas operacionais</div>
             <div className="card">Aplicação prática em marketing e vendas</div>
@@ -66,33 +61,23 @@ export default function Curso() {
 
       {/* MÉTODO */}
       <section className="section-dark">
-        <div className="container">
+        <div className="container center">
           <h2>Método Bubles AI™</h2>
 
-          <h3>1. Estrutura</h3>
-          <p>
-            Organização clara de processos, definição de objetivos e aplicação estratégica.
-          </p>
-
-          <h3>2. Aplicação</h3>
-          <p>
-            Implementação prática em marketing, vendas e operação.
-          </p>
-
-          <h3>3. Escala</h3>
-          <p>
-            Transformação de produtividade em crescimento sustentável.
-          </p>
+          <p><strong>1. Estrutura:</strong> organização estratégica de processos.</p>
+          <p><strong>2. Aplicação:</strong> implementação prática em marketing e vendas.</p>
+          <p><strong>3. Escala:</strong> crescimento sustentável com IA.</p>
         </div>
       </section>
 
       {/* INVESTIMENTO */}
-      <section className="section">
-        <div className="container center">
+      <section className="section center">
+        <div className="container">
+
           <h2>Investimento Executivo</h2>
 
-          <p className="price-old">De R$ 997</p>
-          <p className="price">Por apenas R$ 197</p>
+          <p className="old-price">De R$ 997</p>
+          <p className="price">Por R$ 297</p>
 
           <a
             href="https://pay.kiwify.com.br/dup2Pxz"
@@ -104,6 +89,7 @@ export default function Curso() {
           <p className="small">
             Garantia incondicional de 7 dias.
           </p>
+
         </div>
       </section>
 
