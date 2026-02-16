@@ -1,161 +1,60 @@
-import Link from "next/link";
-
-export default function Home() {
+export default function Curso() {
   return (
-    <div>
+    <main>
 
-      {/* HERO INSTITUCIONAL */}
-      <section className="hero-executive">
-        <div className="container center">
-
-          <span className="badge">
-            CENTRO EXECUTIVO DE FORMAÇÃO
-          </span>
-
+      <section className="hero">
+        <div className="container">
           <h1>
-            Bubles IA
+            Programa Executivo Bubles AI
           </h1>
 
-          <p className="subtitle-strong">
-            Aplicação estratégica de Inteligência Artificial para negócios,
-            produtividade e geração de vantagem competitiva.
-          </p>
-
-          <div className="hero-buttons">
-            <Link href="/curso" className="btn-primary big">
-              Conhecer Programa Executivo
-            </Link>
-          </div>
-
-        </div>
-      </section>
-
-
-      {/* SOBRE O CENTRO */}
-      <section className="section-light">
-        <div className="container center">
-
-          <h2>Sobre o Centro Executivo</h2>
-
           <p>
-            A Bubles IA é um centro de formação focado na aplicação estruturada
-            de Inteligência Artificial em ambientes reais de negócio.
+            Formação estruturada para aplicar IA em marketing,
+            vendas e operação com método estratégico.
           </p>
 
-          <p>
-            Não se trata de teoria técnica. Trata-se de método, estrutura e
-            implementação estratégica.
-          </p>
-
+          <a
+            href="https://pay.kiwify.com.br/dup2Pxz"
+            className="btn-primary"
+          >
+            Garantir minha vaga
+          </a>
         </div>
       </section>
 
-
-      {/* MÉTODO BUBLES IA */}
-      <section className="section">
+      <section className="section dark">
         <div className="container">
+          <h2>O que você vai dominar</h2>
 
-          <h2 className="center">Método Bubles IA™</h2>
-
-          <div className="grid-3">
-
-            <div className="pillar">
-              <h3>Estrutura</h3>
-              <p>
-                Organização clara de processos e aplicação estratégica.
-              </p>
-            </div>
-
-            <div className="pillar">
-              <h3>Aplicação</h3>
-              <p>
-                Implementação prática em marketing, vendas e operação.
-              </p>
-            </div>
-
-            <div className="pillar">
-              <h3>Escala</h3>
-              <p>
-                Otimização contínua e crescimento estruturado.
-              </p>
-            </div>
-
+          <div className="grid">
+            <div className="card">Automação estratégica com IA</div>
+            <div className="card">Criação de processos inteligentes</div>
+            <div className="card">IA aplicada em marketing e vendas</div>
+            <div className="card">Produtividade executiva</div>
+            <div className="card">Estrutura de implementação prática</div>
+            <div className="card">Método Bubles IA™</div>
           </div>
         </div>
       </section>
 
-
-      {/* PROGRAMAS DISPONÍVEIS */}
-      <section className="section-light">
-        <div className="container">
-
-          <h2 className="center">Programas Disponíveis</h2>
-
-          <div className="grid-3">
-
-            <div className="program-card">
-              <h3>Programa Executivo</h3>
-              <p>
-                Formação estruturada para aplicação estratégica de IA.
-              </p>
-              <Link href="/curso" className="btn-outline">
-                Ver Programa
-              </Link>
-            </div>
-
-            <div className="program-card">
-              <h3>Biblioteca Estratégica</h3>
-              <p>
-                Prompts profissionais e frameworks organizados.
-              </p>
-              <Link href="/pack" className="btn-outline">
-                Acessar Biblioteca
-              </Link>
-            </div>
-
-            <div className="program-card">
-              <h3>Programa de Implementação</h3>
-              <p>
-                Mentoria estratégica para aplicação avançada.
-              </p>
-              <Link href="/embaixadores" className="btn-outline">
-                Saber Mais
-              </Link>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-
-      {/* PARA QUEM É */}
       <section className="section">
         <div className="container center">
+          <h2>Investimento</h2>
+          <p className="price">Por R$ 197</p>
 
-          <h2>Para quem é o Centro Executivo</h2>
+          <a
+            href="https://pay.kiwify.com.br/dup2Pxz"
+            className="btn-primary"
+          >
+            Garantir minha vaga agora
+          </a>
 
-          <p>
-            Empreendedores, profissionais e gestores que desejam aplicar
-            Inteligência Artificial de forma estruturada e estratégica.
+          <p className="small">
+            Garantia incondicional de 7 dias.
           </p>
-
         </div>
       </section>
 
-
-      {/* CTA FINAL */}
-      <section className="cta-section">
-        <div className="container center">
-
-          <h2>Formação estratégica começa com decisão.</h2>
-
-          <Link href="/curso" className="btn-primary big">
-            Iniciar Programa Executivo
-          </Link>
-
-        </div>
-      </section>
-
-    </div>
-  );
+    </main>
+  )
 }
