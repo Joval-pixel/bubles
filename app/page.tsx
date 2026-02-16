@@ -4,10 +4,11 @@ export default function Home() {
       <header className="header">
         <div className="container nav">
           <div className="logo">Bubles AI™</div>
+
           <div className="menu">
             <a href="#como">Início</a>
-            <a href="#conteudo">Programa Executivo</a>
-            <a href="#">Ingresar</a>
+            <a href="#conteudo">Programa</a>
+            <a href="#" className="btn-login">Ingressar</a>
           </div>
         </div>
       </header>
@@ -20,8 +21,8 @@ export default function Home() {
           </h1>
 
           <p>
-            Método estruturado para implementar Inteligência Artificial em marketing,
-            vendas e operação com foco em lucro e escala.
+            Método estruturado para implementar Inteligência Artificial em
+            marketing, vendas e operação com foco em lucro e escala.
           </p>
 
           <div className="price-old">De R$ 997</div>
@@ -35,7 +36,6 @@ export default function Home() {
           <div className="hero-links">
             <a href="#como">Como funciona</a>
             <a href="#conteudo">O que você aprende</a>
-            <a href="#garantia">Garantia</a>
           </div>
         </div>
       </section>
@@ -56,16 +56,6 @@ export default function Home() {
           <p>✔ Estrutura estratégica com IA</p>
           <p>✔ Automação de marketing</p>
           <p>✔ Processos e escala</p>
-        </div>
-      </section>
-
-      <section id="garantia" className="section">
-        <div className="container">
-          <h2>Garantia incondicional</h2>
-          <p>
-            Você tem 7 dias de garantia total. Se não fizer sentido para você,
-            devolvemos 100% do valor.
-          </p>
         </div>
       </section>
 
