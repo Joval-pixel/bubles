@@ -1,145 +1,31 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-body {
-  background: linear-gradient(135deg, #001224, #021f3a);
-  color: #ffffff;
-}
-
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
+.section {
   padding: 80px 20px;
   text-align: center;
 }
 
-.hero h1 {
-  font-size: 48px;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.hero h1 span {
-  color: #4fd1ff;
-}
-
-.subtitle {
-  font-size: 20px;
-  margin-top: 24px;
-  opacity: 0.85;
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.old-price {
-  margin-top: 30px;
-  text-decoration: line-through;
-  opacity: 0.6;
-  font-size: 18px;
-}
-
-.highlight-price {
-  font-size: 36px;
-  font-weight: 800;
-  color: #25ffb4;
-  margin-top: 10px;
-}
-
-.installments {
-  margin-top: 5px;
-  opacity: 0.7;
-}
-
-.btn-primary {
-  display: inline-block;
-  margin-top: 30px;
-  padding: 18px 40px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #00e6a8, #00b3ff);
-  color: #001224;
-  font-weight: 800;
-  font-size: 18px;
-  text-decoration: none;
-  transition: 0.3s;
-}
-
-.btn-primary:hover {
-  transform: scale(1.05);
-}
-
-.trust-line {
-  margin-top: 25px;
-  font-size: 14px;
-  opacity: 0.75;
-  line-height: 1.8;
-}
-
-/* AUTORIDADE */
-.authority {
+.section.dark {
   background: #011a30;
-  padding: 80px 20px;
-  text-align: center;
 }
 
-.authority h2 {
+.section h2 {
   font-size: 32px;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
-.authority p {
+.list {
+  list-style: none;
   max-width: 700px;
-  margin: 10px auto;
-  opacity: 0.85;
-  line-height: 1.6;
+  margin: 0 auto;
+  text-align: left;
 }
 
-/* BOTÃO FLUTUANTE MOBILE */
-.mobile-cta {
-  display: none;
+.list li {
+  margin-bottom: 15px;
+  font-size: 18px;
+  opacity: 0.9;
 }
 
-@media (max-width: 768px) {
-
-  .hero h1 {
-    font-size: 34px;
-  }
-
-  .subtitle {
-    font-size: 16px;
-  }
-
-  .highlight-price {
-    font-size: 28px;
-  }
-
-  .mobile-cta {
-    display: block;
-    position: fixed;
-    bottom: 15px;
-    left: 15px;
-    right: 15px;
-    z-index: 999;
-  }
-
-  .mobile-cta a {
-    display: block;
-    background: linear-gradient(90deg, #00e6a8, #00b3ff);
-    color: #001224;
-    text-align: center;
-    padding: 16px;
-    border-radius: 12px;
-    font-weight: 800;
-    font-size: 18px;
-    text-decoration: none;
-  }
-
-  body {
-    padding-bottom: 80px;
-  }
-
+.offer {
+  padding: 100px 20px;
+  text-align: center;
 }
