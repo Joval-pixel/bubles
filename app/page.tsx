@@ -16,7 +16,7 @@ export default function Home() {
           <div className="price-old">De R$ 997</div>
 
           <div className="price">
-            Investimento único: R$ 197
+            Investimento único: R$ 199
           </div>
 
           <div className="installments">
