@@ -16,9 +16,7 @@ export default function Home() {
             vendas e operação com foco em lucro e escala.
           </p>
 
-          <div className="price-old">
-            De R$ 999
-          </div>
+          <div className="price-old">De R$ 999</div>
 
           <div className="price">
             Investimento único: R$ 199
@@ -89,6 +87,17 @@ export default function Home() {
 
         </div>
       </section>
+
+
+      {/* BOTÃO FLUTUANTE */}
+      <a
+        href="https://pay.kiwify.com.br/3veb8Bd"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="floating-btn"
+      >
+        🔥 Garantir minha vaga
+      </a>
 
     </main>
   );
