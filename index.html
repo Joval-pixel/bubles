@@ -6,11 +6,11 @@
     <title>Bubles | Biblioteca Mestre de Prompts</title>
     <style>
         :root {
-            --primary: #facc15; /* Amarelo Vibrante/Neon */
+            --primary: #facc15; /* Amarelo Vibrante */
             --bg: #0f172a;
             --card-bg: #1e293b;
             --text: #f8fafc;
-            --accent: #22c55e; /* Verde Kiwify para o botão */
+            --accent: #22c55e; /* Verde Kiwify */
         }
 
         body {
@@ -28,12 +28,20 @@
             margin: 0 auto 60px;
         }
 
+        /* Estilo do Logotipo */
+        .logo-img {
+            max-width: 180px; /* Ajuste o tamanho do seu logo aqui */
+            height: auto;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.2));
+        }
+
         .header h1 {
             font-size: 3.5rem;
             background: linear-gradient(to right, #fff, var(--primary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             letter-spacing: -1px;
         }
 
@@ -94,13 +102,9 @@
 
         .features li::before {
             content: "✓";
-            color: var(--primary); /* Check agora amarelo */
+            color: var(--primary);
             margin-right: 10px;
             font-weight: bold;
-        }
-
-        .price-box {
-            margin-top: auto;
         }
 
         .price {
@@ -121,13 +125,11 @@
             font-weight: 900;
             font-size: 1.1rem;
             transition: all 0.2s;
-            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
         }
 
         .btn-kiwify:hover {
             transform: scale(1.03);
             background-color: #16a34a;
-            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
         }
 
         footer {
@@ -143,13 +145,15 @@
 <body>
 
     <header class="header">
+        <!-- Chamada do seu arquivo logo.jpg -->
+        <img src="logo.jpg" alt="Bubles Logo" class="logo-img">
         <h1>Bubles Prompts</h1>
         <p>Acelere sua produtividade com Inteligência Artificial especializada.</p>
     </header>
 
     <div class="container">
         
-        <!-- CARD 01: VENDAS -->
+        <!-- PACK 01: VENDAS -->
         <div class="card">
             <div>
                 <h2>💰 Vendas & Negócios</h2>
@@ -160,13 +164,13 @@
                     <li>Scripts de Recuperação de Vendas</li>
                 </ul>
             </div>
-            <div class="price-box">
+            <div>
                 <div class="price">R$ 49,00</div>
                 <a href="https://pay.kiwify.com.br" class="btn-kiwify">COMPRAR AGORA</a>
             </div>
         </div>
 
-        <!-- CARD 02: JURÍDICO -->
+        <!-- PACK 02: JURÍDICO -->
         <div class="card" style="border-color: var(--primary);">
             <div>
                 <h2>⚖️ Pack Jurídico 2.0</h2>
@@ -177,13 +181,13 @@
                     <li>Cláusulas Contratuais Seguras</li>
                 </ul>
             </div>
-            <div class="price-box">
+            <div>
                 <div class="price">R$ 69,00</div>
                 <a href="https://pay.kiwify.com.br" class="btn-kiwify">COMPRAR AGORA</a>
             </div>
         </div>
 
-        <!-- CARD 03: MARKETING -->
+        <!-- PACK 03: MARKETING -->
         <div class="card">
             <div>
                 <h2>📱 Social Media & Ads</h2>
@@ -194,7 +198,7 @@
                     <li>Copies para Facebook/Google Ads</li>
                 </ul>
             </div>
-            <div class="price-box">
+            <div>
                 <div class="price">R$ 49,00</div>
                 <a href="https://pay.kiwify.com.br" class="btn-kiwify">COMPRAR AGORA</a>
             </div>
@@ -203,8 +207,8 @@
     </div>
 
     <footer>
-        © 2026 Bubles - Inteligência Artificial Aplicada.<br>
-        Pagamento 100% Seguro e Entrega Imediata via Kiwify.
+        © 2026 Bubles - Todos os direitos reservados.<br>
+        Pagamento Seguro via Kiwify.
     </footer>
 
 </body>
