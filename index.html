@@ -4,211 +4,240 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bubles | Biblioteca Mestre de Prompts</title>
+    <!-- Fonte Moderna -->
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
     <style>
         :root {
-            --primary: #facc15; /* Amarelo Vibrante */
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #f8fafc;
-            --accent: #22c55e; /* Verde Kiwify */
+            --primary: #facc15; /* Amarelo Neon */
+            --bg: #0b0f1a;
+            --card-bg: #161b2a;
+            --text: #ffffff;
+            --muted: #94a3b8;
+            --accent: #22c55e;
         }
 
         body {
             margin: 0;
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: var(--bg);
             color: var(--text);
             line-height: 1.6;
-            padding: 40px 20px;
+            overflow-x: hidden;
         }
 
-        .header {
-            text-align: center;
-            max-width: 800px;
-            margin: 0 auto 60px;
-        }
-
-        /* Estilo do Logotipo */
-        .logo-img {
-            max-width: 180px; /* Ajuste o tamanho do seu logo aqui */
-            height: auto;
-            margin-bottom: 20px;
-            filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.2));
-        }
-
-        .header h1 {
-            font-size: 3.5rem;
-            background: linear-gradient(to right, #fff, var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-            letter-spacing: -1px;
-        }
-
-        .header p {
-            color: #94a3b8;
-            font-size: 1.2rem;
-        }
-
+        /* Ajuste para Celular e Desktop */
         .container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 30px;
+            width: 100%;
             max-width: 1200px;
             margin: 0 auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: center;
+            padding: 60px 20px;
+            background: radial-gradient(circle at center, rgba(250, 204, 21, 0.1) 0%, transparent 70%);
+        }
+
+        .logo-img {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .description {
+            max-width: 700px;
+            margin: 0 auto 40px;
+            color: var(--muted);
+            font-size: 1.1rem;
+        }
+
+        /* Seção "O que entregamos" - Criativo */
+        .why-us {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 80px;
+            text-align: center;
+        }
+
+        .why-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(250, 204, 21, 0.05);
+        }
+
+        .why-item h4 { color: var(--primary); margin: 10px 0; }
+
+        /* Grid de Produtos - Corrigido para Celular */
+        .grid-products {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
         }
 
         .card {
             background: var(--card-bg);
-            border-radius: 24px;
+            border-radius: 30px;
             padding: 40px;
-            border: 1px solid rgba(250, 204, 21, 0.1);
-            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            position: relative;
         }
 
         .card:hover {
-            transform: translateY(-10px);
+            transform: scale(1.02);
             border-color: var(--primary);
-            box-shadow: 0 20px 40px rgba(250, 204, 21, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         }
 
-        .card h2 {
-            font-size: 1.8rem;
-            color: var(--primary);
-            margin-top: 0;
-        }
-
-        .card p {
-            color: #cbd5e1;
-            margin-bottom: 25px;
-            font-size: 1rem;
-        }
-
-        .features {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 30px;
-        }
-
-        .features li {
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            font-size: 0.9rem;
-        }
-
-        .features li::before {
-            content: "✓";
-            color: var(--primary);
-            margin-right: 10px;
-            font-weight: bold;
-        }
+        .card h2 { font-size: 1.8rem; margin-bottom: 15px; color: var(--primary); }
 
         .price {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: 800;
-            margin-bottom: 20px;
-            color: #fff;
+            margin: 20px 0;
         }
 
+        .price span { font-size: 1rem; color: var(--muted); }
+
         .btn-kiwify {
-            display: block;
-            background-color: var(--accent);
-            color: white;
-            padding: 18px;
+            background: var(--accent);
+            color: #fff;
             text-decoration: none;
-            border-radius: 12px;
+            padding: 20px;
+            border-radius: 18px;
             text-align: center;
-            font-weight: 900;
+            font-weight: 700;
             font-size: 1.1rem;
-            transition: all 0.2s;
+            transition: 0.3s;
+            box-shadow: 0 10px 20px rgba(34, 197, 94, 0.2);
         }
 
         .btn-kiwify:hover {
-            transform: scale(1.03);
-            background-color: #16a34a;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(34, 197, 94, 0.4);
         }
 
         footer {
             text-align: center;
-            margin-top: 80px;
-            color: #64748b;
+            padding: 60px 20px;
+            color: var(--muted);
             font-size: 0.8rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding-top: 40px;
+        }
+
+        /* Estilo para lista de itens */
+        ul { list-style: none; padding: 0; margin: 20px 0; }
+        li { margin-bottom: 10px; color: #cbd5e1; display: flex; align-items: center; }
+        li::before { content: "⚡"; margin-right: 10px; color: var(--primary); }
+
+        /* Media Queries para ajuste fino em telas pequenas */
+        @media (max-width: 600px) {
+            .grid-products { grid-template-columns: 1fr; }
+            h1 { font-size: 2.2rem; }
+            .card { padding: 30px 20px; }
         }
     </style>
 </head>
 <body>
 
-    <header class="header">
-        <!-- Chamada do seu arquivo logo.jpg -->
-        <img src="logo.jpg" alt="Bubles Logo" class="logo-img">
-        <h1>Bubles Prompts</h1>
-        <p>Acelere sua produtividade com Inteligência Artificial especializada.</p>
+    <header>
+        <div class="container">
+            <img src="logo.jpg" alt="Bubles Logo" class="logo-img">
+            <h1>O Futuro da sua Produtividade</h1>
+            <p class="description">
+                A Bubles entrega o que há de mais avançado em engenharia de prompts. 
+                Não são apenas comandos, são ferramentas validadas para profissionais 
+                que desejam dominar a Inteligência Artificial e faturar mais.
+            </p>
+            
+            <div class="why-us">
+                <div class="why-item">
+                    <h4>🚀 Rapidez</h4>
+                    <p>Resultados imediatos no ChatGPT.</p>
+                </div>
+                <div class="why-item">
+                    <h4>🛠️ Praticidade</h4>
+                    <p>Copie e cole sem erro.</p>
+                </div>
+                <div class="why-item">
+                    <h4>💎 Exclusivo</h4>
+                    <p>Prompts de alta performance.</p>
+                </div>
+            </div>
+        </div>
     </header>
 
     <div class="container">
-        
-        <!-- PACK 01: VENDAS -->
-        <div class="card">
-            <div>
+        <div class="grid-products">
+            
+            <!-- VENDAS -->
+            <div class="card">
                 <h2>💰 Vendas & Negócios</h2>
-                <p>Scripts validados de abordagem e fechamento para WhatsApp e E-mail.</p>
-                <ul class="features">
-                    <li>Quebra de Objeções em tempo real</li>
-                    <li>Funis de Vendas Estratégicos</li>
-                    <li>Scripts de Recuperação de Vendas</li>
+                <p>Scripts de fechamento, quebra de objeções e funis automáticos.</p>
+                <ul>
+                    <li>Scripts para WhatsApp</li>
+                    <li>Abordagem Fria (Cold Mail)</li>
+                    <li>Quebra de Objeções</li>
                 </ul>
+                <div class="price">R$ 49<span>,00</span></div>
+                <a href="https://pay.kiwify.com.br" class="btn-kiwify">GARANTIR ACESSO</a>
             </div>
-            <div>
-                <div class="price">R$ 49,00</div>
-                <a href="https://pay.kiwify.com.br" class="btn-kiwify">COMPRAR AGORA</a>
-            </div>
-        </div>
 
-        <!-- PACK 02: JURÍDICO -->
-        <div class="card" style="border-color: var(--primary);">
-            <div>
+            <!-- JURÍDICO -->
+            <div class="card" style="border: 1px solid var(--primary);">
+                <div style="position: absolute; top: -15px; right: 20px; background: var(--primary); color: #000; padding: 5px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: bold;">MAIS VENDIDO</div>
                 <h2>⚖️ Pack Jurídico 2.0</h2>
-                <p>Economize horas de redação jurídica e análise de processos complexos.</p>
-                <ul class="features">
-                    <li>Modelos de Petições Iniciais</li>
+                <p>Petições estruturadas e análise processual com precisão técnica.</p>
+                <ul>
+                    <li>Petições Iniciais</li>
                     <li>Resumos de Jurisprudência</li>
-                    <li>Cláusulas Contratuais Seguras</li>
+                    <li>Contratos Blindados</li>
                 </ul>
+                <div class="price">R$ 69<span>,00</span></div>
+                <a href="https://pay.kiwify.com.br" class="btn-kiwify">GARANTIR ACESSO</a>
             </div>
-            <div>
-                <div class="price">R$ 69,00</div>
-                <a href="https://pay.kiwify.com.br" class="btn-kiwify">COMPRAR AGORA</a>
-            </div>
-        </div>
 
-        <!-- PACK 03: MARKETING -->
-        <div class="card">
-            <div>
-                <h2>📱 Social Media & Ads</h2>
-                <p>O guia definitivo para criar calendários e anúncios que realmente vendem.</p>
-                <ul class="features">
-                    <li>+200 Prompts para Instagram</li>
-                    <li>Roteiros de Reels e TikTok</li>
-                    <li>Copies para Facebook/Google Ads</li>
+            <!-- MARKETING -->
+            <div class="card">
+                <h2>📱 Social Media Pro</h2>
+                <p>Calendários de 30 dias e copies de anúncios que convertem cliques em lucro.</p>
+                <ul>
+                    <li>Roteiros de Reels Virais</li>
+                    <li>Legendas Magnéticas</li>
+                    <li>Estratégia de Tráfego</li>
                 </ul>
+                <div class="price">R$ 49<span>,00</span></div>
+                <a href="https://pay.kiwify.com.br" class="btn-kiwify">GARANTIR ACESSO</a>
             </div>
-            <div>
-                <div class="price">R$ 49,00</div>
-                <a href="https://pay.kiwify.com.br" class="btn-kiwify">COMPRAR AGORA</a>
-            </div>
-        </div>
 
+        </div>
     </div>
 
     <footer>
-        © 2026 Bubles - Todos os direitos reservados.<br>
-        Pagamento Seguro via Kiwify.
+        <div class="container">
+            <p>© 2026 Bubles Prompts - Todos os direitos reservados.</p>
+            <p>Seu acesso é vitalício e as atualizações são automáticas via Kiwify.</p>
+        </div>
     </footer>
 
 </body>
