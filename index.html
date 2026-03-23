@@ -1,168 +1,132 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PromptCommerce Pro</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Prompts | Domine a IA</title>
+    <style>
+        :root {
+            --primary: #8b5cf6; /* Roxo vibrante */
+            --primary-hover: #7c3aed;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --accent: #22c55e; /* Verde para o botão de compra */
+        }
 
-<style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0b0b0b;
-    color: #fff;
-}
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-.container {
-    max-width: 900px;
-    margin: auto;
-    padding: 20px;
-}
+        .container {
+            max-width: 450px;
+            width: 90%;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
 
-.hero {
-    text-align: center;
-    padding: 60px 20px;
-}
+        .badge {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--primary);
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
 
-.hero h1 {
-    font-size: 38px;
-    color: #00ff88;
-}
+        h1 {
+            font-size: 2rem;
+            margin: 20px 0 10px;
+            background: linear-gradient(to right, #fff, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-.hero p {
-    font-size: 18px;
-    color: #ccc;
-}
+        p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
 
-.btn {
-    display: inline-block;
-    background: #00ff88;
-    color: #000;
-    padding: 15px 30px;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: bold;
-    margin-top: 20px;
-    font-size: 18px;
-    transition: 0.3s;
-}
+        .features {
+            text-align: left;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
 
-.btn:hover {
-    background: #00cc6a;
-}
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            color: #cbd5e1;
+        }
 
-.section {
-    background: #141414;
-    margin: 20px 0;
-    padding: 30px;
-    border-radius: 12px;
-}
+        .feature-item::before {
+            content: "✓";
+            color: var(--accent);
+            margin-right: 10px;
+            font-weight: bold;
+        }
 
-.section h2 {
-    color: #00ff88;
-}
+        .btn-kiwify {
+            display: block;
+            background-color: var(--accent);
+            color: white;
+            padding: 18px;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 10px 20px rgba(34, 197, 94, 0.3);
+        }
 
-.price-box {
-    text-align: center;
-    padding: 30px;
-    background: #1a1a1a;
-    border-radius: 12px;
-}
+        .btn-kiwify:hover {
+            transform: scale(1.03);
+            box-shadow: 0 15px 30px rgba(34, 197, 94, 0.4);
+        }
 
-.old-price {
-    text-decoration: line-through;
-    color: #888;
-}
-
-.new-price {
-    font-size: 32px;
-    color: #00ff88;
-    margin: 10px 0;
-}
-
-.bonus {
-    color: gold;
-}
-
-.footer {
-    text-align: center;
-    margin-top: 40px;
-    color: #777;
-}
-</style>
-
+        footer {
+            margin-top: 25px;
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="container">
+    <div class="container">
+        <span class="badge">Acesso Vitalício</span>
+        <h1>Master Pack de Prompts Profissionais</h1>
+        <p>Pare de perder tempo tentando falar com a IA. Use comandos prontos e validados.</p>
 
-<div class="hero">
-<h1>250 Prompts Prontos para E-commerce</h1>
-<p>Venda todos os dias usando ChatGPT — mesmo sem saber marketing</p>
+        <div class="features">
+            <div class="feature-item">Mais de 500 prompts prontos</div>
+            <div class="feature-item">Focado em Marketing, Vendas e Gestão</div>
+            <div class="feature-item">Atualizações mensais gratuitas</div>
+            <div class="feature-item">Guia de como personalizar cada comando</div>
+        </div>
 
-<a href="https://pay.kiwify.com.br/IB9vdtd?region=br" class="btn">
-QUERO ACESSO AGORA
-</a>
-</div>
+        <a href="https://pay.kiwify.com.br/IB9vdtd" class="btn-kiwify">QUERO MEU ACESSO AGORA</a>
 
-<div class="section">
-<h2>⚠️ Você está passando por isso?</h2>
-<p>❌ Não sabe o que escrever para vender</p>
-<p>❌ Perde tempo criando anúncios</p>
-<p>❌ Seus produtos não convertem</p>
-</div>
-
-<div class="section">
-<h2>🔥 A solução</h2>
-<p>Com esses prompts, você simplesmente copia e cola no ChatGPT e recebe conteúdos prontos para vender.</p>
-</div>
-
-<div class="section">
-<h2>📦 O que você recebe</h2>
-<p>✔ 250 prompts testados para e-commerce</p>
-<p>✔ Anúncios prontos</p>
-<p>✔ Descrições de produtos</p>
-<p>✔ Scripts de WhatsApp</p>
-<p>✔ Ofertas irresistíveis</p>
-<p>✔ Conteúdo para redes sociais</p>
-</div>
-
-<div class="section">
-<h2>⚡ Como funciona</h2>
-<p>1. Copie o prompt</p>
-<p>2. Cole no ChatGPT</p>
-<p>3. Use e venda mais</p>
-</div>
-
-<div class="section">
-<h2>💰 Resultado</h2>
-<p>Mais vendas, menos esforço e mais tempo livre</p>
-</div>
-
-<div class="section">
-<h2>🎁 Bônus</h2>
-<p class="bonus">+20 prompts secretos de alta conversão</p>
-<p class="bonus">+Modelos prontos de anúncios</p>
-<p class="bonus">+Mensagens de WhatsApp prontas</p>
-</div>
-
-<div class="price-box">
-<p class="old-price">De R$97</p>
-<p class="new-price">Por apenas R$19,90</p>
-
-<a href="https://pay.kiwify.com.br/IB9vdtd?region=br" class="btn">
-QUERO ACESSO AGORA
-</a>
-
-<p>⚠️ Oferta por tempo limitado</p>
-</div>
-
-<div class="footer">
-<p>© 2026 PromptCommerce Pro - Todos os direitos reservados</p>
-</div>
-
-</div>
+        <footer>
+            Pagamento 100% Seguro via Kiwify<br>
+            Receba o acesso imediato no seu e-mail.
+        </footer>
+    </div>
 
 </body>
 </html>
