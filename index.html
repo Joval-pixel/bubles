@@ -6,11 +6,11 @@
     <title>Bubles | Biblioteca Mestre de Prompts</title>
     <style>
         :root {
-            --primary: #8b5cf6; /* Roxo Neon */
+            --primary: #facc15; /* Amarelo Vibrante/Neon */
             --bg: #0f172a;
             --card-bg: #1e293b;
             --text: #f8fafc;
-            --accent: #22c55e; /* Verde Kiwify */
+            --accent: #22c55e; /* Verde Kiwify para o botão */
         }
 
         body {
@@ -30,7 +30,7 @@
 
         .header h1 {
             font-size: 3.5rem;
-            background: linear-gradient(to right, #fff, #a78bfa);
+            background: linear-gradient(to right, #fff, var(--primary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 15px;
@@ -54,7 +54,7 @@
             background: var(--card-bg);
             border-radius: 24px;
             padding: 40px;
-            border: 1px solid rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(250, 204, 21, 0.1);
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
@@ -64,7 +64,7 @@
         .card:hover {
             transform: translateY(-10px);
             border-color: var(--primary);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-shadow: 0 20px 40px rgba(250, 204, 21, 0.1);
         }
 
         .card h2 {
@@ -94,7 +94,7 @@
 
         .features li::before {
             content: "✓";
-            color: var(--accent);
+            color: var(--primary); /* Check agora amarelo */
             margin-right: 10px;
             font-weight: bold;
         }
@@ -149,7 +149,7 @@
 
     <div class="container">
         
-        <!-- PACK 01: VENDAS -->
+        <!-- CARD 01: VENDAS -->
         <div class="card">
             <div>
                 <h2>💰 Vendas & Negócios</h2>
@@ -162,11 +162,11 @@
             </div>
             <div class="price-box">
                 <div class="price">R$ 49,00</div>
-                <a href="https://pay.kiwify.com.br/R7GRtgf" class="btn-kiwify">COMPRAR AGORA</a>
+                <a href="https://pay.kiwify.com.br" class="btn-kiwify">COMPRAR AGORA</a>
             </div>
         </div>
 
-        <!-- PACK 02: JURÍDICO -->
+        <!-- CARD 02: JURÍDICO -->
         <div class="card" style="border-color: var(--primary);">
             <div>
                 <h2>⚖️ Pack Jurídico 2.0</h2>
@@ -179,11 +179,11 @@
             </div>
             <div class="price-box">
                 <div class="price">R$ 69,00</div>
-                <a href="https://pay.kiwify.com.br/Mesxlz0" class="btn-kiwify">COMPRAR AGORA</a>
+                <a href="https://pay.kiwify.com.br" class="btn-kiwify">COMPRAR AGORA</a>
             </div>
         </div>
 
-        <!-- PACK 03: MARKETING -->
+        <!-- CARD 03: MARKETING -->
         <div class="card">
             <div>
                 <h2>📱 Social Media & Ads</h2>
@@ -196,7 +196,7 @@
             </div>
             <div class="price-box">
                 <div class="price">R$ 49,00</div>
-                <a href="https://pay.kiwify.com.br/L4Aunoq" class="btn-kiwify">COMPRAR AGORA</a>
+                <a href="https://pay.kiwify.com.br" class="btn-kiwify">COMPRAR AGORA</a>
             </div>
         </div>
 
