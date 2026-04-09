@@ -1,91 +1,111 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Termômetro do Mercado</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      background: #0b0f1a;
-      color: white;
-      font-family: Arial;
-      padding: 20px;
-    }
+<meta charset="UTF-8">
+<title>Painel Trader WIN</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
+<style>
+body {
+  background: #0b0f1a;
+  color: white;
+  font-family: Arial;
+  padding: 20px;
+}
 
-    .card {
-      background: #111827;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-    }
+.card {
+  background: #111827;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
 
-    .green { color: #00ff88; }
-    .red { color: #ff4d4d; }
+.green { color: #00ff88; }
+.red { color: #ff4d4d; }
 
-    canvas {
-      margin-top: 30px;
-      background: #111827;
-      border-radius: 10px;
-      padding: 10px;
-    }
-  </style>
+.big {
+  font-size: 28px;
+  font-weight: bold;
+}
+</style>
 </head>
+
 <body>
 
-<h1>📊 Termômetro do Mercado</h1>
+<h1>📊 Painel Trader WIN</h1>
 
-<div class="grid">
-  <div class="card">
-    <h2>IBOV</h2>
-    <p id="ibov"></p>
-  </div>
+<div class="card">
+  <div id="preco" class="big"></div>
+  <div id="vwap"></div>
+  <div id="sinal" class="big"></div>
+</div>
 
-  <div class="card">
-    <h2>Dólar</h2>
-    <p id="dolar"></p>
-  </div>
-
-  <div class="card">
-    <h2>Bitcoin</h2>
-    <p id="btc"></p>
-  </div>
+<div class="card">
+  <h3>Zonas (250 pts)</h3>
+  <div id="zonas"></div>
 </div>
 
 <canvas id="grafico"></canvas>
 
 <script>
+let chart;
+
 async function pegarDados() {
   const url = "https://query1.finance.yahoo.com/v8/finance/chart/^BVSP?interval=1m&range=1d";
   const res = await fetch(url);
   const data = await res.json();
 
   const result = data.chart.result[0];
-  const prices = result.indicators.quote[0].close;
-  const timestamps = result.timestamp;
+  const close = result.indicators.quote[0].close;
+  const volume = result.indicators.quote[0].volume;
 
-  const ultimo = prices[prices.length - 1];
-  const primeiro = prices[0];
+  const preco = close[close.length - 1];
 
-  const variacao = ((ultimo - primeiro) / primeiro) * 100;
+  // VWAP
+  let somaPV = 0;
+  let somaV = 0;
 
-  const ibovEl = document.getElementById("ibov");
-  ibovEl.innerHTML = `${ultimo.toFixed(2)} (${variacao.toFixed(2)}%)`;
+  for (let i = 0; i < close.length; i++) {
+    somaPV += close[i] * volume[i];
+    somaV += volume[i];
+  }
 
-  ibovEl.className = variacao >= 0 ? "green" : "red";
+  const vwap = somaPV / somaV;
 
-  atualizarGrafico(prices, timestamps);
+  document.getElementById("preco").innerHTML = `Preço: ${preco.toFixed(0)}`;
+  document.getElementById("vwap").innerHTML = `VWAP: ${vwap.toFixed(0)}`;
+
+  // Sinal
+  let sinal = "";
+  let cor = "";
+
+  if (preco > vwap) {
+    sinal = "COMPRA";
+    cor = "green";
+  } else {
+    sinal = "VENDA";
+    cor = "red";
+  }
+
+  const sinalEl = document.getElementById("sinal");
+  sinalEl.innerHTML = sinal;
+  sinalEl.className = "big " + cor;
+
+  // Zonas 250 pontos
+  let zonas = [];
+  let base = Math.floor(preco / 250) * 250;
+
+  for (let i = -3; i <= 3; i++) {
+    zonas.push(base + (i * 250));
+  }
+
+  document.getElementById("zonas").innerHTML = zonas.join(" | ");
+
+  atualizarGrafico(close, vwap);
 }
 
-let chart;
-
-function atualizarGrafico(prices, timestamps) {
-  const labels = timestamps.map(t => new Date(t * 1000).toLocaleTimeString());
+function atualizarGrafico(close, vwap) {
+  const labels = close.map((_, i) => i);
 
   if (chart) chart.destroy();
 
@@ -93,11 +113,18 @@ function atualizarGrafico(prices, timestamps) {
     type: "line",
     data: {
       labels: labels,
-      datasets: [{
-        label: "IBOV",
-        data: prices,
-        borderColor: "#00ff88"
-      }]
+      datasets: [
+        {
+          label: "Preço",
+          data: close,
+          borderColor: "#00ff88"
+        },
+        {
+          label: "VWAP",
+          data: close.map(() => vwap),
+          borderColor: "#ffcc00"
+        }
+      ]
     }
   });
 }
