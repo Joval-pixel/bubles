@@ -1,244 +1,110 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bubles | Biblioteca Mestre de Prompts</title>
-    <!-- Fonte Moderna -->
-    <link href="https://fonts.googleapis.com" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #facc15; /* Amarelo Neon */
-            --bg: #0b0f1a;
-            --card-bg: #161b2a;
-            --text: #ffffff;
-            --muted: #94a3b8;
-            --accent: #22c55e;
-        }
+  <meta charset="UTF-8">
+  <title>Termômetro do Mercado</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: #0b0f1a;
+      color: white;
+      font-family: Arial;
+      padding: 20px;
+    }
 
-        body {
-            margin: 0;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
 
-        /* Ajuste para Celular e Desktop */
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            box-sizing: border-box;
-        }
+    .card {
+      background: #111827;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
 
-        header {
-            text-align: center;
-            padding: 60px 20px;
-            background: radial-gradient(circle at center, rgba(250, 204, 21, 0.1) 0%, transparent 70%);
-        }
+    .green { color: #00ff88; }
+    .red { color: #ff4d4d; }
 
-        .logo-img {
-            max-width: 150px;
-            height: auto;
-            margin-bottom: 20px;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        h1 {
-            font-size: clamp(2rem, 8vw, 3.5rem);
-            font-weight: 800;
-            background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 20px;
-        }
-
-        .description {
-            max-width: 700px;
-            margin: 0 auto 40px;
-            color: var(--muted);
-            font-size: 1.1rem;
-        }
-
-        /* Seção "O que entregamos" - Criativo */
-        .why-us {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 80px;
-            text-align: center;
-        }
-
-        .why-item {
-            background: rgba(255, 255, 255, 0.03);
-            padding: 20px;
-            border-radius: 15px;
-            border: 1px solid rgba(250, 204, 21, 0.05);
-        }
-
-        .why-item h4 { color: var(--primary); margin: 10px 0; }
-
-        /* Grid de Produtos - Corrigido para Celular */
-        .grid-products {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 30px;
-            padding: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .card:hover {
-            transform: scale(1.02);
-            border-color: var(--primary);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        .card h2 { font-size: 1.8rem; margin-bottom: 15px; color: var(--primary); }
-
-        .price {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin: 20px 0;
-        }
-
-        .price span { font-size: 1rem; color: var(--muted); }
-
-        .btn-kiwify {
-            background: var(--accent);
-            color: #fff;
-            text-decoration: none;
-            padding: 20px;
-            border-radius: 18px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 1.1rem;
-            transition: 0.3s;
-            box-shadow: 0 10px 20px rgba(34, 197, 94, 0.2);
-        }
-
-        .btn-kiwify:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 30px rgba(34, 197, 94, 0.4);
-        }
-
-        footer {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--muted);
-            font-size: 0.8rem;
-        }
-
-        /* Estilo para lista de itens */
-        ul { list-style: none; padding: 0; margin: 20px 0; }
-        li { margin-bottom: 10px; color: #cbd5e1; display: flex; align-items: center; }
-        li::before { content: "⚡"; margin-right: 10px; color: var(--primary); }
-
-        /* Media Queries para ajuste fino em telas pequenas */
-        @media (max-width: 600px) {
-            .grid-products { grid-template-columns: 1fr; }
-            h1 { font-size: 2.2rem; }
-            .card { padding: 30px 20px; }
-        }
-    </style>
+    canvas {
+      margin-top: 30px;
+      background: #111827;
+      border-radius: 10px;
+      padding: 10px;
+    }
+  </style>
 </head>
 <body>
 
-    <header>
-        <div class="container">
-            <img src="logo.jpg" alt="Bubles Logo" class="logo-img">
-            <h1>O Futuro da sua Produtividade</h1>
-            <p class="description">
-                A Bubles entrega o que há de mais avançado em engenharia de prompts. 
-                Não são apenas comandos, são ferramentas validadas para profissionais 
-                que desejam dominar a Inteligência Artificial e faturar mais.
-            </p>
-            
-            <div class="why-us">
-                <div class="why-item">
-                    <h4>🚀 Rapidez</h4>
-                    <p>Resultados imediatos no ChatGPT.</p>
-                </div>
-                <div class="why-item">
-                    <h4>🛠️ Praticidade</h4>
-                    <p>Copie e cole sem erro.</p>
-                </div>
-                <div class="why-item">
-                    <h4>💎 Exclusivo</h4>
-                    <p>Prompts de alta performance.</p>
-                </div>
-            </div>
-        </div>
-    </header>
+<h1>📊 Termômetro do Mercado</h1>
 
-    <div class="container">
-        <div class="grid-products">
-            
-            <!-- VENDAS -->
-            <div class="card">
-                <h2>💰 Vendas & Negócios</h2>
-                <p>Scripts de fechamento, quebra de objeções e funis automáticos.</p>
-                <ul>
-                    <li>Scripts para WhatsApp</li>
-                    <li>Abordagem Fria (Cold Mail)</li>
-                    <li>Quebra de Objeções</li>
-                </ul>
-                <div class="price">R$ 49<span>,00</span></div>
-                <a href="https://pay.kiwify.com.br" class="btn-kiwify">GARANTIR ACESSO</a>
-            </div>
+<div class="grid">
+  <div class="card">
+    <h2>IBOV</h2>
+    <p id="ibov"></p>
+  </div>
 
-            <!-- JURÍDICO -->
-            <div class="card" style="border: 1px solid var(--primary);">
-                <div style="position: absolute; top: -15px; right: 20px; background: var(--primary); color: #000; padding: 5px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: bold;">MAIS VENDIDO</div>
-                <h2>⚖️ Pack Jurídico 2.0</h2>
-                <p>Petições estruturadas e análise processual com precisão técnica.</p>
-                <ul>
-                    <li>Petições Iniciais</li>
-                    <li>Resumos de Jurisprudência</li>
-                    <li>Contratos Blindados</li>
-                </ul>
-                <div class="price">R$ 69<span>,00</span></div>
-                <a href="https://pay.kiwify.com.br" class="btn-kiwify">GARANTIR ACESSO</a>
-            </div>
+  <div class="card">
+    <h2>Dólar</h2>
+    <p id="dolar"></p>
+  </div>
 
-            <!-- MARKETING -->
-            <div class="card">
-                <h2>📱 Social Media Pro</h2>
-                <p>Calendários de 30 dias e copies de anúncios que convertem cliques em lucro.</p>
-                <ul>
-                    <li>Roteiros de Reels Virais</li>
-                    <li>Legendas Magnéticas</li>
-                    <li>Estratégia de Tráfego</li>
-                </ul>
-                <div class="price">R$ 49<span>,00</span></div>
-                <a href="https://pay.kiwify.com.br" class="btn-kiwify">GARANTIR ACESSO</a>
-            </div>
+  <div class="card">
+    <h2>Bitcoin</h2>
+    <p id="btc"></p>
+  </div>
+</div>
 
-        </div>
-    </div>
+<canvas id="grafico"></canvas>
 
-    <footer>
-        <div class="container">
-            <p>© 2026 Bubles Prompts - Todos os direitos reservados.</p>
-            <p>Seu acesso é vitalício e as atualizações são automáticas via Kiwify.</p>
-        </div>
-    </footer>
+<script>
+async function pegarDados() {
+  const url = "https://query1.finance.yahoo.com/v8/finance/chart/^BVSP?interval=1m&range=1d";
+  const res = await fetch(url);
+  const data = await res.json();
+
+  const result = data.chart.result[0];
+  const prices = result.indicators.quote[0].close;
+  const timestamps = result.timestamp;
+
+  const ultimo = prices[prices.length - 1];
+  const primeiro = prices[0];
+
+  const variacao = ((ultimo - primeiro) / primeiro) * 100;
+
+  const ibovEl = document.getElementById("ibov");
+  ibovEl.innerHTML = `${ultimo.toFixed(2)} (${variacao.toFixed(2)}%)`;
+
+  ibovEl.className = variacao >= 0 ? "green" : "red";
+
+  atualizarGrafico(prices, timestamps);
+}
+
+let chart;
+
+function atualizarGrafico(prices, timestamps) {
+  const labels = timestamps.map(t => new Date(t * 1000).toLocaleTimeString());
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("grafico"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "IBOV",
+        data: prices,
+        borderColor: "#00ff88"
+      }]
+    }
+  });
+}
+
+setInterval(pegarDados, 5000);
+pegarDados();
+</script>
 
 </body>
 </html>
