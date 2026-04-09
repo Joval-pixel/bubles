@@ -1,137 +1,52 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<title>Painel Trader WIN</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body {
-  background: #0b0f1a;
-  color: white;
-  font-family: Arial;
-  padding: 20px;
-}
-
-.card {
-  background: #111827;
-  padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-}
-
-.green { color: #00ff88; }
-.red { color: #ff4d4d; }
-
-.big {
-  font-size: 28px;
-  font-weight: bold;
-}
-</style>
-</head>
-
-<body>
-
-<h1>📊 Painel Trader WIN</h1>
-
-<div class="card">
-  <div id="preco" class="big"></div>
-  <div id="vwap"></div>
-  <div id="sinal" class="big"></div>
-</div>
-
-<div class="card">
-  <h3>Zonas (250 pts)</h3>
-  <div id="zonas"></div>
-</div>
-
-<canvas id="grafico"></canvas>
-
 <script>
-let chart;
-
 async function pegarDados() {
-  const url = "https://query1.finance.yahoo.com/v8/finance/chart/^BVSP?interval=1m&range=1d";
-  const res = await fetch(url);
-  const data = await res.json();
+  try {
+    const res = await fetch("https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v8/finance/chart/^BVSP?interval=1m&range=1d");
+    
+    const data = await res.json();
 
-  const result = data.chart.result[0];
-  const close = result.indicators.quote[0].close;
-  const volume = result.indicators.quote[0].volume;
+    const result = data.chart.result[0];
+    const close = result.indicators.quote[0].close;
+    const volume = result.indicators.quote[0].volume;
 
-  const preco = close[close.length - 1];
+    const preco = close[close.length - 1];
 
-  // VWAP
-  let somaPV = 0;
-  let somaV = 0;
+    // VWAP
+    let somaPV = 0;
+    let somaV = 0;
 
-  for (let i = 0; i < close.length; i++) {
-    somaPV += close[i] * volume[i];
-    somaV += volume[i];
-  }
-
-  const vwap = somaPV / somaV;
-
-  document.getElementById("preco").innerHTML = `Preço: ${preco.toFixed(0)}`;
-  document.getElementById("vwap").innerHTML = `VWAP: ${vwap.toFixed(0)}`;
-
-  // Sinal
-  let sinal = "";
-  let cor = "";
-
-  if (preco > vwap) {
-    sinal = "COMPRA";
-    cor = "green";
-  } else {
-    sinal = "VENDA";
-    cor = "red";
-  }
-
-  const sinalEl = document.getElementById("sinal");
-  sinalEl.innerHTML = sinal;
-  sinalEl.className = "big " + cor;
-
-  // Zonas 250 pontos
-  let zonas = [];
-  let base = Math.floor(preco / 250) * 250;
-
-  for (let i = -3; i <= 3; i++) {
-    zonas.push(base + (i * 250));
-  }
-
-  document.getElementById("zonas").innerHTML = zonas.join(" | ");
-
-  atualizarGrafico(close, vwap);
-}
-
-function atualizarGrafico(close, vwap) {
-  const labels = close.map((_, i) => i);
-
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("grafico"), {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Preço",
-          data: close,
-          borderColor: "#00ff88"
-        },
-        {
-          label: "VWAP",
-          data: close.map(() => vwap),
-          borderColor: "#ffcc00"
-        }
-      ]
+    for (let i = 0; i < close.length; i++) {
+      somaPV += close[i] * (volume[i] || 1);
+      somaV += (volume[i] || 1);
     }
-  });
+
+    const vwap = somaPV / somaV;
+
+    document.getElementById("preco").innerHTML = `Preço: ${preco.toFixed(0)}`;
+    document.getElementById("vwap").innerHTML = `VWAP: ${vwap.toFixed(0)}`;
+
+    let sinal = preco > vwap ? "COMPRA" : "VENDA";
+    let cor = preco > vwap ? "green" : "red";
+
+    const sinalEl = document.getElementById("sinal");
+    sinalEl.innerHTML = sinal;
+    sinalEl.className = "big " + cor;
+
+    // Zonas
+    let zonas = [];
+    let base = Math.floor(preco / 250) * 250;
+
+    for (let i = -3; i <= 3; i++) {
+      zonas.push(base + (i * 250));
+    }
+
+    document.getElementById("zonas").innerHTML = zonas.join(" | ");
+
+  } catch (e) {
+    console.log("Erro:", e);
+  }
 }
 
 setInterval(pegarDados, 5000);
 pegarDados();
 </script>
-
-</body>
-</html>
