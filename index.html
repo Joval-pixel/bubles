@@ -2,276 +2,57 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Robô Pro - Sinais Ao Vivo</title>
+<title>Teste Robô</title>
 
 <style>
 body {
-  margin:0;
-  font-family: Arial;
   background:#0b1220;
   color:white;
-}
-
-.container {
-  max-width:1200px;
-  margin:auto;
-  padding:20px;
-}
-
-h1 {
+  font-family:Arial;
   text-align:center;
 }
 
 .grid {
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-  gap:15px;
-  margin-top:20px;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:10px;
+  padding:20px;
 }
 
 .card {
   background:#1e293b;
-  border-radius:15px;
   padding:15px;
-  box-shadow:0 5px 20px rgba(0,0,0,0.4);
-  transition:0.3s;
-}
-
-.card:hover {
-  transform:scale(1.02);
-}
-
-.top {
-  border:2px solid #22c55e;
-}
-
-.jogo {
-  font-size:18px;
-  font-weight:bold;
-}
-
-.info {
-  font-size:14px;
-  color:#94a3b8;
-  margin:5px 0;
-}
-
-.score {
-  font-size:22px;
-  margin-top:5px;
-}
-
-.barra {
-  height:8px;
-  background:#0f172a;
   border-radius:10px;
-  overflow:hidden;
-  margin:8px 0;
 }
-
-.barra span {
-  display:block;
-  height:100%;
-  background:#22c55e;
-}
-
-.odds {
-  display:flex;
-  justify-content:space-between;
-  margin-top:10px;
-}
-
-.odd {
-  padding:6px 10px;
-  border-radius:8px;
-  font-weight:bold;
-}
-
-.verde { background:#14532d; color:#86efac;}
-.amarelo { background:#713f12; color:#fde68a;}
-.vermelho { background:#7f1d1d; color:#fecaca;}
-
-.sinal {
-  margin-top:10px;
-  font-size:18px;
-  font-weight:bold;
-}
-
-.entrar {
-  color:#22c55e;
-  animation:piscar 1s infinite;
-}
-
-@keyframes piscar {
-  0%{opacity:1;}
-  50%{opacity:0.3;}
-  100%{opacity:1;}
-}
-
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
-<h1>🤖 Robô Pro - Jogos Ao Vivo</h1>
+<h1>🤖 Teste Funcionando</h1>
 
 <div id="jogos" class="grid"></div>
 
-</div>
-
 <script>
 
-const API_KEY = "39968ebc05msh2066ef0bf12492dp11b26fjsn664b581399ee";
-
-async function getJogos() {
-
-  const res = await fetch("https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all", {
-    headers: {
-      "X-RapidAPI-Key": API_KEY,
-      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
-    }
-  });
-
-  const data = await res.json();
-  return data.response || [];
-}
-
-function num(v){
-  if(!v) return 0;
-  return parseFloat(v.toString().replace("%","")) || 0;
-}
-
-function getStat(stats, name){
-  let s = stats.find(x=>x.type===name);
-  return s ? num(s.value) : 0;
-}
-
-async function getStats(id){
-
-  const res = await fetch(`https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics?fixture=${id}`, {
-    headers:{
-      "X-RapidAPI-Key": API_KEY,
-      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
-    }
-  });
-
-  const data = await res.json();
-
-  if(!data.response || data.response.length<2) return null;
-
-  let h = data.response[0].statistics;
-  let a = data.response[1].statistics;
-
-  return {
-    ataques: getStat(h,"Dangerous Attacks")+getStat(a,"Dangerous Attacks"),
-    chutes: getStat(h,"Shots on Goal")+getStat(a,"Shots on Goal"),
-    escanteios: getStat(h,"Corner Kicks")+getStat(a,"Corner Kicks"),
-    posse: (getStat(h,"Ball Possession")+getStat(a,"Ball Possession"))/2
-  };
-}
-
-function score(stats,min){
-
-  let s = stats.ataques*0.9 + stats.chutes*6 + stats.escanteios*2 + stats.posse*0.2;
-
-  if(min>15 && min<75) s+=10;
-
-  return Math.min(100,Math.floor(s));
-}
-
-function sinal(stats,score,min){
-
-  if(score>78 && stats.chutes>=5 && stats.ataques>18)
-    return {txt:"🔥 ENTRAR", cor:"verde"};
-
-  if(score>65)
-    return {txt:"👀 OBSERVAR", cor:"amarelo"};
-
-  return {txt:"⏳ AGUARDAR", cor:"vermelho"};
-}
-
-function gerarOdds(score){
-  return {
-    over15:(1.2+(100-score)/100).toFixed(2),
-    over25:(1.8+(100-score)/80).toFixed(2),
-    btts:(1.5+(100-score)/90).toFixed(2)
-  }
-}
-
-async function rodar(){
-
-  let jogos = await getJogos();
-
-  let lista = [];
-
-  for(let j of jogos.slice(0,8)){
-
-    let st = await getStats(j.fixture.id);
-    if(!st) continue;
-
-    let min = j.fixture.status.elapsed || 0;
-    let sc = score(st,min);
-    let sn = sinal(st,sc,min);
-    let odds = gerarOdds(sc);
-
-    lista.push({
-      nome: j.teams.home.name+" x "+j.teams.away.name,
-      liga: j.league.name,
-      min,
-      stats:st,
-      score:sc,
-      sinal:sn,
-      odds
-    });
-  }
-
-  lista.sort((a,b)=>b.score-a.score);
-
-  render(lista);
-}
-
-function render(lista){
+function rodar(){
 
   let div = document.getElementById("jogos");
-  div.innerHTML="";
 
-  lista.forEach((j,i)=>{
+  div.innerHTML = "";
 
-    let html = `
-    <div class="card ${i==0?"top":""}">
-      <div class="jogo">${j.nome}</div>
-      <div class="info">${j.liga} • ${j.min}'</div>
+  for(let i=1;i<=4;i++){
 
-      <div class="score">Score: ${j.score}</div>
-
-      <div class="barra">
-        <span style="width:${j.score}%"></span>
+    div.innerHTML += `
+      <div class="card">
+        <h3>Jogo ${i}</h3>
+        <p>Score: ${Math.floor(Math.random()*100)}</p>
       </div>
-
-      <div class="info">
-        ⚡ Ataques: ${j.stats.ataques} | 🎯 Chutes: ${j.stats.chutes} | 🚩 Escanteios: ${j.stats.escanteios}
-      </div>
-
-      <div class="odds">
-        <div class="odd verde">Over 1.5 ${j.odds.over15}</div>
-        <div class="odd amarelo">Over 2.5 ${j.odds.over25}</div>
-        <div class="odd vermelho">BTTS ${j.odds.btts}</div>
-      </div>
-
-      <div class="sinal ${j.sinal.cor=='verde'?'entrar':''}">
-        ${j.sinal.txt}
-      </div>
-    </div>
     `;
-
-    div.innerHTML += html;
-  });
+  }
 
 }
 
-setInterval(rodar,20000);
 rodar();
 
 </script>
