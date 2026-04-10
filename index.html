@@ -97,111 +97,25 @@ h1 {
 
 <script>
 
-const API_KEY = "39968ebc05msh2066ef0bf12492dp11b26fjsn664b581399ee";
+// 🔥 AGORA LENDO DO JSON
+async function getJogos(){
+  const res = await fetch("dados.json");
+  return await res.json();
+}
 
-// 🔥 PROXY AQUI
-const BASE_URL = "https://corsproxy.io/?https://api-football-v1.p.rapidapi.com";
-
-async function getJogos() {
-  try {
-    const res = await fetch(`${BASE_URL}/v3/fixtures?live=all`, {
-      headers: {
-        "X-RapidAPI-Key": API_KEY,
-        "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
-      }
-    });
-
-    const data = await res.json();
-    return data.response || [];
-
-  } catch (e) {
-    console.log("Erro jogos:", e);
-    return [];
+function gerarOdds(score){
+  return {
+    over15:(1.2+(100-score)/100).toFixed(2),
+    over25:(1.8+(100-score)/80).toFixed(2),
+    btts:(1.5+(100-score)/90).toFixed(2)
   }
-}
-
-function num(v){
-  if(!v) return 0;
-  return parseFloat(v.toString().replace("%","")) || 0;
-}
-
-function getStat(stats,name){
-  let s = stats.find(x=>x.type===name);
-  return s ? num(s.value) : 0;
-}
-
-async function getStats(id){
-
-  try {
-
-    const res = await fetch(`${BASE_URL}/v3/fixtures/statistics?fixture=${id}`, {
-      headers:{
-        "X-RapidAPI-Key": API_KEY,
-        "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
-      }
-    });
-
-    const data = await res.json();
-
-    if(!data.response || data.response.length<2) return null;
-
-    let h = data.response[0].statistics;
-    let a = data.response[1].statistics;
-
-    return {
-      ataques: getStat(h,"Dangerous Attacks")+getStat(a,"Dangerous Attacks"),
-      chutes: getStat(h,"Shots on Goal")+getStat(a,"Shots on Goal"),
-      escanteios: getStat(h,"Corner Kicks")+getStat(a,"Corner Kicks"),
-      posse: (getStat(h,"Ball Possession")+getStat(a,"Ball Possession"))/2
-    };
-
-  } catch (e) {
-    console.log("Erro stats:", e);
-    return null;
-  }
-}
-
-function score(s,min){
-  let sc = s.ataques*0.9 + s.chutes*6 + s.escanteios*2 + s.posse*0.2;
-  if(min>15 && min<75) sc+=10;
-  return Math.min(100,Math.floor(sc));
-}
-
-function sinal(s,sc){
-  if(sc>75 && s.chutes>=5 && s.ataques>20)
-    return "🔥 ENTRAR";
-
-  if(sc>60)
-    return "👀 OBSERVAR";
-
-  return "⏳ AGUARDAR";
 }
 
 async function rodar(){
 
-  let jogos = await getJogos();
+  let lista = await getJogos();
 
-  let lista = [];
-
-  for(let j of jogos.slice(0,8)){
-
-    let st = await getStats(j.fixture.id);
-    if(!st) continue;
-
-    let min = j.fixture.status.elapsed || 0;
-    let sc = score(st,min);
-    let sn = sinal(st,sc);
-
-    lista.push({
-      nome: j.teams.home.name+" x "+j.teams.away.name,
-      liga: j.league.name,
-      min,
-      stats:st,
-      score:sc,
-      sinal:sn
-    });
-  }
-
+  // ordenar por score
   lista.sort((a,b)=>b.score-a.score);
 
   render(lista);
@@ -212,16 +126,13 @@ function render(lista){
   let div = document.getElementById("jogos");
   div.innerHTML="";
 
-  if(lista.length === 0){
-    div.innerHTML = "<h2>⚠️ Nenhum jogo ao vivo ou API limitada</h2>";
-    return;
-  }
-
   lista.forEach((j,i)=>{
+
+    let odds = gerarOdds(j.score);
 
     div.innerHTML += `
     <div class="card ${i==0?"top":""}">
-      <div class="jogo">${j.nome}</div>
+      <div class="jogo">${j.jogo}</div>
       <div class="info">${j.liga} • ${j.min}'</div>
 
       <div class="score">Score: ${j.score}</div>
@@ -231,7 +142,11 @@ function render(lista){
       </div>
 
       <div class="info">
-        ⚡ ${j.stats.ataques} | 🎯 ${j.stats.chutes} | 🚩 ${j.stats.escanteios}
+        ⚡ ${j.ataques} | 🎯 ${j.chutes} | 🚩 ${j.escanteios}
+      </div>
+
+      <div class="info">
+        Over 1.5: ${odds.over15} | Over 2.5: ${odds.over25}
       </div>
 
       <div class="sinal ${j.sinal.includes('ENTRAR')?'entrar':''}">
@@ -240,10 +155,10 @@ function render(lista){
     </div>
     `;
   });
-
 }
 
-setInterval(rodar,20000);
+// atualiza a cada 10s
+setInterval(rodar,10000);
 rodar();
 
 </script>
