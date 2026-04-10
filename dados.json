@@ -1,32 +1,42 @@
 [
   {
-    "jogo": "Flamengo x Palmeiras",
-    "liga": "Brasil",
-    "min": 63,
-    "score": 82,
-    "ataques": 28,
-    "chutes": 6,
-    "escanteios": 5,
-    "sinal": "🔥 ENTRAR"
-  },
-  {
     "jogo": "Real Madrid x Barcelona",
     "liga": "La Liga",
-    "min": 55,
-    "score": 65,
-    "ataques": 18,
-    "chutes": 3,
+    "min": 75,
+    "score": 75,
+    "ataques": 19,
+    "chutes": 6,
     "escanteios": 4,
-    "sinal": "👀 OBSERVAR"
+    "sinal": "\ud83d\udc40 OBSERVAR"
   },
   {
-    "jogo": "Manchester City x Liverpool",
+    "jogo": "City x Liverpool",
+    "liga": "Premier League",
+    "min": 32,
+    "score": 129,
+    "ataques": 39,
+    "chutes": 9,
+    "escanteios": 9,
+    "sinal": "\ud83d\udd25 ENTRAR"
+  },
+  {
+    "jogo": "City x Liverpool",
     "liga": "Premier League",
     "min": 70,
-    "score": 90,
-    "ataques": 35,
+    "score": 91,
+    "ataques": 21,
     "chutes": 8,
-    "escanteios": 7,
-    "sinal": "🔥 ENTRAR"
+    "escanteios": 3,
+    "sinal": "\ud83d\udd25 ENTRAR"
+  },
+  {
+    "jogo": "Flamengo x Palmeiras",
+    "liga": "Brasil",
+    "min": 65,
+    "score": 37,
+    "ataques": 11,
+    "chutes": 1,
+    "escanteios": 9,
+    "sinal": "\u23f3 AGUARDAR"
   }
 ]
