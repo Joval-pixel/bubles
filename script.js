@@ -34,5 +34,6 @@ function atualizarTela(jogos) {
   });
 }
 
+// inicia
 carregarDados();
 setInterval(carregarDados, 5000);
