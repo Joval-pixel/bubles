@@ -3,96 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>Robô Pro - Jogos Ao Vivo</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #0b1220;
-      color: white;
-    }
-
-    h1 {
-      text-align: center;
-      padding: 20px;
-    }
-
-    #container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      padding: 20px;
-    }
-
-    .card {
-      background: #1c2435;
-      padding: 15px;
-      border-radius: 10px;
-      border: 1px solid #2e3a55;
-    }
-
-    .entrar {
-      color: #00ff88;
-      font-weight: bold;
-    }
-
-    .observar {
-      color: #ffaa00;
-    }
-
-    .aguardar {
-      color: #aaa;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-  <h1>🤖 Robô Pro - Jogos Ao Vivo</h1>
+<h1>🤖 Robô Pro - Jogos Ao Vivo</h1>
 
-  <div id="container"></div>
+<div id="jogos"></div>
 
-  <script>
-    function atualizarTela(data) {
-      const container = document.getElementById("container")
-
-      container.innerHTML = ""
-
-      data.forEach(jogo => {
-        let classe = ""
-
-        if (jogo.sinal.includes("ENTRAR")) classe = "entrar"
-        else if (jogo.sinal.includes("OBSERVAR")) classe = "observar"
-        else classe = "aguardar"
-
-        const card = document.createElement("div")
-        card.className = "card"
-
-        card.innerHTML = `
-          <h3>${jogo.jogo}</h3>
-          <p>${jogo.liga} - ${jogo.min}'</p>
-          <h2>Score: ${jogo.score}</h2>
-          <p>⚡ ${jogo.ataques} | 🎯 ${jogo.chutes} | 🚩 ${jogo.escanteios}</p>
-          <strong class="${classe}">${jogo.sinal}</strong>
-        `
-
-        container.appendChild(card)
-      })
-    }
-
-    function carregarDados() {
-      fetch("https://raw.githubusercontent.com/joval-pixel/bubles/main/dados.json?nocache=" + new Date().getTime())
-        .then(res => res.json())
-        .then(data => {
-          console.log("Atualizou 🔥", data)
-          atualizarTela(data)
-        })
-        .catch(err => console.error("Erro:", err))
-    }
-
-    carregarDados()
-    setInterval(carregarDados, 10000)
-  </script>
+<script src="script.js"></script>
 
 </body>
 </html>
