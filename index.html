@@ -2,9 +2,43 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Robô Ao Vivo</title>
+<title>Robô de Sinais Ao Vivo</title>
 
-<link rel="stylesheet" href="style.css">
+<style>
+body {
+  background: #0f172a;
+  color: white;
+  text-align: center;
+  font-family: Arial;
+}
+
+#chartdiv {
+  width: 100%;
+  height: 400px;
+}
+
+select {
+  padding: 10px;
+  margin-top: 20px;
+}
+
+.entrar {
+  color: #22c55e;
+  font-size: 40px;
+  animation: piscar 1s infinite;
+}
+
+.aguardar {
+  color: yellow;
+  font-size: 30px;
+}
+
+@keyframes piscar {
+  0% {opacity: 1;}
+  50% {opacity: 0.3;}
+  100% {opacity: 1;}
+}
+</style>
 
 <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
 <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
@@ -12,17 +46,180 @@
 </head>
 <body>
 
-<h1>🤖 Robô de Sinais Ao Vivo</h1>
+<h1>🤖 Robô de Apostas Ao Vivo</h1>
 
 <select id="listaJogos"></select>
 
-<h2 id="jogo"></h2>
+<h2 id="jogo">Carregando jogos...</h2>
 
-<h1 id="sinal" class="aguardar">Carregando...</h1>
+<h1 id="sinal" class="aguardar">AGUARDANDO...</h1>
 
 <div id="chartdiv"></div>
 
-<script src="script.js"></script>
+<script>
+
+// 🔑 COLOQUE SUA API KEY AQUI
+const API_KEY = "SUA_API_KEY_AQUI";
+
+let jogos = [];
+let chart, series, xAxis;
+
+// 🎯 CRIAR GRÁFICO
+am5.ready(function () {
+
+  var root = am5.Root.new("chartdiv");
+
+  chart = root.container.children.push(
+    am5xy.XYChart.new(root, {})
+  );
+
+  xAxis = chart.xAxes.push(
+    am5xy.CategoryAxis.new(root, {
+      categoryField: "categoria"
+    })
+  );
+
+  var yAxis = chart.yAxes.push(
+    am5xy.ValueAxis.new(root, {})
+  );
+
+  series = chart.series.push(
+    am5xy.ColumnSeries.new(root, {
+      valueYField: "valor",
+      categoryXField: "categoria",
+      xAxis: xAxis,
+      yAxis: yAxis
+    })
+  );
+
+});
+
+// 🔥 CARREGAR JOGOS AO VIVO
+async function carregarJogos() {
+
+  const res = await fetch("https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all", {
+    method: "GET",
+    headers: {
+      "X-RapidAPI-Key": API_KEY,
+      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+    }
+  });
+
+  const data = await res.json();
+  jogos = data.response;
+
+  let select = document.getElementById("listaJogos");
+  select.innerHTML = "";
+
+  jogos.forEach((jogo, index) => {
+    let option = document.createElement("option");
+    option.value = index;
+    option.text = jogo.teams.home.name + " x " + jogo.teams.away.name;
+    select.appendChild(option);
+  });
+
+  atualizar();
+}
+
+// 📊 PEGAR ESTATÍSTICAS
+async function pegarStats(id) {
+
+  const res = await fetch(`https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics?fixture=${id}`, {
+    method: "GET",
+    headers: {
+      "X-RapidAPI-Key": API_KEY,
+      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+    }
+  });
+
+  const data = await res.json();
+
+  let home = data.response[0].statistics;
+  let away = data.response[1].statistics;
+
+  function get(stats, nome) {
+    let item = stats.find(s => s.type === nome);
+    return item ? parseFloat(item.value) || 0 : 0;
+  }
+
+  return {
+    ataques: get(home, "Dangerous Attacks") + get(away, "Dangerous Attacks"),
+    chutes: get(home, "Shots on Goal") + get(away, "Shots on Goal"),
+    escanteios: get(home, "Corner Kicks") + get(away, "Corner Kicks"),
+    posse: (get(home, "Ball Possession") + get(away, "Ball Possession")) / 2
+  };
+}
+
+// 🧠 CALCULAR SCORE
+function calcular(stats) {
+  return (
+    stats.ataques * 0.3 +
+    stats.chutes * 0.25 +
+    stats.escanteios * 0.2 +
+    stats.posse * 0.25
+  );
+}
+
+// 🚨 GERAR SINAL
+function verificar(stats, score) {
+
+  if (
+    score > 70 &&
+    stats.ataques > 20 &&
+    stats.chutes >= 5
+  ) {
+    return "🔥 ENTRAR OVER 1.5";
+  }
+
+  return "⏳ AGUARDAR";
+}
+
+// 🔁 ATUALIZAR TELA
+async function atualizar() {
+
+  let index = document.getElementById("listaJogos").value || 0;
+
+  if (!jogos[index]) return;
+
+  let jogo = jogos[index];
+
+  document.getElementById("jogo").innerHTML =
+    jogo.teams.home.name + " x " + jogo.teams.away.name;
+
+  let stats = await pegarStats(jogo.fixture.id);
+
+  let score = calcular(stats);
+  let sinal = verificar(stats, score);
+
+  let el = document.getElementById("sinal");
+  el.innerHTML = sinal;
+
+  if (sinal.includes("ENTRAR")) {
+    el.className = "entrar";
+
+    let audio = new Audio("https://www.soundjay.com/buttons/beep-01a.mp3");
+    audio.play();
+  } else {
+    el.className = "aguardar";
+  }
+
+  let data = [
+    { categoria: "Pressão", valor: score },
+    { categoria: "Over 1.5", valor: score - 10 },
+    { categoria: "Over 2.5", valor: score - 20 },
+    { categoria: "BTTS", valor: score - 15 },
+    { categoria: "Escanteios", valor: score - 5 }
+  ];
+
+  xAxis.data.setAll(data);
+  series.data.setAll(data);
+}
+
+// 🔄 LOOP
+setInterval(atualizar, 15000);
+carregarJogos();
+
+</script>
 
 </body>
 </html>
