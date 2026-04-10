@@ -1,52 +1,26 @@
-<script>
-async function pegarDados() {
-  try {
-    const res = await fetch("https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v8/finance/chart/^BVSP?interval=1m&range=1d");
-    
-    const data = await res.json();
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Robô de Apostas Ao Vivo</title>
 
-    const result = data.chart.result[0];
-    const close = result.indicators.quote[0].close;
-    const volume = result.indicators.quote[0].volume;
+<link rel="stylesheet" href="style.css">
 
-    const preco = close[close.length - 1];
+<script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
 
-    // VWAP
-    let somaPV = 0;
-    let somaV = 0;
+</head>
+<body>
 
-    for (let i = 0; i < close.length; i++) {
-      somaPV += close[i] * (volume[i] || 1);
-      somaV += (volume[i] || 1);
-    }
+<h1>🤖 Robô de Sinais Ao Vivo</h1>
 
-    const vwap = somaPV / somaV;
+<h2 id="jogo">Carregando jogo...</h2>
 
-    document.getElementById("preco").innerHTML = `Preço: ${preco.toFixed(0)}`;
-    document.getElementById("vwap").innerHTML = `VWAP: ${vwap.toFixed(0)}`;
+<h1 id="sinal" class="aguardar">AGUARDANDO...</h1>
 
-    let sinal = preco > vwap ? "COMPRA" : "VENDA";
-    let cor = preco > vwap ? "green" : "red";
+<div id="chartdiv"></div>
 
-    const sinalEl = document.getElementById("sinal");
-    sinalEl.innerHTML = sinal;
-    sinalEl.className = "big " + cor;
+<script src="script.js"></script>
 
-    // Zonas
-    let zonas = [];
-    let base = Math.floor(preco / 250) * 250;
-
-    for (let i = -3; i <= 3; i++) {
-      zonas.push(base + (i * 250));
-    }
-
-    document.getElementById("zonas").innerHTML = zonas.join(" | ");
-
-  } catch (e) {
-    console.log("Erro:", e);
-  }
-}
-
-setInterval(pegarDados, 5000);
-pegarDados();
-</script>
+</body>
+</html>
