@@ -12,24 +12,44 @@ def gerar_jogo():
 
     nome, liga = random.choice(jogos)
 
-    ataques = random.randint(10,40)
-    chutes = random.randint(1,10)
-    escanteios = random.randint(1,10)
-    min = random.randint(20,80)
+    ataques = random.randint(10, 40)
+    chutes = random.randint(1, 10)
+    escanteios = random.randint(1, 10)
+    posse = random.randint(40, 70)
+    minuto = random.randint(10, 90)
 
-    score = ataques*0.9 + chutes*6 + escanteios*2
+    # 🔥 NOVO SCORE
+    score = (
+        ataques * 1.0 +
+        chutes * 8 +
+        escanteios * 2 +
+        posse * 0.3
+    )
 
-    if score > 80:
-        sinal = "🔥 ENTRAR"
-    elif score > 60:
+    # 🎯 FILTRO INTELIGENTE
+    if (
+        score >= 85 and
+        ataques >= 20 and
+        chutes >= 5 and
+        20 <= minuto <= 75
+    ):
+        sinal = "🔥 ENTRAR FORTE"
+
+    elif (
+        score >= 70 and
+        ataques >= 15 and
+        chutes >= 3 and
+        15 <= minuto <= 80
+    ):
         sinal = "👀 OBSERVAR"
+
     else:
         sinal = "⏳ AGUARDAR"
 
     return {
         "jogo": nome,
         "liga": liga,
-        "min": min,
+        "min": minuto,
         "score": int(score),
         "ataques": ataques,
         "chutes": chutes,
@@ -44,6 +64,6 @@ while True:
     with open("dados.json", "w") as f:
         json.dump(dados, f, indent=2)
 
-    print("Atualizado!")
+    print("Robô atualizado com inteligência")
 
     time.sleep(10)
