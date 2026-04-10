@@ -1,39 +1,38 @@
-function carregarDados() {
-  fetch("https://api.github.com/repos/joval-pixel/bubles/contents/dados.json")
-    .then(res => res.json())
-    .then(res => {
-      const conteudo = atob(res.content)
-      const data = JSON.parse(conteudo)
+async function carregarDados() {
+  try {
+    const res = await fetch(
+      "https://raw.githubusercontent.com/joval-pixel/bubles/main/dados.json?nocache=" + new Date().getTime()
+    );
 
-      console.log("🔥 Atualizou REAL:", data)
+    const data = await res.json();
 
-      atualizarTela(data)
-    })
-    .catch(err => console.error("Erro:", err))
+    console.log("🔥 Atualizou REAL:", data);
+
+    atualizarTela(data);
+  } catch (erro) {
+    console.error("Erro ao carregar:", erro);
+  }
 }
 
 function atualizarTela(jogos) {
-  const container = document.getElementById("jogos")
-  container.innerHTML = ""
+  const container = document.getElementById("jogos");
+  container.innerHTML = "";
 
   jogos.forEach(jogo => {
-    const div = document.createElement("div")
-    div.className = "card"
+    const card = document.createElement("div");
+    card.className = "card";
 
-    div.innerHTML = `
-      <h2>${jogo.jogo}</h2>
+    card.innerHTML = `
+      <h3>${jogo.jogo}</h3>
       <p>${jogo.liga} - ${jogo.min}'</p>
-      <h3>Score: ${jogo.score}</h3>
+      <h2>Score: ${jogo.score}</h2>
       <p>⚡ ${jogo.ataques} | 🎯 ${jogo.chutes} | 🚩 ${jogo.escanteios}</p>
       <strong>${jogo.sinal}</strong>
-    `
+    `;
 
-    container.appendChild(div)
-  })
+    container.appendChild(card);
+  });
 }
 
-// roda na hora
-carregarDados()
-
-// atualiza a cada 5 segundos
-setInterval(carregarDados, 5000)
+carregarDados();
+setInterval(carregarDados, 5000);
