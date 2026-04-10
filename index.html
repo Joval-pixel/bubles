@@ -1,167 +1,98 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Robô Pro - Ao Vivo</title>
+  <meta charset="UTF-8">
+  <title>Robô Pro - Jogos Ao Vivo</title>
 
-<style>
-body {
-  margin:0;
-  font-family: Arial;
-  background:#0b1220;
-  color:white;
-}
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #0b1220;
+      color: white;
+    }
 
-.container {
-  max-width:1200px;
-  margin:auto;
-  padding:20px;
-}
+    h1 {
+      text-align: center;
+      padding: 20px;
+    }
 
-h1 {
-  text-align:center;
-}
+    #container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
 
-.grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-  gap:15px;
-  margin-top:20px;
-}
+    .card {
+      background: #1c2435;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #2e3a55;
+    }
 
-.card {
-  background:#1e293b;
-  border-radius:15px;
-  padding:15px;
-  box-shadow:0 5px 20px rgba(0,0,0,0.4);
-}
+    .entrar {
+      color: #00ff88;
+      font-weight: bold;
+    }
 
-.top {
-  border:2px solid #22c55e;
-}
+    .observar {
+      color: #ffaa00;
+    }
 
-.jogo {
-  font-size:18px;
-  font-weight:bold;
-}
-
-.info {
-  font-size:14px;
-  color:#94a3b8;
-}
-
-.score {
-  font-size:22px;
-  margin-top:5px;
-}
-
-.barra {
-  height:8px;
-  background:#0f172a;
-  border-radius:10px;
-  overflow:hidden;
-  margin:8px 0;
-}
-
-.barra span {
-  display:block;
-  height:100%;
-  background:#22c55e;
-}
-
-.sinal {
-  margin-top:10px;
-  font-size:18px;
-  font-weight:bold;
-}
-
-.entrar {
-  color:#22c55e;
-  animation:piscar 1s infinite;
-}
-
-@keyframes piscar {
-  0%{opacity:1;}
-  50%{opacity:0.3;}
-  100%{opacity:1;}
-}
-</style>
+    .aguardar {
+      color: #aaa;
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="container">
-<h1>🤖 Robô Pro - Jogos Ao Vivo</h1>
-<div id="jogos" class="grid"></div>
-</div>
+  <h1>🤖 Robô Pro - Jogos Ao Vivo</h1>
 
-<script>
+  <div id="container"></div>
 
-// 🔥 AGORA LENDO DO JSON
-async function getJogos(){
-  const res = await fetch("dados.json");
-  return await res.json();
-}
+  <script>
+    function atualizarTela(data) {
+      const container = document.getElementById("container")
 
-function gerarOdds(score){
-  return {
-    over15:(1.2+(100-score)/100).toFixed(2),
-    over25:(1.8+(100-score)/80).toFixed(2),
-    btts:(1.5+(100-score)/90).toFixed(2)
-  }
-}
+      container.innerHTML = ""
 
-async function rodar(){
+      data.forEach(jogo => {
+        let classe = ""
 
-  let lista = await getJogos();
+        if (jogo.sinal.includes("ENTRAR")) classe = "entrar"
+        else if (jogo.sinal.includes("OBSERVAR")) classe = "observar"
+        else classe = "aguardar"
 
-  // ordenar por score
-  lista.sort((a,b)=>b.score-a.score);
+        const card = document.createElement("div")
+        card.className = "card"
 
-  render(lista);
-}
+        card.innerHTML = `
+          <h3>${jogo.jogo}</h3>
+          <p>${jogo.liga} - ${jogo.min}'</p>
+          <h2>Score: ${jogo.score}</h2>
+          <p>⚡ ${jogo.ataques} | 🎯 ${jogo.chutes} | 🚩 ${jogo.escanteios}</p>
+          <strong class="${classe}">${jogo.sinal}</strong>
+        `
 
-function render(lista){
+        container.appendChild(card)
+      })
+    }
 
-  let div = document.getElementById("jogos");
-  div.innerHTML="";
+    function carregarDados() {
+      fetch("https://raw.githubusercontent.com/joval-pixel/bubles/main/dados.json?nocache=" + new Date().getTime())
+        .then(res => res.json())
+        .then(data => {
+          console.log("Atualizou 🔥", data)
+          atualizarTela(data)
+        })
+        .catch(err => console.error("Erro:", err))
+    }
 
-  lista.forEach((j,i)=>{
-
-    let odds = gerarOdds(j.score);
-
-    div.innerHTML += `
-    <div class="card ${i==0?"top":""}">
-      <div class="jogo">${j.jogo}</div>
-      <div class="info">${j.liga} • ${j.min}'</div>
-
-      <div class="score">Score: ${j.score}</div>
-
-      <div class="barra">
-        <span style="width:${j.score}%"></span>
-      </div>
-
-      <div class="info">
-        ⚡ ${j.ataques} | 🎯 ${j.chutes} | 🚩 ${j.escanteios}
-      </div>
-
-      <div class="info">
-        Over 1.5: ${odds.over15} | Over 2.5: ${odds.over25}
-      </div>
-
-      <div class="sinal ${j.sinal.includes('ENTRAR')?'entrar':''}">
-        ${j.sinal}
-      </div>
-    </div>
-    `;
-  });
-}
-
-// atualiza a cada 10s
-setInterval(rodar,10000);
-rodar();
-
-</script>
+    carregarDados()
+    setInterval(carregarDados, 10000)
+  </script>
 
 </body>
 </html>
