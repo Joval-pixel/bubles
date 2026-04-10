@@ -1,42 +1,42 @@
 [
   {
-    "jogo": "PSG x Bayern",
-    "liga": "Champions",
-    "min": 26,
-    "score": 68,
-    "ataques": 12,
-    "chutes": 6,
-    "escanteios": 4,
-    "sinal": "\ud83d\udc40 OBSERVAR"
+    "jogo": "City x Liverpool",
+    "liga": "Premier League",
+    "min": 28,
+    "score": 123,
+    "ataques": 39,
+    "chutes": 8,
+    "escanteios": 10,
+    "sinal": "\ud83d\udd25 ENTRAR"
   },
   {
-    "jogo": "Real Madrid x Barcelona",
-    "liga": "La Liga",
-    "min": 79,
-    "score": 79,
-    "ataques": 17,
-    "chutes": 6,
+    "jogo": "PSG x Bayern",
+    "liga": "Champions",
+    "min": 42,
+    "score": 73,
+    "ataques": 35,
+    "chutes": 3,
     "escanteios": 7,
     "sinal": "\ud83d\udc40 OBSERVAR"
   },
   {
-    "jogo": "Real Madrid x Barcelona",
-    "liga": "La Liga",
-    "min": 86,
-    "score": 85,
-    "ataques": 15,
-    "chutes": 8,
-    "escanteios": 3,
+    "jogo": "City x Liverpool",
+    "liga": "Premier League",
+    "min": 46,
+    "score": 101,
+    "ataques": 21,
+    "chutes": 9,
+    "escanteios": 4,
     "sinal": "\ud83d\udd25 ENTRAR"
   },
   {
-    "jogo": "City x Liverpool",
-    "liga": "Premier League",
-    "min": 47,
-    "score": 54,
-    "ataques": 28,
-    "chutes": 2,
-    "escanteios": 5,
-    "sinal": "\u23f3 AGUARDAR"
+    "jogo": "Real Madrid x Barcelona",
+    "liga": "La Liga",
+    "min": 65,
+    "score": 61,
+    "ataques": 27,
+    "chutes": 4,
+    "escanteios": 1,
+    "sinal": "\ud83d\udc40 OBSERVAR"
   }
 ]
