@@ -32,5 +32,8 @@ function atualizarTela(jogos) {
   })
 }
 
+// roda na hora
 carregarDados()
+
+// atualiza a cada 5 segundos
 setInterval(carregarDados, 5000)
