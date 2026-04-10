@@ -1,42 +1,42 @@
 [
   {
-    "jogo": "Real Madrid x Barcelona",
-    "liga": "La Liga",
-    "min": 46,
-    "score": 72,
-    "ataques": 18,
-    "chutes": 6,
-    "escanteios": 3,
-    "sinal": "\ud83d\udc40 OBSERVAR"
-  },
-  {
-    "jogo": "Real Madrid x Barcelona",
-    "liga": "La Liga",
-    "min": 20,
-    "score": 115,
-    "ataques": 37,
+    "jogo": "City x Liverpool",
+    "liga": "Premier League",
+    "min": 72,
+    "score": 120,
+    "ataques": 32,
     "chutes": 9,
-    "escanteios": 3,
+    "escanteios": 8,
     "sinal": "\ud83d\udd25 ENTRAR"
   },
   {
     "jogo": "City x Liverpool",
     "liga": "Premier League",
-    "min": 28,
-    "score": 93,
-    "ataques": 11,
-    "chutes": 9,
-    "escanteios": 5,
+    "min": 37,
+    "score": 88,
+    "ataques": 20,
+    "chutes": 7,
+    "escanteios": 6,
     "sinal": "\ud83d\udd25 ENTRAR"
   },
   {
     "jogo": "Real Madrid x Barcelona",
     "liga": "La Liga",
-    "min": 22,
-    "score": 51,
-    "ataques": 19,
-    "chutes": 3,
+    "min": 30,
+    "score": 92,
+    "ataques": 36,
+    "chutes": 6,
     "escanteios": 4,
-    "sinal": "\u23f3 AGUARDAR"
+    "sinal": "\ud83d\udd25 ENTRAR"
+  },
+  {
+    "jogo": "Real Madrid x Barcelona",
+    "liga": "La Liga",
+    "min": 42,
+    "score": 116,
+    "ataques": 26,
+    "chutes": 10,
+    "escanteios": 5,
+    "sinal": "\ud83d\udd25 ENTRAR"
   }
 ]
