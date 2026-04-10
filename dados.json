@@ -18,5 +18,15 @@
     "chutes": 3,
     "escanteios": 4,
     "sinal": "👀 OBSERVAR"
+  },
+  {
+    "jogo": "Manchester City x Liverpool",
+    "liga": "Premier League",
+    "min": 70,
+    "score": 90,
+    "ataques": 35,
+    "chutes": 8,
+    "escanteios": 7,
+    "sinal": "🔥 ENTRAR"
   }
 ]
