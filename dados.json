@@ -2,41 +2,41 @@
   {
     "jogo": "Flamengo x Palmeiras",
     "liga": "Brasil",
-    "min": 80,
-    "score": 83,
-    "ataques": 31,
-    "chutes": 5,
+    "min": 61,
+    "score": 95,
+    "ataques": 27,
+    "chutes": 7,
     "escanteios": 6,
     "sinal": "\ud83d\udd25 ENTRAR"
   },
   {
     "jogo": "Real Madrid x Barcelona",
     "liga": "La Liga",
-    "min": 79,
-    "score": 63,
-    "ataques": 31,
-    "chutes": 2,
-    "escanteios": 8,
-    "sinal": "\ud83d\udc40 OBSERVAR"
+    "min": 76,
+    "score": 44,
+    "ataques": 28,
+    "chutes": 1,
+    "escanteios": 4,
+    "sinal": "\u23f3 AGUARDAR"
   },
   {
     "jogo": "City x Liverpool",
     "liga": "Premier League",
-    "min": 55,
-    "score": 118,
+    "min": 29,
+    "score": 60,
     "ataques": 32,
-    "chutes": 9,
-    "escanteios": 7,
-    "sinal": "\ud83d\udd25 ENTRAR"
+    "chutes": 1,
+    "escanteios": 10,
+    "sinal": "\u23f3 AGUARDAR"
   },
   {
     "jogo": "PSG x Bayern",
     "liga": "Champions",
-    "min": 57,
-    "score": 47,
-    "ataques": 33,
-    "chutes": 1,
-    "escanteios": 3,
+    "min": 47,
+    "score": 59,
+    "ataques": 27,
+    "chutes": 3,
+    "escanteios": 4,
     "sinal": "\u23f3 AGUARDAR"
   }
 ]
