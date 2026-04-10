@@ -1,562 +1,280 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Robô de Sinais Ao Vivo</title>
+<meta charset="UTF-8">
+<title>Robô Pro - Sinais Ao Vivo</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background:#0b1220;
+  color:white;
+}
 
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #fff;
-    }
+.container {
+  max-width:1200px;
+  margin:auto;
+  padding:20px;
+}
 
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+h1 {
+  text-align:center;
+}
 
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:15px;
+  margin-top:20px;
+}
 
-    .sub {
-      text-align: center;
-      color: #cbd5e1;
-      margin-bottom: 25px;
-    }
+.card {
+  background:#1e293b;
+  border-radius:15px;
+  padding:15px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.4);
+  transition:0.3s;
+}
 
-    .top-box {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
+.card:hover {
+  transform:scale(1.02);
+}
 
-    .card {
-      background: #1e293b;
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-    }
+.top {
+  border:2px solid #22c55e;
+}
 
-    .status {
-      font-size: 28px;
-      font-weight: bold;
-      text-align: center;
-      margin-top: 10px;
-    }
+.jogo {
+  font-size:18px;
+  font-weight:bold;
+}
 
-    .entrar {
-      color: #22c55e;
-      animation: piscar 1s infinite;
-    }
+.info {
+  font-size:14px;
+  color:#94a3b8;
+  margin:5px 0;
+}
 
-    .aguardar {
-      color: #facc15;
-    }
+.score {
+  font-size:22px;
+  margin-top:5px;
+}
 
-    .fraco {
-      color: #94a3b8;
-    }
+.barra {
+  height:8px;
+  background:#0f172a;
+  border-radius:10px;
+  overflow:hidden;
+  margin:8px 0;
+}
 
-    @keyframes piscar {
-      0% { opacity: 1; }
-      50% { opacity: 0.35; }
-      100% { opacity: 1; }
-    }
+.barra span {
+  display:block;
+  height:100%;
+  background:#22c55e;
+}
 
-    .linha-info {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-top: 15px;
-    }
+.odds {
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+}
 
-    .mini {
-      background: #0f172a;
-      border-radius: 10px;
-      padding: 12px;
-      text-align: center;
-    }
+.odd {
+  padding:6px 10px;
+  border-radius:8px;
+  font-weight:bold;
+}
 
-    .mini strong {
-      display: block;
-      font-size: 20px;
-      margin-top: 6px;
-    }
+.verde { background:#14532d; color:#86efac;}
+.amarelo { background:#713f12; color:#fde68a;}
+.vermelho { background:#7f1d1d; color:#fecaca;}
 
-    #chartdiv {
-      width: 100%;
-      height: 380px;
-      margin-top: 20px;
-    }
+.sinal {
+  margin-top:10px;
+  font-size:18px;
+  font-weight:bold;
+}
 
-    .lista-jogos {
-      margin-top: 20px;
-    }
+.entrar {
+  color:#22c55e;
+  animation:piscar 1s infinite;
+}
 
-    .lista-jogos h2 {
-      margin-bottom: 12px;
-      font-size: 20px;
-    }
+@keyframes piscar {
+  0%{opacity:1;}
+  50%{opacity:0.3;}
+  100%{opacity:1;}
+}
 
-    .jogo-item {
-      background: #1e293b;
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      border: 1px solid transparent;
-    }
-
-    .jogo-item.top {
-      border-color: #22c55e;
-    }
-
-    .jogo-nome {
-      font-weight: bold;
-    }
-
-    .jogo-detalhe {
-      color: #cbd5e1;
-      font-size: 14px;
-      margin-top: 4px;
-    }
-
-    .badge {
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-weight: bold;
-      font-size: 14px;
-      white-space: nowrap;
-    }
-
-    .badge-green {
-      background: #14532d;
-      color: #86efac;
-    }
-
-    .badge-yellow {
-      background: #713f12;
-      color: #fde68a;
-    }
-
-    .badge-gray {
-      background: #334155;
-      color: #cbd5e1;
-    }
-
-    .erro {
-      background: #7f1d1d;
-      color: #fecaca;
-      padding: 12px;
-      border-radius: 10px;
-      margin-top: 15px;
-      display: none;
-    }
-
-    .loading {
-      text-align: center;
-      color: #cbd5e1;
-      margin-top: 10px;
-    }
-
-    button {
-      background: #22c55e;
-      color: #052e16;
-      border: 0;
-      border-radius: 10px;
-      padding: 10px 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:hover {
-      opacity: 0.92;
-    }
-
-    @media (min-width: 860px) {
-      .top-box {
-        grid-template-columns: 1.2fr 0.8fr;
-      }
-    }
-  </style>
-
-  <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
-  <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
+</style>
 </head>
+
 <body>
-  <div class="container">
-    <h1>🤖 Robô de Sinais Ao Vivo</h1>
-    <div class="sub">Ranking de jogos ao vivo com filtro de pressão e entrada</div>
 
-    <div class="top-box">
-      <div class="card">
-        <h2 id="melhorJogoTitulo">Melhor jogo do momento</h2>
-        <div id="melhorJogoNome">Carregando...</div>
-        <div id="melhorJogoMinuto" class="jogo-detalhe"></div>
+<div class="container">
 
-        <div id="melhorSinal" class="status aguardar">Analisando...</div>
+<h1>🤖 Robô Pro - Jogos Ao Vivo</h1>
 
-        <div class="linha-info">
-          <div class="mini">
-            Ataques perigosos
-            <strong id="infoAtaques">-</strong>
-          </div>
-          <div class="mini">
-            Chutes no gol
-            <strong id="infoChutes">-</strong>
-          </div>
-          <div class="mini">
-            Escanteios
-            <strong id="infoEscanteios">-</strong>
-          </div>
-          <div class="mini">
-            Score
-            <strong id="infoScore">-</strong>
-          </div>
-        </div>
+<div id="jogos" class="grid"></div>
 
-        <div id="chartdiv"></div>
+</div>
+
+<script>
+
+const API_KEY = "39968ebc05msh2066ef0bf12492dp11b26fjsn664b581399ee";
+
+async function getJogos() {
+
+  const res = await fetch("https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all", {
+    headers: {
+      "X-RapidAPI-Key": API_KEY,
+      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+    }
+  });
+
+  const data = await res.json();
+  return data.response || [];
+}
+
+function num(v){
+  if(!v) return 0;
+  return parseFloat(v.toString().replace("%","")) || 0;
+}
+
+function getStat(stats, name){
+  let s = stats.find(x=>x.type===name);
+  return s ? num(s.value) : 0;
+}
+
+async function getStats(id){
+
+  const res = await fetch(`https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics?fixture=${id}`, {
+    headers:{
+      "X-RapidAPI-Key": API_KEY,
+      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+    }
+  });
+
+  const data = await res.json();
+
+  if(!data.response || data.response.length<2) return null;
+
+  let h = data.response[0].statistics;
+  let a = data.response[1].statistics;
+
+  return {
+    ataques: getStat(h,"Dangerous Attacks")+getStat(a,"Dangerous Attacks"),
+    chutes: getStat(h,"Shots on Goal")+getStat(a,"Shots on Goal"),
+    escanteios: getStat(h,"Corner Kicks")+getStat(a,"Corner Kicks"),
+    posse: (getStat(h,"Ball Possession")+getStat(a,"Ball Possession"))/2
+  };
+}
+
+function score(stats,min){
+
+  let s = stats.ataques*0.9 + stats.chutes*6 + stats.escanteios*2 + stats.posse*0.2;
+
+  if(min>15 && min<75) s+=10;
+
+  return Math.min(100,Math.floor(s));
+}
+
+function sinal(stats,score,min){
+
+  if(score>78 && stats.chutes>=5 && stats.ataques>18)
+    return {txt:"🔥 ENTRAR", cor:"verde"};
+
+  if(score>65)
+    return {txt:"👀 OBSERVAR", cor:"amarelo"};
+
+  return {txt:"⏳ AGUARDAR", cor:"vermelho"};
+}
+
+function gerarOdds(score){
+  return {
+    over15:(1.2+(100-score)/100).toFixed(2),
+    over25:(1.8+(100-score)/80).toFixed(2),
+    btts:(1.5+(100-score)/90).toFixed(2)
+  }
+}
+
+async function rodar(){
+
+  let jogos = await getJogos();
+
+  let lista = [];
+
+  for(let j of jogos.slice(0,8)){
+
+    let st = await getStats(j.fixture.id);
+    if(!st) continue;
+
+    let min = j.fixture.status.elapsed || 0;
+    let sc = score(st,min);
+    let sn = sinal(st,sc,min);
+    let odds = gerarOdds(sc);
+
+    lista.push({
+      nome: j.teams.home.name+" x "+j.teams.away.name,
+      liga: j.league.name,
+      min,
+      stats:st,
+      score:sc,
+      sinal:sn,
+      odds
+    });
+  }
+
+  lista.sort((a,b)=>b.score-a.score);
+
+  render(lista);
+}
+
+function render(lista){
+
+  let div = document.getElementById("jogos");
+  div.innerHTML="";
+
+  lista.forEach((j,i)=>{
+
+    let html = `
+    <div class="card ${i==0?"top":""}">
+      <div class="jogo">${j.nome}</div>
+      <div class="info">${j.liga} • ${j.min}'</div>
+
+      <div class="score">Score: ${j.score}</div>
+
+      <div class="barra">
+        <span style="width:${j.score}%"></span>
       </div>
 
-      <div class="card">
-        <h2>Painel</h2>
-        <p>Total de jogos analisados: <strong id="totalJogos">0</strong></p>
-        <p>Jogos fortes: <strong id="jogosFortes">0</strong></p>
-        <p>Última atualização: <strong id="ultimaAtualizacao">-</strong></p>
-        <button id="btnAtualizar">Atualizar agora</button>
-        <div class="loading" id="loadingText">Buscando jogos ao vivo...</div>
-        <div class="erro" id="erroBox"></div>
+      <div class="info">
+        ⚡ Ataques: ${j.stats.ataques} | 🎯 Chutes: ${j.stats.chutes} | 🚩 Escanteios: ${j.stats.escanteios}
+      </div>
+
+      <div class="odds">
+        <div class="odd verde">Over 1.5 ${j.odds.over15}</div>
+        <div class="odd amarelo">Over 2.5 ${j.odds.over25}</div>
+        <div class="odd vermelho">BTTS ${j.odds.btts}</div>
+      </div>
+
+      <div class="sinal ${j.sinal.cor=='verde'?'entrar':''}">
+        ${j.sinal.txt}
       </div>
     </div>
+    `;
 
-    <div class="lista-jogos">
-      <h2>Ranking dos jogos</h2>
-      <div id="rankingJogos"></div>
-    </div>
-  </div>
+    div.innerHTML += html;
+  });
 
-  <script>
-    const API_KEY = "39968ebc05msh2066ef0bf12492dp11b26fjsn664b581399ee";
-    const API_HOST = "api-football-v1.p.rapidapi.com";
+}
 
-    let chartRoot;
-    let chart;
-    let xAxis;
-    let yAxis;
-    let series;
-    let ultimoAlertaJogo = null;
+setInterval(rodar,20000);
+rodar();
 
-    function mostrarErro(msg) {
-      const box = document.getElementById("erroBox");
-      box.style.display = "block";
-      box.textContent = msg;
-    }
+</script>
 
-    function esconderErro() {
-      const box = document.getElementById("erroBox");
-      box.style.display = "none";
-      box.textContent = "";
-    }
-
-    function setLoading(texto) {
-      document.getElementById("loadingText").textContent = texto;
-    }
-
-    function formatarHora() {
-      return new Date().toLocaleTimeString("pt-BR");
-    }
-
-    function criarGrafico() {
-      chartRoot = am5.Root.new("chartdiv");
-
-      chart = chartRoot.container.children.push(
-        am5xy.XYChart.new(chartRoot, {})
-      );
-
-      xAxis = chart.xAxes.push(
-        am5xy.CategoryAxis.new(chartRoot, {
-          categoryField: "categoria",
-          renderer: am5xy.AxisRendererX.new(chartRoot, {
-            minGridDistance: 20
-          })
-        })
-      );
-
-      yAxis = chart.yAxes.push(
-        am5xy.ValueAxis.new(chartRoot, {
-          min: 0,
-          max: 100,
-          strictMinMax: true,
-          renderer: am5xy.AxisRendererY.new(chartRoot, {})
-        })
-      );
-
-      series = chart.series.push(
-        am5xy.ColumnSeries.new(chartRoot, {
-          name: "Indicadores",
-          xAxis,
-          yAxis,
-          valueYField: "valor",
-          categoryXField: "categoria"
-        })
-      );
-    }
-
-    function atualizarGrafico(score, stats) {
-      const data = [
-        { categoria: "Pressão", valor: limitar100(score) },
-        { categoria: "Ataques", valor: limitar100(stats.ataques * 2) },
-        { categoria: "Chutes", valor: limitar100(stats.chutes * 10) },
-        { categoria: "Escanteios", valor: limitar100(stats.escanteios * 10) },
-        { categoria: "Over 1.5", valor: limitar100(score - 5) },
-        { categoria: "Over 2.5", valor: limitar100(score - 18) },
-        { categoria: "BTTS", valor: limitar100(score - 12) }
-      ];
-
-      xAxis.data.setAll(data);
-      series.data.setAll(data);
-    }
-
-    function limitar100(valor) {
-      return Math.max(0, Math.min(100, Math.round(valor)));
-    }
-
-    async function apiFetch(url) {
-      const res = await fetch(url, {
-        method: "GET",
-        headers: {
-          "X-RapidAPI-Key": API_KEY,
-          "X-RapidAPI-Host": API_HOST
-        }
-      });
-
-      if (!res.ok) {
-        throw new Error("Erro na API: " + res.status);
-      }
-
-      return res.json();
-    }
-
-    async function carregarJogosAoVivo() {
-      const data = await apiFetch("https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all");
-      return Array.isArray(data.response) ? data.response : [];
-    }
-
-    function extrairNumero(valor) {
-      if (valor === null || valor === undefined) return 0;
-      if (typeof valor === "number") return valor;
-      if (typeof valor === "string") {
-        const limpo = valor.replace("%", "").trim();
-        const numero = parseFloat(limpo);
-        return Number.isNaN(numero) ? 0 : numero;
-      }
-      return 0;
-    }
-
-    function pegarStat(stats, nome) {
-      const achou = stats.find(item => item.type === nome);
-      return achou ? extrairNumero(achou.value) : 0;
-    }
-
-    async function pegarStatsFixture(fixtureId) {
-      const data = await apiFetch(`https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics?fixture=${fixtureId}`);
-
-      if (!Array.isArray(data.response) || data.response.length < 2) {
-        return null;
-      }
-
-      const home = data.response[0]?.statistics || [];
-      const away = data.response[1]?.statistics || [];
-
-      const ataques =
-        pegarStat(home, "Dangerous Attacks") +
-        pegarStat(away, "Dangerous Attacks");
-
-      const chutes =
-        pegarStat(home, "Shots on Goal") +
-        pegarStat(away, "Shots on Goal");
-
-      const escanteios =
-        pegarStat(home, "Corner Kicks") +
-        pegarStat(away, "Corner Kicks");
-
-      const posseCasa = pegarStat(home, "Ball Possession");
-      const posseFora = pegarStat(away, "Ball Possession");
-      const posse = posseCasa + posseFora > 0 ? (posseCasa + posseFora) / 2 : 50;
-
-      return { ataques, chutes, escanteios, posse };
-    }
-
-    function calcularScore(stats, minuto) {
-      let score =
-        stats.ataques * 0.9 +
-        stats.chutes * 6 +
-        stats.escanteios * 2.5 +
-        stats.posse * 0.2;
-
-      if (minuto >= 15 && minuto <= 75) score += 8;
-      if (minuto > 75) score -= 5;
-
-      return limitar100(score);
-    }
-
-    function gerarSinal(stats, score, minuto) {
-      if (score >= 78 && stats.ataques >= 18 && stats.chutes >= 5 && minuto >= 15 && minuto <= 80) {
-        return { texto: "🔥 ENTRAR OVER 1.5", nivel: "forte" };
-      }
-
-      if (score >= 65 && stats.ataques >= 12 && stats.chutes >= 3) {
-        return { texto: "👀 OBSERVAR MERCADO", nivel: "medio" };
-      }
-
-      return { texto: "⏳ AGUARDAR", nivel: "fraco" };
-    }
-
-    async function analisarJogos() {
-      esconderErro();
-      setLoading("Buscando jogos ao vivo...");
-
-      const jogos = await carregarJogosAoVivo();
-
-      if (!jogos.length) {
-        document.getElementById("rankingJogos").innerHTML = "";
-        document.getElementById("totalJogos").textContent = "0";
-        document.getElementById("jogosFortes").textContent = "0";
-        document.getElementById("melhorJogoNome").textContent = "Nenhum jogo ao vivo encontrado";
-        document.getElementById("melhorJogoMinuto").textContent = "";
-        document.getElementById("melhorSinal").textContent = "⏳ AGUARDAR";
-        document.getElementById("melhorSinal").className = "status aguardar";
-        setLoading("Nenhum jogo ao vivo neste momento.");
-        return;
-      }
-
-      setLoading("Analisando estatísticas dos jogos...");
-      const resultados = [];
-
-      for (const jogo of jogos.slice(0, 10)) {
-        try {
-          const stats = await pegarStatsFixture(jogo.fixture.id);
-          if (!stats) continue;
-
-          const minuto = Number(jogo.fixture.status.elapsed || 0);
-          const score = calcularScore(stats, minuto);
-          const sinal = gerarSinal(stats, score, minuto);
-
-          resultados.push({
-            fixtureId: jogo.fixture.id,
-            nome: `${jogo.teams.home.name} x ${jogo.teams.away.name}`,
-            minuto,
-            liga: jogo.league?.name || "",
-            stats,
-            score,
-            sinal
-          });
-        } catch (e) {
-        }
-      }
-
-      resultados.sort((a, b) => b.score - a.score);
-
-      document.getElementById("totalJogos").textContent = resultados.length;
-      document.getElementById("jogosFortes").textContent =
-        resultados.filter(j => j.sinal.nivel === "forte").length;
-      document.getElementById("ultimaAtualizacao").textContent = formatarHora();
-
-      if (!resultados.length) {
-        document.getElementById("rankingJogos").innerHTML = "";
-        document.getElementById("melhorJogoNome").textContent = "Sem estatísticas suficientes";
-        document.getElementById("melhorJogoMinuto").textContent = "";
-        document.getElementById("melhorSinal").textContent = "⏳ AGUARDAR";
-        document.getElementById("melhorSinal").className = "status aguardar";
-        setLoading("Jogos encontrados, mas sem estatísticas utilizáveis.");
-        return;
-      }
-
-      renderMelhorJogo(resultados[0]);
-      renderRanking(resultados);
-      setLoading("Atualizado com sucesso.");
-    }
-
-    function renderMelhorJogo(jogo) {
-      document.getElementById("melhorJogoNome").textContent = jogo.nome;
-      document.getElementById("melhorJogoMinuto").textContent = `${jogo.liga} • ${jogo.minuto}'`;
-
-      const el = document.getElementById("melhorSinal");
-      el.textContent = jogo.sinal.texto;
-
-      if (jogo.sinal.nivel === "forte") {
-        el.className = "status entrar";
-      } else if (jogo.sinal.nivel === "medio") {
-        el.className = "status aguardar";
-      } else {
-        el.className = "status fraco";
-      }
-
-      document.getElementById("infoAtaques").textContent = jogo.stats.ataques;
-      document.getElementById("infoChutes").textContent = jogo.stats.chutes;
-      document.getElementById("infoEscanteios").textContent = jogo.stats.escanteios;
-      document.getElementById("infoScore").textContent = jogo.score;
-
-      atualizarGrafico(jogo.score, jogo.stats);
-
-      if (jogo.sinal.nivel === "forte" && ultimoAlertaJogo !== jogo.fixtureId) {
-        ultimoAlertaJogo = jogo.fixtureId;
-        try {
-          const audio = new Audio("https://www.soundjay.com/buttons/beep-01a.mp3");
-          audio.play().catch(() => {});
-        } catch (e) {
-        }
-      }
-    }
-
-    function renderRanking(lista) {
-      const div = document.getElementById("rankingJogos");
-      div.innerHTML = "";
-
-      lista.forEach((jogo, index) => {
-        const item = document.createElement("div");
-        item.className = "jogo-item" + (index === 0 ? " top" : "");
-
-        let badgeClass = "badge-gray";
-        if (jogo.sinal.nivel === "forte") badgeClass = "badge-green";
-        if (jogo.sinal.nivel === "medio") badgeClass = "badge-yellow";
-
-        item.innerHTML = `
-          <div>
-            <div class="jogo-nome">${index + 1}. ${jogo.nome}</div>
-            <div class="jogo-detalhe">
-              ${jogo.liga} • ${jogo.minuto}' • Ataques: ${jogo.stats.ataques} • Chutes: ${jogo.stats.chutes} • Escanteios: ${jogo.stats.escanteios} • Score: ${jogo.score}
-            </div>
-          </div>
-          <div class="badge ${badgeClass}">
-            ${jogo.sinal.texto}
-          </div>
-        `;
-
-        div.appendChild(item);
-      });
-    }
-
-    document.getElementById("btnAtualizar").addEventListener("click", analisarJogos);
-
-    criarGrafico();
-    analisarJogos();
-    setInterval(analisarJogos, 30000);
-  </script>
 </body>
 </html>
