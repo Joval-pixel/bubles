@@ -1,69 +1,69 @@
+import requests
 import json
-import random
 import time
 
-def gerar_jogo():
-    jogos = [
-        ("Flamengo x Palmeiras", "Brasil"),
-        ("Real Madrid x Barcelona", "La Liga"),
-        ("City x Liverpool", "Premier League"),
-        ("PSG x Bayern", "Champions")
-    ]
+API_KEY = "SUA_API_KEY"
 
-    nome, liga = random.choice(jogos)
+def pegar_jogos():
+    url = "https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all"
 
-    ataques = random.randint(10, 40)
-    chutes = random.randint(1, 10)
-    escanteios = random.randint(1, 10)
-    posse = random.randint(40, 70)
-    minuto = random.randint(10, 90)
-
-    # 🔥 NOVO SCORE
-    score = (
-        ataques * 1.0 +
-        chutes * 8 +
-        escanteios * 2 +
-        posse * 0.3
-    )
-
-    # 🎯 FILTRO INTELIGENTE
-    if (
-        score >= 85 and
-        ataques >= 20 and
-        chutes >= 5 and
-        20 <= minuto <= 75
-    ):
-        sinal = "🔥 ENTRAR FORTE"
-
-    elif (
-        score >= 70 and
-        ataques >= 15 and
-        chutes >= 3 and
-        15 <= minuto <= 80
-    ):
-        sinal = "👀 OBSERVAR"
-
-    else:
-        sinal = "⏳ AGUARDAR"
-
-    return {
-        "jogo": nome,
-        "liga": liga,
-        "min": minuto,
-        "score": int(score),
-        "ataques": ataques,
-        "chutes": chutes,
-        "escanteios": escanteios,
-        "sinal": sinal
+    headers = {
+        "X-RapidAPI-Key": API_KEY,
+        "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
     }
 
-while True:
+    res = requests.get(url, headers=headers)
+    data = res.json()
 
-    dados = [gerar_jogo() for _ in range(4)]
+    return data.get("response", [])
+
+def calcular(stats):
+    return stats["ataques"]*1 + stats["chutes"]*8 + stats["escanteios"]*2
+
+def gerar_sinal(score, stats, minuto):
+
+    if score > 85 and stats["chutes"] >= 5 and 20 <= minuto <= 75:
+        return "🔥 ENTRAR FORTE"
+
+    if score > 70:
+        return "👀 OBSERVAR"
+
+    return "⏳ AGUARDAR"
+
+def montar_dados():
+
+    jogos = pegar_jogos()
+
+    lista = []
+
+    for j in jogos[:5]:
+
+        # simulando stats (API free não traz completo)
+        stats = {
+            "ataques": 20,
+            "chutes": 5,
+            "escanteios": 4
+        }
+
+        minuto = j["fixture"]["status"]["elapsed"]
+
+        score = calcular(stats)
+
+        lista.append({
+            "jogo": j["teams"]["home"]["name"] + " x " + j["teams"]["away"]["name"],
+            "liga": j["league"]["name"],
+            "min": minuto,
+            "score": score,
+            "ataques": stats["ataques"],
+            "chutes": stats["chutes"],
+            "escanteios": stats["escanteios"],
+            "sinal": gerar_sinal(score, stats, minuto)
+        })
 
     with open("dados.json", "w") as f:
-        json.dump(dados, f, indent=2)
+        json.dump(lista, f, indent=2)
 
-    print("Robô atualizado com inteligência")
-
-    time.sleep(10)
+while True:
+    montar_dados()
+    print("Atualizado com API")
+    time.sleep(60)
