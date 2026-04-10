@@ -1,40 +1,40 @@
 [
   {
-    "jogo": "Real Madrid x Barcelona",
-    "liga": "La Liga",
-    "min": 29,
-    "score": 78,
-    "ataques": 34,
-    "chutes": 5,
-    "escanteios": 2,
-    "sinal": "\ud83d\udc40 OBSERVAR"
+    "jogo": "Flamengo x Palmeiras",
+    "liga": "Brasil",
+    "min": 84,
+    "score": 104,
+    "ataques": 22,
+    "chutes": 10,
+    "escanteios": 1,
+    "sinal": "\ud83d\udd25 ENTRAR"
   },
   {
-    "jogo": "Real Madrid x Barcelona",
-    "liga": "La Liga",
-    "min": 72,
-    "score": 78,
-    "ataques": 10,
+    "jogo": "Flamengo x Palmeiras",
+    "liga": "Brasil",
+    "min": 74,
+    "score": 91,
+    "ataques": 33,
     "chutes": 6,
-    "escanteios": 10,
-    "sinal": "\ud83d\udc40 OBSERVAR"
-  },
-  {
-    "jogo": "Real Madrid x Barcelona",
-    "liga": "La Liga",
-    "min": 60,
-    "score": 115,
-    "ataques": 23,
-    "chutes": 9,
-    "escanteios": 10,
+    "escanteios": 5,
     "sinal": "\ud83d\udd25 ENTRAR"
   },
   {
     "jogo": "Real Madrid x Barcelona",
     "liga": "La Liga",
-    "min": 41,
-    "score": 113,
-    "ataques": 39,
+    "min": 70,
+    "score": 60,
+    "ataques": 28,
+    "chutes": 3,
+    "escanteios": 4,
+    "sinal": "\u23f3 AGUARDAR"
+  },
+  {
+    "jogo": "Flamengo x Palmeiras",
+    "liga": "Brasil",
+    "min": 83,
+    "score": 102,
+    "ataques": 28,
     "chutes": 8,
     "escanteios": 5,
     "sinal": "\ud83d\udd25 ENTRAR"
