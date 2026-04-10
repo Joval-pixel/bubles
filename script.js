@@ -1,35 +1,20 @@
-function carregarDados() {
-  fetch("https://raw.githubusercontent.com/joval-pixel/bubles/main/dados.json?nocache=" + new Date().getTime())
-    .then(res => res.json())
-    .then(data => {
-      console.log("🔥 Atualizou:", data)
-      atualizarTela(data)
-    })
-    .catch(err => console.error("Erro:", err))
+body {
+  background: #0b1220;
+  color: white;
+  font-family: Arial;
+  text-align: center;
 }
 
-function atualizarTela(jogos) {
-  const container = document.getElementById("jogos")
-  container.innerHTML = ""
-
-  jogos.forEach(jogo => {
-    const div = document.createElement("div")
-    div.className = "card"
-
-    div.innerHTML = `
-      <h2>${jogo.jogo}</h2>
-      <p>${jogo.liga} - ${jogo.min}'</p>
-      <h3>Score: ${jogo.score}</h3>
-      <p>⚡ ${jogo.ataques} | 🎯 ${jogo.chutes} | 🚩 ${jogo.escanteios}</p>
-      <strong>${jogo.sinal}</strong>
-    `
-
-    container.appendChild(div)
-  })
+#jogos {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-// roda na hora
-carregarDados()
-
-// atualiza a cada 5 segundos 🔥
-setInterval(carregarDados, 5000)
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 10px;
+  width: 250px;
+}
