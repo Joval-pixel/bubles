@@ -58,13 +58,11 @@ select {
 
 <script>
 
-// 🔑 COLOQUE SUA API KEY AQUI
-const API_KEY = "SUA_API_KEY_AQUI";
+const API_KEY = "39968ebc05msh2066ef0bf12492dp11b26fjsn664b581399ee";
 
 let jogos = [];
 let chart, series, xAxis;
 
-// 🎯 CRIAR GRÁFICO
 am5.ready(function () {
 
   var root = am5.Root.new("chartdiv");
@@ -94,7 +92,6 @@ am5.ready(function () {
 
 });
 
-// 🔥 CARREGAR JOGOS AO VIVO
 async function carregarJogos() {
 
   const res = await fetch("https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all", {
@@ -121,7 +118,6 @@ async function carregarJogos() {
   atualizar();
 }
 
-// 📊 PEGAR ESTATÍSTICAS
 async function pegarStats(id) {
 
   const res = await fetch(`https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics?fixture=${id}`, {
@@ -150,7 +146,6 @@ async function pegarStats(id) {
   };
 }
 
-// 🧠 CALCULAR SCORE
 function calcular(stats) {
   return (
     stats.ataques * 0.3 +
@@ -160,7 +155,6 @@ function calcular(stats) {
   );
 }
 
-// 🚨 GERAR SINAL
 function verificar(stats, score) {
 
   if (
@@ -174,7 +168,6 @@ function verificar(stats, score) {
   return "⏳ AGUARDAR";
 }
 
-// 🔁 ATUALIZAR TELA
 async function atualizar() {
 
   let index = document.getElementById("listaJogos").value || 0;
@@ -215,7 +208,6 @@ async function atualizar() {
   series.data.setAll(data);
 }
 
-// 🔄 LOOP
 setInterval(atualizar, 15000);
 carregarJogos();
 
