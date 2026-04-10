@@ -1,0 +1,22 @@
+[
+  {
+    "jogo": "Flamengo x Palmeiras",
+    "liga": "Brasil",
+    "min": 63,
+    "score": 82,
+    "ataques": 28,
+    "chutes": 6,
+    "escanteios": 5,
+    "sinal": "🔥 ENTRAR"
+  },
+  {
+    "jogo": "Real Madrid x Barcelona",
+    "liga": "La Liga",
+    "min": 55,
+    "score": 65,
+    "ataques": 18,
+    "chutes": 3,
+    "escanteios": 4,
+    "sinal": "👀 OBSERVAR"
+  }
+]
