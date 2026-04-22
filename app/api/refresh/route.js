@@ -1,6 +1,10 @@
-import { getJogos } from "../../lib/api";
+import { getJogos } from "../../../lib/api";
 
 export async function GET() {
-  const jogos = await getJogos();
-  return Response.json(jogos);
+  try {
+    const jogos = await getJogos();
+    return Response.json(jogos);
+  } catch (e) {
+    return Response.json({ erro: "falha ao buscar jogos" });
+  }
 }
