@@ -1,24 +1,14 @@
 export async function getJogos() {
-  try {
-    const hoje = new Date().toISOString().split("T")[0];
+  const res = await fetch("https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all", {
+    method: "GET",
+    headers: {
+      "X-RapidAPI-Key": "SUA_API_KEY_AQUI",
+      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+    },
+    cache: "no-store"
+  });
 
-    const res = await fetch(
-      `https://v3.football.api-sports.io/fixtures?date=${hoje}`,
-      {
-        headers: {
-          "x-apisports-key": process.env.API_KEY,
-        },
-        cache: "no-store",
-      }
-    );
+  const data = await res.json();
 
-    const data = await res.json();
-
-    console.log(data); // ajuda debug
-
-    return data.response || [];
-  } catch (e) {
-    console.log("ERRO API:", e);
-    return [];
-  }
+  return data.response;
 }
