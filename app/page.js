@@ -8,18 +8,19 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/refresh")
       .then((r) => r.json())
-      .then(setJogos);
+      .then(setJogos)
+      .catch(() => setJogos([]));
   }, []);
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Jogos</h1>
+      <h1>Jogos ao vivo</h1>
 
-      {jogos.length === 0 && <p>Carregando...</p>}
+      {jogos.length === 0 && <p>Nenhum jogo encontrado</p>}
 
-      {jogos.map((j, i) => (
-        <div key={i}>
-          {j.teams?.home?.name} vs {j.teams?.away?.name}
+      {jogos.map((jogo, i) => (
+        <div key={i} style={{ marginBottom: 10 }}>
+          {jogo.teams?.home?.name} vs {jogo.teams?.away?.name}
         </div>
       ))}
     </div>
