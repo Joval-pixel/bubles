@@ -9,13 +9,17 @@ export default function Home() {
     fetch("/api/refresh")
       .then((res) => res.json())
       .then((data) => {
+        console.log("API:", data); // debug
         setJogos(data || []);
       })
-      .catch(() => setJogos([]));
+      .catch((err) => {
+        console.error(err);
+        setJogos([]);
+      });
   }, []);
 
   return (
-    <div>
+    <div style={{ padding: 20 }}>
       <h1>Jogos ao vivo</h1>
 
       {jogos.length === 0 ? (
