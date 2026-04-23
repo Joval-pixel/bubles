@@ -1,4 +1,4 @@
-import { getJogos } from "./lib/api";
+import { getJogos } from "../lib/api";
 
 export default async function Home() {
   const jogos = await getJogos();
@@ -6,6 +6,7 @@ export default async function Home() {
   return (
     <div>
       <h1>Jogos ao vivo</h1>
+
       {jogos?.map((jogo) => (
         <div key={jogo.fixture.id}>
           {jogo.teams.home.name} vs {jogo.teams.away.name}
