@@ -10,20 +10,19 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => {
         setJogos(data);
-      })
-      .catch((err) => console.error(err));
+      });
   }, []);
 
   return (
-    <div style={{ padding: 20 }}>
+    <div>
       <h1>Jogos ao vivo</h1>
 
       {jogos.length === 0 ? (
         <p>Carregando...</p>
       ) : (
         jogos.map((jogo) => (
-          <div key={jogo.fixture.id} style={{ marginBottom: 10 }}>
-            ⚽ {jogo.teams.home.name} vs {jogo.teams.away.name}
+          <div key={jogo.fixture.id}>
+            {jogo.teams.home.name} vs {jogo.teams.away.name}
           </div>
         ))
       )}
