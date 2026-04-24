@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+ import { useEffect, useMemo, useRef, useState } from "react";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -110,6 +110,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState("");
+  const [debugMessage, setDebugMessage] = useState("");
 
   useEffect(() => {
     const syncBounds = () => {
@@ -155,6 +156,7 @@ export default function App() {
         }
 
         setUpdatedAt(payload?.updatedAt ?? "");
+        setDebugMessage(payload?.debug ?? "");
         setBubbles((current) => {
           const currentMap = new Map(current.map((item) => [item.id, item]));
           return items.map((item, index) =>
@@ -173,6 +175,7 @@ export default function App() {
         setBubbles([]);
         setSelectedId(null);
         setUpdatedAt("");
+        setDebugMessage("Falha ao consultar /api/games");
       } finally {
         if (!isMounted) {
           return;
@@ -278,6 +281,7 @@ export default function App() {
                   Se a API falhar ou não houver partidas elegíveis, o radar fica estável e
                   mostra esta mensagem.
                 </p>
+                {debugMessage ? <small className="debug-note">{debugMessage}</small> : null}
               </div>
             ) : null}
 
