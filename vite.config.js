@@ -28,36 +28,26 @@ function localApiMiddleware() {
             path.resolve(__dirname, "api/games.js")
           );
 
-          let statusCode = 200;
-          const headers = {
-            "Content-Type": "application/json",
-          };
+          const request = new Request(`http://localhost:5173${req.url}`, {
+            method: req.method,
+            headers: req.headers,
+          });
 
-          const mockRes = {
-            status(code) {
-              statusCode = code;
-              return mockRes;
-            },
-            setHeader(name, value) {
-              headers[name] = value;
-            },
-            json(payload) {
-              res.statusCode = statusCode;
-              Object.entries(headers).forEach(([key, value]) => {
-                res.setHeader(key, value);
-              });
-              res.end(JSON.stringify(payload));
-            },
-            end(payload) {
-              res.statusCode = statusCode;
-              Object.entries(headers).forEach(([key, value]) => {
-                res.setHeader(key, value);
-              });
-              res.end(payload);
-            },
-          };
+          let response;
 
-          await apiModule.default(req, mockRes);
+          if (typeof apiModule.GET === "function") {
+            response = await apiModule.GET(request);
+          } else if (typeof apiModule.default?.fetch === "function") {
+            response = await apiModule.default.fetch(request);
+          } else {
+            throw new Error("API module nao exporta GET nem default.fetch");
+          }
+
+          res.statusCode = response.status;
+          response.headers.forEach((value, key) => {
+            res.setHeader(key, value);
+          });
+          res.end(await response.text());
         } catch (error) {
           next(error);
         }
