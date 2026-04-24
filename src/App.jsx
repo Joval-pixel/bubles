@@ -20,35 +20,8 @@ export default function App() {
     const world = new PIXI.Container();
     app.stage.addChild(world);
 
-    // 🔥 ZOOM + DRAG
-    let scale = 1;
-    let dragging = false;
-    let last = { x: 0, y: 0 };
-
-    app.view.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      scale += e.deltaY * -0.001;
-      scale = Math.max(0.5, Math.min(2.5, scale));
-      world.scale.set(scale);
-    });
-
-    app.view.addEventListener("mousedown", (e) => {
-      dragging = true;
-      last = { x: e.clientX, y: e.clientY };
-    });
-
-    app.view.addEventListener("mouseup", () => (dragging = false));
-
-    app.view.addEventListener("mousemove", (e) => {
-      if (!dragging) return;
-      world.x += e.clientX - last.x;
-      world.y += e.clientY - last.y;
-      last = { x: e.clientX, y: e.clientY };
-    });
-
     let bubbles = [];
 
-    // 🚀 carregar dados
     const load = async () => {
       try {
         const res = await fetch("/api/games");
@@ -57,21 +30,22 @@ export default function App() {
         world.removeChildren();
         bubbles = [];
 
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
         data.forEach((g) => {
-          const score = calcEV(g);
-          const size = Math.max(30, score * 1.2);
+          const score = calcScore(g);
+          const size = score * 1.5;
 
-          const container = new PIXI.Container();
+          const bubble = new PIXI.Container();
 
-          // círculo
           const circle = new PIXI.Graphics();
           circle.beginFill(getColor(score));
           circle.drawCircle(0, 0, size);
           circle.endFill();
 
-          // texto
           const text = new PIXI.Text(
-            `${shortName(g.game)}\n${g.oddHome}`,
+            `${short(g.game)}\n@${g.bestOdd}`,
             {
               fontSize: size > 80 ? 16 : 11,
               fill: "#000",
@@ -83,40 +57,32 @@ export default function App() {
 
           text.anchor.set(0.5);
 
-          container.addChild(circle);
-          container.addChild(text);
+          bubble.addChild(circle);
+          bubble.addChild(text);
 
-          container.x = Math.random() * window.innerWidth;
-          container.y = Math.random() * window.innerHeight;
+          bubble.x = centerX + (Math.random() - 0.5) * 800;
+          bubble.y = centerY + (Math.random() - 0.5) * 600;
 
-          container.vx = (Math.random() - 0.5) * 1.5;
-          container.vy = (Math.random() - 0.5) * 1.5;
-          container.size = size;
+          bubble.vx = (Math.random() - 0.5) * 1.5;
+          bubble.vy = (Math.random() - 0.5) * 1.5;
+          bubble.size = size;
 
-          world.addChild(container);
-          bubbles.push(container);
+          world.addChild(bubble);
+          bubbles.push(bubble);
         });
       } catch (e) {
-        console.log("erro API", e);
+        console.log("erro front", e);
       }
     };
 
     await load();
-    setInterval(load, 20000); // 🔄 atualiza a cada 20s
+    setInterval(load, 20000);
 
-    // 🚀 LOOP FÍSICA
     app.ticker.add(() => {
       bubbles.forEach((a, i) => {
         a.x += a.vx;
         a.y += a.vy;
 
-        // borda infinita estilo crypto
-        if (a.x < -2000) a.x = 2000;
-        if (a.x > 2000) a.x = -2000;
-        if (a.y < -2000) a.y = 2000;
-        if (a.y > 2000) a.y = -2000;
-
-        // colisão
         for (let j = i + 1; j < bubbles.length; j++) {
           const b = bubbles[j];
 
@@ -127,7 +93,7 @@ export default function App() {
 
           if (dist < minDist) {
             const angle = Math.atan2(dy, dx);
-            const force = (minDist - dist) * 0.03;
+            const force = (minDist - dist) * 0.05;
 
             a.vx += Math.cos(angle) * force;
             a.vy += Math.sin(angle) * force;
@@ -140,25 +106,28 @@ export default function App() {
     });
   };
 
-  // 🔥 EV REAL (simples mas funcional)
-  const calcEV = (g) => {
-    if (!g.oddHome) return 10;
+  // 🔥 SCORE MELHORADO (visual bom)
+  const calcScore = (g) => {
+    const odd = g.bestOdd || 2;
 
-    const prob = 1 / g.oddHome;
-    const ev = (prob * g.oddHome) - 1;
+    let score = 100 / odd;
 
-    return Math.max(10, ev * 120);
+    if (odd < 1.5) score += 40;
+    if (odd > 2.5) score -= 30;
+
+    return Math.max(20, Math.min(120, score));
   };
 
   const getColor = (score) => {
-    if (score > 80) return 0x00ff88; // verde
-    if (score > 40) return 0xffcc00; // amarelo
-    return 0xff4444; // vermelho
+    if (score > 90) return 0x00ff88;
+    if (score > 65) return 0x66ffcc;
+    if (score > 45) return 0xffcc00;
+    return 0xff4444;
   };
 
-  const shortName = (name) => {
-    if (!name) return "Jogo";
-    return name.length > 20 ? name.slice(0, 20) + "..." : name;
+  const short = (t) => {
+    if (!t) return "Jogo";
+    return t.length > 22 ? t.slice(0, 22) + "..." : t;
   };
 
   return <div ref={containerRef} />;
