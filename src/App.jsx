@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 export default function App() {
   const [bubbles, setBubbles] = useState([]);
-  const [top, setTop] = useState([]);
   const ref = useRef([]);
 
   useEffect(() => {
@@ -13,74 +12,41 @@ export default function App() {
   const fetchGames = async () => {
     try {
       const res = await fetch("/api/games");
-
-      // 🔥 SE API QUEBRAR → fallback automático
-      if (!res.ok) throw new Error("API erro");
-
       const data = await res.json();
 
-      if (!data || data.length === 0) throw new Error("sem dados");
+      const processed = data.map((g) => {
+        const ai = calcAI(g);
 
-      processGames(data);
+        return {
+          ...g,
+          ...ai,
+          size: 50 + ai.ev * 200,
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: (Math.random() - 0.5) * 1.5,
+        };
+      });
 
-    } catch (err) {
-      console.log("⚠️ usando fallback:", err.message);
-
-      // 🔥 DADOS FAKE (NUNCA MAIS TELA PRETA)
-      const fake = Array.from({ length: 25 }).map((_, i) => ({
-        id: i,
-        game: `Jogo ${i + 1}`,
-        shots: Math.random() * 15,
-        corners: Math.random() * 10,
-        dangerous: Math.random() * 30,
-        odds: 1.5 + Math.random() * 2,
-        minute: Math.random() * 90,
-      }));
-
-      processGames(fake);
+      ref.current = processed;
+      setBubbles(processed);
+    } catch (e) {
+      console.log("Erro fetch:", e);
     }
   };
 
-  const processGames = (data) => {
-    const enriched = data.map((g) => {
-      const score =
-        g.dangerous * 3 +
-        g.shots * 2 +
-        g.corners * 1.5;
+  const calcAI = (g) => {
+    const attack = g.dangerous * 0.04;
+    const pressure = g.shots * 0.06;
+    const corners = g.corners * 0.03;
+    const tempo = g.minute * 0.01;
 
-      const prob = Math.min(0.9, g.dangerous * 0.002 + g.shots * 0.01);
-      const ev = prob * g.odds - 1;
+    const raw = attack + pressure + corners + tempo;
 
-      return {
-        ...g,
-        score,
-        prob,
-        ev,
-        isValue: ev > 0.05,
-      };
-    });
+    const prob = Math.min(0.9, raw / 10);
+    const ev = prob * g.oddHome - 1;
 
-    const sorted = enriched.sort((a, b) => b.ev - a.ev);
-
-    const max = sorted[0]?.ev || 1;
-    const min = sorted[sorted.length - 1]?.ev || 0;
-
-    const bubbles = sorted.map((g) => {
-      const normalized = (g.ev - min) / (max - min || 1);
-
-      return {
-        ...g,
-        size: 40 + normalized * 200,
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        vx: (Math.random() - 0.5) * 1.2,
-        vy: (Math.random() - 0.5) * 1.2,
-      };
-    });
-
-    ref.current = bubbles;
-    setBubbles(bubbles);
-    setTop(bubbles.slice(0, 5));
+    return { prob, ev, score: raw };
   };
 
   const animate = () => {
@@ -103,19 +69,10 @@ export default function App() {
   };
 
   const getColor = (b) => {
-    if (b.ev > 0.3) return "#00ff88";
+    if (b.ev > 0.25) return "#00ff88";
     if (b.ev > 0.1) return "#ffaa00";
     return "#ff4444";
   };
-
-  // 🔥 SE AINDA NÃO CARREGOU
-  if (!bubbles.length) {
-    return (
-      <div style={{ color: "#fff", background: "#000", height: "100vh" }}>
-        Carregando dados...
-      </div>
-    );
-  }
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#000" }}>
@@ -134,8 +91,10 @@ export default function App() {
             alignItems: "center",
             justifyContent: "center",
             color: "#000",
-            fontSize: 11,
+            fontSize: 12,
             boxShadow: `0 0 30px ${getColor(b)}`,
+            textAlign: "center",
+            padding: 5,
           }}
         >
           <div>
@@ -145,23 +104,6 @@ export default function App() {
           </div>
         </div>
       ))}
-
-      <div style={{
-        position: "absolute",
-        right: 10,
-        top: 10,
-        background: "#111",
-        padding: 10,
-        borderRadius: 10,
-        color: "#fff"
-      }}>
-        🔥 TOP VALUE
-        {top.map((t, i) => (
-          <div key={i}>
-            {t.game} ({t.ev.toFixed(2)})
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
