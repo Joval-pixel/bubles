@@ -10,6 +10,29 @@ export default function App() {
   const dragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
 
+  // 🧠 SCORE PROFISSIONAL
+  function calculateScore(g) {
+    let score = 0;
+
+    score += g.dangerous * 0.6;
+    score += g.shots * 1.2;
+    score += g.corners * 2;
+
+    if (g.minute > 60) score += 15;
+    if (g.minute > 75) score += 10;
+
+    if (g.odds > 2) score += 20;
+
+    return Math.round(score);
+  }
+
+  // 🎨 COR
+  function getColor(score) {
+    if (score > 80) return "#00ff88";
+    if (score > 50) return "#ffaa00";
+    return "#ff4444";
+  }
+
   async function fetchGames() {
     try {
       const res = await fetch("/api/games");
@@ -17,34 +40,28 @@ export default function App() {
 
       const canvas = canvasRef.current;
 
-      // NÃO recria tudo — atualiza melhor
-      bubbles.current = data.map((item) => ({
-        ...item,
-        x: canvas.width / 2 + (Math.random() - 0.5) * 200,
-        y: canvas.height / 2 + (Math.random() - 0.5) * 200,
-        radius: 40 + item.odds * 8,
-        dx: (Math.random() - 0.5) * 2,
-        dy: (Math.random() - 0.5) * 2,
-        score: calculateScore(item),
-      }));
+      bubbles.current = data.map((item) => {
+        const score = calculateScore({
+          corners: item.corners || 0,
+          shots: item.shots || 0,
+          dangerous: item.dangerous || 0,
+          minute: item.minute || 0,
+          odds: item.odds || 1.5,
+        });
 
+        return {
+          ...item,
+          x: canvas.width / 2 + (Math.random() - 0.5) * 300,
+          y: canvas.height / 2 + (Math.random() - 0.5) * 300,
+          radius: 40 + item.odds * 8,
+          dx: (Math.random() - 0.5) * 2,
+          dy: (Math.random() - 0.5) * 2,
+          score,
+        };
+      });
     } catch {
-      console.log("erro api");
+      console.log("Erro API");
     }
-  }
-
-  function calculateScore(g) {
-    let s = 0;
-    if (g.corners > 6) s += 30;
-    if (g.minute > 60) s += 20;
-    if (g.odds > 2) s += 20;
-    return s;
-  }
-
-  function getColor(score) {
-    if (score > 60) return "#00ff88";
-    if (score > 40) return "#ffaa00";
-    return "#ff4444";
   }
 
   useEffect(() => {
@@ -77,13 +94,13 @@ export default function App() {
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
 
-      // 🔥 força para manter no centro
+      // centralização
       bubbles.current.forEach((b) => {
         b.dx += (centerX - b.x) * 0.0005;
         b.dy += (centerY - b.y) * 0.0005;
       });
 
-      // 🔥 colisão real
+      // colisão
       for (let i = 0; i < bubbles.current.length; i++) {
         for (let j = i + 1; j < bubbles.current.length; j++) {
           const b1 = bubbles.current[i];
@@ -120,12 +137,22 @@ export default function App() {
         ctx.fillStyle = getColor(b.score);
         ctx.fill();
 
+        // 🔔 destaque
+        if (b.score > 90) {
+          ctx.strokeStyle = "#00ff88";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          console.log("🔥 OPORTUNIDADE:", b.game, b.score);
+        }
+
         ctx.fillStyle = "#000";
         ctx.textAlign = "center";
         ctx.font = "12px Arial";
 
         ctx.fillText(b.game.slice(0, 14), b.x, b.y - 5);
-        ctx.fillText(`Odd: ${b.odds.toFixed(2)}`, b.x, b.y + 12);
+        ctx.fillText(`Odd: ${b.odds.toFixed(2)}`, b.x, b.y + 10);
+        ctx.fillText(`Score: ${b.score}`, b.x, b.y + 25);
       });
 
       requestAnimationFrame(draw);
@@ -133,14 +160,14 @@ export default function App() {
 
     draw();
 
-    // 🔥 ZOOM
+    // zoom
     canvas.addEventListener("wheel", (e) => {
       e.preventDefault();
       scale.current += e.deltaY * -0.001;
       scale.current = Math.min(Math.max(0.5, scale.current), 2);
     });
 
-    // 🔥 DRAG
+    // drag
     canvas.addEventListener("mousedown", (e) => {
       dragging.current = true;
       lastMouse.current = { x: e.clientX, y: e.clientY };
