@@ -1,0 +1,153 @@
+import { useEffect, useRef, useState } from "react";
+
+const mockData = [
+  { id: 1, game: "Flamengo vs Palmeiras", odd: 2.5, score: 80, corners: 7 },
+  { id: 2, game: "Barcelona vs Real Madrid", odd: 1.8, score: 60, corners: 5 },
+  { id: 3, game: "Chelsea vs Arsenal", odd: 3.2, score: 90, corners: 10 },
+  { id: 4, game: "PSG vs Lyon", odd: 1.4, score: 40, corners: 3 },
+  { id: 5, game: "Inter vs Milan", odd: 2.9, score: 75, corners: 8 },
+];
+
+export default function App() {
+  const canvasRef = useRef(null);
+  const bubbles = useRef([]);
+  const [selected, setSelected] = useState(null);
+
+  const scale = useRef(1);
+  const offset = useRef({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const lastMouse = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Criar bolhas
+    bubbles.current = mockData.map((item) => ({
+      ...item,
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      radius: item.odd * 20,
+      dx: (Math.random() - 0.5) * 1.5,
+      dy: (Math.random() - 0.5) * 1.5,
+    }));
+
+    function getColor(score) {
+      if (score > 70) return "#00ff88";
+      if (score > 50) return "#ffaa00";
+      return "#ff4444";
+    }
+
+    function draw() {
+      ctx.setTransform(scale.current, 0, 0, scale.current, offset.current.x, offset.current.y);
+      ctx.clearRect(-offset.current.x, -offset.current.y, canvas.width, canvas.height);
+
+      bubbles.current.forEach((b) => {
+        b.x += b.dx;
+        b.y += b.dy;
+
+        if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.dx *= -1;
+        if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.dy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fillStyle = getColor(b.score);
+        ctx.fill();
+
+        ctx.fillStyle = "#000";
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(b.game, b.x, b.y);
+        ctx.fillText(`Odd: ${b.odd}`, b.x, b.y + 14);
+      });
+
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    // CLICK
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left - offset.current.x) / scale.current;
+      const y = (e.clientY - rect.top - offset.current.y) / scale.current;
+
+      const found = bubbles.current.find(
+        (b) => Math.hypot(b.x - x, b.y - y) < b.radius
+      );
+
+      if (found) setSelected(found);
+    });
+
+    // ZOOM
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      scale.current += e.deltaY * -0.001;
+      scale.current = Math.min(Math.max(0.5, scale.current), 2);
+    });
+
+    // DRAG
+    canvas.addEventListener("mousedown", (e) => {
+      dragging.current = true;
+      lastMouse.current = { x: e.clientX, y: e.clientY };
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (!dragging.current) return;
+      offset.current.x += e.clientX - lastMouse.current.x;
+      offset.current.y += e.clientY - lastMouse.current.y;
+      lastMouse.current = { x: e.clientX, y: e.clientY };
+    });
+
+    canvas.addEventListener("mouseup", () => (dragging.current = false));
+
+  }, []);
+
+  // Atualização simulada
+  useEffect(() => {
+    const interval = setInterval(() => {
+      bubbles.current.forEach((b) => {
+        b.score = Math.floor(Math.random() * 100);
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <>
+      <canvas ref={canvasRef} style={{ background: "#111", display: "block" }} />
+
+      {selected && (
+        <div
+          style={{
+            position: "fixed",
+            right: 20,
+            top: 20,
+            background: "#222",
+            color: "#fff",
+            padding: 20,
+            borderRadius: 10,
+          }}
+        >
+          <h3>{selected.game}</h3>
+          <p>Odd: {selected.odd}</p>
+          <p>Score: {selected.score}</p>
+          <p>Escanteios: {selected.corners}</p>
+
+          <strong>Sugestão:</strong>
+          <p>
+            {selected.corners > 7
+              ? "Over escanteios"
+              : "Jogo lento"}
+          </p>
+
+          <button onClick={() => setSelected(null)}>Fechar</button>
+        </div>
+      )}
+    </>
+  );
+}
