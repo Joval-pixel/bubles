@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function App() {
   const [games, setGames] = useState([]);
-  const [bubbles, setBubbles] = useState([]);
+  const bubblesRef = useRef([]);
 
   useEffect(() => {
     fetchGames();
+  }, []);
+
+  useEffect(() => {
+    animate();
   }, []);
 
   const fetchGames = async () => {
@@ -13,67 +17,31 @@ export default function App() {
       const res = await fetch("/api/games");
       const data = await res.json();
 
-      setGames(data);
-      generateBubbles(data);
+      const bubbles = data.map((g) => ({
+        ...g,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: (Math.random() - 0.5) * 1.5,
+        size: calcScore(g),
+        score: calcScore(g)
+      }));
+
+      bubblesRef.current = bubbles;
+      setGames(bubbles);
 
     } catch (err) {
       console.log("erro:", err);
     }
   };
 
-  // 🔥 GERA POSIÇÕES SEM COLISÃO
-  const generateBubbles = (data) => {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    const placed = [];
-
-    const newBubbles = data.map((g) => {
-      const score = calcScore(g);
-
-      const size = Math.max(40, score * 1.2);
-
-      let x, y, tries = 0;
-      let valid = false;
-
-      while (!valid && tries < 200) {
-        x = Math.random() * (width - size);
-        y = Math.random() * (height - size);
-
-        valid = true;
-
-        for (let p of placed) {
-          const dx = p.x - x;
-          const dy = p.y - y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < (p.size + size) / 2 + 10) {
-            valid = false;
-            break;
-          }
-        }
-
-        tries++;
-      }
-
-      const bubble = { ...g, x, y, size, score };
-      placed.push(bubble);
-      return bubble;
-    });
-
-    setBubbles(newBubbles);
-  };
-
-  // 🧠 SCORE PROFISSIONAL
   const calcScore = (g) => {
-    let score = 0;
-
-    score += g.dangerous * 2;
-    score += g.shots * 1.5;
-    score += g.corners * 1.2;
-    score += g.minute * 0.5;
-
-    return Math.min(120, score);
+    let s = 0;
+    s += g.dangerous * 2;
+    s += g.shots * 1.5;
+    s += g.corners * 1.2;
+    s += g.minute * 0.5;
+    return Math.min(120, Math.max(40, s));
   };
 
   const getColor = (score) => {
@@ -82,11 +50,63 @@ export default function App() {
     return "#ff4444";
   };
 
+  const animate = () => {
+    const loop = () => {
+      const bubbles = bubblesRef.current;
+
+      for (let i = 0; i < bubbles.length; i++) {
+        let b = bubbles[i];
+
+        // movimento
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // borda
+        if (b.x < 0 || b.x > window.innerWidth) b.vx *= -1;
+        if (b.y < 0 || b.y > window.innerHeight) b.vy *= -1;
+
+        // colisão / repulsão
+        for (let j = i + 1; j < bubbles.length; j++) {
+          let o = bubbles[j];
+
+          let dx = o.x - b.x;
+          let dy = o.y - b.y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+
+          let minDist = (b.size + o.size) / 2;
+
+          if (dist < minDist) {
+            let angle = Math.atan2(dy, dx);
+            let force = 0.5;
+
+            b.vx -= Math.cos(angle) * force;
+            b.vy -= Math.sin(angle) * force;
+
+            o.vx += Math.cos(angle) * force;
+            o.vy += Math.sin(angle) * force;
+          }
+        }
+
+        // leve atração ao centro (organiza)
+        let cx = window.innerWidth / 2;
+        let cy = window.innerHeight / 2;
+
+        b.vx += (cx - b.x) * 0.00005;
+        b.vy += (cy - b.y) * 0.00005;
+      }
+
+      setGames([...bubbles]);
+      requestAnimationFrame(loop);
+    };
+
+    loop();
+  };
+
   return (
-    <div style={{ background: "#000", width: "100vw", height: "100vh" }}>
-      {bubbles.map((b) => (
+    <div style={{ background: "#000", width: "100vw", height: "100vh", overflow: "hidden" }}>
+      {games.map((b, i) => (
         <div
-          key={b.id}
+          key={i}
           style={{
             position: "absolute",
             left: b.x,
@@ -101,9 +121,8 @@ export default function App() {
             textAlign: "center",
             fontSize: 12,
             color: "#000",
-            boxShadow: `0 0 30px ${getColor(b.score)}`,
-            padding: 5,
-            overflow: "hidden"
+            boxShadow: `0 0 25px ${getColor(b.score)}`,
+            pointerEvents: "none"
           }}
         >
           <div>
