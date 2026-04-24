@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const App = () => {
   const [games, setGames] = useState([]);
+  const [error, setError] = useState(null);
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
 
@@ -9,34 +10,48 @@ const App = () => {
     try {
       const res = await fetch('/api/games');
       const data = await res.json();
-      if (Array.isArray(data)) {
+
+      if (data.error) {
+        setError(data.error + ": " + (data.message || "Verifique sua chave"));
+        return;
+      }
+
+      if (Array.isArray(data) && data.length > 0) {
+        setError(null);
         const processed = data.map(event => {
           const price = event.bookmakers?.[0]?.markets?.[0]?.outcomes?.[0]?.price || 2.0;
-          const evValue = ((0.6 * price) - 1) * 100; // Transformado em % para o estilo do print
+          const evValue = ((0.55 * price) - 1) * 100;
           return {
             id: event.id,
-            home: event.home_team.substring(0, 4).toUpperCase(), // Abreviação tipo Crypto
-            name: `${event.home_team} vs ${event.away_team}`,
+            home: event.home_team.substring(0, 3).toUpperCase(),
+            full: `${event.home_team} vs ${event.away_team}`,
             ev: parseFloat(evValue.toFixed(1))
           };
         });
         setGames(processed);
         updatePhysics(processed);
+      } else {
+        setError("API retornou lista vazia. Não há jogos live no momento.");
       }
-    } catch (e) { console.error("Erro na API"); }
+    } catch (e) {
+      setError("Erro ao conectar com a função /api/games");
+    }
   };
 
   const updatePhysics = (newGames) => {
-    const currentIds = bubbles.current.map(b => b.id);
+    // Remove bolhas que não estão mais nos dados
+    const newIds = newGames.map(g => g.id);
+    bubbles.current = bubbles.current.filter(b => newIds.includes(b.id));
+
     newGames.forEach(g => {
-      if (!currentIds.includes(g.id)) {
+      if (!bubbles.current.find(b => b.id === g.id)) {
         bubbles.current.push({
           ...g,
           x: Math.random() * window.innerWidth,
           y: Math.random() * window.innerHeight,
-          vx: (Math.random() - 0.5) * 1,
-          vy: (Math.random() - 0.5) * 1,
-          radius: 50 + (Math.abs(g.ev) * 0.8) // Tamanho baseado no valor
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 0.5) * 2,
+          radius: 50 + Math.min(Math.abs(g.ev) * 2, 60) 
         });
       }
     });
@@ -44,7 +59,8 @@ const App = () => {
 
   useEffect(() => {
     fetchData();
-    setInterval(fetchData, 60000);
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -55,52 +71,42 @@ const App = () => {
     const animate = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      
-      // Fundo levemente texturizado como no print
-      ctx.fillStyle = '#121212';
+      ctx.fillStyle = '#0a0a0a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       bubbles.current.forEach(b => {
-        // Física de colisão com as bordas
         b.x += b.vx; b.y += b.vy;
         if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.vx *= -1;
         if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.vy *= -1;
 
         const isPositive = b.ev >= 0;
-        const mainColor = isPositive ? '#00d26a' : '#f8312f';
-        const gradColor = isPositive ? '#004d28' : '#4d0b0a';
+        const color = isPositive ? '#00ff88' : '#ff3333';
+        const darkColor = isPositive ? '#004422' : '#441111';
 
-        // 1. Sombra/Brilho externo (Glow)
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = mainColor + '66';
-
-        // 2. Círculo principal com Gradiente Radial (Igual ao Crypto Bubbles)
-        const gradient = ctx.createRadialGradient(b.x, b.y - b.radius/3, 0, b.x, b.y, b.radius);
-        gradient.addColorStop(0, mainColor);
-        gradient.addColorStop(1, gradColor);
+        // Estilo Crypto Bubbles (Gradiente + Glow)
+        ctx.save();
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = color + '44';
+        
+        const grad = ctx.createRadialGradient(b.x, b.y - b.radius/3, 0, b.x, b.y, b.radius);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, darkColor);
         
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = grad;
         ctx.fill();
-        
-        // 3. Borda fina brilhante
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
         ctx.stroke();
+        ctx.restore();
 
-        // 4. Textos (Nome do Time e Porcentagem EV)
-        ctx.fillStyle = '#ffffff';
+        // Textos
+        ctx.fillStyle = 'white';
         ctx.textAlign = 'center';
-        
-        // Nome abreviado (Estilo "BTC", "ETH")
-        ctx.font = `bold ${b.radius * 0.35}px Arial`;
-        ctx.fillText(b.home, b.x, b.y);
-
-        // Valor do EV (Estilo "+15,7%")
-        ctx.font = `${b.radius * 0.22}px Arial`;
-        ctx.fillText(`${isPositive ? '+' : ''}${b.ev}%`, b.x, b.y + (b.radius * 0.3));
+        ctx.font = `bold ${b.radius * 0.4}px Inter, sans-serif`;
+        ctx.fillText(b.home, b.x, b.y + b.radius * 0.1);
+        ctx.font = `${b.radius * 0.25}px monospace`;
+        ctx.fillText(`${b.ev}%`, b.x, b.y + b.radius * 0.4);
       });
       frame = requestAnimationFrame(animate);
     };
@@ -109,25 +115,36 @@ const App = () => {
   }, [games]);
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-[#121212]">
-      {/* Header estilo Crypto Bubbles */}
-      <div className="absolute top-0 w-full z-20 bg-[#1a1a1a]/90 backdrop-blur-md p-3 flex justify-between items-center border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center font-black text-black text-xs">⚽</div>
-          <span className="font-bold text-white tracking-tighter">BET BUBBLES</span>
+    <div className="fixed inset-0 bg-[#0a0a0a] text-white">
+      {/* Mensagem de Erro se a API falhar */}
+      {error && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-red-600/20 border border-red-500 p-4 rounded-lg text-red-500 text-sm backdrop-blur-md">
+          ⚠️ {error}
         </div>
-        <div className="flex gap-4 text-[10px] font-bold text-gray-400">
-          <span className="text-green-500">LIVE MARKET</span>
-          <span>VALOR: EV %</span>
+      )}
+
+      {/* Header Estilo Crypto */}
+      <div className="absolute top-0 w-full h-16 bg-black/50 backdrop-blur-xl border-b border-white/5 flex items-center px-8 justify-between z-40">
+        <div className="flex items-center gap-3">
+          <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></div>
+          <h1 className="font-black italic tracking-tighter text-xl">BET BUBBLES <span className="text-gray-600 text-xs not-italic font-normal">v2.0</span></h1>
+        </div>
+        <div className="text-[10px] text-gray-500 font-mono">
+          REFRESH: 30S | API: THE-ODDS-API
         </div>
       </div>
 
-      <canvas ref={canvasRef} className="block" />
-      
-      {/* Legenda Flutuante */}
-      <div className="absolute bottom-6 right-6 z-20 bg-black/60 p-4 rounded-xl border border-white/10 backdrop-blur-md">
-         <p className="text-[10px] text-gray-400 uppercase font-black">Top Opportunity</p>
-         <p className="text-sm font-bold text-green-400">{games[0]?.name || "Scanning..."}</p>
+      <canvas ref={canvasRef} className="cursor-move" />
+
+      {/* Painel de Top Jogos lateral */}
+      <div className="absolute right-6 top-24 bottom-6 w-64 bg-black/40 backdrop-blur-md rounded-3xl border border-white/5 p-6 overflow-y-auto z-40">
+        <p className="text-[10px] font-bold text-gray-500 mb-4 tracking-widest">TOP LIVE EV%</p>
+        {games.slice(0, 8).map((g, i) => (
+          <div key={i} className="mb-3 p-3 bg-white/5 rounded-xl border border-white/5">
+            <p className="text-[10px] text-gray-400 truncate">{g.full}</p>
+            <p className={`text-sm font-bold ${g.ev > 0 ? 'text-green-400' : 'text-red-400'}`}>{g.ev}%</p>
+          </div>
+        ))}
       </div>
     </div>
   );
