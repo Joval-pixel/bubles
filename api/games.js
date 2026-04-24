@@ -3,21 +3,15 @@ export default async function handler(req, res) {
     const API_KEY = process.env.ODDS_API_KEY;
 
     if (!API_KEY) {
-      return res.status(500).json({ error: "API KEY não encontrada" });
+      return res.status(500).json({ error: "API KEY não configurada" });
     }
 
     const url = `https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
 
     const response = await fetch(url);
-
-    if (!response.ok) {
-      return res.status(500).json({ error: "Erro ao buscar API" });
-    }
-
     const data = await response.json();
 
-    // 👉 se não tiver jogos, retorna vazio (SEM fallback lixo)
-    if (!data || !data.length) {
+    if (!Array.isArray(data)) {
       return res.status(200).json([]);
     }
 
@@ -28,9 +22,9 @@ export default async function handler(req, res) {
       let bestHome = null;
       let bestAway = null;
 
-      game.bookmakers?.forEach((book) => {
-        book.markets?.forEach((market) => {
-          market.outcomes?.forEach((o) => {
+      game.bookmakers?.forEach((b) => {
+        b.markets?.forEach((m) => {
+          m.outcomes?.forEach((o) => {
             if (o.name === home) {
               if (!bestHome || o.price > bestHome) bestHome = o.price;
             }
@@ -41,11 +35,18 @@ export default async function handler(req, res) {
         });
       });
 
-      // 👉 calcula EV real simples
-      const probHome = bestHome ? 1 / bestHome : 0;
-      const probAway = bestAway ? 1 / bestAway : 0;
+      if (!bestHome || !bestAway) return null;
 
-      const ev = bestHome ? (bestHome * probHome - 1) : 0;
+      // 🔥 PROBABILIDADE IMPLÍCITA
+      const probHome = 1 / bestHome;
+      const probAway = 1 / bestAway;
+
+      // 🔥 NORMALIZA (remove margem)
+      const totalProb = probHome + probAway;
+      const fairHome = probHome / totalProb;
+
+      // 🔥 EV REAL
+      const ev = bestHome * fairHome - 1;
 
       return {
         id: i,
@@ -54,13 +55,11 @@ export default async function handler(req, res) {
         oddAway: bestAway,
         ev: Number(ev.toFixed(3)),
       };
-    });
+    }).filter(Boolean);
 
     res.status(200).json(games);
-  } catch (error) {
-    console.log("ERRO:", error);
-
-    // 👉 nunca mais fallback fake
+  } catch (err) {
+    console.log(err);
     res.status(200).json([]);
   }
 }
