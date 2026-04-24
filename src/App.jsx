@@ -2,50 +2,41 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const App = () => {
   const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(true);
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
-
-  const processGames = (data) => {
-    return data.map(event => {
-      const price = event.bookmakers?.[0]?.markets?.[0]?.outcomes?.[0]?.price || 2.10;
-      const evValue = parseFloat(((0.6 * price) - 1).toFixed(2));
-      
-      return {
-        id: event.id,
-        name: `${event.home_team} vs ${event.away_team}`,
-        home: event.home_team,
-        away: event.away_team,
-        ev: evValue > 0 ? evValue : 0.05, // Força um EV mínimo para teste visual
-        price: price
-      };
-    });
-  };
 
   const fetchData = async () => {
     try {
       const res = await fetch('/api/games');
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const processed = processGames(data).sort((a, b) => b.ev - a.ev);
+      if (Array.isArray(data)) {
+        const processed = data.map(event => {
+          const price = event.bookmakers?.[0]?.markets?.[0]?.outcomes?.[0]?.price || 2.0;
+          const evValue = ((0.6 * price) - 1) * 100; // Transformado em % para o estilo do print
+          return {
+            id: event.id,
+            home: event.home_team.substring(0, 4).toUpperCase(), // Abreviação tipo Crypto
+            name: `${event.home_team} vs ${event.away_team}`,
+            ev: parseFloat(evValue.toFixed(1))
+          };
+        });
         setGames(processed);
-        syncBubbles(processed);
+        updatePhysics(processed);
       }
-    } catch (e) { console.error("Erro na busca"); }
-    finally { setLoading(false); }
+    } catch (e) { console.error("Erro na API"); }
   };
 
-  const syncBubbles = (newGames) => {
-    const existingIds = bubbles.current.map(b => b.id);
+  const updatePhysics = (newGames) => {
+    const currentIds = bubbles.current.map(b => b.id);
     newGames.forEach(g => {
-      if (!existingIds.includes(g.id)) {
+      if (!currentIds.includes(g.id)) {
         bubbles.current.push({
           ...g,
           x: Math.random() * window.innerWidth,
           y: Math.random() * window.innerHeight,
-          vx: (Math.random() - 0.5) * 1.2,
-          vy: (Math.random() - 0.5) * 1.2,
-          radius: 60 + (g.ev * 40)
+          vx: (Math.random() - 0.5) * 1,
+          vy: (Math.random() - 0.5) * 1,
+          radius: 50 + (Math.abs(g.ev) * 0.8) // Tamanho baseado no valor
         });
       }
     });
@@ -53,8 +44,7 @@ const App = () => {
 
   useEffect(() => {
     fetchData();
-    const timer = setInterval(fetchData, 60000);
-    return () => clearInterval(timer);
+    setInterval(fetchData, 60000);
   }, []);
 
   useEffect(() => {
@@ -62,86 +52,82 @@ const App = () => {
     const ctx = canvas.getContext('2d');
     let frame;
 
-    const draw = () => {
+    const animate = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Fundo levemente texturizado como no print
+      ctx.fillStyle = '#121212';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       bubbles.current.forEach(b => {
+        // Física de colisão com as bordas
         b.x += b.vx; b.y += b.vy;
         if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.vx *= -1;
         if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.vy *= -1;
 
-        const color = b.ev > 0.4 ? '#00ff88' : '#ffcc00';
+        const isPositive = b.ev >= 0;
+        const mainColor = isPositive ? '#00d26a' : '#f8312f';
+        const gradColor = isPositive ? '#004d28' : '#4d0b0a';
+
+        // 1. Sombra/Brilho externo (Glow)
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = mainColor + '66';
+
+        // 2. Círculo principal com Gradiente Radial (Igual ao Crypto Bubbles)
+        const gradient = ctx.createRadialGradient(b.x, b.y - b.radius/3, 0, b.x, b.y, b.radius);
+        gradient.addColorStop(0, mainColor);
+        gradient.addColorStop(1, gradColor);
         
-        // Brilho da bolha
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = color;
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(20, 20, 20, 0.8)';
+        ctx.fillStyle = gradient;
         ctx.fill();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        
+        // 3. Borda fina brilhante
         ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
-        // Texto interno
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px Inter, sans-serif';
+        // 4. Textos (Nome do Time e Porcentagem EV)
+        ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
-        ctx.fillText(b.home, b.x, b.y - 10);
-        ctx.fillText("x", b.x, b.y + 2);
-        ctx.fillText(b.away, b.x, b.y + 15);
-        ctx.fillStyle = color;
-        ctx.font = 'bold 14px monospace';
-        ctx.fillText(`EV +${b.ev}`, b.x, b.y + 35);
+        
+        // Nome abreviado (Estilo "BTC", "ETH")
+        ctx.font = `bold ${b.radius * 0.35}px Arial`;
+        ctx.fillText(b.home, b.x, b.y);
+
+        // Valor do EV (Estilo "+15,7%")
+        ctx.font = `${b.radius * 0.22}px Arial`;
+        ctx.fillText(`${isPositive ? '+' : ''}${b.ev}%`, b.x, b.y + (b.radius * 0.3));
       });
-      frame = requestAnimationFrame(draw);
+      frame = requestAnimationFrame(animate);
     };
-    draw();
+    animate();
     return () => cancelAnimationFrame(frame);
   }, [games]);
 
   return (
-    <div className="fixed inset-0 bg-[#050505] font-sans text-white overflow-hidden">
-      <canvas ref={canvasRef} className="absolute inset-0" />
-      
-      {/* Sidebar Ultra Moderna */}
-      <div className="relative z-10 w-96 h-full bg-black/40 backdrop-blur-2xl border-r border-white/5 p-8 flex flex-col shadow-2xl">
-        <div className="flex items-center gap-3 mb-10">
-          <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
-          <h1 className="text-2xl font-black tracking-tighter italic">LIVE SCANNER</h1>
+    <div className="fixed inset-0 overflow-hidden bg-[#121212]">
+      {/* Header estilo Crypto Bubbles */}
+      <div className="absolute top-0 w-full z-20 bg-[#1a1a1a]/90 backdrop-blur-md p-3 flex justify-between items-center border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center font-black text-black text-xs">⚽</div>
+          <span className="font-bold text-white tracking-tighter">BET BUBBLES</span>
         </div>
+        <div className="flex gap-4 text-[10px] font-bold text-gray-400">
+          <span className="text-green-500">LIVE MARKET</span>
+          <span>VALOR: EV %</span>
+        </div>
+      </div>
 
-        <div className="flex-1 overflow-y-auto pr-2 custom-scroll">
-          {loading ? (
-            <div className="text-gray-500 animate-pulse">Iniciando motores...</div>
-          ) : games.length === 0 ? (
-            <div className="p-6 border border-dashed border-white/10 rounded-2xl text-gray-500 text-center">
-              Sem jogos detectados agora
-            </div>
-          ) : (
-            games.map((g, i) => (
-              <div key={i} className="mb-4 p-5 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group">
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded">ODDS ACTIVE</span>
-                  <span className="text-xs font-mono text-gray-500">#{i+1}</span>
-                </div>
-                <h3 className="font-bold text-sm leading-tight group-hover:text-green-400 transition-colors">{g.name}</h3>
-                <div className="mt-4 flex justify-between items-end">
-                  <div className="text-[10px] text-gray-500">POTENTIAL EV</div>
-                  <div className="text-xl font-black text-green-500">+{g.ev}</div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        
-        <div className="mt-auto pt-6 border-t border-white/5 text-[10px] text-gray-600 flex justify-between">
-          <span>API: THE-ODDS-API</span>
-          <span>STATUS: ONLINE</span>
-        </div>
+      <canvas ref={canvasRef} className="block" />
+      
+      {/* Legenda Flutuante */}
+      <div className="absolute bottom-6 right-6 z-20 bg-black/60 p-4 rounded-xl border border-white/10 backdrop-blur-md">
+         <p className="text-[10px] text-gray-400 uppercase font-black">Top Opportunity</p>
+         <p className="text-sm font-bold text-green-400">{games[0]?.name || "Scanning..."}</p>
       </div>
     </div>
   );
