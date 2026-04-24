@@ -120,7 +120,8 @@ button {
 .header-copy p,
 .empty-state p,
 .empty-inline,
-.top-copy span {
+.top-copy span,
+.debug-note {
   color: var(--text-soft);
   line-height: 1.6;
 }
@@ -404,6 +405,11 @@ button {
 
 .empty-inline {
   min-height: 120px;
+}
+
+.debug-note {
+  max-width: 34rem;
+  font-size: 0.88rem;
 }
 
 @media (max-width: 1180px) {
