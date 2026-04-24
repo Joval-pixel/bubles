@@ -1,25 +1,40 @@
 export default async function handler(req, res) {
   try {
     const response = await fetch(
-      "https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all",
-      {
-        headers: {
-          "X-RapidAPI-Key": process.env.API_KEY,
-          "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com",
-        },
-      }
+      "https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?regions=eu&markets=h2h&apiKey=" +
+        process.env.API_KEY
     );
 
-    const json = await response.json();
+    const data = await response.json();
 
-    const games = json.response.slice(0, 30).map((g, i) => ({
-      id: i,
-      game: `${g.teams.home.name} x ${g.teams.away.name}`,
-      bestOdd: 1.5 + Math.random() * 2 // simula odds se não tiver
-    }));
+    if (!Array.isArray(data)) {
+      throw new Error("API ruim");
+    }
+
+    const games = data.slice(0, 20).map((g, i) => {
+      const home = g.home_team;
+      const away = g.away_team;
+
+      let bestOdd = 2;
+
+      if (g.bookmakers?.[0]?.markets?.[0]?.outcomes) {
+        const odds = g.bookmakers[0].markets[0].outcomes.map(
+          (o) => o.price
+        );
+        bestOdd = Math.min(...odds);
+      }
+
+      return {
+        id: i,
+        game: `${home} x ${away}`,
+        bestOdd,
+      };
+    });
 
     res.status(200).json(games);
-  } catch (e) {
-    res.status(200).json([]);
+  } catch (err) {
+    console.log("ERRO REAL:", err);
+
+    res.status(200).json([]); // ❗ NÃO usa fallback fake
   }
 }
