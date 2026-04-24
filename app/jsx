@@ -10,10 +10,10 @@ export default function App() {
   const dragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
 
-  // 🎯 BUSCAR DADOS REAIS
+  // 🔥 BUSCAR DADOS DA API DO VERCEL
   async function fetchGames() {
     try {
-      const res = await fetch("http://localhost:3001/games");
+      const res = await fetch("/api/games"); // ✅ AQUI ESTÁ A CORREÇÃO
       const data = await res.json();
 
       if (!data || data.length === 0) return;
