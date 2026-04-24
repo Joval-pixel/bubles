@@ -5,9 +5,9 @@ import react from "@vitejs/plugin-react";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-function devGamesApi() {
+function localApiMiddleware() {
   return {
-    name: "dev-games-api",
+    name: "local-api-middleware",
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const pathname = req.url?.split("?")[0];
@@ -43,15 +43,15 @@ function devGamesApi() {
             },
             json(payload) {
               res.statusCode = statusCode;
-              Object.entries(headers).forEach(([name, value]) => {
-                res.setHeader(name, value);
+              Object.entries(headers).forEach(([key, value]) => {
+                res.setHeader(key, value);
               });
               res.end(JSON.stringify(payload));
             },
             end(payload) {
               res.statusCode = statusCode;
-              Object.entries(headers).forEach(([name, value]) => {
-                res.setHeader(name, value);
+              Object.entries(headers).forEach(([key, value]) => {
+                res.setHeader(key, value);
               });
               res.end(payload);
             },
@@ -67,5 +67,5 @@ function devGamesApi() {
 }
 
 export default defineConfig({
-  plugins: [react(), devGamesApi()],
+  plugins: [react(), localApiMiddleware()],
 });
