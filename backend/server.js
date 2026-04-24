@@ -5,7 +5,7 @@ import cors from "cors";
 const app = express();
 app.use(cors());
 
-const API_KEY = "SUA_API_KEY_AQUI";
+const API_KEY = "a8a01eb35f33b891595b48713ea0e2bf";
 
 app.get("/games", async (req, res) => {
   try {
