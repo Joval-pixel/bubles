@@ -2,21 +2,23 @@ export default async function handler(req, res) {
   try {
     const API_KEY = process.env.ODDS_API_KEY;
 
-    if (!API_KEY) {
-      return res.status(500).json({ error: "API KEY não configurada" });
-    }
+    // 1️⃣ buscar esportes disponíveis
+    const sportsRes = await fetch(
+      `https://api.the-odds-api.com/v4/sports/?apiKey=${API_KEY}`
+    );
 
-    const leagues = [
-      "soccer_epl",
-      "soccer_spain_la_liga",
-      "soccer_italy_serie_a",
-      "soccer_brazil_campeonato"
-    ];
+    const sports = await sportsRes.json();
+
+    // pega só futebol
+    const soccerSports = sports.filter((s) =>
+      s.key.includes("soccer")
+    );
 
     let allGames = [];
 
-    for (const league of leagues) {
-      const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
+    // 2️⃣ buscar odds de várias ligas
+    for (const sport of soccerSports.slice(0, 5)) {
+      const url = `https://api.the-odds-api.com/v4/sports/${sport.key}/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
 
       const response = await fetch(url);
       if (!response.ok) continue;
@@ -49,18 +51,14 @@ export default async function handler(req, res) {
 
         const probHome = 1 / bestHome;
         const probAway = 1 / bestAway;
-
         const total = probHome + probAway;
 
-        const fairHome = probHome / total;
-
-        const ev = bestHome * fairHome - 1;
+        const fair = probHome / total;
+        const ev = bestHome * fair - 1;
 
         return {
-          id: `${league}-${i}`,
+          id: `${sport.key}-${i}`,
           game: `${home} x ${away}`,
-          oddHome: bestHome,
-          oddAway: bestAway,
           ev: Number(ev.toFixed(3)),
         };
       }).filter(Boolean);
