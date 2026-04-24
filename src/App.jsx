@@ -23,9 +23,9 @@ export default function App() {
       ...g,
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 1.5,
-      vy: (Math.random() - 0.5) * 1.5,
-      r: Math.max(20, Math.abs(g.ev) * 200),
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: (Math.random() - 0.5) * 1.2,
+      r: Math.max(25, Math.abs(g.ev) * 250),
     }));
 
     function draw() {
@@ -38,7 +38,6 @@ export default function App() {
         if (b.x < b.r || b.x > canvas.width - b.r) b.vx *= -1;
         if (b.y < b.r || b.y > canvas.height - b.r) b.vy *= -1;
 
-        // cor por EV
         let color = "#ff3b3b";
         if (b.ev > 0.05) color = "#00ff88";
         else if (b.ev > 0) color = "#ffaa00";
@@ -53,7 +52,7 @@ export default function App() {
         ctx.textAlign = "center";
 
         ctx.fillText(b.game, b.x, b.y - 5);
-        ctx.fillText(`EV: ${b.ev}`, b.x, b.y + 10);
+        ctx.fillText(`EV ${b.ev}`, b.x, b.y + 10);
       });
 
       requestAnimationFrame(draw);
