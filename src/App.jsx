@@ -3,12 +3,13 @@ import { useEffect, useRef } from "react";
 export default function App() {
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
+  const alertsRef = useRef([]);
 
   const scale = useRef(1);
   const offset = useRef({ x: 0, y: 0 });
 
   // =========================
-  // 🧠 SCORE PROFISSIONAL
+  // SCORE PROFISSIONAL
   // =========================
   function calculateScore(g) {
     let score = 0;
@@ -25,6 +26,24 @@ export default function App() {
     return Math.max(10, Math.round(score));
   }
 
+  // =========================
+  // ALERTA PROFISSIONAL
+  // =========================
+  function detectSignal(g) {
+    let confidence = 0;
+
+    if (g.dangerous > 25) confidence += 25;
+    if (g.shots > 10) confidence += 20;
+    if (g.corners > 6) confidence += 20;
+
+    if (g.minute > 60) confidence += 15;
+    if (g.minute > 75) confidence += 20;
+
+    if (g.odds > 1.8 && g.odds < 3) confidence += 10;
+
+    return confidence;
+  }
+
   function getColor(score) {
     if (score > 110) return "#00ffcc";
     if (score > 80) return "#00ff88";
@@ -33,23 +52,22 @@ export default function App() {
   }
 
   // =========================
-  // 🔥 LAYOUT ESTILO CRYPTOBUBBLES
+  // DISTRIBUIÇÃO ESTILO CRYPTO
   // =========================
-  function distributeBubbles(data, canvas) {
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
+  function distribute(data, canvas) {
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
 
-    // ordenar maiores primeiro
     const sorted = [...data].sort((a, b) => b.score - a.score);
 
     return sorted.map((b, i) => {
       const angle = Math.random() * Math.PI * 2;
-      const radiusSpread = Math.sqrt(i) * 120;
+      const spread = Math.sqrt(i) * 140;
 
       return {
         ...b,
-        x: centerX + Math.cos(angle) * radiusSpread,
-        y: centerY + Math.sin(angle) * radiusSpread,
+        x: cx + Math.cos(angle) * spread,
+        y: cy + Math.sin(angle) * spread,
         dx: 0,
         dy: 0,
       };
@@ -57,7 +75,7 @@ export default function App() {
   }
 
   // =========================
-  // 🔄 FETCH
+  // FETCH + ALERTAS
   // =========================
   async function fetchGames() {
     try {
@@ -66,43 +84,40 @@ export default function App() {
 
       const canvas = canvasRef.current;
 
-      const processed = data.map((g) => {
-        const score = calculateScore(g);
+      const alerts = [];
 
-        return {
-          ...g,
-          score,
-          radius: Math.max(25, score * 1.4),
-        };
-      }).filter(b => b.score > 30);
+      const processed = data
+        .map((g) => {
+          const score = calculateScore(g);
+          const confidence = detectSignal(g);
 
-      bubbles.current = distributeBubbles(processed, canvas);
+          if (confidence > 70) {
+            alerts.push({
+              game: g.game,
+              confidence,
+              type: g.corners > 6 ? "ESCANTEIOS" : "OVER",
+            });
+          }
+
+          return {
+            ...g,
+            score,
+            confidence,
+            radius: Math.max(25, score * 1.4),
+          };
+        })
+        .filter((g) => g.score > 30);
+
+      bubbles.current = distribute(processed, canvas);
+      alertsRef.current = alerts;
 
     } catch {
-      const canvas = canvasRef.current;
-
-      const fallback = Array.from({ length: 25 }).map((_, i) => ({
-        game: `Jogo ${i + 1}`,
-        minute: Math.random() * 90,
-        corners: Math.random() * 10,
-        shots: Math.random() * 15,
-        dangerous: Math.random() * 30,
-        odds: 1.5 + Math.random() * 2,
-      })).map(g => {
-        const score = calculateScore(g);
-        return {
-          ...g,
-          score,
-          radius: Math.max(25, score * 1.4)
-        };
-      });
-
-      bubbles.current = distributeBubbles(fallback, canvas);
+      console.log("fallback ativo");
     }
   }
 
   // =========================
-  // 🎨 RENDER
+  // RENDER
   // =========================
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -190,7 +205,20 @@ export default function App() {
         ctx.fillText(b.game.slice(0, 16), b.x, b.y - 5);
 
         ctx.font = `${Math.max(12, b.radius / 5)}px Arial`;
-        ctx.fillText(`Score ${b.score}`, b.x, b.y + 15);
+        ctx.fillText(`${b.score}`, b.x, b.y + 15);
+      });
+
+      // 🔔 ALERTAS NA TELA
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = "#00ff88";
+      ctx.font = "16px Arial";
+
+      alertsRef.current.slice(0, 5).forEach((a, i) => {
+        ctx.fillText(
+          `🔥 ${a.type} | ${a.game} (${a.confidence}%)`,
+          20,
+          30 + i * 22
+        );
       });
 
       requestAnimationFrame(draw);
