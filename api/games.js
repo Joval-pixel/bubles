@@ -1,47 +1,22 @@
-export default async function handler(req, res) {
-  try {
-    const headers = {
-      "X-RapidAPI-Key": process.env.API_KEY,
-      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com",
-    };
-
-    const response = await fetch(
-      "https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all",
-      { headers }
-    );
-
-    const data = await response.json();
-
-    const games = [];
-
-    for (const g of data.response) {
-      const statsRes = await fetch(
-        `https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics?fixture=${g.fixture.id}`,
-        { headers }
-      );
-
-      const statsData = await statsRes.json();
-      const stats = statsData.response?.[0]?.statistics || [];
-
-      const getStat = (name) =>
-        parseInt(stats.find((s) => s.type === name)?.value || 0);
-
-      games.push({
-        id: g.fixture.id,
-        game: `${g.teams.home.name} vs ${g.teams.away.name}`,
-        minute: g.fixture.status.elapsed || 0,
-
-        corners: getStat("Corner Kicks"),
-        shots: getStat("Total Shots"),
-        attacks: getStat("Attacks"),
-        dangerous: getStat("Dangerous Attacks"),
-
-        odds: 1.5 + Math.random() * 2, // pode trocar depois
-      });
+export default function handler(req, res) {
+  res.status(200).json([
+    {
+      id: 1,
+      game: "Teste 1",
+      minute: 70,
+      corners: 8,
+      shots: 12,
+      dangerous: 20,
+      odds: 2.1
+    },
+    {
+      id: 2,
+      game: "Teste 2",
+      minute: 55,
+      corners: 5,
+      shots: 8,
+      dangerous: 10,
+      odds: 1.8
     }
-
-    res.status(200).json(games);
-  } catch (e) {
-    res.status(500).json({ error: "Erro API" });
-  }
+  ]);
 }
