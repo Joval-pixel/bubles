@@ -3,34 +3,31 @@ import { useEffect, useRef } from "react";
 export default function App() {
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
-  const alerts = useRef([]);
 
   const scale = useRef(1);
   const offset = useRef({ x: 0, y: 0 });
 
-  // 🧠 SCORE PROFISSIONAL
+  // 🧠 SCORE
   function calculateScore(g) {
     let score = 0;
 
-    // pressão ofensiva
     score += (g.dangerous || 0) * 0.7;
     score += (g.shots || 0) * 1.3;
     score += (g.corners || 0) * 2.2;
 
-    // tempo de jogo (mais valor no final)
     if (g.minute > 60) score += 20;
     if (g.minute > 75) score += 25;
 
-    // odds interessantes
     if (g.odds > 2) score += 15;
 
     return Math.round(score);
   }
 
   function getColor(score) {
-    if (score > 100) return "#00ff88"; // forte
-    if (score > 70) return "#ffaa00";  // médio
-    return "#ff4444";                  // fraco
+    if (score > 110) return "#00ffcc";
+    if (score > 80) return "#00ff88";
+    if (score > 60) return "#ffaa00";
+    return "#ff3b3b";
   }
 
   async function fetchGames() {
@@ -40,22 +37,49 @@ export default function App() {
 
       const canvas = canvasRef.current;
 
-      bubbles.current = data.map((g) => {
-        const score = calculateScore(g);
+      bubbles.current = data
+        .map((g) => {
+          const score = calculateScore(g);
 
-        return {
-          ...g,
-          score,
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          radius: 15 + score * 0.7,
-          dx: (Math.random() - 0.5) * 2,
-          dy: (Math.random() - 0.5) * 2,
-        };
-      });
+          return {
+            ...g,
+            score,
 
-    } catch {
-      console.log("fallback ativo");
+            // 🔥 POSICIONAMENTO ESTILO CRYPTOBUBBLES
+            x: canvas.width / 2 + (Math.random() - 0.5) * 1200,
+            y: canvas.height / 2 + (Math.random() - 0.5) * 1200,
+
+            // tamanho proporcional
+            radius: Math.max(20, score * 1.2),
+
+            dx: (Math.random() - 0.5) * 2,
+            dy: (Math.random() - 0.5) * 2,
+          };
+        })
+        .filter((b) => b.score > 40); // 🔥 remove lixo
+
+    } catch (err) {
+      console.log("fallback");
+
+      const canvas = canvasRef.current;
+
+      bubbles.current = Array.from({ length: 20 }).map((_, i) => ({
+        game: `Jogo ${i + 1}`,
+        minute: Math.floor(Math.random() * 90),
+        corners: Math.random() * 10,
+        shots: Math.random() * 15,
+        dangerous: Math.random() * 30,
+        odds: 1.5 + Math.random() * 2,
+
+        score: Math.random() * 120,
+
+        x: canvas.width / 2 + (Math.random() - 0.5) * 1200,
+        y: canvas.height / 2 + (Math.random() - 0.5) * 1200,
+
+        radius: 40 + Math.random() * 60,
+        dx: (Math.random() - 0.5) * 2,
+        dy: (Math.random() - 0.5) * 2,
+      }));
     }
   }
 
@@ -110,14 +134,6 @@ export default function App() {
         }
       }
 
-      // 🔥 FILTRO: só jogos bons
-      const hotGames = bubbles.current.filter((b) => b.score > 70);
-
-      // 🥇 ranking top 10
-      const top = [...hotGames]
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
-
       bubbles.current.forEach((b) => {
         b.x += b.dx;
         b.y += b.dy;
@@ -126,12 +142,16 @@ export default function App() {
         b.dy *= 0.995;
 
         // glow
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 20;
         ctx.shadowColor = getColor(b.score);
 
         const gradient = ctx.createRadialGradient(
-          b.x, b.y, b.radius * 0.2,
-          b.x, b.y, b.radius
+          b.x,
+          b.y,
+          b.radius * 0.2,
+          b.x,
+          b.y,
+          b.radius
         );
 
         gradient.addColorStop(0, "#ffffff22");
@@ -148,40 +168,8 @@ export default function App() {
         ctx.textAlign = "center";
         ctx.font = `${Math.max(10, b.radius / 3)}px Arial`;
 
-        ctx.fillText(b.game.slice(0, 12), b.x, b.y - 5);
+        ctx.fillText(b.game.slice(0, 14), b.x, b.y - 5);
         ctx.fillText(`${b.score}`, b.x, b.y + 12);
-
-        // 🔔 ALERTA
-        if (b.score > 110) {
-          alerts.current.push({
-            text: b.game,
-            time: Date.now(),
-          });
-        }
-      });
-
-      // 🥇 DESENHAR RANKING
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = "#fff";
-      ctx.font = "14px Arial";
-
-      top.forEach((g, i) => {
-        ctx.fillText(
-          `${i + 1}. ${g.game.slice(0, 20)} (${g.score})`,
-          20,
-          30 + i * 20
-        );
-      });
-
-      // 🔔 ALERTAS NA TELA
-      alerts.current = alerts.current.filter(
-        (a) => Date.now() - a.time < 3000
-      );
-
-      alerts.current.forEach((a, i) => {
-        ctx.fillStyle = "#00ff88";
-        ctx.font = "18px Arial";
-        ctx.fillText(a.text, canvas.width / 2 - 100, 60 + i * 25);
       });
 
       requestAnimationFrame(draw);
