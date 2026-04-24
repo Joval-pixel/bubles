@@ -1,50 +1,66 @@
 export default async function handler(req, res) {
   try {
-    const API_KEY = process.env.API_KEY;
+    const API_KEY = process.env.ODDS_API_KEY;
 
     if (!API_KEY) {
-      return res.status(500).json({ error: "API KEY não configurada" });
+      return res.status(500).json({ error: "API KEY não encontrada" });
     }
 
-    const url = `https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h&apiKey=${API_KEY}`;
+    const url = `https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
 
     const response = await fetch(url);
-    const data = await response.json();
 
-    if (!Array.isArray(data)) {
-      return res.status(500).json({ error: "Resposta inválida da API" });
+    if (!response.ok) {
+      return res.status(500).json({ error: "Erro ao buscar API" });
     }
 
-    const games = data.slice(0, 30).map((game, i) => {
+    const data = await response.json();
+
+    // 👉 se não tiver jogos, retorna vazio (SEM fallback lixo)
+    if (!data || !data.length) {
+      return res.status(200).json([]);
+    }
+
+    const games = data.map((game, i) => {
       const home = game.home_team;
       const away = game.away_team;
 
-      let odds = [];
+      let bestHome = null;
+      let bestAway = null;
 
-      if (game.bookmakers?.length) {
-        game.bookmakers.forEach((b) => {
-          b.markets.forEach((m) => {
-            m.outcomes.forEach((o) => {
-              odds.push(o.price);
-            });
+      game.bookmakers?.forEach((book) => {
+        book.markets?.forEach((market) => {
+          market.outcomes?.forEach((o) => {
+            if (o.name === home) {
+              if (!bestHome || o.price > bestHome) bestHome = o.price;
+            }
+            if (o.name === away) {
+              if (!bestAway || o.price > bestAway) bestAway = o.price;
+            }
           });
         });
-      }
+      });
 
-      const bestOdd = odds.length ? Math.min(...odds) : 0;
+      // 👉 calcula EV real simples
+      const probHome = bestHome ? 1 / bestHome : 0;
+      const probAway = bestAway ? 1 / bestAway : 0;
+
+      const ev = bestHome ? (bestHome * probHome - 1) : 0;
 
       return {
         id: i,
         game: `${home} x ${away}`,
-        odds,
-        bestOdd,
+        oddHome: bestHome,
+        oddAway: bestAway,
+        ev: Number(ev.toFixed(3)),
       };
     });
 
     res.status(200).json(games);
   } catch (error) {
-    console.log("ERRO API:", error);
+    console.log("ERRO:", error);
 
-    res.status(200).json([]); // ❗ sem fallback fake
+    // 👉 nunca mais fallback fake
+    res.status(200).json([]);
   }
 }
