@@ -4,7 +4,11 @@ export default function App() {
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
 
-  // 🎯 Buscar dados
+  const scale = useRef(1);
+  const offset = useRef({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const lastMouse = useRef({ x: 0, y: 0 });
+
   async function fetchGames() {
     try {
       const res = await fetch("/api/games");
@@ -21,12 +25,11 @@ export default function App() {
         dy: (Math.random() - 0.5) * 1.5,
         score: calculateScore(item),
       }));
-    } catch (e) {
+    } catch {
       console.log("Erro API");
     }
   }
 
-  // 🧠 Score
   function calculateScore(game) {
     let score = 0;
     if (game.corners > 6) score += 30;
@@ -35,7 +38,6 @@ export default function App() {
     return score;
   }
 
-  // 🎨 Cor
   function getColor(score) {
     if (score > 60) return "#00ff88";
     if (score > 40) return "#ffaa00";
@@ -53,9 +55,23 @@ export default function App() {
     setInterval(fetchGames, 10000);
 
     function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(
+        scale.current,
+        0,
+        0,
+        scale.current,
+        offset.current.x,
+        offset.current.y
+      );
 
-      // 🔥 Colisão (estilo trading)
+      ctx.clearRect(
+        -offset.current.x,
+        -offset.current.y,
+        canvas.width,
+        canvas.height
+      );
+
+      // colisão
       for (let i = 0; i < bubbles.current.length; i++) {
         for (let j = i + 1; j < bubbles.current.length; j++) {
           const b1 = bubbles.current[i];
@@ -79,36 +95,15 @@ export default function App() {
         }
       }
 
-      // 🔄 Movimento + limite + desenho
       bubbles.current.forEach((b) => {
         b.x += b.dx;
         b.y += b.dy;
 
-        // limites tela
-        if (b.x + b.radius > canvas.width) {
-          b.x = canvas.width - b.radius;
-          b.dx *= -1;
-        }
-        if (b.x - b.radius < 0) {
-          b.x = b.radius;
-          b.dx *= -1;
-        }
-        if (b.y + b.radius > canvas.height) {
-          b.y = canvas.height - b.radius;
-          b.dy *= -1;
-        }
-        if (b.y - b.radius < 0) {
-          b.y = b.radius;
-          b.dy *= -1;
-        }
-
-        // bolha
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
         ctx.fillStyle = getColor(b.score);
         ctx.fill();
 
-        // texto
         ctx.fillStyle = "#000";
         ctx.textAlign = "center";
         ctx.font = "12px Arial";
@@ -121,12 +116,39 @@ export default function App() {
     }
 
     draw();
+
+    // 🖱️ ZOOM
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      scale.current += e.deltaY * -0.001;
+      scale.current = Math.min(Math.max(0.5, scale.current), 2);
+    });
+
+    // 🖱️ DRAG
+    canvas.addEventListener("mousedown", (e) => {
+      dragging.current = true;
+      lastMouse.current = { x: e.clientX, y: e.clientY };
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (!dragging.current) return;
+
+      offset.current.x += e.clientX - lastMouse.current.x;
+      offset.current.y += e.clientY - lastMouse.current.y;
+
+      lastMouse.current = { x: e.clientX, y: e.clientY };
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      dragging.current = false;
+    });
+
   }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      style={{ background: "#111", display: "block" }}
+      style={{ background: "#111", display: "block", cursor: "grab" }}
     />
   );
 }
