@@ -8,67 +8,74 @@ export default function App() {
     fetchGames();
   }, []);
 
-  // 🚀 BUSCAR DADOS
   const fetchGames = async () => {
-    try {
-      const res = await fetch("/api/games");
-      const data = await res.json();
+    const res = await fetch("/api/games");
+    const data = await res.json();
 
-      const formatted = data.map((g) => {
-        const score = calcScore(g);
+    const items = data.map((g) => {
+      const score = calcScore(g);
 
-        return {
-          ...g,
-          score,
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * window.innerHeight,
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: (Math.random() - 0.5) * 1.5,
-          size: 40 + score * 2,
-        };
-      });
+      return {
+        ...g,
+        score,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        size: Math.max(50, score * 1.5),
+      };
+    });
 
-      setBubbles(formatted);
-      startAnimation(formatted);
-    } catch (err) {
-      console.log(err);
-    }
+    setBubbles(items);
+    animate(items);
   };
 
-  // 🎯 SCORE BASEADO EM ODDS (SIMPLES)
+  // 🔥 SCORE MELHOR
   const calcScore = (g) => {
-    if (!g.oddHome) return 0;
-    return Math.max(0, (1 / g.oddHome) * 100);
+    if (!g.oddHome) return 10;
+    return Math.min(120, (1 / g.oddHome) * 120);
   };
 
-  // 🎬 ANIMAÇÃO
-  const startAnimation = (initial) => {
+  // 🚀 FÍSICA + COLISÃO
+  const animate = (initial) => {
     let items = [...initial];
 
-    const animate = () => {
-      items = items.map((b) => {
-        let x = b.x + b.vx;
-        let y = b.y + b.vy;
+    const loop = () => {
+      items.forEach((a, i) => {
+        // movimento
+        a.x += a.vx;
+        a.y += a.vy;
 
-        // 🔥 colisão com parede
-        if (x < 0 || x > window.innerWidth - b.size) b.vx *= -1;
-        if (y < 0 || y > window.innerHeight - b.size) b.vy *= -1;
+        // parede
+        if (a.x < 0 || a.x > window.innerWidth - a.size) a.vx *= -1;
+        if (a.y < 0 || a.y > window.innerHeight - a.size) a.vy *= -1;
 
-        return { ...b, x, y };
+        // colisão entre bolhas
+        items.forEach((b, j) => {
+          if (i === j) return;
+
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < (a.size + b.size) / 2) {
+            a.vx *= -1;
+            a.vy *= -1;
+          }
+        });
       });
 
       setBubbles([...items]);
-      animationRef.current = requestAnimationFrame(animate);
+      animationRef.current = requestAnimationFrame(loop);
     };
 
-    animate();
+    loop();
   };
 
-  // 🎨 COR DA BOLHA
   const getColor = (score) => {
-    if (score > 60) return "#00ff88"; // verde
-    if (score > 40) return "#ffcc00"; // amarelo
-    return "#ff4444"; // vermelho
+    if (score > 80) return "#00ff99";
+    if (score > 50) return "#ffcc00";
+    return "#ff4444";
   };
 
   return (
@@ -93,19 +100,21 @@ export default function App() {
             borderRadius: "50%",
             background: getColor(b.score),
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             color: "#000",
-            fontSize: 10,
+            fontSize: b.size > 80 ? 12 : 9,
+            fontWeight: "bold",
             textAlign: "center",
-            boxShadow: `0 0 20px ${getColor(b.score)}`,
-            transition: "0.1s",
+            padding: 5,
+            boxShadow: `0 0 25px ${getColor(b.score)}`,
           }}
         >
-          <div>
-            <div>{b.game}</div>
-            <div>{b.oddHome}</div>
+          <div style={{ maxWidth: "90%" }}>
+            {b.game}
           </div>
+          <div>{b.oddHome}</div>
         </div>
       ))}
     </div>
