@@ -2,35 +2,43 @@ import { useEffect, useState } from "react";
 
 export default function App() {
   const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("/api/games")
       .then(res => res.json())
       .then(data => {
-        console.log("API OK:", data);
+        console.log("API DATA:", data);
         setGames(data);
-        setLoading(false);
       })
       .catch(err => {
         console.error(err);
-        setLoading(false);
+        setError("Erro ao carregar API");
       });
   }, []);
 
-  if (loading) {
-    return <div style={{color:"white",background:"black",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>Carregando...</div>;
-  }
-
   return (
-    <div style={{background:"black",minHeight:"100vh",color:"white",padding:"20px"}}>
-      <h1>Jogos</h1>
+    <div style={{
+      background: "black",
+      minHeight: "100vh",
+      color: "white",
+      padding: "20px"
+    }}>
+      <h1>Radar de Jogos</h1>
+
+      {error && <div style={{color:"red"}}>{error}</div>}
 
       {games.length === 0 && <div>Sem dados</div>}
 
-      {games.map(g => (
-        <div key={g.id} style={{marginBottom:10}}>
-          {g.game} — Odd: {g.bestOdd}
+      {games.map((g) => (
+        <div key={g.id} style={{
+          marginBottom: "10px",
+          padding: "10px",
+          border: "1px solid #333",
+          borderRadius: "8px"
+        }}>
+          <strong>{g.game}</strong><br/>
+          Odd: {g.bestOdd}
         </div>
       ))}
     </div>
