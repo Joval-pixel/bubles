@@ -3,12 +3,10 @@ import { useEffect, useRef } from "react";
 export default function App() {
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
+  const alerts = useRef([]);
 
   const scale = useRef(1);
   const offset = useRef({ x: 0, y: 0 });
-
-  const dragging = useRef(false);
-  const lastMouse = useRef({ x: 0, y: 0 });
 
   // 🧠 SCORE
   function calculateScore(g) {
@@ -26,50 +24,40 @@ export default function App() {
     return Math.round(score);
   }
 
-  // 🎨 COR
   function getColor(score) {
     if (score > 80) return "#00ff88";
     if (score > 50) return "#ffaa00";
     return "#ff4444";
   }
 
-  // 🔥 FETCH À PROVA DE FALHA
   async function fetchGames() {
     try {
       const res = await fetch("/api/games");
       const data = await res.json();
 
-      const safeData = Array.isArray(data) ? data : [];
-
-      if (safeData.length === 0) {
-        throw new Error("Sem dados");
-      }
-
       const canvas = canvasRef.current;
 
-      bubbles.current = safeData.map((item) => {
-        const score = calculateScore(item);
+      const safe = Array.isArray(data) ? data : [];
 
-        return {
-          ...item,
-          x: canvas.width / 2 + (Math.random() - 0.5) * 300,
-          y: canvas.height / 2 + (Math.random() - 0.5) * 300,
-          radius: 40 + (item.odds || 1.5) * 8,
-          dx: (Math.random() - 0.5) * 2,
-          dy: (Math.random() - 0.5) * 2,
-          score,
-        };
-      });
+      if (safe.length === 0) throw new Error();
 
-    } catch (e) {
-      console.log("🔥 fallback ativado");
+      bubbles.current = safe.map((item) => ({
+        ...item,
+        x: canvas.width / 2 + (Math.random() - 0.5) * 300,
+        y: canvas.height / 2 + (Math.random() - 0.5) * 300,
+        radius: 40 + (item.odds || 1.5) * 8,
+        dx: (Math.random() - 0.5) * 2,
+        dy: (Math.random() - 0.5) * 2,
+        score: calculateScore(item),
+      }));
 
+    } catch {
       const canvas = canvasRef.current;
 
       const fallback = [
-        { game: "Flamengo vs Palmeiras", odds: 2.2, minute: 70, corners: 8, shots: 12, dangerous: 20 },
-        { game: "Real Madrid vs Barcelona", odds: 1.9, minute: 55, corners: 5, shots: 9, dangerous: 14 },
-        { game: "PSG vs Lyon", odds: 2.3, minute: 65, corners: 7, shots: 11, dangerous: 18 }
+        { game: "Fallback 1", odds: 2.0, minute: 70, corners: 7, shots: 10, dangerous: 15 },
+        { game: "Fallback 2", odds: 1.8, minute: 60, corners: 5, shots: 8, dangerous: 12 },
+        { game: "Fallback 3", odds: 2.3, minute: 75, corners: 9, shots: 13, dangerous: 22 }
       ];
 
       bubbles.current = fallback.map((item) => ({
@@ -129,6 +117,7 @@ export default function App() {
           const dx = b2.x - b1.x;
           const dy = b2.y - b1.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
+
           const minDist = b1.radius + b2.radius;
 
           if (dist < minDist) {
@@ -144,6 +133,11 @@ export default function App() {
         }
       }
 
+      // 🔥 ranking top 5
+      const top = [...bubbles.current]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+
       bubbles.current.forEach((b) => {
         b.x += b.dx;
         b.y += b.dy;
@@ -156,11 +150,16 @@ export default function App() {
         ctx.fillStyle = getColor(b.score);
         ctx.fill();
 
-        // 🔔 destaque
+        // destaque forte
         if (b.score > 90) {
           ctx.strokeStyle = "#00ff88";
           ctx.lineWidth = 3;
           ctx.stroke();
+
+          alerts.current.push({
+            text: b.game,
+            time: Date.now()
+          });
         }
 
         ctx.fillStyle = "#000";
@@ -168,8 +167,31 @@ export default function App() {
         ctx.font = "12px Arial";
 
         ctx.fillText(b.game.slice(0, 14), b.x, b.y - 5);
-        ctx.fillText(`Odd: ${b.odds.toFixed(2)}`, b.x, b.y + 10);
-        ctx.fillText(`Score: ${b.score}`, b.x, b.y + 25);
+        ctx.fillText(`Score: ${b.score}`, b.x, b.y + 15);
+      });
+
+      // 🥇 desenhar ranking
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = "#fff";
+      ctx.font = "14px Arial";
+
+      top.forEach((g, i) => {
+        ctx.fillText(
+          `${i + 1}. ${g.game.slice(0, 18)} (${g.score})`,
+          20,
+          30 + i * 20
+        );
+      });
+
+      // 🔔 alertas na tela
+      alerts.current = alerts.current.filter(
+        (a) => Date.now() - a.time < 3000
+      );
+
+      alerts.current.forEach((a, i) => {
+        ctx.fillStyle = "#00ff88";
+        ctx.font = "18px Arial";
+        ctx.fillText(a.text, canvas.width / 2 - 100, 50 + i * 25);
       });
 
       requestAnimationFrame(draw);
@@ -185,22 +207,25 @@ export default function App() {
     });
 
     // drag
+    let dragging = false;
+    let last = { x: 0, y: 0 };
+
     canvas.addEventListener("mousedown", (e) => {
-      dragging.current = true;
-      lastMouse.current = { x: e.clientX, y: e.clientY };
+      dragging = true;
+      last = { x: e.clientX, y: e.clientY };
     });
 
     canvas.addEventListener("mousemove", (e) => {
-      if (!dragging.current) return;
+      if (!dragging) return;
 
-      offset.current.x += e.clientX - lastMouse.current.x;
-      offset.current.y += e.clientY - lastMouse.current.y;
+      offset.current.x += e.clientX - last.x;
+      offset.current.y += e.clientY - last.y;
 
-      lastMouse.current = { x: e.clientX, y: e.clientY };
+      last = { x: e.clientX, y: e.clientY };
     });
 
     canvas.addEventListener("mouseup", () => {
-      dragging.current = false;
+      dragging = false;
     });
 
   }, []);
