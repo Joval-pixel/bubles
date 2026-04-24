@@ -1,39 +1,174 @@
-export default async function handler(req, res) {
-  try {
-    const headers = {
-      "x-apisports-key": process.env.API_KEY,
-    };
-
-    const response = await fetch(
-      "https://v3.football.api-sports.io/fixtures?live=all",
-      { headers }
-    );
-
-    const json = await response.json();
-
-    if (!json.response || json.response.length === 0) {
-      throw new Error("Sem jogos ao vivo");
-    }
-
-    const games = json.response.map((g) => {
-      return {
-        id: g.fixture.id,
-        game: `${g.teams.home.name} x ${g.teams.away.name}`,
-        minute: g.fixture.status.elapsed || 0,
-
-        // ⚠️ IMPORTANTE: não usar random pesado
-        attacks: Math.random() * 50,
-        dangerous: Math.random() * 30,
-        possession: Math.random() * 100,
-
-        odd: 1.5 + Math.random() * 2,
-      };
-    });
-
-    res.status(200).json(games);
-  } catch (err) {
-    console.log("ERRO REAL:", err.message);
-
-    res.status(200).json([]); // ❗ NÃO usa fallback mais
+const games = [
+  {
+    id: "helix",
+    symbol: "HX",
+    name: "Helix Protocol",
+    segment: "AAA",
+    players: 82000,
+    margin: 18.5,
+    trend24h: 12.8,
+    aiConfidence: 79,
+    price: 149.9,
+    winRate: 62,
+    releaseWindow: "Q2",
+    summary: "Campanha forte, retenção acima da média e procura orgânica crescente."
+  },
+  {
+    id: "nova",
+    symbol: "NV",
+    name: "Nova Drift Arena",
+    segment: "Indie",
+    players: 46000,
+    margin: 14.2,
+    trend24h: 9.4,
+    aiConfidence: 72,
+    price: 49.9,
+    winRate: 58,
+    releaseWindow: "Q3",
+    summary: "Boa conversão em wishlist e comunidade bem aquecida nas últimas semanas."
+  },
+  {
+    id: "aurora",
+    symbol: "AR",
+    name: "Aurora Tactics",
+    segment: "Strategy",
+    players: 59000,
+    margin: 22.4,
+    trend24h: 15.1,
+    aiConfidence: 84,
+    price: 99.9,
+    winRate: 66,
+    releaseWindow: "Q2",
+    summary: "Produto premium com percepção forte de valor e ticket saudável."
+  },
+  {
+    id: "ember",
+    symbol: "EM",
+    name: "Ember Rush Mobile",
+    segment: "Mobile",
+    players: 138000,
+    margin: 7.1,
+    trend24h: -4.8,
+    aiConfidence: 48,
+    price: 0,
+    winRate: 43,
+    releaseWindow: "Live",
+    summary: "Aquisição ainda alta, mas com custo pressionando o retorno."
+  },
+  {
+    id: "rift",
+    symbol: "RF",
+    name: "Rift Ball League",
+    segment: "Multiplayer",
+    players: 112000,
+    margin: 16.7,
+    trend24h: 7.2,
+    aiConfidence: 76,
+    price: 59.9,
+    winRate: 57,
+    releaseWindow: "Q4",
+    summary: "Loop competitivo forte e alta chance de engajamento recorrente."
+  },
+  {
+    id: "onyx",
+    symbol: "OX",
+    name: "Onyx Heist",
+    segment: "AAA",
+    players: 74000,
+    margin: 11.4,
+    trend24h: -2.6,
+    aiConfidence: 55,
+    price: 179.9,
+    winRate: 49,
+    releaseWindow: "Q3",
+    summary: "Visual muito forte, mas ainda precisa validar tração comercial."
+  },
+  {
+    id: "echo",
+    symbol: "EC",
+    name: "Echo Frontier",
+    segment: "Indie",
+    players: 54000,
+    margin: 19.7,
+    trend24h: 18.5,
+    aiConfidence: 88,
+    price: 69.9,
+    winRate: 71,
+    releaseWindow: "Q2",
+    summary: "Uma das maiores altas do radar, com buzz orgânico e bom retorno esperado."
+  },
+  {
+    id: "pulse",
+    symbol: "PL",
+    name: "Pulse Kart",
+    segment: "Mobile",
+    players: 93000,
+    margin: 8.4,
+    trend24h: 2.1,
+    aiConfidence: 61,
+    price: 0,
+    winRate: 52,
+    releaseWindow: "Live",
+    summary: "Estável, com bom volume, mas sem aceleração forte no momento."
+  },
+  {
+    id: "terra",
+    symbol: "TR",
+    name: "Terra Forge",
+    segment: "Strategy",
+    players: 68000,
+    margin: 21.5,
+    trend24h: 10.9,
+    aiConfidence: 82,
+    price: 89.9,
+    winRate: 64,
+    releaseWindow: "Q4",
+    summary: "Monetização equilibrada e ótima resposta para públicos de nicho."
+  },
+  {
+    id: "zenith",
+    symbol: "ZN",
+    name: "Zenith Ops",
+    segment: "Multiplayer",
+    players: 124000,
+    margin: 9.5,
+    trend24h: -8.7,
+    aiConfidence: 44,
+    price: 39.9,
+    winRate: 38,
+    releaseWindow: "Q3",
+    summary: "Tráfego ainda alto, porém com compressão forte na expectativa de valor."
+  },
+  {
+    id: "luna",
+    symbol: "LU",
+    name: "Luna District",
+    segment: "Indie",
+    players: 51000,
+    margin: 17.8,
+    trend24h: 6.8,
+    aiConfidence: 70,
+    price: 54.9,
+    winRate: 56,
+    releaseWindow: "Q2",
+    summary: "Projeto leve, com boa estética e resposta comercial consistente."
+  },
+  {
+    id: "vanta",
+    symbol: "VT",
+    name: "Vanta Stories",
+    segment: "AAA",
+    players: 88000,
+    margin: 13.8,
+    trend24h: 4.4,
+    aiConfidence: 67,
+    price: 129.9,
+    winRate: 54,
+    releaseWindow: "Q4",
+    summary: "Marca forte e potencial de crescimento se a campanha ganhar velocidade."
   }
+];
+
+export default function handler(_req, res) {
+  res.status(200).json(games);
 }
