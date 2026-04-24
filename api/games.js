@@ -1,174 +1,260 @@
-const games = [
-  {
-    id: "helix",
-    symbol: "HX",
-    name: "Helix Protocol",
-    segment: "AAA",
-    players: 82000,
-    margin: 18.5,
-    trend24h: 12.8,
-    aiConfidence: 79,
-    price: 149.9,
-    winRate: 62,
-    releaseWindow: "Q2",
-    summary: "Campanha forte, retenção acima da média e procura orgânica crescente."
-  },
-  {
-    id: "nova",
-    symbol: "NV",
-    name: "Nova Drift Arena",
-    segment: "Indie",
-    players: 46000,
-    margin: 14.2,
-    trend24h: 9.4,
-    aiConfidence: 72,
-    price: 49.9,
-    winRate: 58,
-    releaseWindow: "Q3",
-    summary: "Boa conversão em wishlist e comunidade bem aquecida nas últimas semanas."
-  },
-  {
-    id: "aurora",
-    symbol: "AR",
-    name: "Aurora Tactics",
-    segment: "Strategy",
-    players: 59000,
-    margin: 22.4,
-    trend24h: 15.1,
-    aiConfidence: 84,
-    price: 99.9,
-    winRate: 66,
-    releaseWindow: "Q2",
-    summary: "Produto premium com percepção forte de valor e ticket saudável."
-  },
-  {
-    id: "ember",
-    symbol: "EM",
-    name: "Ember Rush Mobile",
-    segment: "Mobile",
-    players: 138000,
-    margin: 7.1,
-    trend24h: -4.8,
-    aiConfidence: 48,
-    price: 0,
-    winRate: 43,
-    releaseWindow: "Live",
-    summary: "Aquisição ainda alta, mas com custo pressionando o retorno."
-  },
-  {
-    id: "rift",
-    symbol: "RF",
-    name: "Rift Ball League",
-    segment: "Multiplayer",
-    players: 112000,
-    margin: 16.7,
-    trend24h: 7.2,
-    aiConfidence: 76,
-    price: 59.9,
-    winRate: 57,
-    releaseWindow: "Q4",
-    summary: "Loop competitivo forte e alta chance de engajamento recorrente."
-  },
-  {
-    id: "onyx",
-    symbol: "OX",
-    name: "Onyx Heist",
-    segment: "AAA",
-    players: 74000,
-    margin: 11.4,
-    trend24h: -2.6,
-    aiConfidence: 55,
-    price: 179.9,
-    winRate: 49,
-    releaseWindow: "Q3",
-    summary: "Visual muito forte, mas ainda precisa validar tração comercial."
-  },
-  {
-    id: "echo",
-    symbol: "EC",
-    name: "Echo Frontier",
-    segment: "Indie",
-    players: 54000,
-    margin: 19.7,
-    trend24h: 18.5,
-    aiConfidence: 88,
-    price: 69.9,
-    winRate: 71,
-    releaseWindow: "Q2",
-    summary: "Uma das maiores altas do radar, com buzz orgânico e bom retorno esperado."
-  },
-  {
-    id: "pulse",
-    symbol: "PL",
-    name: "Pulse Kart",
-    segment: "Mobile",
-    players: 93000,
-    margin: 8.4,
-    trend24h: 2.1,
-    aiConfidence: 61,
-    price: 0,
-    winRate: 52,
-    releaseWindow: "Live",
-    summary: "Estável, com bom volume, mas sem aceleração forte no momento."
-  },
-  {
-    id: "terra",
-    symbol: "TR",
-    name: "Terra Forge",
-    segment: "Strategy",
-    players: 68000,
-    margin: 21.5,
-    trend24h: 10.9,
-    aiConfidence: 82,
-    price: 89.9,
-    winRate: 64,
-    releaseWindow: "Q4",
-    summary: "Monetização equilibrada e ótima resposta para públicos de nicho."
-  },
-  {
-    id: "zenith",
-    symbol: "ZN",
-    name: "Zenith Ops",
-    segment: "Multiplayer",
-    players: 124000,
-    margin: 9.5,
-    trend24h: -8.7,
-    aiConfidence: 44,
-    price: 39.9,
-    winRate: 38,
-    releaseWindow: "Q3",
-    summary: "Tráfego ainda alto, porém com compressão forte na expectativa de valor."
-  },
-  {
-    id: "luna",
-    symbol: "LU",
-    name: "Luna District",
-    segment: "Indie",
-    players: 51000,
-    margin: 17.8,
-    trend24h: 6.8,
-    aiConfidence: 70,
-    price: 54.9,
-    winRate: 56,
-    releaseWindow: "Q2",
-    summary: "Projeto leve, com boa estética e resposta comercial consistente."
-  },
-  {
-    id: "vanta",
-    symbol: "VT",
-    name: "Vanta Stories",
-    segment: "AAA",
-    players: 88000,
-    margin: 13.8,
-    trend24h: 4.4,
-    aiConfidence: 67,
-    price: 129.9,
-    winRate: 54,
-    releaseWindow: "Q4",
-    summary: "Marca forte e potencial de crescimento se a campanha ganhar velocidade."
-  }
-];
+const API_BASE = "https://v3.football.api-sports.io";
 
-export default function handler(_req, res) {
-  res.status(200).json(games);
+const normalizeText = (value) =>
+  String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+const toNumber = (value) => {
+  if (value === null || value === undefined || value === "" || value === "null") {
+    return 0;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  const parsed = parseFloat(String(value).replace("%", "").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const safeJson = async (response) => {
+  try {
+    return await response.json();
+  } catch (_error) {
+    return { response: [] };
+  }
+};
+
+const fetchFromApi = async (path) => {
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      "x-apisports-key": process.env.API_KEY ?? "",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API_FOOTBALL_${response.status}`);
+  }
+
+  const payload = await safeJson(response);
+  return Array.isArray(payload.response) ? payload.response : [];
+};
+
+const getStatistic = (statistics, aliases) => {
+  const wanted = aliases.map(normalizeText);
+
+  for (const entry of statistics ?? []) {
+    if (wanted.includes(normalizeText(entry?.type))) {
+      return toNumber(entry?.value);
+    }
+  }
+
+  return 0;
+};
+
+const extractHomeStats = (statisticsResponse, homeTeamId) => {
+  const homeEntry =
+    statisticsResponse.find((entry) => entry?.team?.id === homeTeamId) ?? statisticsResponse[0];
+
+  const stats = homeEntry?.statistics ?? [];
+
+  return {
+    attacks: getStatistic(stats, ["Attacks", "Total Attacks"]),
+    dangerous: getStatistic(stats, ["Dangerous Attacks", "Dangerous attacks"]),
+    shots: getStatistic(stats, ["Total Shots", "Shots on Goal"]),
+    corners: getStatistic(stats, ["Corner Kicks", "Corners"]),
+    possession: getStatistic(stats, ["Ball Possession", "Possession"]),
+  };
+};
+
+const findHomeOdd = (oddsEntries, homeName) => {
+  const normalizedHome = normalizeText(homeName);
+
+  for (const item of oddsEntries ?? []) {
+    for (const bookmaker of item?.bookmakers ?? []) {
+      for (const bet of bookmaker?.bets ?? []) {
+        const betName = normalizeText(bet?.name);
+        const isHomeMarket =
+          betName.includes("match winner") ||
+          betName === "winner" ||
+          betName === "1x2";
+
+        if (!isHomeMarket) {
+          continue;
+        }
+
+        for (const value of bet?.values ?? []) {
+          const label = normalizeText(value?.value ?? value?.label);
+
+          if (label === "home" || label === "1" || label === normalizedHome) {
+            const odd = toNumber(value?.odd);
+
+            if (odd > 1) {
+              return odd;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return 0;
+};
+
+const buildOddsMap = (oddsResponse) => {
+  const map = new Map();
+
+  for (const item of oddsResponse ?? []) {
+    const fixtureId = item?.fixture?.id;
+    const homeName = item?.teams?.home?.name ?? "";
+    const homeOdd = findHomeOdd([item], homeName);
+
+    if (fixtureId && homeOdd > 1) {
+      map.set(fixtureId, homeOdd);
+    }
+  }
+
+  return map;
+};
+
+const calculateEv = ({ attacks, dangerous, shots, corners, possession, minute, oddHome }) => {
+  const pressure =
+    attacks * 0.03 +
+    dangerous * 0.07 +
+    shots * 0.06 +
+    corners * 0.04 +
+    possession * 0.01 +
+    minute * 0.02;
+
+  const probability = Math.min(0.85, pressure / 10);
+  const ev = probability * oddHome - 1;
+
+  return {
+    pressure,
+    probability,
+    ev,
+  };
+};
+
+const makeEmptyPayload = (reason = "Sem jogos ao vivo") => ({
+  games: [],
+  updatedAt: new Date().toISOString(),
+  message: reason,
+});
+
+export default async function handler(_req, res) {
+  res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate=30");
+
+  if (!process.env.API_KEY) {
+    res.status(200).json(makeEmptyPayload());
+    return;
+  }
+
+  try {
+    const liveFixtures = await fetchFromApi("/fixtures?live=all");
+
+    if (!liveFixtures.length) {
+      res.status(200).json(makeEmptyPayload());
+      return;
+    }
+
+    let oddsMap = new Map();
+
+    try {
+      const liveOdds = await fetchFromApi("/odds/live");
+      oddsMap = buildOddsMap(liveOdds);
+    } catch (_error) {
+      oddsMap = new Map();
+    }
+
+    const statisticsResults = await Promise.allSettled(
+      liveFixtures.map((fixture) =>
+        fetchFromApi(`/fixtures/statistics?fixture=${fixture.fixture.id}`)
+      )
+    );
+
+    const statisticsMap = new Map();
+
+    statisticsResults.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        statisticsMap.set(liveFixtures[index].fixture.id, result.value);
+      }
+    });
+
+    if (!oddsMap.size) {
+      const fallbackOddsResults = await Promise.allSettled(
+        liveFixtures.map((fixture) => fetchFromApi(`/odds?fixture=${fixture.fixture.id}`))
+      );
+
+      fallbackOddsResults.forEach((result, index) => {
+        if (result.status !== "fulfilled") {
+          return;
+        }
+
+        const fixture = liveFixtures[index];
+        const oddHome = findHomeOdd(result.value, fixture?.teams?.home?.name ?? "");
+
+        if (oddHome > 1) {
+          oddsMap.set(fixture.fixture.id, oddHome);
+        }
+      });
+    }
+
+    const games = liveFixtures
+      .map((fixture) => {
+        const fixtureId = fixture?.fixture?.id;
+        const minute = toNumber(fixture?.fixture?.status?.elapsed);
+        const homeId = fixture?.teams?.home?.id;
+        const homeName = fixture?.teams?.home?.name ?? "";
+        const awayName = fixture?.teams?.away?.name ?? "";
+        const leagueName = fixture?.league?.name ?? "";
+
+        const statsPayload = statisticsMap.get(fixtureId) ?? [];
+        const stats = extractHomeStats(statsPayload, homeId);
+        const oddHome = oddsMap.get(fixtureId) ?? 0;
+
+        if (!fixtureId || !homeName || !awayName || oddHome <= 1) {
+          return null;
+        }
+
+        const { pressure, probability, ev } = calculateEv({
+          ...stats,
+          minute,
+          oddHome,
+        });
+
+        if (!(ev > 0)) {
+          return null;
+        }
+
+        return {
+          id: fixtureId,
+          game: `${homeName} x ${awayName}`,
+          league: leagueName,
+          minute,
+          pressure,
+          probability,
+          ev,
+          oddHome,
+          attacks: stats.attacks,
+          dangerous: stats.dangerous,
+          shots: stats.shots,
+          corners: stats.corners,
+          possession: stats.possession,
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => right.ev - left.ev);
+
+    res.status(200).json({
+      games,
+      updatedAt: new Date().toISOString(),
+      message: games.length ? "ok" : "Sem jogos ao vivo",
+    });
+  } catch (_error) {
+    res.status(200).json(makeEmptyPayload());
+  }
 }
