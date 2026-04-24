@@ -13,7 +13,7 @@ export default function App() {
       const res = await fetch("/api/games");
       const data = await res.json();
 
-      console.log("API:", data);
+      console.log("dados:", data);
 
       setGames(data);
     } catch (err) {
@@ -25,12 +25,12 @@ export default function App() {
 
   return (
     <div style={{ background: "#000", minHeight: "100vh", color: "#fff", padding: 20 }}>
-      <h1>Radar de Jogos</h1>
+      <h1>Odds ao vivo</h1>
 
       {loading && <p>Carregando...</p>}
 
       {!loading && games.length === 0 && (
-        <p>Nenhum jogo ao vivo agora</p>
+        <p>Nenhum jogo disponível</p>
       )}
 
       {games.map((g) => (
@@ -44,7 +44,9 @@ export default function App() {
           }}
         >
           <h3>{g.game}</h3>
-          <p>Minuto: {g.minute}</p>
+          <p>Liga: {g.league}</p>
+          <p>Casa: {g.oddHome}</p>
+          <p>Fora: {g.oddAway}</p>
         </div>
       ))}
     </div>
