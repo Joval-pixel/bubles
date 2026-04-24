@@ -15,38 +15,35 @@ export default function App() {
       const data = await res.json();
 
       const processed = data.map((g) => {
-        const ai = calcAI(g);
+        const ev = calcEV(g);
 
         return {
           ...g,
-          ...ai,
-          size: 50 + ai.ev * 200,
+          ev,
+          size: 40 + Math.max(0, ev) * 200,
           x: Math.random() * window.innerWidth,
           y: Math.random() * window.innerHeight,
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: (Math.random() - 0.5) * 1.5,
+          vx: (Math.random() - 0.5) * 1.2,
+          vy: (Math.random() - 0.5) * 1.2,
         };
       });
 
       ref.current = processed;
       setBubbles(processed);
     } catch (e) {
-      console.log("Erro fetch:", e);
+      console.log("erro:", e);
     }
   };
 
-  const calcAI = (g) => {
-    const attack = g.dangerous * 0.04;
-    const pressure = g.shots * 0.06;
-    const corners = g.corners * 0.03;
-    const tempo = g.minute * 0.01;
+  const calcEV = (g) => {
+    const strength =
+      g.dangerous * 0.05 +
+      g.shots * 0.07 +
+      g.corners * 0.04 +
+      g.minute * 0.01;
 
-    const raw = attack + pressure + corners + tempo;
-
-    const prob = Math.min(0.9, raw / 10);
-    const ev = prob * g.oddHome - 1;
-
-    return { prob, ev, score: raw };
+    const prob = Math.min(0.8, strength / 10);
+    return prob * g.oddHome - 1;
   };
 
   const animate = () => {
@@ -68,9 +65,9 @@ export default function App() {
     loop();
   };
 
-  const getColor = (b) => {
-    if (b.ev > 0.25) return "#00ff88";
-    if (b.ev > 0.1) return "#ffaa00";
+  const color = (ev) => {
+    if (ev > 0.3) return "#00ff88";
+    if (ev > 0.1) return "#ffaa00";
     return "#ff4444";
   };
 
@@ -86,13 +83,13 @@ export default function App() {
             width: b.size,
             height: b.size,
             borderRadius: "50%",
-            background: getColor(b),
+            background: color(b.ev),
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            boxShadow: `0 0 25px ${color(b.ev)}`,
             color: "#000",
-            fontSize: 12,
-            boxShadow: `0 0 30px ${getColor(b)}`,
+            fontSize: 11,
             textAlign: "center",
             padding: 5,
           }}
@@ -100,7 +97,7 @@ export default function App() {
           <div>
             {b.game}
             <br />
-            EV: {b.ev.toFixed(2)}
+            EV {b.ev.toFixed(2)}
           </div>
         </div>
       ))}
