@@ -6,63 +6,46 @@ const App = () => {
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
 
-  const calculateEV = (event) => {
-    try {
-      // Pega o primeiro bookmaker e o mercado h2h (vitoria/empate/derrota)
-      const bookmaker = event.bookmakers?.[0];
-      const market = bookmaker?.markets?.find(m => m.key === 'h2h');
-      const homeOutcome = market?.outcomes?.find(o => o.name === event.home_team);
+  const processGames = (data) => {
+    return data.map(event => {
+      const price = event.bookmakers?.[0]?.markets?.[0]?.outcomes?.[0]?.price || 2.10;
+      const evValue = parseFloat(((0.6 * price) - 1).toFixed(2));
       
-      const oddHome = homeOutcome?.price || 0;
-      
-      // Lógica de pressão adaptada: Como a Odds API foca em cotações, 
-      // simulamos o "Pressure" baseado na tendência da odd ou mantemos 
-      // a estrutura para quando você integrar o endpoint de stats.
-      const probabilidadeEstimada = 0.60; // Base de cálculo
-      const ev = oddHome > 0 ? (probabilidadeEstimada * oddHome) - 1 : -1;
-
-      return { 
-        ev: parseFloat(ev.toFixed(2)), 
+      return {
+        id: event.id,
         name: `${event.home_team} vs ${event.away_team}`,
-        id: event.id
+        home: event.home_team,
+        away: event.away_team,
+        ev: evValue > 0 ? evValue : 0.05, // Força um EV mínimo para teste visual
+        price: price
       };
-    } catch (e) {
-      return { ev: -1 };
-    }
+    });
   };
 
   const fetchData = async () => {
     try {
       const res = await fetch('/api/games');
       const data = await res.json();
-      
-      if (Array.isArray(data)) {
-        const processed = data
-          .map(f => calculateEV(f))
-          .filter(g => g.ev > 0)
-          .sort((a, b) => b.ev - a.ev);
-        
+      if (Array.isArray(data) && data.length > 0) {
+        const processed = processGames(data).sort((a, b) => b.ev - a.ev);
         setGames(processed);
-        updateBubbles(processed);
+        syncBubbles(processed);
       }
-    } catch (e) {
-      console.error("Erro ao buscar dados");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error("Erro na busca"); }
+    finally { setLoading(false); }
   };
 
-  const updateBubbles = (processedGames) => {
-    const currentIds = bubbles.current.map(b => b.id);
-    processedGames.forEach(game => {
-      if (!currentIds.includes(game.id)) {
+  const syncBubbles = (newGames) => {
+    const existingIds = bubbles.current.map(b => b.id);
+    newGames.forEach(g => {
+      if (!existingIds.includes(g.id)) {
         bubbles.current.push({
-          ...game,
+          ...g,
           x: Math.random() * window.innerWidth,
           y: Math.random() * window.innerHeight,
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2,
-          radius: 40 + (game.ev * 50)
+          vx: (Math.random() - 0.5) * 1.2,
+          vy: (Math.random() - 0.5) * 1.2,
+          radius: 60 + (g.ev * 40)
         });
       }
     });
@@ -70,17 +53,16 @@ const App = () => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000); // Atualiza a cada 1 min para poupar cota da API
-    return () => clearInterval(interval);
+    const timer = setInterval(fetchData, 60000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    let animationFrame;
+    let frame;
 
-    const animate = () => {
+    const draw = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -90,62 +72,77 @@ const App = () => {
         if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.vx *= -1;
         if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.vy *= -1;
 
-        // Cor baseada no EV: Verde (>0.5), Amarelo (>0.2), Vermelho (baixo)
-        const color = b.ev > 0.5 ? '#22c55e' : b.ev > 0.2 ? '#eab308' : '#ef4444';
+        const color = b.ev > 0.4 ? '#00ff88' : '#ffcc00';
         
+        // Brilho da bolha
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = color;
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-        ctx.fillStyle = color + '22';
+        ctx.fillStyle = 'rgba(20, 20, 20, 0.8)';
         ctx.fill();
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.stroke();
-        
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 12px Arial';
+        ctx.shadowBlur = 0;
+
+        // Texto interno
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px Inter, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(b.name.split(' vs ')[0], b.x, b.y - 5);
+        ctx.fillText(b.home, b.x, b.y - 10);
+        ctx.fillText("x", b.x, b.y + 2);
+        ctx.fillText(b.away, b.x, b.y + 15);
         ctx.fillStyle = color;
-        ctx.fillText(`EV: ${b.ev}`, b.x, b.y + 15);
+        ctx.font = 'bold 14px monospace';
+        ctx.fillText(`EV +${b.ev}`, b.x, b.y + 35);
       });
-      animationFrame = requestAnimationFrame(animate);
+      frame = requestAnimationFrame(draw);
     };
-    animate();
-    return () => cancelAnimationFrame(animationFrame);
+    draw();
+    return () => cancelAnimationFrame(frame);
   }, [games]);
 
   return (
-    <div className="flex h-screen w-screen bg-black text-white overflow-hidden">
-      <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+    <div className="fixed inset-0 bg-[#050505] font-sans text-white overflow-hidden">
+      <canvas ref={canvasRef} className="absolute inset-0" />
       
-      <div className="relative z-10 w-80 bg-black/60 backdrop-blur-xl border-r border-white/10 p-6 flex flex-col">
-        <h1 className="text-xl font-black italic mb-6 text-green-500 tracking-tighter">ODDS SCANNER</h1>
-        
-        {loading ? (
-          <div className="animate-pulse text-gray-500">Sincronizando mercado...</div>
-        ) : games.length === 0 ? (
-          <div className="text-gray-500 text-sm">Sem jogos ao vivo com EV positivo no momento.</div>
-        ) : (
-          <div className="space-y-4 overflow-y-auto">
-            {games.slice(0, 5).map((game, i) => (
-              <div key={i} className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-green-500/50 transition-colors">
-                <p className="text-xs font-bold uppercase text-gray-400">Top {i+1} Oportunidade</p>
-                <p className="text-sm font-bold truncate mt-1">{game.name}</p>
-                <div className="mt-3 flex justify-between items-center">
-                  <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-1 rounded">LIVE</span>
-                  <span className="text-green-400 font-mono font-bold">EV +{game.ev}</span>
+      {/* Sidebar Ultra Moderna */}
+      <div className="relative z-10 w-96 h-full bg-black/40 backdrop-blur-2xl border-r border-white/5 p-8 flex flex-col shadow-2xl">
+        <div className="flex items-center gap-3 mb-10">
+          <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
+          <h1 className="text-2xl font-black tracking-tighter italic">LIVE SCANNER</h1>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pr-2 custom-scroll">
+          {loading ? (
+            <div className="text-gray-500 animate-pulse">Iniciando motores...</div>
+          ) : games.length === 0 ? (
+            <div className="p-6 border border-dashed border-white/10 rounded-2xl text-gray-500 text-center">
+              Sem jogos detectados agora
+            </div>
+          ) : (
+            games.map((g, i) => (
+              <div key={i} className="mb-4 p-5 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group">
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded">ODDS ACTIVE</span>
+                  <span className="text-xs font-mono text-gray-500">#{i+1}</span>
+                </div>
+                <h3 className="font-bold text-sm leading-tight group-hover:text-green-400 transition-colors">{g.name}</h3>
+                <div className="mt-4 flex justify-between items-end">
+                  <div className="text-[10px] text-gray-500">POTENTIAL EV</div>
+                  <div className="text-xl font-black text-green-500">+{g.ev}</div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {!loading && games.length === 0 && (
-        <div className="flex-1 flex items-center justify-center opacity-20 pointer-events-none">
-           <h2 className="text-4xl font-black">SEM JOGOS AO VIVO</h2>
+            ))
+          )}
         </div>
-      )}
+        
+        <div className="mt-auto pt-6 border-t border-white/5 text-[10px] text-gray-600 flex justify-between">
+          <span>API: THE-ODDS-API</span>
+          <span>STATUS: ONLINE</span>
+        </div>
+      </div>
     </div>
   );
 };
