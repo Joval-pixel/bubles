@@ -1,90 +1,79 @@
-import { startTransition, useDeferredValue, useEffect, useRef, useState } from "react";
-
-const SEGMENTS = ["Todos", "AAA", "Indie", "Strategy", "Multiplayer", "Mobile"];
-const SORTS = [
-  { value: "ev", label: "Maior EV" },
-  { value: "trend", label: "24h" },
-  { value: "players", label: "Jogadores" },
-];
-
-const formatCompact = (value) =>
-  new Intl.NumberFormat("pt-BR", {
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
-
-const formatPercent = (value) =>
-  `${value > 0 ? "+" : ""}${value.toFixed(1).replace(".", ",")}%`;
-
-const formatEv = (value) =>
-  `${value > 0 ? "+" : ""}${value.toFixed(2).replace(".", ",")}`;
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-const calcEV = (game) => {
-  const confidence = game.aiConfidence / 100;
-  const winRate = game.winRate / 100;
-  const margin = game.margin / 100;
-  const trend = game.trend24h / 100;
-  return (confidence * 0.4 + winRate * 0.25 + margin * 0.2 + trend * 0.15 - 0.45) * 3.2;
+const formatEv = (value) => `${value > 0 ? "+" : ""}${value.toFixed(2).replace(".", ",")}`;
+const formatMinute = (value) => `${Math.max(0, Math.round(value))}'`;
+
+const getTier = (ev) => {
+  if (ev >= 0.45) {
+    return "high";
+  }
+
+  if (ev >= 0.2) {
+    return "medium";
+  }
+
+  return "low";
 };
 
-const createBubble = (game, index, bounds) => {
-  const ev = calcEV(game);
-  const volatility = Math.max(0.2, Math.abs(game.trend24h) / 14);
-  const size = clamp(92 + Math.abs(ev) * 108 + Math.min(game.players / 1600, 72), 96, 240);
-  const radius = size / 2;
-  const width = Math.max(bounds.width, size + 40);
-  const height = Math.max(bounds.height, size + 40);
+const createBubble = (game, existing, bounds, index) => {
+  const size = clamp(120 + game.ev * 180, 120, 260);
+  const safeWidth = Math.max(bounds.width || 0, size + 40);
+  const safeHeight = Math.max(bounds.height || 0, size + 40);
 
   return {
     ...game,
-    ev,
+    tier: getTier(game.ev),
     size,
-    radius,
-    x: Math.random() * Math.max(40, width - size - 40),
-    y: Math.random() * Math.max(40, height - size - 40),
-    vx: (Math.random() - 0.5) * (0.7 + volatility),
-    vy: (Math.random() - 0.5) * (0.7 + volatility),
+    radius: size / 2,
+    x:
+      existing?.x ??
+      Math.random() * Math.max(40, safeWidth - size - 40),
+    y:
+      existing?.y ??
+      Math.random() * Math.max(40, safeHeight - size - 40),
+    vx:
+      existing?.vx ??
+      ((Math.random() - 0.5) * (0.65 + (index % 5) * 0.12) || 0.4),
+    vy:
+      existing?.vy ??
+      ((Math.random() - 0.5) * (0.65 + (index % 4) * 0.14) || -0.4),
   };
 };
 
-const updateBubbles = (items, bounds) => {
-  const width = Math.max(bounds.width, 900);
-  const height = Math.max(bounds.height, 620);
+const moveBubbles = (items, bounds) => {
+  const width = Math.max(bounds.width || 0, 900);
+  const height = Math.max(bounds.height || 0, 620);
 
   const next = items.map((item) => {
-    const moved = {
+    const bubble = {
       ...item,
       x: item.x + item.vx,
       y: item.y + item.vy,
     };
 
-    if (moved.x <= 0 || moved.x >= width - moved.size) {
-      moved.vx *= -1;
-      moved.x = clamp(moved.x, 0, width - moved.size);
+    if (bubble.x <= 0 || bubble.x >= width - bubble.size) {
+      bubble.vx *= -1;
+      bubble.x = clamp(bubble.x, 0, width - bubble.size);
     }
 
-    if (moved.y <= 0 || moved.y >= height - moved.size) {
-      moved.vy *= -1;
-      moved.y = clamp(moved.y, 0, height - moved.size);
+    if (bubble.y <= 0 || bubble.y >= height - bubble.size) {
+      bubble.vy *= -1;
+      bubble.y = clamp(bubble.y, 0, height - bubble.size);
     }
 
-    return moved;
+    return bubble;
   });
 
-  for (let i = 0; i < next.length; i += 1) {
-    for (let j = i + 1; j < next.length; j += 1) {
-      const bubbleA = next[i];
-      const bubbleB = next[j];
-      const centerAX = bubbleA.x + bubbleA.radius;
-      const centerAY = bubbleA.y + bubbleA.radius;
-      const centerBX = bubbleB.x + bubbleB.radius;
-      const centerBY = bubbleB.y + bubbleB.radius;
-      const dx = centerAX - centerBX;
-      const dy = centerAY - centerBY;
+  for (let index = 0; index < next.length; index += 1) {
+    for (let compare = index + 1; compare < next.length; compare += 1) {
+      const first = next[index];
+      const second = next[compare];
+      const dx = first.x + first.radius - (second.x + second.radius);
+      const dy = first.y + first.radius - (second.y + second.radius);
       const distance = Math.hypot(dx, dy) || 1;
-      const minDistance = bubbleA.radius + bubbleB.radius + 8;
+      const minDistance = first.radius + second.radius + 8;
 
       if (distance >= minDistance) {
         continue;
@@ -94,17 +83,17 @@ const updateBubbles = (items, bounds) => {
       const normalX = dx / distance;
       const normalY = dy / distance;
 
-      bubbleA.x += normalX * (overlap * 0.5);
-      bubbleA.y += normalY * (overlap * 0.5);
-      bubbleB.x -= normalX * (overlap * 0.5);
-      bubbleB.y -= normalY * (overlap * 0.5);
+      first.x += normalX * (overlap * 0.5);
+      first.y += normalY * (overlap * 0.5);
+      second.x -= normalX * (overlap * 0.5);
+      second.y -= normalY * (overlap * 0.5);
 
-      const swapVx = bubbleA.vx;
-      const swapVy = bubbleA.vy;
-      bubbleA.vx = bubbleB.vx * 0.98;
-      bubbleA.vy = bubbleB.vy * 0.98;
-      bubbleB.vx = swapVx * 0.98;
-      bubbleB.vy = swapVy * 0.98;
+      const tempVx = first.vx;
+      const tempVy = first.vy;
+      first.vx = second.vx * 0.98;
+      first.vy = second.vy * 0.98;
+      second.vx = tempVx * 0.98;
+      second.vy = tempVy * 0.98;
     }
   }
 
@@ -113,18 +102,14 @@ const updateBubbles = (items, bounds) => {
 
 export default function App() {
   const boardRef = useRef(null);
-  const frameRef = useRef(0);
+  const animationRef = useRef(0);
   const boundsRef = useRef({ width: 0, height: 0 });
 
   const [bubbles, setBubbles] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
-  const [segment, setSegment] = useState("Todos");
-  const [sortBy, setSortBy] = useState("ev");
-  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const deferredQuery = useDeferredValue(query);
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState("");
 
   useEffect(() => {
     const syncBounds = () => {
@@ -148,32 +133,65 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const fetchGames = async () => {
-      try {
+    let isMounted = true;
+
+    const fetchGames = async (silent = false) => {
+      if (!silent) {
         setLoading(true);
-        setError("");
+      } else {
+        setRefreshing(true);
+      }
 
-        const response = await fetch("/api/games");
+      try {
+        const response = await fetch("/api/games", {
+          cache: "no-store",
+        });
 
-        if (!response.ok) {
-          throw new Error("Falha ao buscar dados");
+        const payload = await response.json();
+        const items = Array.isArray(payload?.games) ? payload.games : [];
+
+        if (!isMounted) {
+          return;
         }
 
-        const data = await response.json();
-        const processed = data.map((game, index) =>
-          createBubble(game, index, boundsRef.current)
-        );
+        setUpdatedAt(payload?.updatedAt ?? "");
+        setBubbles((current) => {
+          const currentMap = new Map(current.map((item) => [item.id, item]));
+          return items.map((item, index) =>
+            createBubble(item, currentMap.get(item.id), boundsRef.current, index)
+          );
+        });
 
-        setBubbles(processed);
-        setSelectedId(processed[0]?.id ?? null);
-      } catch (err) {
-        setError("Não consegui carregar o radar agora.");
+        setSelectedId((current) =>
+          items.some((item) => item.id === current) ? current : items[0]?.id ?? null
+        );
+      } catch (_error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setBubbles([]);
+        setSelectedId(null);
+        setUpdatedAt("");
       } finally {
+        if (!isMounted) {
+          return;
+        }
+
         setLoading(false);
+        setRefreshing(false);
       }
     };
 
-    fetchGames();
+    fetchGames(false);
+    const timer = window.setInterval(() => {
+      fetchGames(true);
+    }, 25000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -182,293 +200,197 @@ export default function App() {
     }
 
     const animate = () => {
-      setBubbles((current) => updateBubbles(current, boundsRef.current));
-      frameRef.current = window.requestAnimationFrame(animate);
+      setBubbles((current) => moveBubbles(current, boundsRef.current));
+      animationRef.current = window.requestAnimationFrame(animate);
     };
 
-    frameRef.current = window.requestAnimationFrame(animate);
+    animationRef.current = window.requestAnimationFrame(animate);
 
     return () => {
-      window.cancelAnimationFrame(frameRef.current);
+      window.cancelAnimationFrame(animationRef.current);
     };
   }, [bubbles.length]);
 
-  const visibleBubbles = bubbles
-    .filter((bubble) => {
-      const matchesSegment = segment === "Todos" || bubble.segment === segment;
-      const matchesQuery =
-        !deferredQuery ||
-        `${bubble.name} ${bubble.symbol} ${bubble.segment}`
-          .toLowerCase()
-          .includes(deferredQuery.toLowerCase());
+  const topGames = useMemo(
+    () => [...bubbles].sort((left, right) => right.ev - left.ev).slice(0, 5),
+    [bubbles]
+  );
 
-      return matchesSegment && matchesQuery;
-    })
-    .sort((left, right) => {
-      if (sortBy === "players") {
-        return right.players - left.players;
-      }
+  const selectedGame =
+    bubbles.find((item) => item.id === selectedId) ?? topGames[0] ?? null;
 
-      if (sortBy === "trend") {
-        return right.trend24h - left.trend24h;
-      }
-
-      return right.ev - left.ev;
-    });
-
-  useEffect(() => {
-    if (!visibleBubbles.length) {
-      setSelectedId(null);
-      return;
-    }
-
-    const stillVisible = visibleBubbles.some((bubble) => bubble.id === selectedId);
-
-    if (!stillVisible) {
-      setSelectedId(visibleBubbles[0].id);
-    }
-  }, [selectedId, visibleBubbles]);
-
-  const selectedBubble =
-    visibleBubbles.find((bubble) => bubble.id === selectedId) ?? visibleBubbles[0] ?? null;
-
-  const positives = visibleBubbles.filter((bubble) => bubble.ev > 0).length;
-  const averageEv = visibleBubbles.length
-    ? visibleBubbles.reduce((sum, bubble) => sum + bubble.ev, 0) / visibleBubbles.length
-    : 0;
+  const emptyMessage = "Sem jogos ao vivo";
 
   return (
     <div className="app-shell">
-      <div className="ambient ambient-a" />
-      <div className="ambient ambient-b" />
-      <div className="ambient ambient-c" />
+      <div className="glow glow-left" />
+      <div className="glow glow-right" />
 
-      <header className="topbar">
-        <div className="brand-block">
-          <div className="brand-mark">B</div>
-          <div>
-            <p className="kicker">Bubles radar</p>
-            <h1>Bubble board com cara de produto real</h1>
-          </div>
+      <header className="header">
+        <div className="header-copy">
+          <span className="badge">Ao vivo</span>
+          <h1>Bubles Live Radar</h1>
+          <p>
+            Bubbles com jogos ao vivo, minuto e EV positivo calculado em tempo real.
+          </p>
         </div>
 
-        <div className="topbar-meta">
-          <span>Visual inspirado em market map</span>
-          <span>React + Vite + API</span>
+        <div className="status-panel">
+          <span>{refreshing ? "Atualizando..." : "Sincronizado"}</span>
+          <strong>{bubbles.length ? `${bubbles.length} oportunidades` : emptyMessage}</strong>
+          <small>
+            {updatedAt
+              ? `Atualizado às ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
+              : emptyMessage}
+          </small>
         </div>
       </header>
 
-      <section className="hero-strip">
-        <article className="hero-card hero-card-strong">
-          <p className="kicker">Leitura rápida</p>
-          <h2>Seu site precisa abrir como um painel vivo, não como uma página parada.</h2>
-          <p>
-            Esta versão troca o topo editorial por um radar interativo de bubbles, com
-            movimento contínuo, filtros, seleção e painel lateral.
-          </p>
-        </article>
-
-        <article className="hero-card">
-          <strong>{visibleBubbles.length}</strong>
-          <span>ativos no radar</span>
-        </article>
-
-        <article className="hero-card">
-          <strong>{formatEv(averageEv)}</strong>
-          <span>EV médio</span>
-        </article>
-
-        <article className="hero-card">
-          <strong>{positives}</strong>
-          <span>bubbles positivas</span>
-        </article>
-      </section>
-
-      <section className="controls-panel">
-        <div className="search-shell">
-          <label htmlFor="search" className="sr-only">
-            Buscar item
-          </label>
-          <input
-            id="search"
-            type="search"
-            placeholder="Buscar por nome, símbolo ou segmento"
-            value={query}
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              startTransition(() => {
-                setQuery(nextValue);
-              });
-            }}
-          />
-        </div>
-
-        <div className="chip-row">
-          {SEGMENTS.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={segment === item ? "chip is-active" : "chip"}
-              onClick={() => setSegment(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-
-        <div className="sort-shell">
-          <label htmlFor="sort-by">Ordenar</label>
-          <select id="sort-by" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-            {SORTS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
-
-      <main className="dashboard">
-        <section className="board-panel">
-          <div className="board-header">
+      <main className="layout">
+        <section className="board-shell">
+          <div className="board-top">
             <div>
-              <p className="kicker">Radar</p>
-              <h2>Mapa de bolhas com movimento contínuo</h2>
+              <span className="section-kicker">Radar de oportunidades</span>
+              <h2>Somente jogos com EV positivo</h2>
             </div>
 
             <div className="legend">
-              <span className="legend-dot legend-up" />
-              <small>positivo</small>
-              <span className="legend-dot legend-down" />
-              <small>pressionado</small>
+              <span className="legend-item is-high">alto</span>
+              <span className="legend-item is-medium">médio</span>
+              <span className="legend-item is-low">baixo</span>
             </div>
           </div>
 
           <div className="board" ref={boardRef}>
-            <div className="grid grid-x" />
-            <div className="grid grid-y" />
+            <div className="board-grid" />
 
-            {loading && <div className="state-card">Carregando radar...</div>}
-            {error && <div className="state-card is-error">{error}</div>}
+            {loading ? (
+              <div className="empty-state">
+                <h3>Carregando oportunidades...</h3>
+                <p>Buscando jogos ao vivo e calculando EV.</p>
+              </div>
+            ) : null}
+
+            {!loading && !bubbles.length ? (
+              <div className="empty-state">
+                <h3>{emptyMessage}</h3>
+                <p>
+                  Se a API falhar ou não houver partidas elegíveis, o radar fica estável e
+                  mostra esta mensagem.
+                </p>
+              </div>
+            ) : null}
 
             {!loading &&
-              !error &&
-              visibleBubbles.map((bubble, index) => (
+              bubbles.map((bubble) => (
                 <button
                   key={bubble.id}
                   type="button"
                   className={
                     selectedId === bubble.id
-                      ? `bubble ${bubble.ev >= 0 ? "is-up" : "is-down"} is-selected`
-                      : `bubble ${bubble.ev >= 0 ? "is-up" : "is-down"}`
+                      ? `bubble is-${bubble.tier} is-selected`
+                      : `bubble is-${bubble.tier}`
                   }
                   style={{
                     width: `${bubble.size}px`,
                     height: `${bubble.size}px`,
                     transform: `translate(${bubble.x}px, ${bubble.y}px)`,
-                    animationDelay: `${index * 120}ms`,
                   }}
                   onClick={() => setSelectedId(bubble.id)}
                 >
-                  <span className="bubble-symbol">{bubble.symbol}</span>
-                  <strong>{formatPercent(bubble.trend24h)}</strong>
-                  <small>EV {formatEv(bubble.ev)}</small>
+                  <small className="bubble-game">{bubble.game}</small>
+                  <strong>{formatMinute(bubble.minute)}</strong>
+                  <span>EV {formatEv(bubble.ev)}</span>
                 </button>
               ))}
           </div>
         </section>
 
-        <aside className="detail-panel">
-          {selectedBubble ? (
-            <>
-              <div className="detail-top">
-                <div>
-                  <p className="kicker">Selecionado</p>
-                  <h3>{selectedBubble.name}</h3>
-                </div>
-                <span className="symbol-pill">{selectedBubble.symbol}</span>
+        <aside className="sidebar">
+          <section className="sidebar-card">
+            <span className="section-kicker">TOP 5 oportunidades</span>
+            <h2>Melhores entradas ao vivo</h2>
+
+            {topGames.length ? (
+              <div className="top-list">
+                {topGames.map((game, index) => (
+                  <button
+                    key={game.id}
+                    type="button"
+                    className={selectedId === game.id ? "top-item is-active" : "top-item"}
+                    onClick={() => setSelectedId(game.id)}
+                  >
+                    <div className="top-rank">{index + 1}</div>
+                    <div className="top-copy">
+                      <strong>{game.game}</strong>
+                      <span>
+                        {game.league} • {formatMinute(game.minute)}
+                      </span>
+                    </div>
+                    <div className="top-ev">EV {formatEv(game.ev)}</div>
+                  </button>
+                ))}
               </div>
+            ) : (
+              <div className="empty-inline">{emptyMessage}</div>
+            )}
+          </section>
 
-              <p className="detail-summary">{selectedBubble.summary}</p>
-
-              <div className="metric-list">
-                <div className="metric-card">
-                  <span>EV</span>
-                  <strong>{formatEv(selectedBubble.ev)}</strong>
-                </div>
-                <div className="metric-card">
-                  <span>24h</span>
-                  <strong>{formatPercent(selectedBubble.trend24h)}</strong>
-                </div>
-                <div className="metric-card">
-                  <span>Jogadores</span>
-                  <strong>{formatCompact(selectedBubble.players)}</strong>
-                </div>
-                <div className="metric-card">
-                  <span>Preço</span>
-                  <strong>
-                    {selectedBubble.price > 0
-                      ? `R$ ${selectedBubble.price.toFixed(2).replace(".", ",")}`
-                      : "Free"}
-                  </strong>
-                </div>
-              </div>
-
-              <div className="detail-bars">
-                <div className="bar-row">
-                  <div className="bar-copy">
-                    <span>Confiança da IA</span>
-                    <strong>{selectedBubble.aiConfidence}%</strong>
-                  </div>
-                  <div className="bar-track">
-                    <div
-                      className="bar-fill is-cyan"
-                      style={{ width: `${selectedBubble.aiConfidence}%` }}
-                    />
-                  </div>
+          <section className="sidebar-card">
+            <span className="section-kicker">Detalhes</span>
+            {selectedGame ? (
+              <>
+                <h2>{selectedGame.game}</h2>
+                <div className="detail-metrics">
+                  <article>
+                    <span>Minuto</span>
+                    <strong>{formatMinute(selectedGame.minute)}</strong>
+                  </article>
+                  <article>
+                    <span>EV</span>
+                    <strong>{formatEv(selectedGame.ev)}</strong>
+                  </article>
+                  <article>
+                    <span>Odd casa</span>
+                    <strong>{selectedGame.oddHome.toFixed(2).replace(".", ",")}</strong>
+                  </article>
+                  <article>
+                    <span>Pressão</span>
+                    <strong>{selectedGame.pressure.toFixed(2).replace(".", ",")}</strong>
+                  </article>
                 </div>
 
-                <div className="bar-row">
-                  <div className="bar-copy">
-                    <span>Taxa de vitória</span>
-                    <strong>{selectedBubble.winRate}%</strong>
-                  </div>
-                  <div className="bar-track">
-                    <div
-                      className="bar-fill is-emerald"
-                      style={{ width: `${selectedBubble.winRate}%` }}
-                    />
-                  </div>
+                <div className="stat-grid">
+                  <article>
+                    <span>Attacks</span>
+                    <strong>{selectedGame.attacks}</strong>
+                  </article>
+                  <article>
+                    <span>Dangerous</span>
+                    <strong>{selectedGame.dangerous}</strong>
+                  </article>
+                  <article>
+                    <span>Shots</span>
+                    <strong>{selectedGame.shots}</strong>
+                  </article>
+                  <article>
+                    <span>Corners</span>
+                    <strong>{selectedGame.corners}</strong>
+                  </article>
+                  <article>
+                    <span>Possession</span>
+                    <strong>{selectedGame.possession.toFixed(0)}%</strong>
+                  </article>
+                  <article>
+                    <span>Probabilidade</span>
+                    <strong>{(selectedGame.probability * 100).toFixed(1).replace(".", ",")}%</strong>
+                  </article>
                 </div>
-
-                <div className="bar-row">
-                  <div className="bar-copy">
-                    <span>Margem</span>
-                    <strong>{selectedBubble.margin.toFixed(1).replace(".", ",")}%</strong>
-                  </div>
-                  <div className="bar-track">
-                    <div
-                      className="bar-fill is-gold"
-                      style={{ width: `${Math.min(selectedBubble.margin * 3, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="detail-grid">
-                <article className="mini-panel">
-                  <span>Segmento</span>
-                  <strong>{selectedBubble.segment}</strong>
-                </article>
-                <article className="mini-panel">
-                  <span>Janela</span>
-                  <strong>{selectedBubble.releaseWindow}</strong>
-                </article>
-              </div>
-            </>
-          ) : (
-            <div className="state-card">Nenhuma bubble encontrada.</div>
-          )}
+              </>
+            ) : (
+              <div className="empty-inline">{emptyMessage}</div>
+            )}
+          </section>
         </aside>
       </main>
     </div>
