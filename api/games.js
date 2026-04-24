@@ -1,54 +1,81 @@
 export default async function handler(req, res) {
   try {
-    const response = await fetch(
+    const headers = {
+      "x-apisports-key": process.env.API_KEY,
+    };
+
+    // 🔥 Jogos AO VIVO
+    const fixturesRes = await fetch(
       "https://v3.football.api-sports.io/fixtures?live=all",
-      {
-        headers: {
-          "x-apisports-key": process.env.API_KEY,
-        },
-      }
+      { headers }
     );
 
-    const data = await response.json();
+    const fixturesData = await fixturesRes.json();
 
-    if (!data.response || data.response.length === 0) {
+    if (!fixturesData.response || fixturesData.response.length === 0) {
       throw new Error("Sem jogos ao vivo");
     }
 
-    const games = data.response.map((g) => {
-      return {
-        id: g.fixture.id,
+    const games = await Promise.all(
+      fixturesData.response.map(async (g) => {
+        const fixtureId = g.fixture.id;
 
-        game: `${g.teams.home.name} x ${g.teams.away.name}`,
+        // 📊 Estatísticas
+        const statsRes = await fetch(
+          `https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`,
+          { headers }
+        );
+        const statsData = await statsRes.json();
 
-        minute: g.fixture.status.elapsed || 0,
+        // 💰 Odds
+        const oddsRes = await fetch(
+          `https://v3.football.api-sports.io/odds?fixture=${fixtureId}`,
+          { headers }
+        );
+        const oddsData = await oddsRes.json();
 
-        // 📊 ESTATÍSTICAS REAIS (IMPORTANTÍSSIMO)
-        shots:
-          g.statistics?.[0]?.statistics?.find(
-            (s) => s.type === "Shots on Goal"
-          )?.value || 0,
+        const statsHome = statsData.response?.[0]?.statistics || [];
+        const statsAway = statsData.response?.[1]?.statistics || [];
 
-        corners:
-          g.statistics?.[0]?.statistics?.find(
-            (s) => s.type === "Corner Kicks"
-          )?.value || 0,
+        const findStat = (arr, name) =>
+          Number(arr.find((s) => s.type === name)?.value || 0);
 
-        dangerous:
-          g.statistics?.[0]?.statistics?.find(
-            (s) => s.type === "Dangerous Attacks"
-          )?.value || 0,
+        const bookmaker =
+          oddsData.response?.[0]?.bookmakers?.[0]?.bets?.[0]?.values || [];
 
-        odds: 1.8 + Math.random(), // depois podemos pegar odds reais
-      };
-    });
+        const oddHome = parseFloat(bookmaker?.[0]?.odd || 2);
+        const oddDraw = parseFloat(bookmaker?.[1]?.odd || 3);
+        const oddAway = parseFloat(bookmaker?.[2]?.odd || 2);
+
+        return {
+          id: fixtureId,
+          game: `${g.teams.home.name} x ${g.teams.away.name}`,
+          minute: g.fixture.status.elapsed || 0,
+
+          shots:
+            findStat(statsHome, "Shots on Goal") +
+            findStat(statsAway, "Shots on Goal"),
+
+          corners:
+            findStat(statsHome, "Corner Kicks") +
+            findStat(statsAway, "Corner Kicks"),
+
+          dangerous:
+            findStat(statsHome, "Dangerous Attacks") +
+            findStat(statsAway, "Dangerous Attacks"),
+
+          oddHome,
+          oddDraw,
+          oddAway,
+        };
+      })
+    );
 
     res.status(200).json(games);
-
   } catch (err) {
     console.log("ERRO API:", err.message);
 
-    // 🔥 FALLBACK (NUNCA QUEBRA)
+    // 🔥 fallback (nunca quebra)
     const fallback = Array.from({ length: 20 }).map((_, i) => ({
       id: i,
       game: `Fallback ${i}`,
@@ -56,7 +83,7 @@ export default async function handler(req, res) {
       shots: Math.random() * 10,
       corners: Math.random() * 8,
       dangerous: Math.random() * 30,
-      odds: 1.5 + Math.random() * 2,
+      oddHome: 1.5 + Math.random() * 2,
     }));
 
     res.status(200).json(fallback);
