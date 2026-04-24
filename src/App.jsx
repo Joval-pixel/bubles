@@ -6,6 +6,7 @@ export default function App() {
 
   const scale = useRef(1);
   const offset = useRef({ x: 0, y: 0 });
+
   const dragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
 
@@ -16,26 +17,28 @@ export default function App() {
 
       const canvas = canvasRef.current;
 
+      // NÃO recria tudo — atualiza melhor
       bubbles.current = data.map((item) => ({
         ...item,
-        x: canvas.width / 2 + (Math.random() - 0.5) * 300,
-        y: canvas.height / 2 + (Math.random() - 0.5) * 300,
-        radius: 40 + item.odds * 10,
-        dx: (Math.random() - 0.5) * 1.5,
-        dy: (Math.random() - 0.5) * 1.5,
+        x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+        y: canvas.height / 2 + (Math.random() - 0.5) * 200,
+        radius: 40 + item.odds * 8,
+        dx: (Math.random() - 0.5) * 2,
+        dy: (Math.random() - 0.5) * 2,
         score: calculateScore(item),
       }));
+
     } catch {
-      console.log("Erro API");
+      console.log("erro api");
     }
   }
 
-  function calculateScore(game) {
-    let score = 0;
-    if (game.corners > 6) score += 30;
-    if (game.minute > 60) score += 20;
-    if (game.odds > 2) score += 20;
-    return score;
+  function calculateScore(g) {
+    let s = 0;
+    if (g.corners > 6) s += 30;
+    if (g.minute > 60) s += 20;
+    if (g.odds > 2) s += 20;
+    return s;
   }
 
   function getColor(score) {
@@ -52,7 +55,7 @@ export default function App() {
     canvas.height = window.innerHeight;
 
     fetchGames();
-    setInterval(fetchGames, 10000);
+    setInterval(fetchGames, 15000);
 
     function draw() {
       ctx.setTransform(
@@ -71,7 +74,16 @@ export default function App() {
         canvas.height
       );
 
-      // colisão
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      // 🔥 força para manter no centro
+      bubbles.current.forEach((b) => {
+        b.dx += (centerX - b.x) * 0.0005;
+        b.dy += (centerY - b.y) * 0.0005;
+      });
+
+      // 🔥 colisão real
       for (let i = 0; i < bubbles.current.length; i++) {
         for (let j = i + 1; j < bubbles.current.length; j++) {
           const b1 = bubbles.current[i];
@@ -80,11 +92,12 @@ export default function App() {
           const dx = b2.x - b1.x;
           const dy = b2.y - b1.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
+
           const minDist = b1.radius + b2.radius;
 
           if (dist < minDist) {
             const angle = Math.atan2(dy, dx);
-            const force = (minDist - dist) * 0.02;
+            const force = (minDist - dist) * 0.05;
 
             b1.dx -= Math.cos(angle) * force;
             b1.dy -= Math.sin(angle) * force;
@@ -98,6 +111,9 @@ export default function App() {
       bubbles.current.forEach((b) => {
         b.x += b.dx;
         b.y += b.dy;
+
+        b.dx *= 0.99;
+        b.dy *= 0.99;
 
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
@@ -117,14 +133,14 @@ export default function App() {
 
     draw();
 
-    // 🖱️ ZOOM
+    // 🔥 ZOOM
     canvas.addEventListener("wheel", (e) => {
       e.preventDefault();
       scale.current += e.deltaY * -0.001;
       scale.current = Math.min(Math.max(0.5, scale.current), 2);
     });
 
-    // 🖱️ DRAG
+    // 🔥 DRAG
     canvas.addEventListener("mousedown", (e) => {
       dragging.current = true;
       lastMouse.current = { x: e.clientX, y: e.clientY };
@@ -148,7 +164,7 @@ export default function App() {
   return (
     <canvas
       ref={canvasRef}
-      style={{ background: "#111", display: "block", cursor: "grab" }}
+      style={{ background: "#111", display: "block" }}
     />
   );
 }
