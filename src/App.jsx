@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 export default function App() {
   const [bubbles, setBubbles] = useState([]);
   const [top, setTop] = useState([]);
-
   const ref = useRef([]);
 
   useEffect(() => {
@@ -11,29 +10,90 @@ export default function App() {
     animate();
   }, []);
 
-  // 🧠 BUSCA + PROCESSA DADOS
+  // -----------------------
+  // 🔢 MODELO (heurístico)
+  // -----------------------
+
+  // Score bruto (pressão do jogo)
+  const calcScore = (g) => {
+    let s = 0;
+    s += g.dangerous * 3;
+    s += g.shots * 2;
+    s += g.corners * 1.5;
+    if (g.minute > 60) s *= 1.4;
+    return s;
+  };
+
+  // Probabilidade de gol (0–1)
+  const calcGoalProb = (g) => {
+    let p = 0;
+
+    p += g.dangerous * 0.002;
+    p += g.shots * 0.01;
+    p += g.corners * 0.015;
+
+    // fase do jogo
+    if (g.minute > 60) p *= 1.2;
+    if (g.minute > 75) p *= 1.3;
+
+    // clamp
+    return Math.max(0.01, Math.min(0.95, p));
+  };
+
+  // Probabilidade implícita das odds
+  const impliedProb = (odds) => {
+    if (!odds || odds <= 1) return 0;
+    return 1 / odds;
+  };
+
+  // EV = valor esperado
+  const calcEV = (prob, odds) => {
+    return prob * odds - 1; // > 0 = valor positivo
+  };
+
+  // -----------------------
+  // 🎨 Cor por qualidade
+  // -----------------------
+  const getColor = (b) => {
+    if (b.isValue && b.ev > 0.25) return "#00ff88"; // ótimo
+    if (b.isValue) return "#ffaa00"; // bom
+    return "#ff4444"; // ruim
+  };
+
+  // -----------------------
+  // 🔄 Fetch + ranking real
+  // -----------------------
   const fetchGames = async () => {
     try {
       const res = await fetch("/api/games");
       const data = await res.json();
 
-      // calcula score
-      const scored = data.map((g) => ({
-        ...g,
-        score: calcScore(g),
-      }));
+      const enriched = data.map((g) => {
+        const score = calcScore(g);
+        const prob = calcGoalProb(g);
+        const imp = impliedProb(g.odds);
+        const ev = calcEV(prob, g.odds);
 
-      // ordena
-      const sorted = scored.sort((a, b) => b.score - a.score);
+        return {
+          ...g,
+          score,
+          prob,
+          imp,
+          ev,
+          isValue: ev > 0.05, // threshold mínimo
+        };
+      });
 
-      const max = sorted[0]?.score || 1;
-      const min = sorted[sorted.length - 1]?.score || 0;
+      // ordena por EV (melhor primeiro)
+      const sorted = enriched.sort((a, b) => b.ev - a.ev);
 
-      // normalização estilo Crypto
+      const max = sorted[0]?.ev || 1;
+      const min = sorted[sorted.length - 1]?.ev || 0;
+
+      // normalização → tamanho estilo Crypto
       const bubbles = sorted.map((g) => {
-        const normalized = (g.score - min) / (max - min || 1);
-
-        const size = 40 + Math.pow(normalized, 2.5) * 200;
+        const normalized = (g.ev - min) / (max - min || 1);
+        const size = 40 + Math.pow(Math.max(0, normalized), 2.5) * 220;
 
         return {
           ...g,
@@ -42,46 +102,22 @@ export default function App() {
           y: Math.random() * window.innerHeight,
           vx: (Math.random() - 0.5) * 1.2,
           vy: (Math.random() - 0.5) * 1.2,
+          alerted: false,
         };
       });
 
       ref.current = bubbles;
       setBubbles(bubbles);
-      updateTop(bubbles);
+      setTop(bubbles.slice(0, 5));
 
-    } catch (err) {
-      console.log("erro:", err);
+    } catch (e) {
+      console.log("erro:", e);
     }
   };
 
-  // 🧠 SCORE PROFISSIONAL
-  const calcScore = (g) => {
-    let s = 0;
-
-    s += g.dangerous * 3;
-    s += g.shots * 2;
-    s += g.corners * 1.5;
-
-    if (g.minute > 60) s *= 1.5;
-    if (g.odds > 2) s *= 1.2;
-
-    return s;
-  };
-
-  // 🎯 TOP 5
-  const updateTop = (arr) => {
-    const sorted = [...arr].sort((a, b) => b.score - a.score).slice(0, 5);
-    setTop(sorted);
-  };
-
-  // 🎨 COR
-  const getColor = (s) => {
-    if (s > 90) return "#00ff88";
-    if (s > 70) return "#ffaa00";
-    return "#ff4444";
-  };
-
-  // 🔄 ANIMAÇÃO (MOVIMENTO REAL)
+  // -----------------------
+  // 🎬 Movimento (física leve)
+  // -----------------------
   const animate = () => {
     const loop = () => {
       const arr = ref.current;
@@ -96,7 +132,7 @@ export default function App() {
         if (b.x < 0 || b.x > window.innerWidth) b.vx *= -1;
         if (b.y < 0 || b.y > window.innerHeight) b.vy *= -1;
 
-        // colisão
+        // colisão simples
         for (let j = i + 1; j < arr.length; j++) {
           let o = arr[j];
 
@@ -116,6 +152,12 @@ export default function App() {
             o.vy += Math.sin(angle) * 0.3;
           }
         }
+
+        // 🔔 ALERTA DE VALOR
+        if (b.isValue && b.ev > 0.3 && !b.alerted) {
+          b.alerted = true;
+          console.log("🔥 VALUE BET:", b.game, "EV:", b.ev.toFixed(2));
+        }
       }
 
       setBubbles([...arr]);
@@ -125,16 +167,11 @@ export default function App() {
     loop();
   };
 
+  // -----------------------
+  // 🖥️ UI
+  // -----------------------
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100vh",
-        background: "#000",
-        overflow: "hidden",
-      }}
-    >
-      {/* BOLHAS */}
+    <div style={{ width: "100vw", height: "100vh", background: "#000", overflow: "hidden" }}>
       {bubbles.map((b, i) => (
         <div
           key={i}
@@ -145,27 +182,27 @@ export default function App() {
             width: b.size,
             height: b.size,
             borderRadius: "50%",
-            background: getColor(b.score),
+            background: getColor(b),
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             color: "#000",
-            fontSize: 12,
             textAlign: "center",
-            boxShadow: `0 0 30px ${getColor(b.score)}`,
+            fontSize: 11,
+            boxShadow: `0 0 30px ${getColor(b)}`,
             padding: 6,
           }}
+          title={`Prob: ${(b.prob*100).toFixed(1)}% | Odds: ${b.odds.toFixed(2)} | EV: ${b.ev.toFixed(2)}`}
         >
           <div>
-            <div style={{ fontWeight: "bold" }}>
-              {b.game?.slice(0, 18)}
-            </div>
-            <div>{Math.round(b.score)}</div>
+            <b>{b.game.slice(0, 16)}</b>
+            <br />
+            EV: {b.ev.toFixed(2)}
           </div>
         </div>
       ))}
 
-      {/* 🔥 TOP APOSTAS */}
+      {/* TOP VALUE */}
       <div
         style={{
           position: "absolute",
@@ -175,16 +212,15 @@ export default function App() {
           padding: 10,
           borderRadius: 10,
           color: "#fff",
-          width: 220,
+          width: 240,
         }}
       >
-        <b>🔥 TOP APOSTAS</b>
-
+        <b>🔥 TOP VALUE</b>
         {top.map((t, i) => (
           <div key={i} style={{ marginTop: 8 }}>
-            {t.game?.slice(0, 22)}
+            {t.game.slice(0, 20)}
             <br />
-            Score: {Math.round(t.score)}
+            EV: {t.ev.toFixed(2)} | Prob: {(t.prob*100).toFixed(0)}%
           </div>
         ))}
       </div>
