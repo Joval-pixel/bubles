@@ -3,30 +3,34 @@ import { useEffect, useRef } from "react";
 export default function App() {
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
+  const alerts = useRef([]);
 
   const scale = useRef(1);
   const offset = useRef({ x: 0, y: 0 });
 
-  const dragging = useRef(false);
-  const last = useRef({ x: 0, y: 0 });
-
+  // 🧠 SCORE PROFISSIONAL
   function calculateScore(g) {
     let score = 0;
-    score += (g.dangerous || 0) * 0.6;
-    score += (g.shots || 0) * 1.2;
-    score += (g.corners || 0) * 2;
 
-    if (g.minute > 60) score += 15;
-    if (g.minute > 75) score += 10;
-    if (g.odds > 2) score += 20;
+    // pressão ofensiva
+    score += (g.dangerous || 0) * 0.7;
+    score += (g.shots || 0) * 1.3;
+    score += (g.corners || 0) * 2.2;
+
+    // tempo de jogo (mais valor no final)
+    if (g.minute > 60) score += 20;
+    if (g.minute > 75) score += 25;
+
+    // odds interessantes
+    if (g.odds > 2) score += 15;
 
     return Math.round(score);
   }
 
   function getColor(score) {
-    if (score > 80) return "#00ff88";
-    if (score > 50) return "#ffaa00";
-    return "#ff4444";
+    if (score > 100) return "#00ff88"; // forte
+    if (score > 70) return "#ffaa00";  // médio
+    return "#ff4444";                  // fraco
   }
 
   async function fetchGames() {
@@ -36,41 +40,22 @@ export default function App() {
 
       const canvas = canvasRef.current;
 
-      bubbles.current = data.map((item) => {
-        const score = calculateScore(item);
+      bubbles.current = data.map((g) => {
+        const score = calculateScore(g);
 
         return {
-          ...item,
+          ...g,
+          score,
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          radius: 15 + score * 0.9,
-          dx: (Math.random() - 0.5) * 3,
-          dy: (Math.random() - 0.5) * 3,
-          score,
+          radius: 15 + score * 0.7,
+          dx: (Math.random() - 0.5) * 2,
+          dy: (Math.random() - 0.5) * 2,
         };
       });
 
     } catch {
-      const canvas = canvasRef.current;
-
-      const fallback = Array.from({ length: 60 }).map((_, i) => ({
-        game: `Jogo ${i}`,
-        minute: Math.random() * 90,
-        corners: Math.random() * 10,
-        shots: Math.random() * 15,
-        dangerous: Math.random() * 25,
-        odds: 1.5 + Math.random() * 2,
-      }));
-
-      bubbles.current = fallback.map((item) => ({
-        ...item,
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        radius: 15 + calculateScore(item) * 0.9,
-        dx: (Math.random() - 0.5) * 3,
-        dy: (Math.random() - 0.5) * 3,
-        score: calculateScore(item),
-      }));
+      console.log("fallback ativo");
     }
   }
 
@@ -101,7 +86,7 @@ export default function App() {
         canvas.height
       );
 
-      // colisão suave
+      // colisão leve
       for (let i = 0; i < bubbles.current.length; i++) {
         for (let j = i + 1; j < bubbles.current.length; j++) {
           const b1 = bubbles.current[i];
@@ -110,7 +95,6 @@ export default function App() {
           const dx = b2.x - b1.x;
           const dy = b2.y - b1.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-
           const minDist = b1.radius + b2.radius;
 
           if (dist < minDist) {
@@ -126,6 +110,14 @@ export default function App() {
         }
       }
 
+      // 🔥 FILTRO: só jogos bons
+      const hotGames = bubbles.current.filter((b) => b.score > 70);
+
+      // 🥇 ranking top 10
+      const top = [...hotGames]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+
       bubbles.current.forEach((b) => {
         b.x += b.dx;
         b.y += b.dy;
@@ -134,7 +126,7 @@ export default function App() {
         b.dy *= 0.995;
 
         // glow
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 15;
         ctx.shadowColor = getColor(b.score);
 
         const gradient = ctx.createRadialGradient(
@@ -152,13 +144,44 @@ export default function App() {
 
         ctx.shadowBlur = 0;
 
-        // texto proporcional
         ctx.fillStyle = "#000";
         ctx.textAlign = "center";
         ctx.font = `${Math.max(10, b.radius / 3)}px Arial`;
 
-        ctx.fillText(b.game.slice(0, 10), b.x, b.y - 5);
+        ctx.fillText(b.game.slice(0, 12), b.x, b.y - 5);
         ctx.fillText(`${b.score}`, b.x, b.y + 12);
+
+        // 🔔 ALERTA
+        if (b.score > 110) {
+          alerts.current.push({
+            text: b.game,
+            time: Date.now(),
+          });
+        }
+      });
+
+      // 🥇 DESENHAR RANKING
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = "#fff";
+      ctx.font = "14px Arial";
+
+      top.forEach((g, i) => {
+        ctx.fillText(
+          `${i + 1}. ${g.game.slice(0, 20)} (${g.score})`,
+          20,
+          30 + i * 20
+        );
+      });
+
+      // 🔔 ALERTAS NA TELA
+      alerts.current = alerts.current.filter(
+        (a) => Date.now() - a.time < 3000
+      );
+
+      alerts.current.forEach((a, i) => {
+        ctx.fillStyle = "#00ff88";
+        ctx.font = "18px Arial";
+        ctx.fillText(a.text, canvas.width / 2 - 100, 60 + i * 25);
       });
 
       requestAnimationFrame(draw);
@@ -174,22 +197,25 @@ export default function App() {
     });
 
     // drag
+    let dragging = false;
+    let last = { x: 0, y: 0 };
+
     canvas.addEventListener("mousedown", (e) => {
-      dragging.current = true;
-      last.current = { x: e.clientX, y: e.clientY };
+      dragging = true;
+      last = { x: e.clientX, y: e.clientY };
     });
 
     canvas.addEventListener("mousemove", (e) => {
-      if (!dragging.current) return;
+      if (!dragging) return;
 
-      offset.current.x += e.clientX - last.current.x;
-      offset.current.y += e.clientY - last.current.y;
+      offset.current.x += e.clientX - last.x;
+      offset.current.y += e.clientY - last.y;
 
-      last.current = { x: e.clientX, y: e.clientY };
+      last = { x: e.clientX, y: e.clientY };
     });
 
     canvas.addEventListener("mouseup", () => {
-      dragging.current = false;
+      dragging = false;
     });
 
   }, []);
