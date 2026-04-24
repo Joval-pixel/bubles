@@ -5,66 +5,55 @@ export default async function handler(req, res) {
       "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com",
     };
 
+    // 🔥 DATA DE HOJE
+    const today = new Date().toISOString().slice(0, 10);
+
+    // 🔥 TODOS OS JOGOS DO DIA (não só ao vivo)
     const response = await fetch(
-      "https://api-football-v1.p.rapidapi.com/v3/fixtures?live=all",
+      `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${today}`,
       { headers }
     );
 
     const data = await response.json();
 
-    // ⚠️ se API falhar ou vier vazia
+    // ⚠️ proteção
     if (!data.response || data.response.length === 0) {
-      throw new Error("Sem dados");
+      throw new Error("Sem jogos");
     }
 
-    const games = [];
-
-    for (const g of data.response) {
-      games.push({
+    const games = data.response.map((g) => {
+      return {
         id: g.fixture.id,
         game: `${g.teams.home.name} vs ${g.teams.away.name}`,
         minute: g.fixture.status.elapsed || 0,
+
+        // 🔥 SIMULAÇÃO (evita erro da API gratuita)
         corners: Math.floor(Math.random() * 10),
         shots: Math.floor(Math.random() * 15),
-        dangerous: Math.floor(Math.random() * 30),
-        odds: 1.5 + Math.random() * 2,
-      });
-    }
+        dangerous: Math.floor(Math.random() * 25),
 
-    res.status(200).json(games);
+        // ⚠️ odds simulada (por enquanto)
+        odds: 1.5 + Math.random() * 2,
+      };
+    });
+
+    // 🔥 LIMITA (evita travar o site)
+    res.status(200).json(games.slice(0, 80));
 
   } catch (e) {
-    console.log("API caiu, usando fallback");
+    console.log("Erro API, usando fallback");
 
-    // 🔥 Fallback (NUNCA FICA VAZIO)
-    res.status(200).json([
-      {
-        id: 1,
-        game: "Flamengo vs Palmeiras",
-        minute: 70,
-        corners: 8,
-        shots: 12,
-        dangerous: 20,
-        odds: 2.1
-      },
-      {
-        id: 2,
-        game: "Real Madrid vs Barcelona",
-        minute: 55,
-        corners: 5,
-        shots: 9,
-        dangerous: 14,
-        odds: 1.8
-      },
-      {
-        id: 3,
-        game: "PSG vs Lyon",
-        minute: 62,
-        corners: 6,
-        shots: 11,
-        dangerous: 18,
-        odds: 2.3
-      }
-    ]);
+    // 🔥 fallback com vários jogos
+    res.status(200).json(
+      Array.from({ length: 20 }).map((_, i) => ({
+        id: i,
+        game: `Jogo ${i + 1}`,
+        minute: Math.floor(Math.random() * 90),
+        corners: Math.floor(Math.random() * 10),
+        shots: Math.floor(Math.random() * 15),
+        dangerous: Math.floor(Math.random() * 25),
+        odds: 1.5 + Math.random() * 2,
+      }))
+    );
   }
 }
