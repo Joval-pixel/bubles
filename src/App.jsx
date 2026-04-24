@@ -8,64 +8,29 @@ export default function App() {
     fetch("/api/games")
       .then(res => res.json())
       .then(data => {
-        console.log("DADOS API:", data);
+        console.log("API OK:", data);
         setGames(data);
         setLoading(false);
       })
       .catch(err => {
-        console.error("Erro API:", err);
+        console.error(err);
         setLoading(false);
       });
   }, []);
 
   if (loading) {
-    return (
-      <div style={{
-        color: "white",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        background: "black"
-      }}>
-        Carregando jogos...
-      </div>
-    );
-  }
-
-  if (!games || games.length === 0) {
-    return (
-      <div style={{
-        color: "white",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        background: "black"
-      }}>
-        Nenhum jogo encontrado
-      </div>
-    );
+    return <div style={{color:"white",background:"black",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>Carregando...</div>;
   }
 
   return (
-    <div style={{
-      background: "black",
-      minHeight: "100vh",
-      padding: "20px",
-      color: "white"
-    }}>
-      <h2>Jogos encontrados:</h2>
+    <div style={{background:"black",minHeight:"100vh",color:"white",padding:"20px"}}>
+      <h1>Jogos</h1>
 
-      {games.map((g, i) => (
-        <div key={i} style={{
-          marginBottom: "10px",
-          padding: "10px",
-          border: "1px solid #333",
-          borderRadius: "8px"
-        }}>
-          <div>{g.game}</div>
-          <div>Odd: {g.bestOdd}</div>
+      {games.length === 0 && <div>Sem dados</div>}
+
+      {games.map(g => (
+        <div key={g.id} style={{marginBottom:10}}>
+          {g.game} — Odd: {g.bestOdd}
         </div>
       ))}
     </div>
