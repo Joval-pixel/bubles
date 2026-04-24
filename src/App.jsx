@@ -1,160 +1,119 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 
 export default function App() {
-  const canvasRef = useRef(null);
-  const bubbles = useRef([]);
+  const [games, setGames] = useState([]);
+  const [bubbles, setBubbles] = useState([]);
 
-  function score(g) {
-    let s = 0;
-    s += (g.dangerous || 0) * 1;
-    s += (g.shots || 0) * 1.5;
-    s += (g.corners || 0) * 2.5;
-    s += g.minute > 60 ? 20 : 0;
-    s += g.minute > 75 ? 30 : 0;
-    return Math.max(10, Math.round(s));
-  }
+  useEffect(() => {
+    fetchGames();
+  }, []);
 
-  function color(s) {
-    if (s > 110) return "#00ffcc";
-    if (s > 80) return "#00ff88";
-    if (s > 60) return "#ffaa00";
-    return "#ff3b3b";
-  }
-
-  async function fetchGames() {
+  const fetchGames = async () => {
     try {
       const res = await fetch("/api/games");
       const data = await res.json();
 
-      const canvas = canvasRef.current;
+      setGames(data);
+      generateBubbles(data);
 
-      bubbles.current = data.map((g) => {
-        const sc = score(g);
-
-        return {
-          ...g,
-          score: sc,
-          radius: Math.min(100, Math.max(30, sc)),
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2,
-        };
-      });
-
-    } catch {
-      const canvas = canvasRef.current;
-
-      bubbles.current = Array.from({ length: 20 }).map((_, i) => ({
-        game: `Fallback ${i}`,
-        score: Math.random() * 100,
-        radius: 40 + Math.random() * 40,
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 2,
-      }));
+    } catch (err) {
+      console.log("erro:", err);
     }
-  }
+  };
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+  // 🔥 GERA POSIÇÕES SEM COLISÃO
+  const generateBubbles = (data) => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const placed = [];
 
-    fetchGames();
-    setInterval(fetchGames, 10000);
+    const newBubbles = data.map((g) => {
+      const score = calcScore(g);
 
-    function physics() {
-      const b = bubbles.current;
+      const size = Math.max(40, score * 1.2);
 
-      for (let i = 0; i < b.length; i++) {
-        for (let j = i + 1; j < b.length; j++) {
-          const dx = b[j].x - b[i].x;
-          const dy = b[j].y - b[i].y;
+      let x, y, tries = 0;
+      let valid = false;
+
+      while (!valid && tries < 200) {
+        x = Math.random() * (width - size);
+        y = Math.random() * (height - size);
+
+        valid = true;
+
+        for (let p of placed) {
+          const dx = p.x - x;
+          const dy = p.y - y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const minDist = b[i].radius + b[j].radius;
 
-          if (dist < minDist) {
-            const angle = Math.atan2(dy, dx);
-            const overlap = (minDist - dist) / 2;
-
-            b[i].x -= Math.cos(angle) * overlap;
-            b[i].y -= Math.sin(angle) * overlap;
-
-            b[j].x += Math.cos(angle) * overlap;
-            b[j].y += Math.sin(angle) * overlap;
+          if (dist < (p.size + size) / 2 + 10) {
+            valid = false;
+            break;
           }
         }
+
+        tries++;
       }
 
-      b.forEach((ball) => {
-        ball.x += ball.vx;
-        ball.y += ball.vy;
+      const bubble = { ...g, x, y, size, score };
+      placed.push(bubble);
+      return bubble;
+    });
 
-        if (ball.x < ball.radius || ball.x > canvas.width - ball.radius)
-          ball.vx *= -1;
+    setBubbles(newBubbles);
+  };
 
-        if (ball.y < ball.radius || ball.y > canvas.height - ball.radius)
-          ball.vy *= -1;
-      });
-    }
+  // 🧠 SCORE PROFISSIONAL
+  const calcScore = (g) => {
+    let score = 0;
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    score += g.dangerous * 2;
+    score += g.shots * 1.5;
+    score += g.corners * 1.2;
+    score += g.minute * 0.5;
 
-      physics();
+    return Math.min(120, score);
+  };
 
-      bubbles.current.forEach((b) => {
-        const grad = ctx.createRadialGradient(
-          b.x,
-          b.y,
-          b.radius * 0.2,
-          b.x,
-          b.y,
-          b.radius
-        );
-
-        grad.addColorStop(0, "#ffffff22");
-        grad.addColorStop(1, color(b.score));
-
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = color(b.score);
-
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        ctx.shadowBlur = 0;
-
-        ctx.fillStyle = "#000";
-        ctx.textAlign = "center";
-
-        const name =
-          b.game && b.game.length > 18
-            ? b.game.slice(0, 18) + "..."
-            : b.game || "Sem nome";
-
-        ctx.font = `${Math.max(12, b.radius / 4)}px Arial`;
-        ctx.fillText(name, b.x, b.y - 5);
-
-        ctx.font = `${Math.max(12, b.radius / 5)}px Arial`;
-        ctx.fillText(b.score, b.x, b.y + 15);
-      });
-
-      requestAnimationFrame(draw);
-    }
-
-    draw();
-  }, []);
+  const getColor = (score) => {
+    if (score > 90) return "#00ff88";
+    if (score > 70) return "#ffaa00";
+    return "#ff4444";
+  };
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{ background: "#111", display: "block" }}
-    />
+    <div style={{ background: "#000", width: "100vw", height: "100vh" }}>
+      {bubbles.map((b) => (
+        <div
+          key={b.id}
+          style={{
+            position: "absolute",
+            left: b.x,
+            top: b.y,
+            width: b.size,
+            height: b.size,
+            borderRadius: "50%",
+            background: getColor(b.score),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            fontSize: 12,
+            color: "#000",
+            boxShadow: `0 0 30px ${getColor(b.score)}`,
+            padding: 5,
+            overflow: "hidden"
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: "bold" }}>
+              {b.game.slice(0, 18)}
+            </div>
+            <div>{Math.round(b.score)}</div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
