@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 export default function App() {
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
-  const alerts = useRef([]);
 
   const scale = useRef(1);
   const offset = useRef({ x: 0, y: 0 });
@@ -24,12 +23,14 @@ export default function App() {
     return Math.round(score);
   }
 
+  // 🎨 COR
   function getColor(score) {
     if (score > 80) return "#00ff88";
     if (score > 50) return "#ffaa00";
     return "#ff4444";
   }
 
+  // 🔥 FETCH
   async function fetchGames() {
     try {
       const res = await fetch("/api/games");
@@ -37,34 +38,37 @@ export default function App() {
 
       const canvas = canvasRef.current;
 
-      const safe = Array.isArray(data) ? data : [];
+      bubbles.current = data.map((item) => {
+        const score = calculateScore(item);
 
-      if (safe.length === 0) throw new Error();
-
-      bubbles.current = safe.map((item) => ({
-        ...item,
-        x: canvas.width / 2 + (Math.random() - 0.5) * 300,
-        y: canvas.height / 2 + (Math.random() - 0.5) * 300,
-        radius: 40 + (item.odds || 1.5) * 8,
-        dx: (Math.random() - 0.5) * 2,
-        dy: (Math.random() - 0.5) * 2,
-        score: calculateScore(item),
-      }));
+        return {
+          ...item,
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: 20 + score * 0.8,
+          dx: (Math.random() - 0.5) * 2,
+          dy: (Math.random() - 0.5) * 2,
+          score,
+        };
+      });
 
     } catch {
       const canvas = canvasRef.current;
 
-      const fallback = [
-        { game: "Fallback 1", odds: 2.0, minute: 70, corners: 7, shots: 10, dangerous: 15 },
-        { game: "Fallback 2", odds: 1.8, minute: 60, corners: 5, shots: 8, dangerous: 12 },
-        { game: "Fallback 3", odds: 2.3, minute: 75, corners: 9, shots: 13, dangerous: 22 }
-      ];
+      const fallback = Array.from({ length: 20 }).map((_, i) => ({
+        game: `Fallback ${i}`,
+        odds: 1.5 + Math.random() * 2,
+        minute: Math.random() * 90,
+        corners: Math.random() * 10,
+        shots: Math.random() * 15,
+        dangerous: Math.random() * 25,
+      }));
 
       bubbles.current = fallback.map((item) => ({
         ...item,
-        x: canvas.width / 2 + (Math.random() - 0.5) * 200,
-        y: canvas.height / 2 + (Math.random() - 0.5) * 200,
-        radius: 40 + item.odds * 8,
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: 20 + calculateScore(item) * 0.8,
         dx: (Math.random() - 0.5) * 2,
         dy: (Math.random() - 0.5) * 2,
         score: calculateScore(item),
@@ -99,16 +103,7 @@ export default function App() {
         canvas.height
       );
 
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-
-      // centralização
-      bubbles.current.forEach((b) => {
-        b.dx += (centerX - b.x) * 0.0005;
-        b.dy += (centerY - b.y) * 0.0005;
-      });
-
-      // colisão
+      // 🔥 colisão (evita sobreposição)
       for (let i = 0; i < bubbles.current.length; i++) {
         for (let j = i + 1; j < bubbles.current.length; j++) {
           const b1 = bubbles.current[i];
@@ -122,7 +117,7 @@ export default function App() {
 
           if (dist < minDist) {
             const angle = Math.atan2(dy, dx);
-            const force = (minDist - dist) * 0.05;
+            const force = (minDist - dist) * 0.03;
 
             b1.dx -= Math.cos(angle) * force;
             b1.dy -= Math.sin(angle) * force;
@@ -133,65 +128,34 @@ export default function App() {
         }
       }
 
-      // 🔥 ranking top 5
-      const top = [...bubbles.current]
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 5);
-
       bubbles.current.forEach((b) => {
         b.x += b.dx;
         b.y += b.dy;
 
-        b.dx *= 0.99;
-        b.dy *= 0.99;
+        b.dx *= 0.995;
+        b.dy *= 0.995;
+
+        // 🔥 gradiente bonito
+        const gradient = ctx.createRadialGradient(
+          b.x, b.y, b.radius * 0.2,
+          b.x, b.y, b.radius
+        );
+
+        gradient.addColorStop(0, "#ffffff22");
+        gradient.addColorStop(1, getColor(b.score));
 
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-        ctx.fillStyle = getColor(b.score);
+        ctx.fillStyle = gradient;
         ctx.fill();
 
-        // destaque forte
-        if (b.score > 90) {
-          ctx.strokeStyle = "#00ff88";
-          ctx.lineWidth = 3;
-          ctx.stroke();
-
-          alerts.current.push({
-            text: b.game,
-            time: Date.now()
-          });
-        }
-
+        // 🔥 texto dinâmico
         ctx.fillStyle = "#000";
         ctx.textAlign = "center";
-        ctx.font = "12px Arial";
+        ctx.font = `${b.radius / 3}px Arial`;
 
-        ctx.fillText(b.game.slice(0, 14), b.x, b.y - 5);
-        ctx.fillText(`Score: ${b.score}`, b.x, b.y + 15);
-      });
-
-      // 🥇 desenhar ranking
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = "#fff";
-      ctx.font = "14px Arial";
-
-      top.forEach((g, i) => {
-        ctx.fillText(
-          `${i + 1}. ${g.game.slice(0, 18)} (${g.score})`,
-          20,
-          30 + i * 20
-        );
-      });
-
-      // 🔔 alertas na tela
-      alerts.current = alerts.current.filter(
-        (a) => Date.now() - a.time < 3000
-      );
-
-      alerts.current.forEach((a, i) => {
-        ctx.fillStyle = "#00ff88";
-        ctx.font = "18px Arial";
-        ctx.fillText(a.text, canvas.width / 2 - 100, 50 + i * 25);
+        ctx.fillText(b.game.slice(0, 12), b.x, b.y - 5);
+        ctx.fillText(`Score ${b.score}`, b.x, b.y + 15);
       });
 
       requestAnimationFrame(draw);
@@ -199,14 +163,14 @@ export default function App() {
 
     draw();
 
-    // zoom
+    // 🔍 zoom
     canvas.addEventListener("wheel", (e) => {
       e.preventDefault();
       scale.current += e.deltaY * -0.001;
       scale.current = Math.min(Math.max(0.5, scale.current), 2);
     });
 
-    // drag
+    // 🖐 drag
     let dragging = false;
     let last = { x: 0, y: 0 };
 
