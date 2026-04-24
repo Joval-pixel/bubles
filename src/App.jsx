@@ -4,18 +4,19 @@ export default function App() {
   const canvasRef = useRef();
   const [games, setGames] = useState([]);
 
+  // 🔥 BUSCA API
   useEffect(() => {
     fetch("/api/games")
       .then((res) => res.json())
       .then((data) => {
-        console.log("API DATA:", data);
+        console.log("API:", data);
 
-        // 👉 se API vier vazia, usa dados fake TEMPORÁRIOS (pra não ficar preto)
+        // 👉 NUNCA deixa vazio
         if (!data || data.length === 0) {
           setGames([
-            { game: "Teste 1", ev: 0.1 },
-            { game: "Teste 2", ev: -0.05 },
-            { game: "Teste 3", ev: 0.2 },
+            { game: "Sem jogos agora", ev: 0.1 },
+            { game: "Aguardando odds...", ev: -0.05 },
+            { game: "Atualizando dados", ev: 0.2 },
           ]);
         } else {
           setGames(data);
@@ -24,11 +25,12 @@ export default function App() {
       .catch(() => {
         setGames([
           { game: "Erro API", ev: 0.1 },
-          { game: "Sem dados", ev: -0.1 },
+          { game: "Sem conexão", ev: -0.1 },
         ]);
       });
   }, []);
 
+  // 🔥 DESENHO
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -38,15 +40,22 @@ export default function App() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    if (!games.length) return;
+    // 👉 fallback direto (garantia total)
+    const dataToUse =
+      games.length > 0
+        ? games
+        : [
+            { game: "Loading...", ev: 0.1 },
+            { game: "Buscando dados...", ev: -0.1 },
+          ];
 
-    const bubbles = games.map((g) => ({
+    const bubbles = dataToUse.map((g) => ({
       ...g,
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2,
-      r: Math.max(30, Math.abs(g.ev) * 200),
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      r: Math.max(30, Math.abs(g.ev) * 250),
     }));
 
     function draw() {
