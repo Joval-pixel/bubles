@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 export default function App() {
   const [bubbles, setBubbles] = useState([]);
+  const [status, setStatus] = useState("Carregando...");
   const ref = useRef([]);
 
   useEffect(() => {
@@ -10,15 +11,17 @@ export default function App() {
   }, []);
 
   // =========================
-  // BUSCAR DADOS
+  // FETCH
   // =========================
   const fetchGames = async () => {
     try {
+      setStatus("Buscando jogos...");
+
       const res = await fetch("/api/games");
       const data = await res.json();
 
       if (!data || data.length === 0) {
-        console.log("Sem dados da API");
+        setStatus("⚠️ Sem dados da API");
         return;
       }
 
@@ -38,24 +41,26 @@ export default function App() {
 
       ref.current = processed;
       setBubbles(processed);
+      setStatus(`OK (${processed.length} jogos)`);
     } catch (e) {
-      console.log("Erro fetch:", e);
+      console.log("Erro:", e);
+      setStatus("❌ Erro ao carregar API");
     }
   };
 
   // =========================
-  // CALCULO EV (ARRUMADO)
+  // EV
   // =========================
   const calcEV = (g) => {
     const pressure =
-      g.attacks * 0.03 +
-      g.dangerous * 0.06 +
-      g.possession * 0.01 +
-      g.minute * 0.02;
+      (g.attacks || 0) * 0.03 +
+      (g.dangerous || 0) * 0.06 +
+      (g.possession || 0) * 0.01 +
+      (g.minute || 0) * 0.02;
 
     const prob = Math.min(0.85, pressure / 10);
 
-    return prob * g.odd - 1;
+    return prob * (g.odd || 2) - 1;
   };
 
   // =========================
@@ -69,7 +74,6 @@ export default function App() {
         b.x += b.vx;
         b.y += b.vy;
 
-        // colisão parede
         if (b.x < 0 || b.x > window.innerWidth) b.vx *= -1;
         if (b.y < 0 || b.y > window.innerHeight) b.vy *= -1;
       });
@@ -82,18 +86,16 @@ export default function App() {
   };
 
   // =========================
-  // COR DAS BOLHAS
+  // COR
   // =========================
   const getColor = (ev) => {
-    if (ev > 0.3) return "#00ff88"; // MUITO BOM
-    if (ev > 0.1) return "#ffaa00"; // MÉDIO
-    return "#ff4444"; // RUIM
+    if (ev > 0.3) return "#00ff88";
+    if (ev > 0.1) return "#ffaa00";
+    return "#ff4444";
   };
 
-  // =========================
-  // FILTRO (IMPORTANTE)
-  // =========================
-  const visibleBubbles = bubbles.filter((b) => b.ev > 0);
+  // ⚠️ NÃO DEIXA TELA VAZIA
+  const visible = bubbles.length > 0 ? bubbles : [];
 
   return (
     <div
@@ -104,7 +106,36 @@ export default function App() {
         overflow: "hidden",
       }}
     >
-      {visibleBubbles.map((b, i) => (
+      {/* STATUS (DEBUG) */}
+      <div
+        style={{
+          position: "absolute",
+          top: 10,
+          left: 10,
+          color: "#0f0",
+          fontSize: 14,
+        }}
+      >
+        {status}
+      </div>
+
+      {/* SE NÃO TEM NADA */}
+      {visible.length === 0 && (
+        <div
+          style={{
+            color: "#fff",
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          Nenhum jogo disponível
+        </div>
+      )}
+
+      {/* BOLHAS */}
+      {visible.map((b, i) => (
         <div
           key={i}
           style={{
@@ -127,9 +158,9 @@ export default function App() {
           }}
         >
           <div>
-            {b.game}
+            {b.game || "Jogo"}
             <br />
-            {Math.round(b.minute)}'
+            {Math.round(b.minute || 0)}'
             <br />
             EV {b.ev.toFixed(2)}
           </div>
