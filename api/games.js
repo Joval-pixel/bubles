@@ -13,33 +13,31 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!data.response || data.response.length === 0) {
-      throw new Error("Sem dados");
+      throw new Error("Sem jogos");
     }
 
-    const games = data.response.map((g) => {
-      return {
-        id: g.fixture.id,
-        game: `${g.teams.home.name} x ${g.teams.away.name}`,
-        minute: g.fixture.status.elapsed || 0,
+    const games = data.response.map((g) => ({
+      id: g.fixture.id,
+      game: `${g.teams.home.name} x ${g.teams.away.name}`,
+      minute: g.fixture.status.elapsed || 0,
 
-        // 🔥 fallback de stats (API grátis quase nunca manda)
-        corners: Math.floor(Math.random() * 10),
-        shots: Math.floor(Math.random() * 15),
-        dangerous: Math.floor(Math.random() * 30),
+      // ⚠️ API grátis não traz stats → simulado
+      corners: Math.floor(Math.random() * 10),
+      shots: Math.floor(Math.random() * 15),
+      dangerous: Math.floor(Math.random() * 30),
 
-        odds: 1.5 + Math.random() * 2,
-      };
-    });
+      odds: 1.5 + Math.random() * 2,
+    }));
 
-    res.status(200).json(games);
+    res.status(200).json(games.slice(0, 40));
 
   } catch (e) {
-    console.log("Fallback ativado");
+    console.log("fallback ativado");
 
     res.status(200).json(
       Array.from({ length: 20 }).map((_, i) => ({
         id: i,
-        game: `Time A ${i} x Time B ${i}`, // 🔥 melhor nome fake
+        game: `Time ${i + 1} x Time ${i + 2}`,
         minute: Math.floor(Math.random() * 90),
         corners: Math.random() * 10,
         shots: Math.random() * 15,
