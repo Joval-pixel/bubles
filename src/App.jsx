@@ -3,14 +3,10 @@ import { useEffect, useRef } from "react";
 export default function App() {
   const canvasRef = useRef(null);
   const bubbles = useRef([]);
-  const alertsRef = useRef([]);
 
   const scale = useRef(1);
   const offset = useRef({ x: 0, y: 0 });
 
-  // =========================
-  // SCORE PROFISSIONAL
-  // =========================
   function calculateScore(g) {
     let score = 0;
 
@@ -21,27 +17,7 @@ export default function App() {
     if (g.minute > 60) score += 20;
     if (g.minute > 75) score += 30;
 
-    if (g.odds > 2) score += 10;
-
     return Math.max(10, Math.round(score));
-  }
-
-  // =========================
-  // ALERTA PROFISSIONAL
-  // =========================
-  function detectSignal(g) {
-    let confidence = 0;
-
-    if (g.dangerous > 25) confidence += 25;
-    if (g.shots > 10) confidence += 20;
-    if (g.corners > 6) confidence += 20;
-
-    if (g.minute > 60) confidence += 15;
-    if (g.minute > 75) confidence += 20;
-
-    if (g.odds > 1.8 && g.odds < 3) confidence += 10;
-
-    return confidence;
   }
 
   function getColor(score) {
@@ -51,32 +27,27 @@ export default function App() {
     return "#ff3b3b";
   }
 
-  // =========================
-  // DISTRIBUIÇÃO ESTILO CRYPTO
-  // =========================
+  // 🔥 DISTRIBUIÇÃO ORGANIZADA
   function distribute(data, canvas) {
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
 
-    const sorted = [...data].sort((a, b) => b.score - a.score);
+    const maxRadius = Math.min(canvas.width, canvas.height) * 0.45;
 
-    return sorted.map((b, i) => {
-      const angle = Math.random() * Math.PI * 2;
-      const spread = Math.sqrt(i) * 140;
+    return data.map((b, i) => {
+      const angle = (i / data.length) * Math.PI * 2;
+      const radius = Math.sqrt(i / data.length) * maxRadius;
 
       return {
         ...b,
-        x: cx + Math.cos(angle) * spread,
-        y: cy + Math.sin(angle) * spread,
+        x: cx + Math.cos(angle) * radius,
+        y: cy + Math.sin(angle) * radius,
         dx: 0,
         dy: 0,
       };
     });
   }
 
-  // =========================
-  // FETCH + ALERTAS
-  // =========================
   async function fetchGames() {
     try {
       const res = await fetch("/api/games");
@@ -84,41 +55,46 @@ export default function App() {
 
       const canvas = canvasRef.current;
 
-      const alerts = [];
-
       const processed = data
         .map((g) => {
           const score = calculateScore(g);
-          const confidence = detectSignal(g);
-
-          if (confidence > 70) {
-            alerts.push({
-              game: g.game,
-              confidence,
-              type: g.corners > 6 ? "ESCANTEIOS" : "OVER",
-            });
-          }
 
           return {
             ...g,
             score,
-            confidence,
-            radius: Math.max(25, score * 1.4),
+            radius: Math.min(120, Math.max(30, score * 1.2)),
           };
         })
         .filter((g) => g.score > 30);
 
       bubbles.current = distribute(processed, canvas);
-      alertsRef.current = alerts;
 
     } catch {
-      console.log("fallback ativo");
+      console.log("fallback visual");
+
+      const canvas = canvasRef.current;
+
+      const fallback = Array.from({ length: 20 }).map((_, i) => ({
+        game: `Time ${i} x Time ${i + 1}`,
+        minute: Math.random() * 90,
+        corners: Math.random() * 10,
+        shots: Math.random() * 15,
+        dangerous: Math.random() * 30,
+      }));
+
+      const processed = fallback.map((g) => {
+        const score = calculateScore(g);
+        return {
+          ...g,
+          score,
+          radius: 40 + Math.random() * 40,
+        };
+      });
+
+      bubbles.current = distribute(processed, canvas);
     }
   }
 
-  // =========================
-  // RENDER
-  // =========================
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -128,33 +104,6 @@ export default function App() {
 
     fetchGames();
     setInterval(fetchGames, 10000);
-
-    function physics() {
-      const arr = bubbles.current;
-
-      for (let i = 0; i < arr.length; i++) {
-        for (let j = i + 1; j < arr.length; j++) {
-          const a = arr[i];
-          const b = arr[j];
-
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const minDist = a.radius + b.radius;
-
-          if (dist < minDist) {
-            const angle = Math.atan2(dy, dx);
-            const force = (minDist - dist) * 0.05;
-
-            a.x -= Math.cos(angle) * force;
-            a.y -= Math.sin(angle) * force;
-
-            b.x += Math.cos(angle) * force;
-            b.y += Math.sin(angle) * force;
-          }
-        }
-      }
-    }
 
     function draw() {
       ctx.setTransform(
@@ -173,8 +122,6 @@ export default function App() {
         canvas.height
       );
 
-      physics();
-
       bubbles.current.forEach((b) => {
         const gradient = ctx.createRadialGradient(
           b.x,
@@ -188,7 +135,7 @@ export default function App() {
         gradient.addColorStop(0, "#ffffff33");
         gradient.addColorStop(1, getColor(b.score));
 
-        ctx.shadowBlur = 30;
+        ctx.shadowBlur = 25;
         ctx.shadowColor = getColor(b.score);
 
         ctx.beginPath();
@@ -201,24 +148,16 @@ export default function App() {
         ctx.fillStyle = "#000";
         ctx.textAlign = "center";
 
+        const name =
+          b.game.length > 18
+            ? b.game.slice(0, 18) + "..."
+            : b.game;
+
         ctx.font = `${Math.max(12, b.radius / 4)}px Arial`;
-        ctx.fillText(b.game.slice(0, 16), b.x, b.y - 5);
+        ctx.fillText(name, b.x, b.y - 5);
 
         ctx.font = `${Math.max(12, b.radius / 5)}px Arial`;
         ctx.fillText(`${b.score}`, b.x, b.y + 15);
-      });
-
-      // 🔔 ALERTAS NA TELA
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = "#00ff88";
-      ctx.font = "16px Arial";
-
-      alertsRef.current.slice(0, 5).forEach((a, i) => {
-        ctx.fillText(
-          `🔥 ${a.type} | ${a.game} (${a.confidence}%)`,
-          20,
-          30 + i * 22
-        );
       });
 
       requestAnimationFrame(draw);
