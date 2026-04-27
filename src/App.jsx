@@ -4,99 +4,118 @@ export default function App() {
   const canvasRef = useRef(null);
   const [games, setGames] = useState([]);
 
+  // 🔥 BUSCA API
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("/api/games");
-        const data = await res.json();
-        setGames(Array.isArray(data) ? data : []);
-      } catch {
-        setGames([]);
-      }
-    }
-    load();
+    fetch("/api/games")
+      .then(res => res.json())
+      .then(data => setGames(data))
+      .catch(() => console.log("Erro API"));
   }, []);
 
+  // 🔥 AUTO REFRESH
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("/api/games")
+        .then(res => res.json())
+        .then(data => setGames(data));
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 🎯 DESENHO
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    resize();
-    window.addEventListener("resize", resize);
-
-    let bubbles = [];
-
-    function createBubbles(data) {
-      bubbles = data.map((g) => {
-        const size = Math.max(30, Math.min(120, g.oddHome * 25));
-
-        return {
-          ...g,
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: (Math.random() - 0.5) * 1.5,
-          r: size,
-        };
-      });
-    }
-
-    createBubbles(games);
+    const bubbles = games.map(g => ({
+      ...g,
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.max(25, g.oddHome * 15),
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6,
+      friction: 0.98
+    }));
 
     function getColor(ev) {
-      if (ev > 0.05) return "#00ff88";
+      if (ev > 0.2) return "#00ff88";
+      if (ev > 0.05) return "#00cc66";
       if (ev > 0) return "#ffd700";
+      if (ev > -0.1) return "#ff9933";
       return "#ff3b3b";
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      bubbles.forEach((b) => {
-        // movimento
+      // 🚫 colisão
+      for (let i = 0; i < bubbles.length; i++) {
+        for (let j = i + 1; j < bubbles.length; j++) {
+          const dx = bubbles[j].x - bubbles[i].x;
+          const dy = bubbles[j].y - bubbles[i].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const minDist = bubbles[i].r + bubbles[j].r;
+
+          if (dist < minDist) {
+            const angle = Math.atan2(dy, dx);
+            const move = (minDist - dist) / 2;
+
+            bubbles[i].x -= Math.cos(angle) * move;
+            bubbles[i].y -= Math.sin(angle) * move;
+            bubbles[j].x += Math.cos(angle) * move;
+            bubbles[j].y += Math.sin(angle) * move;
+          }
+        }
+      }
+
+      bubbles.forEach(b => {
         b.x += b.vx;
         b.y += b.vy;
 
-        if (b.x < b.r || b.x > canvas.width - b.r) b.vx *= -1;
-        if (b.y < b.r || b.y > canvas.height - b.r) b.vy *= -1;
+        b.vx *= b.friction;
+        b.vy *= b.friction;
 
-        // bolha
+        if (b.x < 0 || b.x > canvas.width) b.vx *= -1;
+        if (b.y < 0 || b.y > canvas.height) b.vy *= -1;
+
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+
         ctx.fillStyle = getColor(b.ev);
-        ctx.shadowBlur = 20;
+
+        ctx.shadowBlur = 30;
         ctx.shadowColor = getColor(b.ev);
+
         ctx.fill();
 
-        // texto
         ctx.shadowBlur = 0;
+
+        // TEXTO
         ctx.fillStyle = "#000";
-        ctx.font = "12px Arial";
         ctx.textAlign = "center";
 
-        const name = b.game.length > 20 ? b.game.slice(0, 20) + "..." : b.game;
+        ctx.font = "bold 13px Arial";
+        ctx.fillText(b.game.slice(0, 18), b.x, b.y - 10);
 
-        ctx.fillText(name, b.x, b.y - 5);
-        ctx.fillText(`Odd ${b.oddHome}`, b.x, b.y + 10);
-        ctx.fillText(`EV ${b.ev}`, b.x, b.y + 25);
+        ctx.font = "12px Arial";
+        ctx.fillText(`Odd ${b.oddHome}`, b.x, b.y + 5);
+        ctx.fillText(`EV ${b.ev}`, b.x, b.y + 20);
       });
 
       requestAnimationFrame(draw);
     }
 
     draw();
-
-    return () => window.removeEventListener("resize", resize);
   }, [games]);
 
   return (
-    <div style={{ background: "black", height: "100vh" }}>
-      <canvas ref={canvasRef} />
-    </div>
+    <canvas
+      ref={canvasRef}
+      style={{ background: "#000", display: "block" }}
+    />
   );
 }
