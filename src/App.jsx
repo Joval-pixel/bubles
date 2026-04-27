@@ -12,7 +12,7 @@ const getTier = (ev) => {
     return "high";
   }
 
-  if (ev >= 0.08) {
+  if (ev >= 0) {
     return "medium";
   }
 
@@ -230,7 +230,7 @@ export default function App() {
 
         <div className="status-panel">
           <span>{refreshing ? "Atualizando..." : "Sincronizado"}</span>
-          <strong>{bubbles.length ? `${bubbles.length} oportunidades` : emptyMessage}</strong>
+          <strong>{bubbles.length ? `${bubbles.length} jogos ao vivo` : emptyMessage}</strong>
           <small>
             {updatedAt
               ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
@@ -244,7 +244,7 @@ export default function App() {
           <div className="board-top">
             <div>
               <span className="section-kicker">Radar de oportunidades</span>
-              <h2>Jogos ao vivo com valor positivo</h2>
+              <h2>Jogos ao vivo com cotacoes e EV</h2>
             </div>
 
             <div className="legend">
@@ -268,8 +268,8 @@ export default function App() {
               <div className="empty-state">
                 <h3>{emptyMessage}</h3>
                 <p>
-                  Se nao houver partidas elegiveis ou a API limitar as consultas, o radar mostra
-                  esta mensagem.
+                  Se nao houver jogos ao vivo nas ligas configuradas ou a API limitar as
+                  consultas, o radar mostra esta mensagem.
                 </p>
                 {debugMessage ? <small className="debug-note">{debugMessage}</small> : null}
               </div>
