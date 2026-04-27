@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     const API_KEY = process.env.ODDS_API_KEY;
 
     if (!API_KEY) {
-      return res.status(200).json([]);
+      return res.status(500).json({ error: "API KEY não configurada" });
     }
 
     const url = `https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
@@ -11,43 +11,38 @@ export default async function handler(req, res) {
     const response = await fetch(url);
 
     if (!response.ok) {
-      return res.status(200).json([]);
+      return res.status(500).json({ error: "Erro ao buscar API externa" });
     }
 
     const data = await response.json();
-
-    if (!Array.isArray(data)) {
-      return res.status(200).json([]);
-    }
 
     const games = data.map((game, i) => {
       const home = game.home_team;
       const away = game.away_team;
 
-      let bestHome = null;
+      let odds = [];
 
       game.bookmakers?.forEach(b => {
         b.markets?.forEach(m => {
           m.outcomes?.forEach(o => {
             if (o.name === home) {
-              if (!bestHome || o.price > bestHome) {
-                bestHome = o.price;
-              }
+              odds.push(o.price);
             }
           });
         });
       });
 
-      if (!bestHome) return null;
+      if (odds.length < 2) return null;
 
-      // EV simples (seguro)
-      const prob = 1 / bestHome;
-      const ev = (bestHome * prob) - 1;
+      const best = Math.max(...odds);
+      const avg = odds.reduce((a, b) => a + b, 0) / odds.length;
+
+      const ev = (best / avg) - 1;
 
       return {
         id: i,
         game: `${home} x ${away}`,
-        oddHome: bestHome,
+        odd: best,
         ev: Number(ev.toFixed(3))
       };
     }).filter(Boolean);
@@ -55,7 +50,6 @@ export default async function handler(req, res) {
     res.status(200).json(games);
 
   } catch (err) {
-    console.error(err);
-    res.status(200).json([]);
+    res.status(500).json({ error: "Erro interno" });
   }
 }
