@@ -10,13 +10,12 @@ export default function App() {
       try {
         const res = await fetch("/api/games");
 
+        if (!res.ok) throw new Error("API error");
+
         const data = await res.json();
 
-        console.log("API DATA:", data);
-
-        setGames(data);
+        setGames(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error(err);
         setError("Erro ao carregar dados");
       } finally {
         setLoading(false);
@@ -27,34 +26,57 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ background: "black", color: "white", minHeight: "100vh", padding: 20 }}>
-      <h1>BET BUBBLES v2.0</h1>
+    <div style={styles.container}>
+      <h1 style={styles.title}>BET BUBBLES v2.0</h1>
 
       {loading && <p>Carregando...</p>}
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p style={styles.error}>{error}</p>}
 
       {!loading && games.length === 0 && (
-        <p>Nenhum jogo encontrado (API pode estar vazia)</p>
+        <p>Nenhum jogo disponível</p>
       )}
 
-      {games.map((g) => (
-        <div
-          key={g.id}
-          style={{
-            padding: 10,
-            marginBottom: 10,
-            border: "1px solid #333",
-            borderRadius: 8,
-          }}
-        >
-          <strong>{g.game}</strong>
-          <br />
-          Odd: {g.oddHome}
-          <br />
-          EV: {g.ev}
-        </div>
-      ))}
+      <div style={styles.list}>
+        {games.map((g) => (
+          <div key={g.id} style={styles.card}>
+            <div style={styles.game}>{g.game}</div>
+            <div>Odd: {g.oddHome}</div>
+            <div>EV: {g.ev}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    background: "#0a0a0a",
+    color: "#fff",
+    minHeight: "100vh",
+    padding: 20,
+    fontFamily: "Arial",
+  },
+  title: {
+    marginBottom: 20,
+  },
+  list: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+    gap: 15,
+  },
+  card: {
+    background: "#111",
+    padding: 15,
+    borderRadius: 10,
+    border: "1px solid #222",
+  },
+  game: {
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  error: {
+    color: "red",
+  },
+};
