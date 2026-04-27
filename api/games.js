@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     const API_KEY = process.env.ODDS_API_KEY;
 
     if (!API_KEY) {
-      return res.status(500).json({ error: "API KEY não encontrada" });
+      return res.status(200).json([]); // nunca quebra o front
     }
 
     const url = `https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
@@ -11,10 +11,14 @@ export default async function handler(req, res) {
     const response = await fetch(url);
 
     if (!response.ok) {
-      return res.status(500).json({ error: "Erro na API externa" });
+      return res.status(200).json([]);
     }
 
     const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      return res.status(200).json([]);
+    }
 
     const games = data.map((game, i) => {
       const home = game.home_team;
@@ -22,9 +26,9 @@ export default async function handler(req, res) {
 
       let bestHome = null;
 
-      game.bookmakers.forEach(b => {
-        b.markets.forEach(m => {
-          m.outcomes.forEach(o => {
+      game.bookmakers?.forEach(b => {
+        b.markets?.forEach(m => {
+          m.outcomes?.forEach(o => {
             if (o.name === home) {
               if (!bestHome || o.price > bestHome) {
                 bestHome = o.price;
@@ -36,7 +40,7 @@ export default async function handler(req, res) {
 
       if (!bestHome) return null;
 
-      // EV MAIS CORRETO
+      // EV seguro (simples)
       const prob = 1 / bestHome;
       const ev = (bestHome * prob) - 1;
 
@@ -48,10 +52,10 @@ export default async function handler(req, res) {
       };
     }).filter(Boolean);
 
-    res.status(200).json(games);
+    return res.status(200).json(games);
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro interno" });
+    return res.status(200).json([]); // 🔥 nunca quebra o front
   }
 }
