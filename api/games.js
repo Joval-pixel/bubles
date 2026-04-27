@@ -26,6 +26,11 @@ const BOOKMAKERS = String(process.env.ODDS_API_BOOKMAKERS || "")
   .filter(Boolean)
   .join(",");
 
+const UPCOMING_LIMIT = Math.max(
+  1,
+  Math.min(12, Number.parseInt(process.env.ODDS_API_UPCOMING_LIMIT || "8", 10) || 8)
+);
+
 const normalizeText = (value) =>
   String(value ?? "")
     .normalize("NFD")
@@ -105,6 +110,23 @@ const fetchFromOddsApi = async (path, params = {}) => {
   return await safeJson(response);
 };
 
+const createOddsParams = (extraParams = {}) => {
+  const params = {
+    regions: REGIONS || "eu",
+    markets: "h2h",
+    oddsFormat: "decimal",
+    dateFormat: "iso",
+    ...extraParams,
+  };
+
+  if (BOOKMAKERS) {
+    params.bookmakers = BOOKMAKERS;
+    delete params.regions;
+  }
+
+  return params;
+};
+
 const isLiveScoreEvent = (event) =>
   !event?.completed && Array.isArray(event?.scores) && event.scores.length > 0;
 
@@ -165,13 +187,13 @@ const getNormalizedHomeProbability = (outcomes, homeTeam) => {
   return homeEntry.probability / total;
 };
 
-const buildGameFromOdds = (oddsEvent, liveScoreEvent) => {
-  if (!oddsEvent || !liveScoreEvent) {
+const buildGameFromOdds = (oddsEvent, liveScoreEvent = null) => {
+  if (!oddsEvent) {
     return null;
   }
 
-  const homeTeam = oddsEvent.home_team ?? liveScoreEvent.home_team ?? "";
-  const awayTeam = oddsEvent.away_team ?? liveScoreEvent.away_team ?? "";
+  const homeTeam = oddsEvent.home_team ?? liveScoreEvent?.home_team ?? "";
+  const awayTeam = oddsEvent.away_team ?? liveScoreEvent?.away_team ?? "";
   const bookmakers = Array.isArray(oddsEvent.bookmakers) ? oddsEvent.bookmakers : [];
 
   const bookmakerEntries = bookmakers
@@ -212,18 +234,18 @@ const buildGameFromOdds = (oddsEvent, liveScoreEvent) => {
   }
 
   const ev = consensusProbability * bestEntry.homePrice - 1;
-
-  const homeScore = findScore(liveScoreEvent.scores, homeTeam);
-  const awayScore = findScore(liveScoreEvent.scores, awayTeam);
-  const minute = estimateMinute(liveScoreEvent.commence_time || oddsEvent.commence_time);
+  const isLive = Boolean(liveScoreEvent);
+  const homeScore = isLive ? findScore(liveScoreEvent.scores, homeTeam) : null;
+  const awayScore = isLive ? findScore(liveScoreEvent.scores, awayTeam) : null;
+  const minute = isLive ? estimateMinute(liveScoreEvent.commence_time || oddsEvent.commence_time) : 0;
   const fairOdd = consensusProbability > 0 ? 1 / consensusProbability : 0;
 
   return {
     id: oddsEvent.id,
     game: `${homeTeam} x ${awayTeam}`,
-    league: oddsEvent.sport_title ?? liveScoreEvent.sport_title ?? "Soccer",
+    league: oddsEvent.sport_title ?? liveScoreEvent?.sport_title ?? "Soccer",
     minute,
-    minuteLabel: "estimado",
+    minuteLabel: isLive ? "estimado" : "pre",
     ev,
     oddHome: bestEntry.homePrice,
     probability: consensusProbability,
@@ -231,13 +253,14 @@ const buildGameFromOdds = (oddsEvent, liveScoreEvent) => {
     marketEdge: bestEntry.homePrice - fairOdd,
     bestBookmaker: bestEntry.bookmaker,
     isPositiveEv: ev > 0,
-    scoreLine: `${homeScore} x ${awayScore}`,
+    isLive,
+    scoreLine: isLive ? `${homeScore} x ${awayScore}` : "Pre-jogo",
     homeTeam,
     awayTeam,
     homeScore,
     awayScore,
-    updatedAt: liveScoreEvent.last_update || bestEntry.lastUpdate || null,
-    commenceTime: liveScoreEvent.commence_time || oddsEvent.commence_time || null,
+    updatedAt: liveScoreEvent?.last_update || bestEntry.lastUpdate || null,
+    commenceTime: liveScoreEvent?.commence_time || oddsEvent.commence_time || null,
     source: "The Odds API",
   };
 };
@@ -269,20 +292,13 @@ const fetchLiveGamesForSport = async (sportKey) => {
     };
   }
 
-  const oddsParams = {
-    regions: REGIONS || "eu",
-    markets: "h2h",
-    oddsFormat: "decimal",
-    dateFormat: "iso",
-    eventIds: eventIds.join(","),
-  };
+  const liveOdds = await fetchFromOddsApi(
+    `/sports/${sportKey}/odds`,
+    createOddsParams({
+      eventIds: eventIds.join(","),
+    })
+  );
 
-  if (BOOKMAKERS) {
-    oddsParams.bookmakers = BOOKMAKERS;
-    delete oddsParams.regions;
-  }
-
-  const liveOdds = await fetchFromOddsApi(`/sports/${sportKey}/odds`, oddsParams);
   const liveMap = new Map(liveEvents.map((event) => [event.id, event]));
   const oddsItems = Array.isArray(liveOdds) ? liveOdds : [];
 
@@ -291,6 +307,30 @@ const fetchLiveGamesForSport = async (sportKey) => {
     liveEventCount: liveEvents.length,
     oddsEventCount: oddsItems.length,
     games: oddsItems.map((event) => buildGameFromOdds(event, liveMap.get(event.id))).filter(Boolean),
+  };
+};
+
+const fetchUpcomingGamesForSport = async (sportKey) => {
+  const oddsItems = await fetchFromOddsApi(
+    `/sports/${sportKey}/odds`,
+    createOddsParams({
+      commenceTimeFrom: new Date().toISOString(),
+    })
+  );
+
+  const upcomingGames = (Array.isArray(oddsItems) ? oddsItems : [])
+    .map((event) => buildGameFromOdds(event, null))
+    .filter(Boolean)
+    .sort((left, right) => {
+      const leftTime = new Date(left.commenceTime || 0).getTime();
+      const rightTime = new Date(right.commenceTime || 0).getTime();
+      return leftTime - rightTime;
+    })
+    .slice(0, UPCOMING_LIMIT);
+
+  return {
+    sportKey,
+    games: upcomingGames,
   };
 };
 
@@ -339,7 +379,25 @@ export async function GET(_request) {
     const rejected = results.filter((result) => result.status === "rejected");
 
     if (!games.length) {
-      let debugMessage = "Nenhum jogo ao vivo com cotacoes disponiveis";
+      const upcomingResults = await Promise.allSettled(
+        SPORT_KEYS.map((sportKey) => fetchUpcomingGamesForSport(sportKey))
+      );
+
+      const upcomingGames = upcomingResults
+        .filter((result) => result.status === "fulfilled")
+        .flatMap((result) => result.value.games)
+        .sort((left, right) => right.ev - left.ev);
+
+      if (upcomingGames.length) {
+        return makeJsonResponse({
+          games: upcomingGames,
+          updatedAt: new Date().toISOString(),
+          message: "Sem jogos ao vivo agora; mostrando proximos jogos com cotacoes",
+          debug: "Sem jogos ao vivo nas ligas configuradas; exibindo proximos jogos",
+        });
+      }
+
+      let debugMessage = "Nenhum jogo ao vivo ou proximo jogo com cotacoes disponiveis";
 
       if (totalLiveEventCount === 0) {
         debugMessage = "Nenhum jogo ao vivo nas ligas configuradas";
