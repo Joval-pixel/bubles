@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from "react";
+import * as d3 from "d3-force";
 
 export default function App() {
   const canvasRef = useRef(null);
   const [games, setGames] = useState([]);
 
   async function load() {
-    const res = await fetch("/api/games");
-    const data = await res.json();
-    setGames(data);
+    try {
+      const res = await fetch("/api/games");
+      const data = await res.json();
+      setGames(data);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   useEffect(() => {
@@ -17,54 +22,53 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!games.length) return;
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let bubbles = games.map(g => ({
+    const nodes = games.map(g => ({
       ...g,
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2,
-      r: 20 + g.ev * 200
+      radius: 30 + g.ev * 300
     }));
+
+    const simulation = d3
+      .forceSimulation(nodes)
+      .force("center", d3.forceCenter(canvas.width / 2, canvas.height / 2))
+      .force("charge", d3.forceManyBody().strength(5))
+      .force("collision", d3.forceCollide().radius(d => d.radius + 2))
+      .alphaDecay(0.02)
+      .on("tick", draw);
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      bubbles.forEach(b => {
-        // movimento
-        b.x += b.vx;
-        b.y += b.vy;
-
-        // borda
-        if (b.x < b.r || b.x > canvas.width - b.r) b.vx *= -1;
-        if (b.y < b.r || b.y > canvas.height - b.r) b.vy *= -1;
-
-        // cor
+      nodes.forEach(n => {
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fillStyle = b.ev > 0 ? "#00ff88" : "#ff3b3b";
-        ctx.shadowBlur = 25;
-        ctx.shadowColor = ctx.fillStyle;
+        ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+
+        const color = n.ev > 0 ? "#00ff88" : "#ff3b3b";
+
+        ctx.fillStyle = color;
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = color;
         ctx.fill();
 
-        // texto
+        ctx.shadowBlur = 0;
         ctx.fillStyle = "#000";
-        ctx.font = "10px Arial";
+        ctx.font = "12px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(b.game.slice(0, 20), b.x, b.y - 5);
-        ctx.fillText(`Odd ${b.odd}`, b.x, b.y + 8);
-        ctx.fillText(`EV ${b.ev}`, b.x, b.y + 18);
-      });
 
-      requestAnimationFrame(draw);
+        ctx.fillText(n.game.slice(0, 20), n.x, n.y - 5);
+        ctx.fillText(`Odd ${n.odd}`, n.x, n.y + 12);
+        ctx.fillText(`EV ${n.ev}`, n.x, n.y + 25);
+      });
     }
 
-    draw();
+    return () => simulation.stop();
   }, [games]);
 
   return (
@@ -72,7 +76,6 @@ export default function App() {
       <h1 style={{ color: "#fff", padding: 20 }}>
         🎯 BET BUBBLES PRO
       </h1>
-
       <canvas ref={canvasRef}></canvas>
     </div>
   );
