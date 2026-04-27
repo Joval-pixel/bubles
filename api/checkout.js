@@ -1,6 +1,6 @@
 const Stripe = require("stripe");
 
-module.exports = async function handler(req, res) {
+module.exports = async (req, res) => {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET);
 
@@ -19,11 +19,7 @@ module.exports = async function handler(req, res) {
 
     res.status(200).json({ url: session.url });
 
-  } catch (error) {
-    console.error("ERRO:", error);
-
-    res.status(500).json({
-      error: error.message,
-    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
