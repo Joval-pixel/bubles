@@ -1,5 +1,5 @@
 {
-  "name": "bubles",
+  "name": "bet-bubbles",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "d3-force": "^3.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
