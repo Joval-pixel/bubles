@@ -6,6 +6,16 @@ const formatEv = (value) => `${value > 0 ? "+" : ""}${value.toFixed(2).replace("
 const formatMinute = (value) => `${Math.max(0, Math.round(value))}'`;
 const formatOdd = (value) => value.toFixed(2).replace(".", ",");
 const formatPercent = (value) => `${(value * 100).toFixed(1).replace(".", ",")}%`;
+const formatClock = (game) => (game?.isLive ? formatMinute(game.minute) : "PRE");
+const formatKickoff = (value) =>
+  value
+    ? new Date(value).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "-";
 
 const getTier = (ev) => {
   if (ev >= 0.18) {
@@ -20,7 +30,7 @@ const getTier = (ev) => {
 };
 
 const createBubble = (game, existing, bounds, index) => {
-  const size = clamp(118 + game.ev * 240, 118, 270);
+  const size = clamp(118 + Math.max(game.ev, 0) * 240, 118, 270);
   const safeWidth = Math.max(bounds.width || 0, size + 40);
   const safeHeight = Math.max(bounds.height || 0, size + 40);
 
@@ -105,6 +115,7 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState("");
   const [debugMessage, setDebugMessage] = useState("");
+  const [serverMessage, setServerMessage] = useState("");
 
   useEffect(() => {
     const syncBounds = () => {
@@ -151,6 +162,7 @@ export default function App() {
 
         setUpdatedAt(payload?.updatedAt ?? "");
         setDebugMessage(payload?.debug ?? "");
+        setServerMessage(payload?.message ?? "");
         setBubbles((current) => {
           const currentMap = new Map(current.map((item) => [item.id, item]));
           return items.map((item, index) =>
@@ -170,6 +182,7 @@ export default function App() {
         setSelectedId(null);
         setUpdatedAt("");
         setDebugMessage("Falha ao consultar /api/games");
+        setServerMessage("");
       } finally {
         if (!isMounted) {
           return;
@@ -215,6 +228,11 @@ export default function App() {
 
   const selectedGame = bubbles.find((item) => item.id === selectedId) ?? topGames[0] ?? null;
   const emptyMessage = "Sem jogos ao vivo";
+  const hasLiveGames = bubbles.some((item) => item.isLive);
+  const badgeLabel = hasLiveGames ? "Ao vivo" : bubbles.length ? "Proximos" : "Ao vivo";
+  const headlineText = hasLiveGames
+    ? "Jogos ao vivo com cotacoes e EV"
+    : "Proximos jogos com cotacoes e EV";
 
   return (
     <div className="app-shell">
@@ -223,19 +241,20 @@ export default function App() {
 
       <header className="header">
         <div className="header-copy">
-          <span className="badge">Ao vivo</span>
+          <span className="badge">{badgeLabel}</span>
           <h1>Bubles Live Radar</h1>
-          <p>Radar com The Odds API, minuto estimado e EV por consenso de mercado.</p>
+          <p>Radar com The Odds API para jogos ao vivo e proximos jogos com cotacoes.</p>
         </div>
 
         <div className="status-panel">
           <span>{refreshing ? "Atualizando..." : "Sincronizado"}</span>
-          <strong>{bubbles.length ? `${bubbles.length} jogos ao vivo` : emptyMessage}</strong>
+          <strong>{bubbles.length ? `${bubbles.length} jogos com cotacoes` : emptyMessage}</strong>
           <small>
             {updatedAt
               ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
               : emptyMessage}
           </small>
+          {serverMessage && serverMessage !== "ok" ? <small>{serverMessage}</small> : null}
         </div>
       </header>
 
@@ -244,7 +263,7 @@ export default function App() {
           <div className="board-top">
             <div>
               <span className="section-kicker">Radar de oportunidades</span>
-              <h2>Jogos ao vivo com cotacoes e EV</h2>
+              <h2>{headlineText}</h2>
             </div>
 
             <div className="legend">
@@ -293,7 +312,7 @@ export default function App() {
                   onClick={() => setSelectedId(bubble.id)}
                 >
                   <small className="bubble-game">{bubble.game}</small>
-                  <strong>{formatMinute(bubble.minute)}</strong>
+                  <strong>{formatClock(bubble)}</strong>
                   <span>EV {formatEv(bubble.ev)}</span>
                 </button>
               ))}
@@ -303,7 +322,7 @@ export default function App() {
         <aside className="sidebar">
           <section className="sidebar-card">
             <span className="section-kicker">TOP 5 oportunidades</span>
-            <h2>Melhores entradas ao vivo</h2>
+            <h2>Melhores entradas</h2>
 
             {topGames.length ? (
               <div className="top-list">
@@ -318,7 +337,7 @@ export default function App() {
                     <div className="top-copy">
                       <strong>{game.game}</strong>
                       <span>
-                        {game.league} • {game.scoreLine} • {formatMinute(game.minute)}
+                        {game.league} | {game.scoreLine} | {formatClock(game)}
                       </span>
                     </div>
                     <div className="top-ev">EV {formatEv(game.ev)}</div>
@@ -341,8 +360,8 @@ export default function App() {
                     <strong>{selectedGame.scoreLine}</strong>
                   </article>
                   <article>
-                    <span>Minuto</span>
-                    <strong>{formatMinute(selectedGame.minute)}</strong>
+                    <span>Status</span>
+                    <strong>{formatClock(selectedGame)}</strong>
                   </article>
                   <article>
                     <span>EV</span>
@@ -374,6 +393,10 @@ export default function App() {
                   <article>
                     <span>Liga</span>
                     <strong>{selectedGame.league}</strong>
+                  </article>
+                  <article>
+                    <span>Inicio</span>
+                    <strong>{formatKickoff(selectedGame.commenceTime)}</strong>
                   </article>
                   <article>
                     <span>Fonte</span>
