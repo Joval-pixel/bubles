@@ -1,9 +1,30 @@
-const API_BASE = "https://v3.football.api-sports.io";
+const API_BASE = "https://api.the-odds-api.com/v4";
 const API_KEY =
+  process.env.ODDS_API_KEY ||
   process.env.API_KEY ||
-  process.env.APISPORTS_KEY ||
-  process.env.API_FOOTBALL_KEY ||
   "";
+
+const DEFAULT_SPORTS = "soccer_brazil_campeonato";
+const SPORT_KEYS = String(
+  process.env.ODDS_API_SPORTS ||
+    process.env.ODDS_API_SPORT ||
+    DEFAULT_SPORTS
+)
+  .split(",")
+  .map((item) => item.trim())
+  .filter(Boolean);
+
+const REGIONS = String(process.env.ODDS_API_REGIONS || "eu")
+  .split(",")
+  .map((item) => item.trim())
+  .filter(Boolean)
+  .join(",");
+
+const BOOKMAKERS = String(process.env.ODDS_API_BOOKMAKERS || "")
+  .split(",")
+  .map((item) => item.trim())
+  .filter(Boolean)
+  .join(",");
 
 const normalizeText = (value) =>
   String(value ?? "")
@@ -21,127 +42,29 @@ const toNumber = (value) => {
     return Number.isFinite(value) ? value : 0;
   }
 
-  const parsed = parseFloat(String(value).replace("%", "").replace(",", "."));
+  const parsed = parseFloat(String(value).replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const safeJson = async (response) => {
-  try {
-    return await response.json();
-  } catch (_error) {
-    return { response: [] };
-  }
-};
-
-const fetchFromApi = async (path) => {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "x-apisports-key": API_KEY,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API_FOOTBALL_${response.status}`);
+const average = (values) => {
+  if (!values.length) {
+    return 0;
   }
 
-  const payload = await safeJson(response);
-  return Array.isArray(payload.response) ? payload.response : [];
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 };
 
-const getStatistic = (statistics, aliases) => {
-  const wanted = aliases.map(normalizeText);
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-  for (const entry of statistics ?? []) {
-    if (wanted.includes(normalizeText(entry?.type))) {
-      return toNumber(entry?.value);
-    }
+const estimateMinute = (commenceTime) => {
+  const kickoff = new Date(commenceTime).getTime();
+
+  if (!Number.isFinite(kickoff)) {
+    return 0;
   }
 
-  return 0;
-};
-
-const extractHomeStats = (statisticsResponse, homeTeamId) => {
-  const homeEntry =
-    statisticsResponse.find((entry) => entry?.team?.id === homeTeamId) ?? statisticsResponse[0];
-
-  const stats = homeEntry?.statistics ?? [];
-
-  return {
-    attacks: getStatistic(stats, ["Attacks", "Total Attacks"]),
-    dangerous: getStatistic(stats, ["Dangerous Attacks", "Dangerous attacks"]),
-    shots: getStatistic(stats, ["Total Shots", "Shots on Goal"]),
-    corners: getStatistic(stats, ["Corner Kicks", "Corners"]),
-    possession: getStatistic(stats, ["Ball Possession", "Possession"]),
-  };
-};
-
-const findHomeOdd = (oddsEntries, homeName) => {
-  const normalizedHome = normalizeText(homeName);
-
-  for (const item of oddsEntries ?? []) {
-    for (const bookmaker of item?.bookmakers ?? []) {
-      for (const bet of bookmaker?.bets ?? []) {
-        const betName = normalizeText(bet?.name);
-        const isHomeMarket =
-          betName.includes("match winner") ||
-          betName === "winner" ||
-          betName === "1x2";
-
-        if (!isHomeMarket) {
-          continue;
-        }
-
-        for (const value of bet?.values ?? []) {
-          const label = normalizeText(value?.value ?? value?.label);
-
-          if (label === "home" || label === "1" || label === normalizedHome) {
-            const odd = toNumber(value?.odd);
-
-            if (odd > 1) {
-              return odd;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return 0;
-};
-
-const buildOddsMap = (oddsResponse) => {
-  const map = new Map();
-
-  for (const item of oddsResponse ?? []) {
-    const fixtureId = item?.fixture?.id;
-    const homeName = item?.teams?.home?.name ?? "";
-    const homeOdd = findHomeOdd([item], homeName);
-
-    if (fixtureId && homeOdd > 1) {
-      map.set(fixtureId, homeOdd);
-    }
-  }
-
-  return map;
-};
-
-const calculateEv = ({ attacks, dangerous, shots, corners, possession, minute, oddHome }) => {
-  const pressure =
-    attacks * 0.03 +
-    dangerous * 0.07 +
-    shots * 0.06 +
-    corners * 0.04 +
-    possession * 0.01 +
-    minute * 0.02;
-
-  const probability = Math.min(0.85, pressure / 10);
-  const ev = probability * oddHome - 1;
-
-  return {
-    pressure,
-    probability,
-    ev,
-  };
+  const elapsedMinutes = Math.round((Date.now() - kickoff) / 60000);
+  return clamp(elapsedMinutes, 1, 120);
 };
 
 const makeEmptyPayload = (reason = "Sem jogos ao vivo", debug = "") => ({
@@ -155,127 +78,255 @@ const makeJsonResponse = (payload, status = 200) =>
   Response.json(payload, {
     status,
     headers: {
-      "Cache-Control": "s-maxage=15, stale-while-revalidate=30",
+      "Cache-Control": "s-maxage=120, stale-while-revalidate=180",
     },
   });
+
+const safeJson = async (response) => {
+  try {
+    return await response.json();
+  } catch (_error) {
+    return [];
+  }
+};
+
+const fetchFromOddsApi = async (path, params = {}) => {
+  const searchParams = new URLSearchParams({
+    ...params,
+    apiKey: API_KEY,
+  });
+
+  const response = await fetch(`${API_BASE}${path}?${searchParams.toString()}`);
+
+  if (!response.ok) {
+    throw new Error(`ODDS_API_${response.status}`);
+  }
+
+  return await safeJson(response);
+};
+
+const isLiveScoreEvent = (event) =>
+  !event?.completed && Array.isArray(event?.scores) && event.scores.length > 0;
+
+const findScore = (scores, teamName) => {
+  const normalizedTeam = normalizeText(teamName);
+
+  for (const item of scores ?? []) {
+    if (normalizeText(item?.name) === normalizedTeam) {
+      return toNumber(item?.score);
+    }
+  }
+
+  return 0;
+};
+
+const findH2hMarket = (bookmaker) =>
+  bookmaker?.markets?.find((market) => normalizeText(market?.key) === "h2h") ?? null;
+
+const getHomeOutcome = (outcomes, homeTeam) => {
+  const normalizedHome = normalizeText(homeTeam);
+
+  return (
+    outcomes?.find((outcome) => normalizeText(outcome?.name) === normalizedHome) ?? null
+  );
+};
+
+const getNormalizedHomeProbability = (outcomes, homeTeam) => {
+  const pricedOutcomes = (outcomes ?? [])
+    .map((outcome) => ({
+      name: outcome?.name ?? "",
+      price: toNumber(outcome?.price),
+    }))
+    .filter((outcome) => outcome.price > 1);
+
+  if (!pricedOutcomes.length) {
+    return 0;
+  }
+
+  const implied = pricedOutcomes.map((outcome) => ({
+    ...outcome,
+    probability: 1 / outcome.price,
+  }));
+
+  const total = implied.reduce((sum, outcome) => sum + outcome.probability, 0);
+
+  if (!(total > 0)) {
+    return 0;
+  }
+
+  const homeEntry = implied.find(
+    (outcome) => normalizeText(outcome.name) === normalizeText(homeTeam)
+  );
+
+  if (!homeEntry) {
+    return 0;
+  }
+
+  return homeEntry.probability / total;
+};
+
+const buildGameFromOdds = (oddsEvent, liveScoreEvent) => {
+  if (!oddsEvent || !liveScoreEvent) {
+    return null;
+  }
+
+  const homeTeam = oddsEvent.home_team ?? liveScoreEvent.home_team ?? "";
+  const awayTeam = oddsEvent.away_team ?? liveScoreEvent.away_team ?? "";
+  const bookmakers = Array.isArray(oddsEvent.bookmakers) ? oddsEvent.bookmakers : [];
+
+  const bookmakerEntries = bookmakers
+    .map((bookmaker) => {
+      const h2hMarket = findH2hMarket(bookmaker);
+      const outcomes = h2hMarket?.outcomes ?? [];
+      const homeOutcome = getHomeOutcome(outcomes, homeTeam);
+      const homePrice = toNumber(homeOutcome?.price);
+      const homeProbability = getNormalizedHomeProbability(outcomes, homeTeam);
+
+      if (!(homePrice > 1) || !(homeProbability > 0)) {
+        return null;
+      }
+
+      return {
+        bookmaker: bookmaker?.title ?? bookmaker?.key ?? "bookmaker",
+        homePrice,
+        homeProbability,
+        lastUpdate: bookmaker?.last_update ?? h2hMarket?.last_update ?? null,
+      };
+    })
+    .filter(Boolean);
+
+  if (!bookmakerEntries.length) {
+    return null;
+  }
+
+  const bestEntry = bookmakerEntries.reduce((best, current) =>
+    current.homePrice > best.homePrice ? current : best
+  );
+
+  const consensusProbability = average(
+    bookmakerEntries.map((entry) => entry.homeProbability)
+  );
+
+  if (!(consensusProbability > 0)) {
+    return null;
+  }
+
+  const ev = consensusProbability * bestEntry.homePrice - 1;
+
+  if (!(ev > 0)) {
+    return null;
+  }
+
+  const homeScore = findScore(liveScoreEvent.scores, homeTeam);
+  const awayScore = findScore(liveScoreEvent.scores, awayTeam);
+  const minute = estimateMinute(liveScoreEvent.commence_time || oddsEvent.commence_time);
+  const fairOdd = consensusProbability > 0 ? 1 / consensusProbability : 0;
+
+  return {
+    id: oddsEvent.id,
+    game: `${homeTeam} x ${awayTeam}`,
+    league: oddsEvent.sport_title ?? liveScoreEvent.sport_title ?? "Soccer",
+    minute,
+    minuteLabel: "estimado",
+    ev,
+    oddHome: bestEntry.homePrice,
+    probability: consensusProbability,
+    fairOdd,
+    marketEdge: bestEntry.homePrice - fairOdd,
+    bestBookmaker: bestEntry.bookmaker,
+    scoreLine: `${homeScore} x ${awayScore}`,
+    homeTeam,
+    awayTeam,
+    homeScore,
+    awayScore,
+    updatedAt: liveScoreEvent.last_update || bestEntry.lastUpdate || null,
+    commenceTime: liveScoreEvent.commence_time || oddsEvent.commence_time || null,
+    source: "The Odds API",
+  };
+};
+
+const fetchLiveGamesForSport = async (sportKey) => {
+  const liveScores = await fetchFromOddsApi(`/sports/${sportKey}/scores`, {
+    dateFormat: "iso",
+  });
+
+  const liveEvents = Array.isArray(liveScores) ? liveScores.filter(isLiveScoreEvent) : [];
+
+  if (!liveEvents.length) {
+    return [];
+  }
+
+  const eventIds = liveEvents.map((event) => event.id).filter(Boolean);
+
+  if (!eventIds.length) {
+    return [];
+  }
+
+  const oddsParams = {
+    regions: REGIONS || "eu",
+    markets: "h2h",
+    oddsFormat: "decimal",
+    dateFormat: "iso",
+    eventIds: eventIds.join(","),
+  };
+
+  if (BOOKMAKERS) {
+    oddsParams.bookmakers = BOOKMAKERS;
+    delete oddsParams.regions;
+  }
+
+  const liveOdds = await fetchFromOddsApi(`/sports/${sportKey}/odds`, oddsParams);
+  const liveMap = new Map(liveEvents.map((event) => [event.id, event]));
+
+  return (Array.isArray(liveOdds) ? liveOdds : [])
+    .map((event) => buildGameFromOdds(event, liveMap.get(event.id)))
+    .filter(Boolean);
+};
 
 export async function GET(_request) {
   if (!API_KEY) {
     return makeJsonResponse(
       makeEmptyPayload(
         "Sem jogos ao vivo",
-        "API_KEY ausente no ambiente do servidor"
+        "ODDS_API_KEY ausente no ambiente do servidor"
+      )
+    );
+  }
+
+  if (!SPORT_KEYS.length) {
+    return makeJsonResponse(
+      makeEmptyPayload(
+        "Sem jogos ao vivo",
+        "Nenhuma liga configurada em ODDS_API_SPORTS"
       )
     );
   }
 
   try {
-    const liveFixtures = await fetchFromApi("/fixtures?live=all");
-
-    if (!liveFixtures.length) {
-      return makeJsonResponse(
-        makeEmptyPayload(
-          "Sem jogos ao vivo",
-          "Nenhum fixture ao vivo retornado pela API"
-        )
-      );
-    }
-
-    let oddsMap = new Map();
-
-    try {
-      const liveOdds = await fetchFromApi("/odds/live");
-      oddsMap = buildOddsMap(liveOdds);
-    } catch (_error) {
-      oddsMap = new Map();
-    }
-
-    const statisticsResults = await Promise.allSettled(
-      liveFixtures.map((fixture) =>
-        fetchFromApi(`/fixtures/statistics?fixture=${fixture.fixture.id}`)
-      )
+    const results = await Promise.allSettled(
+      SPORT_KEYS.map((sportKey) => fetchLiveGamesForSport(sportKey))
     );
 
-    const statisticsMap = new Map();
-
-    statisticsResults.forEach((result, index) => {
-      if (result.status === "fulfilled") {
-        statisticsMap.set(liveFixtures[index].fixture.id, result.value);
-      }
-    });
-
-    if (!oddsMap.size) {
-      const fallbackOddsResults = await Promise.allSettled(
-        liveFixtures.map((fixture) => fetchFromApi(`/odds?fixture=${fixture.fixture.id}`))
-      );
-
-      fallbackOddsResults.forEach((result, index) => {
-        if (result.status !== "fulfilled") {
-          return;
-        }
-
-        const fixture = liveFixtures[index];
-        const oddHome = findHomeOdd(result.value, fixture?.teams?.home?.name ?? "");
-
-        if (oddHome > 1) {
-          oddsMap.set(fixture.fixture.id, oddHome);
-        }
-      });
-    }
-
-    const games = liveFixtures
-      .map((fixture) => {
-        const fixtureId = fixture?.fixture?.id;
-        const minute = toNumber(fixture?.fixture?.status?.elapsed);
-        const homeId = fixture?.teams?.home?.id;
-        const homeName = fixture?.teams?.home?.name ?? "";
-        const awayName = fixture?.teams?.away?.name ?? "";
-        const leagueName = fixture?.league?.name ?? "";
-
-        const statsPayload = statisticsMap.get(fixtureId) ?? [];
-        const stats = extractHomeStats(statsPayload, homeId);
-        const oddHome = oddsMap.get(fixtureId) ?? 0;
-
-        if (!fixtureId || !homeName || !awayName || oddHome <= 1) {
-          return null;
-        }
-
-        const { pressure, probability, ev } = calculateEv({
-          ...stats,
-          minute,
-          oddHome,
-        });
-
-        if (!(ev > 0)) {
-          return null;
-        }
-
-        return {
-          id: fixtureId,
-          game: `${homeName} x ${awayName}`,
-          league: leagueName,
-          minute,
-          pressure,
-          probability,
-          ev,
-          oddHome,
-          attacks: stats.attacks,
-          dangerous: stats.dangerous,
-          shots: stats.shots,
-          corners: stats.corners,
-          possession: stats.possession,
-        };
-      })
-      .filter(Boolean)
+    const games = results
+      .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
       .sort((left, right) => right.ev - left.ev);
+
+    const rejected = results.filter((result) => result.status === "rejected");
+
+    if (!games.length) {
+      const firstError =
+        rejected[0]?.reason?.message || "Nenhum jogo ao vivo com EV positivo nas ligas configuradas";
+
+      return makeJsonResponse(
+        makeEmptyPayload("Sem jogos ao vivo", firstError)
+      );
+    }
 
     return makeJsonResponse({
       games,
       updatedAt: new Date().toISOString(),
-      message: games.length ? "ok" : "Sem jogos ao vivo",
-      debug: games.length
-        ? ""
-        : "Fixtures encontrados, mas sem odds validas ou sem EV positivo",
+      message: "ok",
+      debug: "",
     });
   } catch (error) {
     return makeJsonResponse(
