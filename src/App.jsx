@@ -4,13 +4,15 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 const formatEv = (value) => `${value > 0 ? "+" : ""}${value.toFixed(2).replace(".", ",")}`;
 const formatMinute = (value) => `${Math.max(0, Math.round(value))}'`;
+const formatOdd = (value) => value.toFixed(2).replace(".", ",");
+const formatPercent = (value) => `${(value * 100).toFixed(1).replace(".", ",")}%`;
 
 const getTier = (ev) => {
-  if (ev >= 0.45) {
+  if (ev >= 0.18) {
     return "high";
   }
 
-  if (ev >= 0.2) {
+  if (ev >= 0.08) {
     return "medium";
   }
 
@@ -18,7 +20,7 @@ const getTier = (ev) => {
 };
 
 const createBubble = (game, existing, bounds, index) => {
-  const size = clamp(120 + game.ev * 180, 120, 260);
+  const size = clamp(118 + game.ev * 240, 118, 270);
   const safeWidth = Math.max(bounds.width || 0, size + 40);
   const safeHeight = Math.max(bounds.height || 0, size + 40);
 
@@ -181,7 +183,7 @@ export default function App() {
     fetchGames(false);
     const timer = window.setInterval(() => {
       fetchGames(true);
-    }, 25000);
+    }, 120000);
 
     return () => {
       isMounted = false;
@@ -223,7 +225,7 @@ export default function App() {
         <div className="header-copy">
           <span className="badge">Ao vivo</span>
           <h1>Bubles Live Radar</h1>
-          <p>Bubbles com jogos ao vivo, minuto e EV positivo calculado em tempo real.</p>
+          <p>Radar com The Odds API, minuto estimado e EV por consenso de mercado.</p>
         </div>
 
         <div className="status-panel">
@@ -242,7 +244,7 @@ export default function App() {
           <div className="board-top">
             <div>
               <span className="section-kicker">Radar de oportunidades</span>
-              <h2>Somente jogos com EV positivo</h2>
+              <h2>Jogos ao vivo com valor positivo</h2>
             </div>
 
             <div className="legend">
@@ -258,7 +260,7 @@ export default function App() {
             {loading ? (
               <div className="empty-state">
                 <h3>Carregando oportunidades...</h3>
-                <p>Buscando jogos ao vivo e calculando EV.</p>
+                <p>Buscando placares ao vivo e odds recentes.</p>
               </div>
             ) : null}
 
@@ -266,8 +268,8 @@ export default function App() {
               <div className="empty-state">
                 <h3>{emptyMessage}</h3>
                 <p>
-                  Se a API falhar ou nao houver partidas elegiveis, o radar fica estavel e
-                  mostra esta mensagem.
+                  Se nao houver partidas elegiveis ou a API limitar as consultas, o radar mostra
+                  esta mensagem.
                 </p>
                 {debugMessage ? <small className="debug-note">{debugMessage}</small> : null}
               </div>
@@ -316,7 +318,7 @@ export default function App() {
                     <div className="top-copy">
                       <strong>{game.game}</strong>
                       <span>
-                        {game.league} • {formatMinute(game.minute)}
+                        {game.league} • {game.scoreLine} • {formatMinute(game.minute)}
                       </span>
                     </div>
                     <div className="top-ev">EV {formatEv(game.ev)}</div>
@@ -335,6 +337,10 @@ export default function App() {
                 <h2>{selectedGame.game}</h2>
                 <div className="detail-metrics">
                   <article>
+                    <span>Placar</span>
+                    <strong>{selectedGame.scoreLine}</strong>
+                  </article>
+                  <article>
                     <span>Minuto</span>
                     <strong>{formatMinute(selectedGame.minute)}</strong>
                   </article>
@@ -343,39 +349,35 @@ export default function App() {
                     <strong>{formatEv(selectedGame.ev)}</strong>
                   </article>
                   <article>
-                    <span>Odd casa</span>
-                    <strong>{selectedGame.oddHome.toFixed(2).replace(".", ",")}</strong>
-                  </article>
-                  <article>
-                    <span>Pressao</span>
-                    <strong>{selectedGame.pressure.toFixed(2).replace(".", ",")}</strong>
+                    <span>Melhor odd</span>
+                    <strong>{formatOdd(selectedGame.oddHome)}</strong>
                   </article>
                 </div>
 
                 <div className="stat-grid">
                   <article>
-                    <span>Attacks</span>
-                    <strong>{selectedGame.attacks}</strong>
+                    <span>Casa</span>
+                    <strong>{selectedGame.bestBookmaker}</strong>
                   </article>
                   <article>
-                    <span>Dangerous</span>
-                    <strong>{selectedGame.dangerous}</strong>
+                    <span>Prob. consenso</span>
+                    <strong>{formatPercent(selectedGame.probability)}</strong>
                   </article>
                   <article>
-                    <span>Shots</span>
-                    <strong>{selectedGame.shots}</strong>
+                    <span>Odd justa</span>
+                    <strong>{formatOdd(selectedGame.fairOdd)}</strong>
                   </article>
                   <article>
-                    <span>Corners</span>
-                    <strong>{selectedGame.corners}</strong>
+                    <span>Edge</span>
+                    <strong>{formatOdd(selectedGame.marketEdge)}</strong>
                   </article>
                   <article>
-                    <span>Possession</span>
-                    <strong>{selectedGame.possession.toFixed(0)}%</strong>
+                    <span>Liga</span>
+                    <strong>{selectedGame.league}</strong>
                   </article>
                   <article>
-                    <span>Probabilidade</span>
-                    <strong>{(selectedGame.probability * 100).toFixed(1).replace(".", ",")}%</strong>
+                    <span>Fonte</span>
+                    <strong>{selectedGame.source}</strong>
                   </article>
                 </div>
               </>
