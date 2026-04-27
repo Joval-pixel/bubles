@@ -3,6 +3,8 @@
   --bg: #000000;
   --panel: rgba(10, 10, 10, 0.9);
   --panel-soft: rgba(17, 17, 17, 0.85);
+  --toolbar: rgba(44, 44, 44, 0.92);
+  --toolbar-soft: rgba(58, 58, 58, 0.92);
   --line: rgba(255, 255, 255, 0.08);
   --text: #f5f7fa;
   --text-soft: #9ea7b3;
@@ -38,7 +40,8 @@ body {
   color: var(--text);
 }
 
-button {
+button,
+input {
   font: inherit;
 }
 
@@ -47,7 +50,7 @@ button {
   min-height: 100vh;
   max-width: 1500px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 18px 24px 24px;
   overflow: hidden;
 }
 
@@ -75,10 +78,120 @@ button {
   background: rgba(255, 95, 87, 0.34);
 }
 
+.control-deck,
 .header,
 .layout {
   position: relative;
   z-index: 1;
+}
+
+.control-deck {
+  display: grid;
+  grid-template-columns: auto minmax(280px, 1fr) repeat(4, auto);
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(62, 62, 62, 0.92), rgba(32, 32, 32, 0.94));
+  box-shadow: var(--shadow);
+}
+
+.control-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0 0.5rem;
+  color: white;
+}
+
+.brand-dot {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(244, 255, 248, 0.95), rgba(79, 242, 140, 0.85) 42%, rgba(13, 91, 50, 0.98) 100%);
+  box-shadow: 0 0 18px rgba(79, 242, 140, 0.45);
+}
+
+.control-brand strong {
+  font-family: "Sora", sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.03em;
+}
+
+.control-search input {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(24, 24, 24, 0.95);
+  color: var(--text);
+  outline: none;
+}
+
+.control-search input::placeholder {
+  color: #8d95a0;
+}
+
+.control-search input:focus {
+  border-color: rgba(79, 242, 140, 0.6);
+  box-shadow: 0 0 0 1px rgba(79, 242, 140, 0.35);
+}
+
+.control-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-button,
+.icon-button {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(70, 70, 70, 0.65);
+  color: #f0f4f7;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.chip-button:hover,
+.icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.chip-button {
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border-radius: 15px;
+  font-weight: 700;
+}
+
+.chip-button.is-active {
+  border-color: #29f85d;
+  box-shadow: inset 0 0 0 1px rgba(41, 248, 93, 0.25);
+}
+
+.chip-button.is-alt {
+  background: rgba(55, 55, 55, 0.72);
+}
+
+.chip-button.is-neutral {
+  background: rgba(48, 48, 48, 0.88);
+}
+
+.icon-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+.icon-button.is-active {
+  border-color: #29f85d;
+  color: #a8ffc2;
 }
 
 .header {
@@ -412,6 +525,16 @@ button {
   font-size: 0.88rem;
 }
 
+@media (max-width: 1360px) {
+  .control-deck {
+    grid-template-columns: 1fr;
+  }
+
+  .control-brand {
+    padding: 0;
+  }
+}
+
 @media (max-width: 1180px) {
   .header,
   .layout {
@@ -429,7 +552,22 @@ button {
 
 @media (max-width: 760px) {
   .app-shell {
-    padding: 14px;
+    padding: 12px;
+  }
+
+  .control-deck {
+    padding: 10px;
+    border-radius: 22px;
+  }
+
+  .chip-button {
+    min-height: 40px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.92rem;
+  }
+
+  .header-copy h1 {
+    font-size: 2.5rem;
   }
 
   .board-top {
