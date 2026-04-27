@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     const API_KEY = process.env.ODDS_API_KEY;
 
     if (!API_KEY) {
-      return res.status(200).json([]); // nunca quebra o front
+      return res.status(200).json([]);
     }
 
     const url = `https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
       if (!bestHome) return null;
 
-      // EV seguro (simples)
+      // EV simples (seguro)
       const prob = 1 / bestHome;
       const ev = (bestHome * prob) - 1;
 
@@ -52,10 +52,10 @@ export default async function handler(req, res) {
       };
     }).filter(Boolean);
 
-    return res.status(200).json(games);
+    res.status(200).json(games);
 
   } catch (err) {
     console.error(err);
-    return res.status(200).json([]); // 🔥 nunca quebra o front
+    res.status(200).json([]);
   }
 }
