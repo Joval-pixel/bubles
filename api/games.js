@@ -51,6 +51,8 @@ const average = (values) => {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 };
 
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
 const makeEmptyPayload = (reason = "Sem jogos ao vivo", debug = "") => ({
   games: [],
   updatedAt: new Date().toISOString(),
@@ -240,7 +242,7 @@ const groupOddsByBookmaker = (oddsRows, homeTeamName) => {
   };
 };
 
-const calculateLiveEv = ({ attacks, dangerous, shots, corners, possession, minute, oddHome }) => {
+const calculateLiveSignal = ({ attacks, dangerous, shots, corners, possession, minute, oddHome }) => {
   const pressure =
     attacks * 0.03 +
     dangerous * 0.07 +
@@ -249,8 +251,8 @@ const calculateLiveEv = ({ attacks, dangerous, shots, corners, possession, minut
     possession * 0.01 +
     minute * 0.02;
 
-  const probability = Math.min(0.85, pressure / 10);
-  const ev = probability * oddHome - 1;
+  const probability = clamp(Math.min(0.85, pressure / 10), 0.12, 0.9);
+  const ev = oddHome > 1 ? probability * oddHome - 1 : null;
 
   return {
     pressure,
@@ -260,7 +262,7 @@ const calculateLiveEv = ({ attacks, dangerous, shots, corners, possession, minut
 };
 
 const buildLiveGame = (fixture, oddsSummary) => {
-  if (!fixture || !oddsSummary) {
+  if (!fixture) {
     return null;
   }
 
@@ -273,10 +275,11 @@ const buildLiveGame = (fixture, oddsSummary) => {
 
   const stats = extractHomeStats(fixture);
   const minute = toNumber(fixture?.time?.minute);
-  const { pressure, probability, ev } = calculateLiveEv({
+  const oddHome = oddsSummary?.oddHome ?? 0;
+  const { pressure, probability, ev } = calculateLiveSignal({
     ...stats,
     minute,
-    oddHome: oddsSummary.oddHome,
+    oddHome,
   });
 
   return {
@@ -286,13 +289,16 @@ const buildLiveGame = (fixture, oddsSummary) => {
     minute,
     minuteLabel: "ao vivo",
     ev,
-    oddHome: oddsSummary.oddHome,
+    oddHome,
     probability,
+    marketProbability: oddsSummary?.probability ?? 0,
     fairOdd: probability > 0 ? 1 / probability : 0,
-    marketEdge: oddsSummary.marketEdge,
-    bestBookmaker: oddsSummary.bestBookmaker,
-    isPositiveEv: ev > 0,
+    marketEdge: oddHome > 1 && probability > 0 ? oddHome - 1 / probability : 0,
+    bestBookmaker: oddsSummary?.bestBookmaker ?? "Sem odd live",
+    hasOdds: oddHome > 1,
+    isPositiveEv: oddHome > 1 ? ev > 0 : probability >= 0.6,
     isLive: true,
+    bubbleValue: probability,
     scoreLine: `${getCurrentScore(fixture?.scores, "home")} x ${getCurrentScore(
       fixture?.scores,
       "away"
@@ -303,7 +309,7 @@ const buildLiveGame = (fixture, oddsSummary) => {
     corners: stats.corners,
     possession: stats.possession,
     pressure,
-    updatedAt: oddsSummary.updatedAt,
+    updatedAt: oddsSummary?.updatedAt ?? fixture?.last_processed_at ?? null,
     commenceTime: fixture?.starting_at || null,
     source: "SportMonks",
   };
@@ -335,8 +341,10 @@ const buildUpcomingGame = (fixture, oddsSummary) => {
     fairOdd: oddsSummary.fairOdd,
     marketEdge: oddsSummary.marketEdge,
     bestBookmaker: oddsSummary.bestBookmaker,
+    hasOdds: oddsSummary.oddHome > 1,
     isPositiveEv: ev > 0,
     isLive: false,
+    bubbleValue: oddsSummary.probability,
     scoreLine: "Pre-jogo",
     attacks: 0,
     dangerous: 0,
@@ -380,7 +388,7 @@ const fetchFixtureOddsSummary = async (fixtureId, homeTeamName, isLive) => {
 
 const fetchLiveGames = async () => {
   const liveFixtures = await fetchFromSportMonks("/livescores/inplay", {
-    include: "participants;scores;statistics",
+    include: "participants;scores;statistics;league;state",
   });
 
   if (!liveFixtures.length) {
@@ -415,7 +423,11 @@ const fetchLiveGames = async () => {
       return buildLiveGame(fixture, oddsSummary);
     })
     .filter(Boolean)
-    .sort((left, right) => right.ev - left.ev);
+    .sort(
+      (left, right) =>
+        (right.bubbleValue ?? right.probability ?? 0) -
+        (left.bubbleValue ?? left.probability ?? 0)
+    );
 
   return {
     fixturesCount: liveFixtures.length,
@@ -428,7 +440,7 @@ const fetchUpcomingGames = async () => {
   const upcomingFixtures = await fetchFromSportMonks(
     `/fixtures/upcoming/markets/${MATCH_WINNER_MARKET_ID}`,
     {
-      include: "participants",
+      include: "participants;league",
       per_page: String(NEXT_LIMIT),
       order: "asc",
     }
@@ -452,7 +464,11 @@ const fetchUpcomingGames = async () => {
       return buildUpcomingGame(fixture, oddsSummary);
     })
     .filter(Boolean)
-    .sort((left, right) => right.ev - left.ev);
+    .sort(
+      (left, right) =>
+        (right.bubbleValue ?? right.probability ?? 0) -
+        (left.bubbleValue ?? left.probability ?? 0)
+    );
 };
 
 export async function GET(_request) {
@@ -473,9 +489,10 @@ export async function GET(_request) {
         games: liveResult.games,
         updatedAt: new Date().toISOString(),
         message: "ok",
-        debug:
-          liveResult.fixturesCount > liveResult.games.length
-            ? "Alguns jogos ao vivo ficaram sem odds compativeis ou sem estatisticas suficientes"
+        debug: liveResult.inplayOddsForbidden
+          ? "Jogos ao vivo exibidos com prioridade; parte deles pode estar sem odd live do seu plano"
+          : liveResult.fixturesCount > liveResult.games.length
+            ? "Alguns jogos ao vivo ficaram sem estatisticas suficientes"
             : "",
       });
     }
