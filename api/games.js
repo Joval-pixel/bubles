@@ -213,10 +213,6 @@ const buildGameFromOdds = (oddsEvent, liveScoreEvent) => {
 
   const ev = consensusProbability * bestEntry.homePrice - 1;
 
-  if (!(ev > 0)) {
-    return null;
-  }
-
   const homeScore = findScore(liveScoreEvent.scores, homeTeam);
   const awayScore = findScore(liveScoreEvent.scores, awayTeam);
   const minute = estimateMinute(liveScoreEvent.commence_time || oddsEvent.commence_time);
@@ -234,6 +230,7 @@ const buildGameFromOdds = (oddsEvent, liveScoreEvent) => {
     fairOdd,
     marketEdge: bestEntry.homePrice - fairOdd,
     bestBookmaker: bestEntry.bookmaker,
+    isPositiveEv: ev > 0,
     scoreLine: `${homeScore} x ${awayScore}`,
     homeTeam,
     awayTeam,
@@ -253,13 +250,23 @@ const fetchLiveGamesForSport = async (sportKey) => {
   const liveEvents = Array.isArray(liveScores) ? liveScores.filter(isLiveScoreEvent) : [];
 
   if (!liveEvents.length) {
-    return [];
+    return {
+      sportKey,
+      liveEventCount: 0,
+      oddsEventCount: 0,
+      games: [],
+    };
   }
 
   const eventIds = liveEvents.map((event) => event.id).filter(Boolean);
 
   if (!eventIds.length) {
-    return [];
+    return {
+      sportKey,
+      liveEventCount: liveEvents.length,
+      oddsEventCount: 0,
+      games: [],
+    };
   }
 
   const oddsParams = {
@@ -277,10 +284,14 @@ const fetchLiveGamesForSport = async (sportKey) => {
 
   const liveOdds = await fetchFromOddsApi(`/sports/${sportKey}/odds`, oddsParams);
   const liveMap = new Map(liveEvents.map((event) => [event.id, event]));
+  const oddsItems = Array.isArray(liveOdds) ? liveOdds : [];
 
-  return (Array.isArray(liveOdds) ? liveOdds : [])
-    .map((event) => buildGameFromOdds(event, liveMap.get(event.id)))
-    .filter(Boolean);
+  return {
+    sportKey,
+    liveEventCount: liveEvents.length,
+    oddsEventCount: oddsItems.length,
+    games: oddsItems.map((event) => buildGameFromOdds(event, liveMap.get(event.id))).filter(Boolean),
+  };
 };
 
 export async function GET(_request) {
@@ -307,18 +318,39 @@ export async function GET(_request) {
       SPORT_KEYS.map((sportKey) => fetchLiveGamesForSport(sportKey))
     );
 
-    const games = results
-      .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
+    const successfulResults = results
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => result.value);
+
+    const totalLiveEventCount = successfulResults.reduce(
+      (sum, result) => sum + result.liveEventCount,
+      0
+    );
+
+    const totalOddsEventCount = successfulResults.reduce(
+      (sum, result) => sum + result.oddsEventCount,
+      0
+    );
+
+    const games = successfulResults
+      .flatMap((result) => result.games)
       .sort((left, right) => right.ev - left.ev);
 
     const rejected = results.filter((result) => result.status === "rejected");
 
     if (!games.length) {
-      const firstError =
-        rejected[0]?.reason?.message || "Nenhum jogo ao vivo com EV positivo nas ligas configuradas";
+      let debugMessage = "Nenhum jogo ao vivo com cotacoes disponiveis";
+
+      if (totalLiveEventCount === 0) {
+        debugMessage = "Nenhum jogo ao vivo nas ligas configuradas";
+      } else if (totalOddsEventCount === 0) {
+        debugMessage = "Ha jogos ao vivo, mas sem cotacoes na regiao ou bookmakers configurados";
+      } else if (rejected.length) {
+        debugMessage = rejected[0]?.reason?.message || debugMessage;
+      }
 
       return makeJsonResponse(
-        makeEmptyPayload("Sem jogos ao vivo", firstError)
+        makeEmptyPayload("Sem jogos ao vivo", debugMessage)
       );
     }
 
@@ -326,7 +358,10 @@ export async function GET(_request) {
       games,
       updatedAt: new Date().toISOString(),
       message: "ok",
-      debug: "",
+      debug:
+        totalLiveEventCount > games.length
+          ? "Alguns jogos ao vivo ficaram sem cotacoes compativeis com a configuracao atual"
+          : "",
     });
   } catch (error) {
     return makeJsonResponse(
