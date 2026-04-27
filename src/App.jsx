@@ -1,16 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function App() {
+  const canvasRef = useRef(null);
   const [games, setGames] = useState([]);
 
   async function load() {
-    try {
-      const res = await fetch("/api/games");
-      const data = await res.json();
-      setGames(data);
-    } catch (e) {
-      console.error(e);
-    }
+    const res = await fetch("/api/games");
+    const data = await res.json();
+    setGames(data);
   }
 
   useEffect(() => {
@@ -19,57 +16,64 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let bubbles = games.map(g => ({
+      ...g,
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      r: 20 + g.ev * 200
+    }));
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      bubbles.forEach(b => {
+        // movimento
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // borda
+        if (b.x < b.r || b.x > canvas.width - b.r) b.vx *= -1;
+        if (b.y < b.r || b.y > canvas.height - b.r) b.vy *= -1;
+
+        // cor
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = b.ev > 0 ? "#00ff88" : "#ff3b3b";
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.fill();
+
+        // texto
+        ctx.fillStyle = "#000";
+        ctx.font = "10px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(b.game.slice(0, 20), b.x, b.y - 5);
+        ctx.fillText(`Odd ${b.odd}`, b.x, b.y + 8);
+        ctx.fillText(`EV ${b.ev}`, b.x, b.y + 18);
+      });
+
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  }, [games]);
+
   return (
-    <div style={{
-      background: "#000",
-      width: "100vw",
-      height: "100vh",
-      overflow: "hidden",
-      position: "relative",
-      fontFamily: "Arial"
-    }}>
-      <h1 style={{
-        color: "#fff",
-        padding: "20px",
-        position: "absolute",
-        zIndex: 10
-      }}>
-        🎯 BET BUBBLES
+    <div style={{ background: "#000", height: "100vh" }}>
+      <h1 style={{ color: "#fff", padding: 20 }}>
+        🎯 BET BUBBLES PRO
       </h1>
 
-      {games.map((g, i) => {
-        const size = 60 + (g.ev * 300);
-
-        return (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: Math.random() * 90 + "%",
-              top: Math.random() * 90 + "%",
-              width: size,
-              height: size,
-              borderRadius: "50%",
-              background: g.ev > 0 ? "#00ff88" : "#ff3b3b",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#000",
-              fontSize: "10px",
-              textAlign: "center",
-              boxShadow: g.ev > 0
-                ? "0 0 25px #00ff88"
-                : "0 0 15px #ff3b3b",
-              transition: "0.3s"
-            }}
-          >
-            <div>{g.game}</div>
-            <div>Odd {g.odd}</div>
-            <div>EV {g.ev}</div>
-          </div>
-        );
-      })}
+      <canvas ref={canvasRef}></canvas>
     </div>
   );
 }
