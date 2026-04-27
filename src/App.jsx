@@ -2,73 +2,74 @@ import { useEffect, useState } from "react";
 
 export default function App() {
   const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    try {
+      const res = await fetch("/api/games");
+      const data = await res.json();
+      setGames(data);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
   useEffect(() => {
-    fetch("/api/games")
-      .then(res => res.json())
-      .then(data => {
-        setGames(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(() => {
-        setGames([]);
-        setLoading(false);
-      });
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
   }, []);
-
-  const filtered = games.filter(g => g.ev > 0);
 
   return (
     <div style={{
-      background: "#0b0b0b",
-      color: "#fff",
-      minHeight: "100vh",
-      padding: 20,
+      background: "#000",
+      width: "100vw",
+      height: "100vh",
+      overflow: "hidden",
+      position: "relative",
       fontFamily: "Arial"
     }}>
+      <h1 style={{
+        color: "#fff",
+        padding: "20px",
+        position: "absolute",
+        zIndex: 10
+      }}>
+        🎯 BET BUBBLES
+      </h1>
 
-      <h1>🎯 BET BUBBLES</h1>
-      <p style={{ opacity: 0.7 }}>
-        Radar de apostas com valor (EV+)
-      </p>
+      {games.map((g, i) => {
+        const size = 60 + (g.ev * 300);
 
-      {loading && <p>Carregando...</p>}
-
-      {!loading && filtered.length === 0 && (
-        <p>⚠️ Nenhuma oportunidade no momento</p>
-      )}
-
-      {/* TOP OPORTUNIDADES */}
-      <h2 style={{ marginTop: 30 }}>🔥 TOP OPORTUNIDADES</h2>
-
-      {filtered
-        .sort((a, b) => b.ev - a.ev)
-        .slice(0, 5)
-        .map(g => (
-          <div key={g.id} style={{
-            padding: 12,
-            marginTop: 10,
-            background: "#111",
-            borderRadius: 8,
-            border: "1px solid #00ff88"
-          }}>
-            <strong>{g.game}</strong><br />
-            Odd {g.oddHome} | EV {g.ev}
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: Math.random() * 90 + "%",
+              top: Math.random() * 90 + "%",
+              width: size,
+              height: size,
+              borderRadius: "50%",
+              background: g.ev > 0 ? "#00ff88" : "#ff3b3b",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#000",
+              fontSize: "10px",
+              textAlign: "center",
+              boxShadow: g.ev > 0
+                ? "0 0 25px #00ff88"
+                : "0 0 15px #ff3b3b",
+              transition: "0.3s"
+            }}
+          >
+            <div>{g.game}</div>
+            <div>Odd {g.odd}</div>
+            <div>EV {g.ev}</div>
           </div>
-        ))}
-
-      {/* LISTA COMPLETA */}
-      <h2 style={{ marginTop: 40 }}>📊 TODOS OS JOGOS</h2>
-
-      {games.map(g => (
-        <div key={g.id} style={{
-          marginTop: 8,
-          color: g.ev > 0 ? "#00ff88" : "#ff3b3b"
-        }}>
-          {g.game} | Odd {g.oddHome} | EV {g.ev}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
