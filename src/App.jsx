@@ -78,46 +78,46 @@ const getSignal = (game) => {
     if ((game.probability || 0) >= 0.68) {
       return {
         tone: "good",
-        title: "Pressao favoravel",
-        note: "Leitura live forte. A pressao do jogo esta sustentando uma probabilidade alta para a casa.",
+        title: "Favoritismo forte",
+        note: "A leitura do mercado aponta alta chance para o resultado selecionado neste jogo.",
       };
     }
 
     if ((game.probability || 0) >= 0.52) {
       return {
         tone: "watch",
-        title: "Observacao ativa",
-        note: "O jogo esta competitivo para monitorar, mas ainda sem dominancia tao clara.",
+        title: "Jogo monitoravel",
+        note: "Existe um lado ligeiramente favorito, mas ainda com equilibrio relevante no confronto.",
       };
     }
 
     return {
       tone: "bad",
-      title: "Sem valor agora",
-      note: "O mercado esta mais forte que a leitura de pressao atual.",
+      title: "Leitura instavel",
+      note: "O mercado nao mostra um favoritismo tao claro neste momento.",
     };
   }
 
   if ((game.probability || 0) >= 0.62) {
     return {
       tone: "good",
-      title: "Back casa",
-      note: "Pre-jogo com favoritismo alto da casa e leitura de mercado consistente.",
+      title: "Resultado forte",
+      note: "Pre-jogo com uma probabilidade alta para o desfecho destacado pelo radar.",
     };
   }
 
   if ((game.probability || 0) >= 0.5) {
     return {
       tone: "watch",
-      title: "Casa favorita",
-      note: "O mercado ve favoritismo da casa, mas ainda sem edge claro.",
+      title: "Favoritismo moderado",
+      note: "O mercado ve uma leve frente para esse resultado, mas sem dominancia total.",
     };
   }
 
   return {
     tone: "bad",
-    title: "Sem valor pre-jogo",
-    note: "As cotacoes atuais nao estao entregando vantagem estatistica.",
+    title: "Jogo equilibrado",
+    note: "As probabilidades estao mais espalhadas e nao formam uma lideranca forte.",
   };
 };
 
@@ -646,7 +646,7 @@ export default function App() {
         <div className="header-copy">
           <span className="badge">{badgeLabel}</span>
           <h1>Bubles Live Radar</h1>
-          <p>Radar com SportMonks, bolhas por probabilidade e leitura mais forte em destaque.</p>
+          <p>Radar com The Odds API, bolhas por probabilidade e leitura mais forte em destaque.</p>
         </div>
 
         <div className="status-panel">
@@ -721,8 +721,8 @@ export default function App() {
                   <strong>{formatChance(bubble.probability)}</strong>
                   <span>
                     {bubble.isLive
-                      ? `${formatClock(bubble)} | ${bubble.scoreLine}`
-                      : `Odd ${formatOdd(bubble.oddHome)}`}
+                      ? `${bubble.pickCode} | ${formatClock(bubble)} | ${bubble.scoreLine}`
+                      : `${bubble.pickCode} | Odd ${formatOdd(bubble.oddHome)}`}
                   </span>
                 </button>
               ))}
@@ -747,7 +747,7 @@ export default function App() {
                     <div className="top-copy">
                       <strong>{game.game}</strong>
                       <span>
-                        {game.league} | {game.scoreLine} | {formatClock(game)} | Chance {formatChance(game.probability)}
+                        {game.league} | {game.pickLabel} | {game.scoreLine} | {formatClock(game)} | Chance {formatChance(game.probability)}
                       </span>
                     </div>
                     <div className="top-ev">{formatChance(game.probability)}</div>
@@ -772,6 +772,10 @@ export default function App() {
                   <article>
                     <span>Status</span>
                     <strong>{formatClock(selectedGame)}</strong>
+                  </article>
+                  <article>
+                    <span>Leitura</span>
+                    <strong>{selectedGame.pickCode} - {selectedGame.pickLabel}</strong>
                   </article>
                   <article>
                     <span>Chance</span>
