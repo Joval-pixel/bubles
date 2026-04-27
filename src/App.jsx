@@ -2,10 +2,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-const formatEv = (value) => `${value > 0 ? "+" : ""}${value.toFixed(2).replace(".", ",")}`;
+const formatEv = (value) => {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "--";
+  }
+
+  return `${value > 0 ? "+" : ""}${value.toFixed(2).replace(".", ",")}`;
+};
 const formatMinute = (value) => `${Math.max(0, Math.round(value))}'`;
-const formatOdd = (value) => value.toFixed(2).replace(".", ",");
-const formatPercent = (value) => `${(value * 100).toFixed(1).replace(".", ",")}%`;
+const formatOdd = (value) =>
+  value && Number.isFinite(value) && value > 0 ? value.toFixed(2).replace(".", ",") : "--";
+const formatPercent = (value) => `${((value || 0) * 100).toFixed(1).replace(".", ",")}%`;
 const formatClock = (game) => (game?.isLive ? formatMinute(game.minute) : "PRE");
 const formatKickoff = (value) =>
   value
@@ -16,6 +23,7 @@ const formatKickoff = (value) =>
         minute: "2-digit",
       })
     : "-";
+const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
 
 const getDisplaySize = (size, scaleMode) => {
   if (scaleMode === "compact") {
@@ -34,7 +42,7 @@ const getFilterLabel = (statusFilter, rangeFilter) => {
     all: "todos os jogos",
     live: "somente ao vivo",
     upcoming: "somente pre-jogo",
-    positive: "somente EV positivo",
+    strong: "probabilidade 60%+",
   };
 
   const rangeMap = {
@@ -49,12 +57,12 @@ const getFilterLabel = (statusFilter, rangeFilter) => {
 
 const getSortLabel = (sortMode) => {
   const labelMap = {
-    ev: "ordenado por EV",
+    probability: "ordenado por probabilidade",
     odd: "ordenado por odds",
     kickoff: "ordenado por horario",
   };
 
-  return labelMap[sortMode] ?? "ordenado por EV";
+  return labelMap[sortMode] ?? "ordenado por probabilidade";
 };
 
 const getSignal = (game) => {
@@ -67,19 +75,19 @@ const getSignal = (game) => {
   }
 
   if (game.isLive) {
-    if (game.ev >= 0.12) {
+    if ((game.probability || 0) >= 0.68) {
       return {
         tone: "good",
         title: "Pressao favoravel",
-        note: "Jogo ao vivo com leitura positiva para buscar entrada na casa.",
+        note: "Leitura live forte. A pressao do jogo esta sustentando uma probabilidade alta para a casa.",
       };
     }
 
-    if (game.ev >= 0) {
+    if ((game.probability || 0) >= 0.52) {
       return {
         tone: "watch",
         title: "Observacao ativa",
-        note: "Existe algum valor, mas o edge ainda e curto para agressividade total.",
+        note: "O jogo esta competitivo para monitorar, mas ainda sem dominancia tao clara.",
       };
     }
 
@@ -90,15 +98,15 @@ const getSignal = (game) => {
     };
   }
 
-  if (game.ev >= 0.08) {
+  if ((game.probability || 0) >= 0.62) {
     return {
       tone: "good",
       title: "Back casa",
-      note: "A odd da casa esta acima da odd justa calculada pelo consenso.",
+      note: "Pre-jogo com favoritismo alto da casa e leitura de mercado consistente.",
     };
   }
 
-  if (game.probability >= 0.5) {
+  if ((game.probability || 0) >= 0.5) {
     return {
       tone: "watch",
       title: "Casa favorita",
@@ -134,12 +142,12 @@ const getLayoutPosition = (index, total, bounds, size) => {
   };
 };
 
-const getTier = (ev) => {
-  if (ev >= 0.18) {
+const getTier = (probability) => {
+  if (probability >= 0.66) {
     return "high";
   }
 
-  if (ev >= 0) {
+  if (probability >= 0.48) {
     return "medium";
   }
 
@@ -147,13 +155,14 @@ const getTier = (ev) => {
 };
 
 const createBubble = (game, existing, bounds, index) => {
-  const size = clamp(118 + Math.max(game.ev, 0) * 240, 118, 270);
+  const bubbleStrength = clamp(game.bubbleValue ?? game.probability ?? 0, 0.08, 0.92);
+  const size = clamp(86 + bubbleStrength * 300 + (game.isLive ? 16 : 0), 86, 336);
   const safeWidth = Math.max(bounds.width || 0, size + 40);
   const safeHeight = Math.max(bounds.height || 0, size + 40);
 
   return {
     ...game,
-    tier: getTier(game.ev),
+    tier: getTier(bubbleStrength),
     size,
     radius: size / 2,
     x: existing?.x ?? Math.random() * Math.max(40, safeWidth - size - 40),
@@ -236,7 +245,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [rangeFilter, setRangeFilter] = useState("all");
-  const [sortMode, setSortMode] = useState("ev");
+  const [sortMode, setSortMode] = useState("probability");
   const [bubbleScale, setBubbleScale] = useState("smart");
 
   useEffect(() => {
@@ -359,14 +368,26 @@ export default function App() {
       items = items.filter((item) => item.isLive);
     } else if (statusFilter === "upcoming") {
       items = items.filter((item) => !item.isLive);
-    } else if (statusFilter === "positive") {
-      items = items.filter((item) => item.ev > 0);
+    } else if (statusFilter === "strong") {
+      items = items.filter((item) => (item.probability || 0) >= 0.6);
     }
 
     if (rangeFilter === "top5") {
-      items = [...items].sort((left, right) => right.ev - left.ev).slice(0, 5);
+      items = [...items]
+        .sort(
+          (left, right) =>
+            (right.bubbleValue ?? right.probability ?? 0) -
+            (left.bubbleValue ?? left.probability ?? 0)
+        )
+        .slice(0, 5);
     } else if (rangeFilter === "top10") {
-      items = [...items].sort((left, right) => right.ev - left.ev).slice(0, 10);
+      items = [...items]
+        .sort(
+          (left, right) =>
+            (right.bubbleValue ?? right.probability ?? 0) -
+            (left.bubbleValue ?? left.probability ?? 0)
+        )
+        .slice(0, 10);
     } else if (rangeFilter === "today") {
       const today = new Date().toLocaleDateString("pt-BR");
       items = items.filter((item) => {
@@ -378,7 +399,13 @@ export default function App() {
       });
     }
 
-    if (sortMode === "odd") {
+    if (sortMode === "probability") {
+      items.sort(
+        (left, right) =>
+          (right.bubbleValue ?? right.probability ?? 0) -
+          (left.bubbleValue ?? left.probability ?? 0)
+      );
+    } else if (sortMode === "odd") {
       items.sort((left, right) => right.oddHome - left.oddHome);
     } else if (sortMode === "kickoff") {
       items.sort(
@@ -386,7 +413,7 @@ export default function App() {
           new Date(left.commenceTime || 0).getTime() - new Date(right.commenceTime || 0).getTime()
       );
     } else {
-      items.sort((left, right) => right.ev - left.ev);
+      items.sort((left, right) => (right.ev ?? -999) - (left.ev ?? -999));
     }
 
     return items;
@@ -442,7 +469,14 @@ export default function App() {
   }, [bubbleScale, rangeFilter, searchTerm, sortMode, statusFilter, updatedAt, bubbles.length]);
 
   const topGames = useMemo(
-    () => [...filteredBubbles].sort((left, right) => right.ev - left.ev).slice(0, 5),
+    () =>
+      [...filteredBubbles]
+        .sort(
+          (left, right) =>
+            (right.bubbleValue ?? right.probability ?? 0) -
+            (left.bubbleValue ?? left.probability ?? 0)
+        )
+        .slice(0, 5),
     [filteredBubbles]
   );
 
@@ -455,14 +489,14 @@ export default function App() {
 
   const liveCount = bubbles.filter((item) => item.isLive).length;
   const upcomingCount = bubbles.filter((item) => !item.isLive).length;
-  const positiveCount = bubbles.filter((item) => item.ev > 0).length;
+  const strongCount = bubbles.filter((item) => (item.probability || 0) >= 0.6).length;
   const hasAnyGames = bubbles.length > 0;
   const emptyMessage = hasAnyGames ? "Sem jogos para este filtro" : "Sem jogos ao vivo";
   const hasLiveGames = filteredBubbles.some((item) => item.isLive);
   const badgeLabel = hasLiveGames ? "Ao vivo" : filteredBubbles.length ? "Proximos" : "Ao vivo";
   const headlineText = hasLiveGames
-    ? "Jogos ao vivo com cotacoes e EV"
-    : "Proximos jogos com cotacoes e EV";
+    ? "Radar ao vivo por probabilidade"
+    : "Pre-jogo por probabilidade";
   const filterLabel = getFilterLabel(statusFilter, rangeFilter);
   const sortLabel = getSortLabel(sortMode);
   const selectedSignal = getSignal(selectedGame);
@@ -512,10 +546,10 @@ export default function App() {
           </button>
           <button
             type="button"
-            className={statusFilter === "positive" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setStatusFilter("positive")}
+            className={statusFilter === "strong" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setStatusFilter("strong")}
           >
-            EV+ {positiveCount}
+            60%+ {strongCount}
           </button>
         </div>
 
@@ -553,10 +587,10 @@ export default function App() {
         <div className="control-cluster">
           <button
             type="button"
-            className={sortMode === "ev" ? "chip-button is-neutral is-active" : "chip-button is-neutral"}
-            onClick={() => setSortMode("ev")}
+            className={sortMode === "probability" ? "chip-button is-neutral is-active" : "chip-button is-neutral"}
+            onClick={() => setSortMode("probability")}
           >
-            EV
+            Chance
           </button>
           <button
             type="button"
@@ -612,13 +646,13 @@ export default function App() {
         <div className="header-copy">
           <span className="badge">{badgeLabel}</span>
           <h1>Bubles Live Radar</h1>
-          <p>Radar com SportMonks para jogos ao vivo e proximos jogos com cotacoes.</p>
+          <p>Radar com SportMonks, bolhas por probabilidade e leitura mais forte em destaque.</p>
         </div>
 
         <div className="status-panel">
           <span>{refreshing ? "Atualizando..." : "Sincronizado"}</span>
           <strong>
-            {filteredBubbles.length ? `${filteredBubbles.length} jogos com cotacoes` : emptyMessage}
+            {filteredBubbles.length ? `${filteredBubbles.length} jogos no radar` : emptyMessage}
           </strong>
           <small>
             {updatedAt
@@ -634,7 +668,7 @@ export default function App() {
         <section className="board-shell">
           <div className="board-top">
             <div>
-              <span className="section-kicker">Radar de oportunidades</span>
+              <span className="section-kicker">Radar de probabilidades</span>
               <h2>{headlineText}</h2>
             </div>
 
@@ -650,8 +684,8 @@ export default function App() {
 
             {loading ? (
               <div className="empty-state">
-                <h3>Carregando oportunidades...</h3>
-                <p>Buscando livescores, estatisticas e cotacoes.</p>
+                <h3>Carregando radar...</h3>
+                <p>Buscando livescores, probabilidades e cotacoes.</p>
               </div>
             ) : null}
 
@@ -684,8 +718,12 @@ export default function App() {
                   onClick={() => setSelectedId(bubble.id)}
                 >
                   <small className="bubble-game">{bubble.game}</small>
-                  <strong>{formatClock(bubble)}</strong>
-                  <span>EV {formatEv(bubble.ev)}</span>
+                  <strong>{formatChance(bubble.probability)}</strong>
+                  <span>
+                    {bubble.isLive
+                      ? `${formatClock(bubble)} | ${bubble.scoreLine}`
+                      : `Odd ${formatOdd(bubble.oddHome)}`}
+                  </span>
                 </button>
               ))}
           </div>
@@ -693,8 +731,8 @@ export default function App() {
 
         <aside className="sidebar">
           <section className="sidebar-card">
-            <span className="section-kicker">TOP 5 oportunidades</span>
-            <h2>Melhores entradas</h2>
+            <span className="section-kicker">TOP 5 probabilidades</span>
+            <h2>Jogos mais fortes</h2>
 
             {topGames.length ? (
               <div className="top-list">
@@ -709,10 +747,10 @@ export default function App() {
                     <div className="top-copy">
                       <strong>{game.game}</strong>
                       <span>
-                        {game.league} | {game.scoreLine} | {formatClock(game)}
+                        {game.league} | {game.scoreLine} | {formatClock(game)} | Chance {formatChance(game.probability)}
                       </span>
                     </div>
-                    <div className="top-ev">EV {formatEv(game.ev)}</div>
+                    <div className="top-ev">{formatChance(game.probability)}</div>
                   </button>
                 ))}
               </div>
@@ -736,8 +774,8 @@ export default function App() {
                     <strong>{formatClock(selectedGame)}</strong>
                   </article>
                   <article>
-                    <span>EV</span>
-                    <strong>{formatEv(selectedGame.ev)}</strong>
+                    <span>Chance</span>
+                    <strong>{formatChance(selectedGame.probability)}</strong>
                   </article>
                   <article>
                     <span>Melhor odd</span>
@@ -753,12 +791,16 @@ export default function App() {
 
                 <div className="stat-grid">
                   <article>
+                    <span>EV</span>
+                    <strong>{formatEv(selectedGame.ev)}</strong>
+                  </article>
+                  <article>
                     <span>Casa</span>
                     <strong>{selectedGame.bestBookmaker}</strong>
                   </article>
                   <article>
-                    <span>Prob. consenso</span>
-                    <strong>{formatPercent(selectedGame.probability)}</strong>
+                    <span>Prob. mercado</span>
+                    <strong>{formatPercent(selectedGame.marketProbability || selectedGame.probability)}</strong>
                   </article>
                   <article>
                     <span>Odd justa</span>
