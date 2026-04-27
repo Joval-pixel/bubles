@@ -399,7 +399,7 @@ export default function App() {
                     <strong>{formatKickoff(selectedGame.commenceTime)}</strong>
                   </article>
                   <article>
-              <span>Fonte</span>
+                    <span>Fonte</span>
                     <strong>{selectedGame.source}</strong>
                   </article>
                 </div>
