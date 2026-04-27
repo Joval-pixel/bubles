@@ -243,7 +243,7 @@ export default function App() {
         <div className="header-copy">
           <span className="badge">{badgeLabel}</span>
           <h1>Bubles Live Radar</h1>
-          <p>Radar com The Odds API para jogos ao vivo e proximos jogos com cotacoes.</p>
+          <p>Radar com API-Football para jogos ao vivo e proximos jogos com odds.</p>
         </div>
 
         <div className="status-panel">
@@ -399,7 +399,7 @@ export default function App() {
                     <strong>{formatKickoff(selectedGame.commenceTime)}</strong>
                   </article>
                   <article>
-                    <span>Fonte</span>
+              <span>Fonte</span>
                     <strong>{selectedGame.source}</strong>
                   </article>
                 </div>
