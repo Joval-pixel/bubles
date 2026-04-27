@@ -116,6 +116,11 @@ export default function App() {
   const [updatedAt, setUpdatedAt] = useState("");
   const [debugMessage, setDebugMessage] = useState("");
   const [serverMessage, setServerMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [rangeFilter, setRangeFilter] = useState("all");
+  const [sortMode, setSortMode] = useState("ev");
+  const [bubbleScale, setBubbleScale] = useState("smart");
 
   useEffect(() => {
     const syncBounds = () => {
@@ -221,15 +226,93 @@ export default function App() {
     };
   }, [bubbles.length]);
 
+  const filteredBubbles = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    let items = [...bubbles];
+
+    if (query) {
+      items = items.filter((item) => {
+        const haystack = `${item.game} ${item.league} ${item.bestBookmaker}`.toLowerCase();
+        return haystack.includes(query);
+      });
+    }
+
+    if (statusFilter === "live") {
+      items = items.filter((item) => item.isLive);
+    } else if (statusFilter === "upcoming") {
+      items = items.filter((item) => !item.isLive);
+    } else if (statusFilter === "positive") {
+      items = items.filter((item) => item.ev > 0);
+    }
+
+    if (rangeFilter === "top5") {
+      items = [...items].sort((left, right) => right.ev - left.ev).slice(0, 5);
+    } else if (rangeFilter === "top10") {
+      items = [...items].sort((left, right) => right.ev - left.ev).slice(0, 10);
+    } else if (rangeFilter === "today") {
+      const today = new Date().toLocaleDateString("pt-BR");
+      items = items.filter((item) => {
+        if (!item.commenceTime) {
+          return false;
+        }
+
+        return new Date(item.commenceTime).toLocaleDateString("pt-BR") === today;
+      });
+    }
+
+    if (sortMode === "odd") {
+      items.sort((left, right) => right.oddHome - left.oddHome);
+    } else if (sortMode === "kickoff") {
+      items.sort(
+        (left, right) =>
+          new Date(left.commenceTime || 0).getTime() - new Date(right.commenceTime || 0).getTime()
+      );
+    } else {
+      items.sort((left, right) => right.ev - left.ev);
+    }
+
+    return items;
+  }, [bubbles, rangeFilter, searchTerm, sortMode, statusFilter]);
+
+  const renderedBubbles = useMemo(() => {
+    return filteredBubbles.map((item) => {
+      if (bubbleScale === "compact") {
+        return {
+          ...item,
+          size: item.size * 0.82,
+          radius: (item.size * 0.82) / 2,
+        };
+      }
+
+      if (bubbleScale === "boost") {
+        const boosted = clamp(item.size * 1.15, 128, 320);
+        return {
+          ...item,
+          size: boosted,
+          radius: boosted / 2,
+        };
+      }
+
+      return item;
+    });
+  }, [bubbleScale, filteredBubbles]);
+
   const topGames = useMemo(
-    () => [...bubbles].sort((left, right) => right.ev - left.ev).slice(0, 5),
-    [bubbles]
+    () => [...filteredBubbles].sort((left, right) => right.ev - left.ev).slice(0, 5),
+    [filteredBubbles]
   );
 
-  const selectedGame = bubbles.find((item) => item.id === selectedId) ?? topGames[0] ?? null;
+  const selectedGame =
+    renderedBubbles.find((item) => item.id === selectedId) ??
+    topGames.find((item) => item.id === selectedId) ??
+    topGames[0] ??
+    renderedBubbles[0] ??
+    null;
+
   const emptyMessage = "Sem jogos ao vivo";
-  const hasLiveGames = bubbles.some((item) => item.isLive);
-  const badgeLabel = hasLiveGames ? "Ao vivo" : bubbles.length ? "Proximos" : "Ao vivo";
+  const hasLiveGames = filteredBubbles.some((item) => item.isLive);
+  const badgeLabel = hasLiveGames ? "Ao vivo" : filteredBubbles.length ? "Proximos" : "Ao vivo";
   const headlineText = hasLiveGames
     ? "Jogos ao vivo com cotacoes e EV"
     : "Proximos jogos com cotacoes e EV";
@@ -238,6 +321,136 @@ export default function App() {
     <div className="app-shell">
       <div className="glow glow-left" />
       <div className="glow glow-right" />
+
+      <section className="control-deck">
+        <div className="control-brand">
+          <div className="brand-dot" />
+          <strong>BUBLES RADAR</strong>
+        </div>
+
+        <div className="control-search">
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Pesquisar jogo, liga ou casa"
+            aria-label="Pesquisar jogos"
+          />
+        </div>
+
+        <div className="control-cluster">
+          <button
+            type="button"
+            className={statusFilter === "all" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setStatusFilter("all")}
+          >
+            Todos
+          </button>
+          <button
+            type="button"
+            className={statusFilter === "live" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setStatusFilter("live")}
+          >
+            Ao vivo
+          </button>
+          <button
+            type="button"
+            className={statusFilter === "upcoming" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setStatusFilter("upcoming")}
+          >
+            Pre-jogo
+          </button>
+          <button
+            type="button"
+            className={statusFilter === "positive" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setStatusFilter("positive")}
+          >
+            EV+
+          </button>
+        </div>
+
+        <div className="control-cluster">
+          <button
+            type="button"
+            className={rangeFilter === "all" ? "chip-button is-alt is-active" : "chip-button is-alt"}
+            onClick={() => setRangeFilter("all")}
+          >
+            Tudo
+          </button>
+          <button
+            type="button"
+            className={rangeFilter === "today" ? "chip-button is-alt is-active" : "chip-button is-alt"}
+            onClick={() => setRangeFilter("today")}
+          >
+            Hoje
+          </button>
+          <button
+            type="button"
+            className={rangeFilter === "top5" ? "chip-button is-alt is-active" : "chip-button is-alt"}
+            onClick={() => setRangeFilter("top5")}
+          >
+            Top 5
+          </button>
+          <button
+            type="button"
+            className={rangeFilter === "top10" ? "chip-button is-alt is-active" : "chip-button is-alt"}
+            onClick={() => setRangeFilter("top10")}
+          >
+            Top 10
+          </button>
+        </div>
+
+        <div className="control-cluster">
+          <button
+            type="button"
+            className={sortMode === "ev" ? "chip-button is-neutral is-active" : "chip-button is-neutral"}
+            onClick={() => setSortMode("ev")}
+          >
+            EV
+          </button>
+          <button
+            type="button"
+            className={sortMode === "odd" ? "chip-button is-neutral is-active" : "chip-button is-neutral"}
+            onClick={() => setSortMode("odd")}
+          >
+            Odds
+          </button>
+          <button
+            type="button"
+            className={sortMode === "kickoff" ? "chip-button is-neutral is-active" : "chip-button is-neutral"}
+            onClick={() => setSortMode("kickoff")}
+          >
+            Hora
+          </button>
+        </div>
+
+        <div className="control-cluster">
+          <button
+            type="button"
+            className={bubbleScale === "compact" ? "icon-button is-active" : "icon-button"}
+            onClick={() => setBubbleScale("compact")}
+            aria-label="Bolhas compactas"
+          >
+            S
+          </button>
+          <button
+            type="button"
+            className={bubbleScale === "smart" ? "icon-button is-active" : "icon-button"}
+            onClick={() => setBubbleScale("smart")}
+            aria-label="Bolhas normais"
+          >
+            M
+          </button>
+          <button
+            type="button"
+            className={bubbleScale === "boost" ? "icon-button is-active" : "icon-button"}
+            onClick={() => setBubbleScale("boost")}
+            aria-label="Bolhas ampliadas"
+          >
+            L
+          </button>
+        </div>
+      </section>
 
       <header className="header">
         <div className="header-copy">
@@ -248,7 +461,9 @@ export default function App() {
 
         <div className="status-panel">
           <span>{refreshing ? "Atualizando..." : "Sincronizado"}</span>
-          <strong>{bubbles.length ? `${bubbles.length} jogos com cotacoes` : emptyMessage}</strong>
+          <strong>
+            {filteredBubbles.length ? `${filteredBubbles.length} jogos com cotacoes` : emptyMessage}
+          </strong>
           <small>
             {updatedAt
               ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
@@ -283,11 +498,11 @@ export default function App() {
               </div>
             ) : null}
 
-            {!loading && !bubbles.length ? (
+            {!loading && !renderedBubbles.length ? (
               <div className="empty-state">
                 <h3>{emptyMessage}</h3>
                 <p>
-                  Se nao houver jogos ao vivo nas ligas configuradas ou a API limitar as
+                  Se nao houver jogos compativeis com os filtros atuais ou a API limitar as
                   consultas, o radar mostra esta mensagem.
                 </p>
                 {debugMessage ? <small className="debug-note">{debugMessage}</small> : null}
@@ -295,7 +510,7 @@ export default function App() {
             ) : null}
 
             {!loading &&
-              bubbles.map((bubble) => (
+              renderedBubbles.map((bubble) => (
                 <button
                   key={bubble.id}
                   type="button"
