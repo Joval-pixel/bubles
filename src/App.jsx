@@ -17,6 +17,123 @@ const formatKickoff = (value) =>
       })
     : "-";
 
+const getDisplaySize = (size, scaleMode) => {
+  if (scaleMode === "compact") {
+    return size * 0.82;
+  }
+
+  if (scaleMode === "boost") {
+    return clamp(size * 1.15, 128, 320);
+  }
+
+  return size;
+};
+
+const getFilterLabel = (statusFilter, rangeFilter) => {
+  const statusMap = {
+    all: "todos os jogos",
+    live: "somente ao vivo",
+    upcoming: "somente pre-jogo",
+    positive: "somente EV positivo",
+  };
+
+  const rangeMap = {
+    all: "sem limite",
+    today: "somente hoje",
+    top5: "top 5",
+    top10: "top 10",
+  };
+
+  return `${statusMap[statusFilter] ?? "todos os jogos"} | ${rangeMap[rangeFilter] ?? "sem limite"}`;
+};
+
+const getSortLabel = (sortMode) => {
+  const labelMap = {
+    ev: "ordenado por EV",
+    odd: "ordenado por odds",
+    kickoff: "ordenado por horario",
+  };
+
+  return labelMap[sortMode] ?? "ordenado por EV";
+};
+
+const getSignal = (game) => {
+  if (!game) {
+    return {
+      tone: "neutral",
+      title: "Sem sinal",
+      note: "Selecione uma bolha para ver a leitura do mercado.",
+    };
+  }
+
+  if (game.isLive) {
+    if (game.ev >= 0.12) {
+      return {
+        tone: "good",
+        title: "Pressao favoravel",
+        note: "Jogo ao vivo com leitura positiva para buscar entrada na casa.",
+      };
+    }
+
+    if (game.ev >= 0) {
+      return {
+        tone: "watch",
+        title: "Observacao ativa",
+        note: "Existe algum valor, mas o edge ainda e curto para agressividade total.",
+      };
+    }
+
+    return {
+      tone: "bad",
+      title: "Sem valor agora",
+      note: "O mercado esta mais forte que a leitura de pressao atual.",
+    };
+  }
+
+  if (game.ev >= 0.08) {
+    return {
+      tone: "good",
+      title: "Back casa",
+      note: "A odd da casa esta acima da odd justa calculada pelo consenso.",
+    };
+  }
+
+  if (game.probability >= 0.5) {
+    return {
+      tone: "watch",
+      title: "Casa favorita",
+      note: "O mercado ve favoritismo da casa, mas ainda sem edge claro.",
+    };
+  }
+
+  return {
+    tone: "bad",
+    title: "Sem valor pre-jogo",
+    note: "As cotacoes atuais nao estao entregando vantagem estatistica.",
+  };
+};
+
+const getLayoutPosition = (index, total, bounds, size) => {
+  const width = Math.max(bounds.width || 0, 900);
+  const height = Math.max(bounds.height || 0, 620);
+  const columns = Math.max(1, Math.min(4, Math.floor(width / 240)));
+  const rows = Math.max(1, Math.ceil(total / columns));
+  const topPadding = 42;
+  const bottomPadding = 28;
+  const usableHeight = Math.max(220, height - topPadding - bottomPadding);
+  const cellWidth = width / columns;
+  const cellHeight = usableHeight / rows;
+  const column = index % columns;
+  const row = Math.floor(index / columns);
+  const x = column * cellWidth + (cellWidth - size) / 2;
+  const y = topPadding + row * cellHeight + (cellHeight - size) / 2;
+
+  return {
+    x: clamp(x, 0, width - size),
+    y: clamp(y, 0, height - size),
+  };
+};
+
 const getTier = (ev) => {
   if (ev >= 0.18) {
     return "high";
@@ -277,26 +394,52 @@ export default function App() {
 
   const renderedBubbles = useMemo(() => {
     return filteredBubbles.map((item) => {
-      if (bubbleScale === "compact") {
-        return {
-          ...item,
-          size: item.size * 0.82,
-          radius: (item.size * 0.82) / 2,
-        };
-      }
-
-      if (bubbleScale === "boost") {
-        const boosted = clamp(item.size * 1.15, 128, 320);
-        return {
-          ...item,
-          size: boosted,
-          radius: boosted / 2,
-        };
-      }
-
       return item;
+    }).map((item) => {
+      const displaySize = getDisplaySize(item.size, bubbleScale);
+
+      return {
+        ...item,
+        size: displaySize,
+        radius: displaySize / 2,
+      };
     });
   }, [bubbleScale, filteredBubbles]);
+
+  useEffect(() => {
+    if (!filteredBubbles.length) {
+      return;
+    }
+
+    const visibleIds = filteredBubbles.map((item) => item.id);
+    const nextSizes = new Map(
+      filteredBubbles.map((item) => [item.id, getDisplaySize(item.size, bubbleScale)])
+    );
+
+    setBubbles((current) =>
+      current.map((item) => {
+        const visibleIndex = visibleIds.indexOf(item.id);
+
+        if (visibleIndex === -1) {
+          return item;
+        }
+
+        const nextSize = nextSizes.get(item.id) ?? item.size;
+        const nextPosition = getLayoutPosition(
+          visibleIndex,
+          visibleIds.length,
+          boundsRef.current,
+          nextSize
+        );
+
+        return {
+          ...item,
+          x: nextPosition.x,
+          y: nextPosition.y,
+        };
+      })
+    );
+  }, [bubbleScale, rangeFilter, searchTerm, sortMode, statusFilter, updatedAt, bubbles.length]);
 
   const topGames = useMemo(
     () => [...filteredBubbles].sort((left, right) => right.ev - left.ev).slice(0, 5),
@@ -310,12 +453,19 @@ export default function App() {
     renderedBubbles[0] ??
     null;
 
-  const emptyMessage = "Sem jogos ao vivo";
+  const liveCount = bubbles.filter((item) => item.isLive).length;
+  const upcomingCount = bubbles.filter((item) => !item.isLive).length;
+  const positiveCount = bubbles.filter((item) => item.ev > 0).length;
+  const hasAnyGames = bubbles.length > 0;
+  const emptyMessage = hasAnyGames ? "Sem jogos para este filtro" : "Sem jogos ao vivo";
   const hasLiveGames = filteredBubbles.some((item) => item.isLive);
   const badgeLabel = hasLiveGames ? "Ao vivo" : filteredBubbles.length ? "Proximos" : "Ao vivo";
   const headlineText = hasLiveGames
     ? "Jogos ao vivo com cotacoes e EV"
     : "Proximos jogos com cotacoes e EV";
+  const filterLabel = getFilterLabel(statusFilter, rangeFilter);
+  const sortLabel = getSortLabel(sortMode);
+  const selectedSignal = getSignal(selectedGame);
 
   return (
     <div className="app-shell">
@@ -344,28 +494,28 @@ export default function App() {
             className={statusFilter === "all" ? "chip-button is-active" : "chip-button"}
             onClick={() => setStatusFilter("all")}
           >
-            Todos
+            Todos {bubbles.length}
           </button>
           <button
             type="button"
             className={statusFilter === "live" ? "chip-button is-active" : "chip-button"}
             onClick={() => setStatusFilter("live")}
           >
-            Ao vivo
+            Ao vivo {liveCount}
           </button>
           <button
             type="button"
             className={statusFilter === "upcoming" ? "chip-button is-active" : "chip-button"}
             onClick={() => setStatusFilter("upcoming")}
           >
-            Pre-jogo
+            Pre {upcomingCount}
           </button>
           <button
             type="button"
             className={statusFilter === "positive" ? "chip-button is-active" : "chip-button"}
             onClick={() => setStatusFilter("positive")}
           >
-            EV+
+            EV+ {positiveCount}
           </button>
         </div>
 
@@ -452,6 +602,12 @@ export default function App() {
         </div>
       </section>
 
+      <div className="toolbar-summary">
+        <span>{filterLabel}</span>
+        <span>{sortLabel}</span>
+        <span>{filteredBubbles.length} resultados visiveis</span>
+      </div>
+
       <header className="header">
         <div className="header-copy">
           <span className="badge">{badgeLabel}</span>
@@ -470,6 +626,7 @@ export default function App() {
               : emptyMessage}
           </small>
           {serverMessage && serverMessage !== "ok" ? <small>{serverMessage}</small> : null}
+          {debugMessage ? <small>{debugMessage}</small> : null}
         </div>
       </header>
 
@@ -586,6 +743,12 @@ export default function App() {
                     <span>Melhor odd</span>
                     <strong>{formatOdd(selectedGame.oddHome)}</strong>
                   </article>
+                </div>
+
+                <div className={`signal-card is-${selectedSignal.tone}`}>
+                  <span className="signal-badge">Previsao</span>
+                  <strong>{selectedSignal.title}</strong>
+                  <p>{selectedSignal.note}</p>
                 </div>
 
                 <div className="stat-grid">
