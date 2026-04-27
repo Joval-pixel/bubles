@@ -23,6 +23,17 @@ const STAT_TYPES = {
   possession: 45,
 };
 
+const LIVE_STATE_CODES = new Set([
+  "INPLAY_1ST_HALF",
+  "INPLAY_2ND_HALF",
+  "HT",
+  "BREAK",
+  "ET",
+  "INPLAY_ET",
+  "PEN_LIVE",
+  "LIVE",
+]);
+
 const normalizeText = (value) =>
   String(value ?? "")
     .normalize("NFD")
@@ -42,6 +53,8 @@ const toNumber = (value) => {
   const parsed = parseFloat(String(value).replace("%", "").replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const normalizeStateCode = (value) => String(value ?? "").trim().toUpperCase();
 
 const average = (values) => {
   if (!values.length) {
@@ -154,6 +167,38 @@ const extractHomeStats = (fixture) => ({
   dangerous: getStatisticValue(fixture?.statistics, "home", STAT_TYPES.dangerous),
   possession: getStatisticValue(fixture?.statistics, "home", STAT_TYPES.possession),
 });
+
+const getFixtureStateCode = (fixture) =>
+  normalizeStateCode(
+    fixture?.state?.developer_name ||
+      fixture?.state?.state ||
+      fixture?.state?.short_name ||
+      fixture?.state?.name
+  );
+
+const isFixtureLiveByState = (fixture) => {
+  const stateCode = getFixtureStateCode(fixture);
+  const minute = toNumber(fixture?.time?.minute);
+
+  return LIVE_STATE_CODES.has(stateCode) || minute > 0;
+};
+
+const isFixtureStartingSoon = (fixture) => {
+  const stateCode = getFixtureStateCode(fixture);
+
+  if (stateCode !== "NS") {
+    return false;
+  }
+
+  const kickoff = new Date(fixture?.starting_at || fixture?.starting_at_timestamp * 1000 || 0).getTime();
+
+  if (!kickoff) {
+    return false;
+  }
+
+  const diffMinutes = (kickoff - Date.now()) / 60000;
+  return diffMinutes >= -15 && diffMinutes <= 30;
+};
 
 const groupOddsByBookmaker = (oddsRows, homeTeamName) => {
   const filteredRows = (oddsRows ?? []).filter(
@@ -436,6 +481,57 @@ const fetchLiveGames = async () => {
   };
 };
 
+const fetchCurrentWindowGames = async () => {
+  const liveScoreFixtures = await fetchFromSportMonks("/livescores", {
+    include: "participants;scores;statistics;league;state",
+  });
+
+  const currentWindowFixtures = liveScoreFixtures.filter(
+    (fixture) => isFixtureLiveByState(fixture) || isFixtureStartingSoon(fixture)
+  );
+
+  if (!currentWindowFixtures.length) {
+    return {
+      fixturesCount: 0,
+      games: [],
+    };
+  }
+
+  const oddsResults = await Promise.allSettled(
+    currentWindowFixtures.map(async (fixture) => {
+      const homeParticipant = getParticipantByLocation(fixture?.participants, "home");
+      return await fetchFixtureOddsSummary(
+        fixture.id,
+        homeParticipant?.name ?? "",
+        isFixtureLiveByState(fixture)
+      );
+    })
+  );
+
+  const games = currentWindowFixtures
+    .map((fixture, index) => {
+      const oddsSummary =
+        oddsResults[index]?.status === "fulfilled" ? oddsResults[index].value : null;
+
+      if (isFixtureLiveByState(fixture)) {
+        return buildLiveGame(fixture, oddsSummary);
+      }
+
+      return buildUpcomingGame(fixture, oddsSummary);
+    })
+    .filter(Boolean)
+    .sort(
+      (left, right) =>
+        (right.bubbleValue ?? right.probability ?? 0) -
+        (left.bubbleValue ?? left.probability ?? 0)
+    );
+
+  return {
+    fixturesCount: currentWindowFixtures.length,
+    games,
+  };
+};
+
 const fetchUpcomingGames = async () => {
   const upcomingFixtures = await fetchFromSportMonks(
     `/fixtures/upcoming/markets/${MATCH_WINNER_MARKET_ID}`,
@@ -494,6 +590,18 @@ export async function GET(_request) {
           : liveResult.fixturesCount > liveResult.games.length
             ? "Alguns jogos ao vivo ficaram sem estatisticas suficientes"
             : "",
+      });
+    }
+
+    const currentWindowResult = await fetchCurrentWindowGames();
+
+    if (currentWindowResult.games.length) {
+      return makeJsonResponse({
+        games: currentWindowResult.games,
+        updatedAt: new Date().toISOString(),
+        message: "Sem inplay puro agora; mostrando jogos do momento",
+        debug:
+          "A API nao trouxe fixtures em /livescores/inplay, entao o radar caiu para /livescores com jogos ao vivo ou muito proximos",
       });
     }
 
