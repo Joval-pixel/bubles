@@ -243,7 +243,7 @@ export default function App() {
         <div className="header-copy">
           <span className="badge">{badgeLabel}</span>
           <h1>Bubles Live Radar</h1>
-          <p>Radar com API-Football para jogos ao vivo e proximos jogos com odds.</p>
+          <p>Radar com SportMonks para jogos ao vivo e proximos jogos com cotacoes.</p>
         </div>
 
         <div className="status-panel">
@@ -279,7 +279,7 @@ export default function App() {
             {loading ? (
               <div className="empty-state">
                 <h3>Carregando oportunidades...</h3>
-                <p>Buscando placares ao vivo e odds recentes.</p>
+                <p>Buscando livescores, estatisticas e cotacoes.</p>
               </div>
             ) : null}
 
