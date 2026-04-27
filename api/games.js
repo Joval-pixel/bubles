@@ -3,9 +3,7 @@ export default async function handler(req, res) {
     const API_KEY = process.env.ODDS_API_KEY;
 
     if (!API_KEY) {
-      return res.status(200).json([
-        { id: 1, game: "API KEY NÃO CONFIGURADA", oddHome: 0, ev: 0 }
-      ]);
+      return res.status(200).json([]);
     }
 
     const url = `https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
@@ -13,20 +11,13 @@ export default async function handler(req, res) {
     const response = await fetch(url);
 
     if (!response.ok) {
-      return res.status(200).json([
-        { id: 1, game: "ERRO NA API EXTERNA", oddHome: 0, ev: 0 }
-      ]);
+      return res.status(200).json([]);
     }
 
     const data = await response.json();
 
-    if (!Array.isArray(data)) {
-      return res.status(200).json([]);
-    }
-
     const games = data.map((game, i) => {
       const home = game.home_team;
-      const away = game.away_team;
 
       let bestHome = null;
 
@@ -44,19 +35,15 @@ export default async function handler(req, res) {
 
       return {
         id: i,
-        game: `${home} x ${away}`,
+        game: `${game.home_team} x ${game.away_team}`,
         oddHome: bestHome,
-        ev: Number((bestHome * 0.5 - 1).toFixed(3)), // simplificado só pra não quebrar
+        ev: Number((bestHome * 0.5 - 1).toFixed(3)),
       };
     }).filter(Boolean);
 
     return res.status(200).json(games);
 
   } catch (err) {
-    console.error("ERRO:", err);
-
-    return res.status(200).json([
-      { id: 1, game: "ERRO INTERNO NA API", oddHome: 0, ev: 0 }
-    ]);
+    return res.status(200).json([]);
   }
 }
