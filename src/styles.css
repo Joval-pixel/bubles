@@ -90,6 +90,9 @@ input {
   grid-template-columns: auto minmax(280px, 1fr) repeat(4, auto);
   gap: 10px;
   align-items: center;
+  position: sticky;
+  top: 12px;
+  z-index: 3;
   padding: 12px;
   margin-bottom: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -200,6 +203,22 @@ input {
   align-items: flex-start;
   gap: 1.2rem;
   margin-bottom: 20px;
+}
+
+.toolbar-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: -4px 0 18px;
+}
+
+.toolbar-summary span {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(22, 22, 22, 0.88);
+  color: var(--text-soft);
+  font-size: 0.82rem;
 }
 
 .badge,
@@ -490,6 +509,70 @@ input {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.signal-card {
+  margin-top: 1rem;
+  padding: 1rem 1.05rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(20, 20, 20, 0.92);
+}
+
+.signal-card strong {
+  display: block;
+  margin-top: 0.45rem;
+  font-family: "Sora", sans-serif;
+  font-size: 1.05rem;
+}
+
+.signal-card p {
+  margin: 0.45rem 0 0;
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+
+.signal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.signal-card.is-good {
+  border-color: rgba(79, 242, 140, 0.25);
+  background: linear-gradient(180deg, rgba(13, 91, 50, 0.18), rgba(18, 18, 18, 0.95));
+}
+
+.signal-card.is-good .signal-badge {
+  background: rgba(79, 242, 140, 0.14);
+  color: #9af6bc;
+}
+
+.signal-card.is-watch {
+  border-color: rgba(255, 212, 77, 0.22);
+  background: linear-gradient(180deg, rgba(122, 90, 7, 0.16), rgba(18, 18, 18, 0.95));
+}
+
+.signal-card.is-watch .signal-badge {
+  background: rgba(255, 212, 77, 0.14);
+  color: #ffe07d;
+}
+
+.signal-card.is-bad,
+.signal-card.is-neutral {
+  border-color: rgba(255, 95, 87, 0.2);
+  background: linear-gradient(180deg, rgba(112, 22, 20, 0.15), rgba(18, 18, 18, 0.95));
+}
+
+.signal-card.is-bad .signal-badge,
+.signal-card.is-neutral .signal-badge {
+  background: rgba(255, 95, 87, 0.12);
+  color: #ffb0ab;
+}
+
 .detail-metrics span,
 .stat-grid span {
   display: block;
@@ -556,6 +639,7 @@ input {
   }
 
   .control-deck {
+    top: 8px;
     padding: 10px;
     border-radius: 22px;
   }
