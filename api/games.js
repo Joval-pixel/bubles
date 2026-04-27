@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     const response = await fetch(url);
 
     if (!response.ok) {
-      return res.status(500).json({ error: "Erro ao buscar API externa" });
+      return res.status(500).json({ error: "Erro na API externa" });
     }
 
     const data = await response.json();
@@ -25,9 +25,7 @@ export default async function handler(req, res) {
       game.bookmakers?.forEach(b => {
         b.markets?.forEach(m => {
           m.outcomes?.forEach(o => {
-            if (o.name === home) {
-              odds.push(o.price);
-            }
+            if (o.name === home) odds.push(o.price);
           });
         });
       });
