@@ -420,9 +420,7 @@ export default function App() {
   }, [bubbles, rangeFilter, searchTerm, sortMode, statusFilter]);
 
   const renderedBubbles = useMemo(() => {
-    return filteredBubbles.map((item) => {
-      return item;
-    }).map((item) => {
+    return filteredBubbles.map((item) => item).map((item) => {
       const displaySize = getDisplaySize(item.size, bubbleScale);
 
       return {
