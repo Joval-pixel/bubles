@@ -122,7 +122,12 @@ const mapOutcomeKey = (name, homeTeam, awayTeam) => {
     return "away";
   }
 
-  if (normalizedName === "draw" || normalizedName === "tie" || normalizedName === "empate" || normalizedName === "x") {
+  if (
+    normalizedName === "draw" ||
+    normalizedName === "tie" ||
+    normalizedName === "empate" ||
+    normalizedName === "x"
+  ) {
     return "draw";
   }
 
@@ -287,7 +292,8 @@ const buildGameFromEvent = (event, scoreInfo) => {
     : -1;
 
   const isLiveByTime = elapsedMinutes >= 0 && elapsedMinutes <= LIVE_WINDOW_MINUTES;
-  const isLiveByScore = Boolean(scoreInfo) && scoreInfo.completed === false && (scoreInfo.hasScores || isLiveByTime);
+  const isLiveByScore =
+    Boolean(scoreInfo) && scoreInfo.completed === false && (scoreInfo.hasScores || isLiveByTime);
   const isLive = isLiveByScore || isLiveByTime;
   const minute = isLive ? clamp(elapsedMinutes, 1, 120) : 0;
 
@@ -324,24 +330,34 @@ const buildGameFromEvent = (event, scoreInfo) => {
 };
 
 const fetchAllGames = async () => {
-  const results = await Promise.allSettled(
-    SPORT_KEYS.map(async (sportKey) => {
-      const [oddsEvents, scoreEvents] = await Promise.all([
-        fetchOddsForSport(sportKey),
-        fetchScoresForSport(sportKey),
-      ]);
+  const games = [];
+  const failures = [];
 
+  for (const sportKey of SPORT_KEYS) {
+    try {
+      const oddsEvents = await fetchOddsForSport(sportKey);
+
+      if (!Array.isArray(oddsEvents) || !oddsEvents.length) {
+        continue;
+      }
+
+      const scoreEvents = await fetchScoresForSport(sportKey);
       const scoreMap = buildScoresMap(scoreEvents);
 
-      return (oddsEvents ?? [])
-        .map((event) => buildGameFromEvent(event, scoreMap.get(event?.id)))
-        .filter(Boolean);
-    })
-  );
+      games.push(
+        ...oddsEvents
+          .map((event) => buildGameFromEvent(event, scoreMap.get(event?.id)))
+          .filter(Boolean)
+      );
+    } catch (error) {
+      failures.push(`${sportKey}: ${error?.message || "falha"}`);
+    }
+  }
 
-  return results
-    .filter((result) => result.status === "fulfilled")
-    .flatMap((result) => result.value);
+  return {
+    games,
+    failures,
+  };
 };
 
 const sortGames = (games) =>
@@ -360,21 +376,21 @@ const sortGames = (games) =>
 export async function GET(_request) {
   if (!API_KEY) {
     return makeJsonResponse(
-      makeEmptyPayload(
-        "Sem jogos ao vivo",
-        "ODDS_API_KEY ausente no ambiente do servidor"
-      )
+      makeEmptyPayload("Sem jogos ao vivo", "ODDS_API_KEY ausente no ambiente do servidor")
     );
   }
 
   try {
-    const games = sortGames(await fetchAllGames());
+    const upstream = await fetchAllGames();
+    const games = sortGames(upstream.games);
 
     if (!games.length) {
       return makeJsonResponse(
         makeEmptyPayload(
           "Sem jogos ao vivo",
-          "Nenhum evento retornado pela The Odds API nas ligas configuradas"
+          upstream.failures.length
+            ? `Nenhum evento retornado. Falhas: ${upstream.failures.join(" | ")}`
+            : "Nenhum evento retornado pela The Odds API nas ligas configuradas"
         )
       );
     }
