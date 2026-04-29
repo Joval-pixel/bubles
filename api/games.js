@@ -12,7 +12,7 @@ const NEXT_LIMIT = Math.max(
 
 const UPCOMING_DAYS = Math.max(
   1,
-  Math.min(4, Number.parseInt(process.env.API_FOOTBALL_UPCOMING_DAYS || "3", 10) || 3)
+  Math.min(2, Number.parseInt(process.env.API_FOOTBALL_UPCOMING_DAYS || "1", 10) || 1)
 );
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -23,6 +23,21 @@ const normalizeText = (value) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+
+const IMPORTANT_EXCLUSIONS = [
+  "reserve",
+  "reserves",
+  "u17",
+  "u18",
+  "u19",
+  "u20",
+  "u21",
+  "u23",
+  "youth",
+  "women",
+  "femin",
+  "feminino",
+];
 
 const toNumber = (value) => {
   if (value === null || value === undefined || value === "" || value === "null") {
@@ -56,7 +71,7 @@ const makeJsonResponse = (payload, status = 200) =>
   Response.json(payload, {
     status,
     headers: {
-      "Cache-Control": "s-maxage=120, stale-while-revalidate=240",
+      "Cache-Control": "s-maxage=900, stale-while-revalidate=1800",
     },
   });
 
@@ -67,6 +82,8 @@ const safeJson = async (response) => {
     return { response: [] };
   }
 };
+
+let lastSuccessfulPayload = null;
 
 const fetchFromApi = async (path) => {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -80,7 +97,44 @@ const fetchFromApi = async (path) => {
   }
 
   const payload = await safeJson(response);
+
+  const errors = Object.entries(payload?.errors ?? {}).filter(([, value]) => Boolean(value));
+
+  if (errors.length) {
+    const [type, message] = errors[0];
+    throw new Error(`API_FOOTBALL_${String(type).toUpperCase()}: ${message}`);
+  }
+
   return Array.isArray(payload?.response) ? payload.response : [];
+};
+
+const humanizeApiError = (message) => {
+  const normalized = String(message ?? "");
+
+  if (normalized.includes("API_FOOTBALL_REQUESTS")) {
+    return "Limite diario da API-Football atingido no plano atual";
+  }
+
+  if (normalized.includes("API_FOOTBALL_PLAN")) {
+    return "Seu plano atual da API-Football nao cobre essa faixa de datas";
+  }
+
+  return normalized || "Falha inesperada";
+};
+
+const isImportantFixture = (fixture) => {
+  const haystack = normalizeText(
+    [
+      fixture?.league?.name,
+      fixture?.league?.country,
+      fixture?.teams?.home?.name,
+      fixture?.teams?.away?.name,
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+
+  return !IMPORTANT_EXCLUSIONS.some((keyword) => haystack.includes(keyword));
 };
 
 const mapValueKey = (label, homeName, awayName) => {
@@ -120,7 +174,7 @@ const getMatchWinnerBet = (bookmaker) => {
   );
 };
 
-const buildMarketSummary = (bookmakers, homeName, awayName) => {
+const buildValuesSummary = (values, homeName, awayName, sourceLabel) => {
   const buckets = {
     home: {
       key: "home",
@@ -148,47 +202,40 @@ const buildMarketSummary = (bookmakers, homeName, awayName) => {
     },
   };
 
-  for (const bookmaker of bookmakers ?? []) {
-    const bet = getMatchWinnerBet(bookmaker);
+  const normalizedValues = (values ?? [])
+    .filter((value) => !value?.suspended)
+    .map((value) => {
+      const key = mapValueKey(value?.value, homeName, awayName);
+      const odd = toNumber(value?.odd);
 
-    if (!bet || !Array.isArray(bet.values)) {
-      continue;
-    }
+      if (!key || odd <= 1) {
+        return null;
+      }
 
-    const normalizedValues = bet.values
-      .map((value) => {
-        const key = mapValueKey(value?.value, homeName, awayName);
-        const odd = toNumber(value?.odd);
+      if (odd > buckets[key].bestOdd) {
+        buckets[key].bestOdd = odd;
+        buckets[key].bestBookmaker = sourceLabel;
+      }
 
-        if (!key || odd <= 1) {
-          return null;
-        }
+      return {
+        key,
+        odd,
+      };
+    })
+    .filter(Boolean);
 
-        if (odd > buckets[key].bestOdd) {
-          buckets[key].bestOdd = odd;
-          buckets[key].bestBookmaker = bookmaker?.name || "bookmaker";
-        }
+  if (normalizedValues.length < 2) {
+    return null;
+  }
 
-        return {
-          key,
-          odd,
-        };
-      })
-      .filter(Boolean);
+  const totalImplied = normalizedValues.reduce((sum, item) => sum + 1 / item.odd, 0);
 
-    if (normalizedValues.length < 2) {
-      continue;
-    }
+  if (!(totalImplied > 0)) {
+    return null;
+  }
 
-    const totalImplied = normalizedValues.reduce((sum, item) => sum + 1 / item.odd, 0);
-
-    if (!(totalImplied > 0)) {
-      continue;
-    }
-
-    for (const item of normalizedValues) {
-      buckets[item.key].probabilities.push((1 / item.odd) / totalImplied);
-    }
+  for (const item of normalizedValues) {
+    buckets[item.key].probabilities.push((1 / item.odd) / totalImplied);
   }
 
   const available = Object.values(buckets)
@@ -226,16 +273,162 @@ const buildMarketSummary = (bookmakers, homeName, awayName) => {
   };
 };
 
-const buildOddsMap = (entries) => {
+const buildMarketSummary = (bookmakers, homeName, awayName) => {
+  const marketSummaries = (bookmakers ?? [])
+    .map((bookmaker) => {
+      const bet = getMatchWinnerBet(bookmaker);
+
+      if (!bet || !Array.isArray(bet.values)) {
+        return null;
+      }
+
+      return buildValuesSummary(
+        bet.values,
+        homeName,
+        awayName,
+        bookmaker?.name || "bookmaker"
+      );
+    })
+    .filter(Boolean);
+
+  if (!marketSummaries.length) {
+    return null;
+  }
+
+  return marketSummaries.sort((left, right) => {
+    if (right.probability !== left.probability) {
+      return right.probability - left.probability;
+    }
+
+    return right.odd - left.odd;
+  })[0];
+};
+
+const buildOddsMap = (entries, fixtureMap = new Map()) => {
   const map = new Map();
 
   for (const entry of entries ?? []) {
     const fixtureId = entry?.fixture?.id;
-    const homeName = entry?.teams?.home?.name ?? "";
-    const awayName = entry?.teams?.away?.name ?? "";
+    const referenceFixture = fixtureMap.get(fixtureId);
+    const homeName =
+      referenceFixture?.teams?.home?.name ?? entry?.teams?.home?.name ?? "";
+    const awayName =
+      referenceFixture?.teams?.away?.name ?? entry?.teams?.away?.name ?? "";
     const market = buildMarketSummary(entry?.bookmakers ?? [], homeName, awayName);
 
     if (fixtureId && market) {
+      map.set(fixtureId, market);
+    }
+  }
+
+  return map;
+};
+
+const parseLiveMinuteCap = (marketName) => {
+  const match = normalizeText(marketName).match(/^1x2 - (\d+) minutes$/);
+  return match ? toNumber(match[1]) : null;
+};
+
+const countMappableValues = (values, homeName, awayName) =>
+  (values ?? []).filter((value) => {
+    const key = mapValueKey(value?.value, homeName, awayName);
+    return key && toNumber(value?.odd) > 1 && !value?.suspended;
+  }).length;
+
+const selectLiveOddsMarket = (markets, homeName, awayName, minute, statusLong) => {
+  const candidates = (markets ?? []).filter(
+    (market) => countMappableValues(market?.values, homeName, awayName) >= 2
+  );
+
+  if (!candidates.length) {
+    return null;
+  }
+
+  const normalizedStatus = normalizeText(statusLong);
+  const fulltimeMarket = candidates.find((market) => {
+    const name = normalizeText(market?.name);
+    return name === "fulltime result" || name === "final score";
+  });
+
+  if (fulltimeMarket) {
+    return fulltimeMarket;
+  }
+
+  const timedMarkets = candidates
+    .map((market) => ({
+      market,
+      cap: parseLiveMinuteCap(market?.name),
+    }))
+    .filter((item) => item.cap > 0)
+    .sort((left, right) => left.cap - right.cap);
+
+  if (timedMarkets.length) {
+    return (
+      timedMarkets.find((item) => item.cap >= minute)?.market ??
+      timedMarkets[timedMarkets.length - 1]?.market ??
+      null
+    );
+  }
+
+  if (minute <= 45) {
+    const firstHalf = candidates.find(
+      (market) => normalizeText(market?.name) === "1x2 (1st half)"
+    );
+
+    if (firstHalf) {
+      return firstHalf;
+    }
+  }
+
+  if (normalizedStatus.includes("penalty")) {
+    const penaltyWinner = candidates.find((market) =>
+      normalizeText(market?.name).includes("penalties shootout winner")
+    );
+
+    if (penaltyWinner) {
+      return penaltyWinner;
+    }
+  }
+
+  return candidates[0];
+};
+
+const buildLiveOddsMap = (entries, fixtureMap) => {
+  const map = new Map();
+
+  for (const entry of entries ?? []) {
+    const fixtureId = entry?.fixture?.id;
+    const referenceFixture = fixtureMap.get(fixtureId);
+
+    if (!fixtureId || !referenceFixture) {
+      continue;
+    }
+
+    const homeName = referenceFixture?.teams?.home?.name ?? "";
+    const awayName = referenceFixture?.teams?.away?.name ?? "";
+    const minute = toNumber(
+      referenceFixture?.fixture?.status?.elapsed || entry?.fixture?.status?.elapsed
+    );
+    const selectedMarket = selectLiveOddsMarket(
+      entry?.odds ?? [],
+      homeName,
+      awayName,
+      minute,
+      referenceFixture?.fixture?.status?.long || entry?.fixture?.status?.long || ""
+    );
+
+    if (!selectedMarket) {
+      continue;
+    }
+
+    const market = buildValuesSummary(
+      selectedMarket.values,
+      homeName,
+      awayName,
+      selectedMarket.name || "Live market"
+    );
+
+    if (market) {
       map.set(fixtureId, market);
     }
   }
@@ -321,19 +514,44 @@ const sortGames = (games) =>
   });
 
 const fetchLiveGames = async () => {
-  const liveFixtures = await fetchFromApi("/fixtures?live=all");
+  const liveFixtures = (await fetchFromApi("/fixtures?live=all")).filter(isImportantFixture);
 
   if (!liveFixtures.length) {
     return [];
   }
 
+  const fixtureMap = new Map(
+    liveFixtures.map((fixture) => [fixture?.fixture?.id, fixture]).filter((item) => item[0])
+  );
+
   let liveOddsMap = new Map();
 
   try {
     const liveOdds = await fetchFromApi("/odds/live");
-    liveOddsMap = buildOddsMap(liveOdds);
+    liveOddsMap = buildLiveOddsMap(liveOdds, fixtureMap);
   } catch (_error) {
     liveOddsMap = new Map();
+  }
+
+  const liveWithoutOdds = liveFixtures.filter(
+    (fixture) => !liveOddsMap.has(fixture?.fixture?.id)
+  );
+
+  if (liveWithoutOdds.length) {
+    try {
+      const fallbackOdds = await fetchFromApi(`/odds?date=${getIsoDate(0)}`);
+      const fallbackOddsMap = buildOddsMap(fallbackOdds, fixtureMap);
+
+      for (const fixture of liveWithoutOdds) {
+        const fixtureId = fixture?.fixture?.id;
+
+        if (fixtureId && fallbackOddsMap.has(fixtureId)) {
+          liveOddsMap.set(fixtureId, fallbackOddsMap.get(fixtureId));
+        }
+      }
+    } catch (_error) {
+      // Keep the live map we already have.
+    }
   }
 
   return liveFixtures
@@ -342,33 +560,39 @@ const fetchLiveGames = async () => {
 };
 
 const fetchUpcomingGames = async () => {
-  const fixtureResponses = await Promise.allSettled(
-    Array.from({ length: UPCOMING_DAYS }, (_item, index) =>
-      fetchFromApi(`/fixtures?date=${getIsoDate(index)}`)
-    )
-  );
+  const dates = Array.from({ length: UPCOMING_DAYS }, (_item, index) => getIsoDate(index));
+  const upcomingFixtures = [];
 
-  const upcomingFixtures = fixtureResponses
-    .filter((result) => result.status === "fulfilled")
-    .flatMap((result) => result.value)
-    .filter((fixture) => normalizeText(fixture?.fixture?.status?.short) === "ns")
-    .slice(0, NEXT_LIMIT * 2);
+  for (const date of dates) {
+    const fixtures = await fetchFromApi(`/fixtures?date=${date}`);
+
+    upcomingFixtures.push(
+      ...fixtures
+        .filter((fixture) => normalizeText(fixture?.fixture?.status?.short) === "ns")
+        .filter(isImportantFixture)
+    );
+
+    if (upcomingFixtures.length >= NEXT_LIMIT * 2) {
+      break;
+    }
+  }
 
   if (!upcomingFixtures.length) {
     return [];
   }
 
-  const oddsResponses = await Promise.allSettled(
-    Array.from({ length: UPCOMING_DAYS }, (_item, index) =>
-      fetchFromApi(`/odds?date=${getIsoDate(index)}`)
-    )
+  const fixtureMap = new Map(
+    upcomingFixtures.map((fixture) => [fixture?.fixture?.id, fixture]).filter((item) => item[0])
   );
 
-  const oddsMap = buildOddsMap(
-    oddsResponses
-      .filter((result) => result.status === "fulfilled")
-      .flatMap((result) => result.value)
-  );
+  const oddsEntries = [];
+
+  for (const date of dates) {
+    const odds = await fetchFromApi(`/odds?date=${date}`);
+    oddsEntries.push(...odds);
+  }
+
+  const oddsMap = buildOddsMap(oddsEntries, fixtureMap);
 
   return upcomingFixtures
     .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), false))
@@ -399,7 +623,7 @@ export async function GET(_request) {
       );
     }
 
-    return makeJsonResponse({
+    const payload = {
       games: merged,
       updatedAt: new Date().toISOString(),
       message: liveGames.length
@@ -408,10 +632,22 @@ export async function GET(_request) {
       debug: liveGames.length
         ? "Jogos ao vivo priorizados no topo. O restante do radar mostra os jogos mais fortes por probabilidade."
         : "A API-Football nao retornou partidas em andamento neste momento para as ligas cobertas, entao o radar caiu para pre-jogo.",
-    });
+    };
+
+    lastSuccessfulPayload = payload;
+
+    return makeJsonResponse(payload);
   } catch (error) {
+    if (lastSuccessfulPayload) {
+      return makeJsonResponse({
+        ...lastSuccessfulPayload,
+        updatedAt: new Date().toISOString(),
+        debug: `${lastSuccessfulPayload.debug} | Cache mantido porque a API respondeu: ${humanizeApiError(error?.message)}`,
+      });
+    }
+
     return makeJsonResponse(
-      makeEmptyPayload("Sem jogos ao vivo", error?.message || "Falha inesperada")
+      makeEmptyPayload("Sem jogos ao vivo", humanizeApiError(error?.message))
     );
   }
 }
