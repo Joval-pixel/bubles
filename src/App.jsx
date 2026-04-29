@@ -9,6 +9,7 @@ const formatEv = (value) => {
 
   return `${value > 0 ? "+" : ""}${value.toFixed(2).replace(".", ",")}`;
 };
+
 const formatMinute = (value) => `${Math.max(0, Math.round(value))}'`;
 const formatOdd = (value) =>
   value && Number.isFinite(value) && value > 0 ? value.toFixed(2).replace(".", ",") : "--";
@@ -27,14 +28,14 @@ const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
 
 const getDisplaySize = (size, scaleMode) => {
   if (scaleMode === "compact") {
-    return size * 0.82;
+    return clamp(size * 0.8, 60, 244);
   }
 
   if (scaleMode === "boost") {
-    return clamp(size * 1.15, 128, 320);
+    return clamp(size * 1.08, 88, 300);
   }
 
-  return size;
+  return clamp(size * 0.94, 72, 276);
 };
 
 const getFilterLabel = (statusFilter, rangeFilter) => {
@@ -50,6 +51,7 @@ const getFilterLabel = (statusFilter, rangeFilter) => {
     today: "somente hoje",
     top5: "top 5",
     top10: "top 10",
+    top24: "top 24",
   };
 
   return `${statusMap[statusFilter] ?? "todos os jogos"} | ${rangeMap[rangeFilter] ?? "sem limite"}`;
@@ -79,7 +81,7 @@ const getSignal = (game) => {
       return {
         tone: "good",
         title: "Favoritismo forte",
-        note: "A leitura do mercado aponta alta chance para o resultado selecionado neste jogo.",
+        note: "O mercado aponta um lado bem destacado neste jogo ao vivo.",
       };
     }
 
@@ -87,58 +89,63 @@ const getSignal = (game) => {
       return {
         tone: "watch",
         title: "Jogo monitoravel",
-        note: "Existe um lado ligeiramente favorito, mas ainda com equilibrio relevante no confronto.",
+        note: "Existe leitura favoravel, mas ainda com disputa relevante no confronto.",
       };
     }
 
     return {
       tone: "bad",
       title: "Leitura instavel",
-      note: "O mercado nao mostra um favoritismo tao claro neste momento.",
+      note: "O mercado esta mais espalhado e sem um favoritismo tao claro ao vivo.",
     };
   }
 
-  if ((game.probability || 0) >= 0.62) {
+  if ((game.probability || 0) >= 0.7) {
     return {
       tone: "good",
-      title: "Resultado forte",
-      note: "Pre-jogo com uma probabilidade alta para o desfecho destacado pelo radar.",
+      title: "Previsao forte",
+      note: "Essa partida entra entre os maiores favoritismos do radar principal.",
     };
   }
 
-  if ((game.probability || 0) >= 0.5) {
+  if ((game.probability || 0) >= 0.56) {
     return {
       tone: "watch",
-      title: "Favoritismo moderado",
-      note: "O mercado ve uma leve frente para esse resultado, mas sem dominancia total.",
+      title: "Boa leitura",
+      note: "Existe frente clara do lado selecionado, mas com margem menor que as lideres.",
     };
   }
 
   return {
     tone: "bad",
     title: "Jogo equilibrado",
-    note: "As probabilidades estao mais espalhadas e nao formam uma lideranca forte.",
+    note: "As probabilidades estao mais distribuidas e o mercado nao forma uma lideranca forte.",
   };
 };
 
 const getLayoutPosition = (index, total, bounds, size) => {
-  const width = Math.max(bounds.width || 0, 900);
-  const height = Math.max(bounds.height || 0, 620);
-  const columns = Math.max(1, Math.min(4, Math.floor(width / 240)));
-  const rows = Math.max(1, Math.ceil(total / columns));
-  const topPadding = 42;
-  const bottomPadding = 28;
-  const usableHeight = Math.max(220, height - topPadding - bottomPadding);
-  const cellWidth = width / columns;
-  const cellHeight = usableHeight / rows;
-  const column = index % columns;
-  const row = Math.floor(index / columns);
-  const x = column * cellWidth + (cellWidth - size) / 2;
-  const y = topPadding + row * cellHeight + (cellHeight - size) / 2;
+  const width = Math.max(bounds.width || 0, 1360);
+  const height = Math.max(bounds.height || 0, 860);
+  const leftPadding = 28;
+  const topPadding = 112;
+  const bottomPadding = 56;
+  const sideDockReserve = width > 1220 ? 336 : 28;
+  const usableWidth = Math.max(440, width - leftPadding - sideDockReserve);
+  const usableHeight = Math.max(420, height - topPadding - bottomPadding);
+  const centerX = leftPadding + usableWidth / 2;
+  const centerY = topPadding + usableHeight / 2;
+  const angle = index * 2.399963229728653;
+  const orbit = Math.sqrt(index + 1) * 72;
+  const horizontalOrbit = orbit * 1.42;
+  const verticalOrbit = orbit * 0.92;
+  const jitterX = (((index * 19) % 27) - 13) * 2.2;
+  const jitterY = (((index * 31) % 21) - 10) * 1.9;
+  const x = centerX + Math.cos(angle) * horizontalOrbit + jitterX - size / 2;
+  const y = centerY + Math.sin(angle) * verticalOrbit + jitterY - size / 2;
 
   return {
-    x: clamp(x, 0, width - size),
-    y: clamp(y, 0, height - size),
+    x: clamp(x, leftPadding, leftPadding + usableWidth - size),
+    y: clamp(y, topPadding, topPadding + usableHeight - size),
   };
 };
 
@@ -154,27 +161,32 @@ const getTier = (probability) => {
   return "low";
 };
 
-const createBubble = (game, existing, bounds, index) => {
+const createBubble = (game, existing, bounds, index, total) => {
   const bubbleStrength = clamp(game.bubbleValue ?? game.probability ?? 0, 0.08, 0.92);
-  const size = clamp(86 + bubbleStrength * 300 + (game.isLive ? 16 : 0), 86, 336);
-  const safeWidth = Math.max(bounds.width || 0, size + 40);
-  const safeHeight = Math.max(bounds.height || 0, size + 40);
+  const size = clamp(68 + bubbleStrength * 244 + (game.isLive ? 14 : 0), 68, 284);
+  const fallbackPosition = getLayoutPosition(index, total, bounds, size);
 
   return {
     ...game,
     tier: getTier(bubbleStrength),
     size,
     radius: size / 2,
-    x: existing?.x ?? Math.random() * Math.max(40, safeWidth - size - 40),
-    y: existing?.y ?? Math.random() * Math.max(40, safeHeight - size - 40),
-    vx: existing?.vx ?? ((Math.random() - 0.5) * (0.65 + (index % 5) * 0.12) || 0.4),
-    vy: existing?.vy ?? ((Math.random() - 0.5) * (0.65 + (index % 4) * 0.14) || -0.4),
+    x: existing?.x ?? fallbackPosition.x,
+    y: existing?.y ?? fallbackPosition.y,
+    vx: existing?.vx ?? ((Math.random() - 0.5) * (0.52 + (index % 5) * 0.07) || 0.26),
+    vy: existing?.vy ?? ((Math.random() - 0.5) * (0.5 + (index % 4) * 0.06) || -0.24),
   };
 };
 
 const moveBubbles = (items, bounds) => {
-  const width = Math.max(bounds.width || 0, 900);
-  const height = Math.max(bounds.height || 0, 620);
+  const width = Math.max(bounds.width || 0, 1360);
+  const height = Math.max(bounds.height || 0, 860);
+  const leftPadding = 28;
+  const topPadding = 112;
+  const bottomPadding = 56;
+  const sideDockReserve = width > 1220 ? 336 : 28;
+  const maxX = width - sideDockReserve;
+  const maxY = height - bottomPadding;
 
   const next = items.map((item) => {
     const bubble = {
@@ -183,14 +195,14 @@ const moveBubbles = (items, bounds) => {
       y: item.y + item.vy,
     };
 
-    if (bubble.x <= 0 || bubble.x >= width - bubble.size) {
+    if (bubble.x <= leftPadding || bubble.x >= maxX - bubble.size) {
       bubble.vx *= -1;
-      bubble.x = clamp(bubble.x, 0, width - bubble.size);
+      bubble.x = clamp(bubble.x, leftPadding, maxX - bubble.size);
     }
 
-    if (bubble.y <= 0 || bubble.y >= height - bubble.size) {
+    if (bubble.y <= topPadding || bubble.y >= maxY - bubble.size) {
       bubble.vy *= -1;
-      bubble.y = clamp(bubble.y, 0, height - bubble.size);
+      bubble.y = clamp(bubble.y, topPadding, maxY - bubble.size);
     }
 
     return bubble;
@@ -203,7 +215,7 @@ const moveBubbles = (items, bounds) => {
       const dx = first.x + first.radius - (second.x + second.radius);
       const dy = first.y + first.radius - (second.y + second.radius);
       const distance = Math.hypot(dx, dy) || 1;
-      const minDistance = first.radius + second.radius + 8;
+      const minDistance = first.radius + second.radius + 10;
 
       if (distance >= minDistance) {
         continue;
@@ -244,9 +256,9 @@ export default function App() {
   const [serverMessage, setServerMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [rangeFilter, setRangeFilter] = useState("all");
+  const [rangeFilter, setRangeFilter] = useState("top24");
   const [sortMode, setSortMode] = useState("probability");
-  const [bubbleScale, setBubbleScale] = useState("smart");
+  const [bubbleScale, setBubbleScale] = useState("compact");
 
   useEffect(() => {
     const syncBounds = () => {
@@ -297,7 +309,7 @@ export default function App() {
         setBubbles((current) => {
           const currentMap = new Map(current.map((item) => [item.id, item]));
           return items.map((item, index) =>
-            createBubble(item, currentMap.get(item.id), boundsRef.current, index)
+            createBubble(item, currentMap.get(item.id), boundsRef.current, index, items.length)
           );
         });
 
@@ -388,6 +400,14 @@ export default function App() {
             (left.bubbleValue ?? left.probability ?? 0)
         )
         .slice(0, 10);
+    } else if (rangeFilter === "top24") {
+      items = [...items]
+        .sort(
+          (left, right) =>
+            (right.bubbleValue ?? right.probability ?? 0) -
+            (left.bubbleValue ?? left.probability ?? 0)
+        )
+        .slice(0, 24);
     } else if (rangeFilter === "today") {
       const today = new Date().toLocaleDateString("pt-BR");
       items = items.filter((item) => {
@@ -419,19 +439,19 @@ export default function App() {
     return items;
   }, [bubbles, rangeFilter, searchTerm, sortMode, statusFilter]);
 
-  const renderedBubbles = useMemo(() => {
-    return filteredBubbles.map((item) => {
-      return item;
-    }).map((item) => {
-      const displaySize = getDisplaySize(item.size, bubbleScale);
+  const renderedBubbles = useMemo(
+    () =>
+      filteredBubbles.map((item) => {
+        const displaySize = getDisplaySize(item.size, bubbleScale);
 
-      return {
-        ...item,
-        size: displaySize,
-        radius: displaySize / 2,
-      };
-    });
-  }, [bubbleScale, filteredBubbles]);
+        return {
+          ...item,
+          size: displaySize,
+          radius: displaySize / 2,
+        };
+      }),
+    [bubbleScale, filteredBubbles]
+  );
 
   useEffect(() => {
     if (!filteredBubbles.length) {
@@ -493,10 +513,10 @@ export default function App() {
   const hasAnyGames = bubbles.length > 0;
   const emptyMessage = hasAnyGames ? "Sem jogos para este filtro" : "Sem jogos ao vivo";
   const hasLiveGames = filteredBubbles.some((item) => item.isLive);
-  const badgeLabel = hasLiveGames ? "Ao vivo" : filteredBubbles.length ? "Proximos" : "Ao vivo";
+  const badgeLabel = hasLiveGames ? "Ao vivo" : filteredBubbles.length ? "Proximos" : "Radar";
   const headlineText = hasLiveGames
-    ? "Radar ao vivo por probabilidade"
-    : "Pre-jogo por probabilidade";
+    ? "Jogos ao vivo e grandes mercados"
+    : "Partidas fortes em destaque";
   const filterLabel = getFilterLabel(statusFilter, rangeFilter);
   const sortLabel = getSortLabel(sortMode);
   const selectedSignal = getSignal(selectedGame);
@@ -588,6 +608,13 @@ export default function App() {
           >
             Top 10
           </button>
+          <button
+            type="button"
+            className={rangeFilter === "top24" ? "chip-button is-alt is-active" : "chip-button is-alt"}
+            onClick={() => setRangeFilter("top24")}
+          >
+            Top 24
+          </button>
         </div>
 
         <div className="control-cluster">
@@ -648,221 +675,212 @@ export default function App() {
         <span>{filteredBubbles.length} resultados visiveis</span>
       </div>
 
-      <section className="hero-strip">
-        <div className="hero-main">
-          <span className="badge">{badgeLabel}</span>
-          <h1>Bubles Live Radar</h1>
-          <p>Interface de mercado com bolhas por chance, filtros no topo e leitura forte em destaque.</p>
-        </div>
+      <section className="market-stage">
+        <div className="stage-board" ref={boardRef}>
+          <div className="board-grid" />
 
-        <div className="hero-metrics">
-          <article className="metric-card">
-            <span>Radar agora</span>
-            <strong>{filteredBubbles.length || 0}</strong>
-            <small>{liveCount ? `${liveCount} ao vivo` : "sem live agora"}</small>
-          </article>
-          <article className="metric-card">
-            <span>Maior chance</span>
-            <strong>{leadChanceLabel}</strong>
-            <small>{bestChanceGame ? bestChanceGame.game : "aguardando eventos"}</small>
-          </article>
-          <article className="metric-card">
-            <span>Fonte</span>
-            <strong>{sourceLabel}</strong>
-            <small>{updatedAt ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}` : emptyMessage}</small>
-          </article>
-        </div>
-      </section>
-
-      <main className="layout">
-        <section className="board-shell">
-          <div className="board" ref={boardRef}>
-            <div className="board-grid" />
-
-            <div className="board-hud">
-              <div className="board-hud-copy">
-                <span className="section-kicker">Radar de probabilidades</span>
-                <h2>{headlineText}</h2>
-                <p>
-                  {serverMessage && serverMessage !== "ok"
-                    ? serverMessage
-                    : "As maiores bolhas representam as maiores probabilidades do radar."}
-                </p>
-              </div>
-
-              <div className="board-hud-side">
-                <article className="hud-card">
-                  <span>{refreshing ? "Atualizando" : "Sincronizado"}</span>
-                  <strong>{liveCount ? `${liveCount} ao vivo` : "Sem live agora"}</strong>
-                  <small>{nextKickoffLabel !== "--" ? `Proximo foco ${nextKickoffLabel}` : emptyMessage}</small>
-                </article>
-
-                <div className="legend">
-                  <span className="legend-item is-high">alto</span>
-                  <span className="legend-item is-medium">medio</span>
-                  <span className="legend-item is-low">baixo</span>
-                </div>
-              </div>
+          <div className="stage-topbar">
+            <div className="stage-copy">
+              <span className="badge">{badgeLabel}</span>
+              <h1>Bubles Live Radar</h1>
+              <p>
+                Todas as partidas fortes ficam na tela principal e as maiores bolhas mostram as
+                maiores probabilidades.
+              </p>
             </div>
 
-            {loading ? (
-              <div className="empty-state">
-                <h3>Carregando radar...</h3>
-                <p>Buscando livescores, probabilidades e cotacoes.</p>
-              </div>
-            ) : null}
-
-            {!loading && !renderedBubbles.length ? (
-              <div className="empty-state">
-                <h3>{emptyMessage}</h3>
-                <p>
-                  Se nao houver jogos compativeis com os filtros atuais ou a API limitar as
-                  consultas, o radar mostra esta mensagem.
-                </p>
-                {debugMessage ? <small className="debug-note">{debugMessage}</small> : null}
-              </div>
-            ) : null}
-
-            {!loading &&
-              renderedBubbles.map((bubble) => (
-                <button
-                  key={bubble.id}
-                  type="button"
-                  className={
-                    selectedId === bubble.id
-                      ? `bubble is-${bubble.tier} is-selected`
-                      : `bubble is-${bubble.tier}`
-                  }
-                  style={{
-                    width: `${bubble.size}px`,
-                    height: `${bubble.size}px`,
-                    transform: `translate(${bubble.x}px, ${bubble.y}px)`,
-                  }}
-                  onClick={() => setSelectedId(bubble.id)}
-                >
-                  <small className="bubble-game">{bubble.game}</small>
-                  <strong>{formatChance(bubble.probability)}</strong>
-                  <span>
-                    {bubble.isLive
-                      ? `${bubble.pickCode} | ${formatClock(bubble)} | ${bubble.scoreLine}`
-                      : `${bubble.pickCode} | Odd ${formatOdd(bubble.oddHome)}`}
-                  </span>
-                </button>
-              ))}
-
-            <div className="board-footer">
-              <span>{filterLabel}</span>
-              <span>{sortLabel}</span>
-              <span>{sourceLabel}</span>
+            <div className="stage-metrics">
+              <article className="stage-chip">
+                <span>Radar agora</span>
+                <strong>{filteredBubbles.length || 0}</strong>
+                <small>{liveCount ? `${liveCount} ao vivo` : "sem live agora"}</small>
+              </article>
+              <article className="stage-chip">
+                <span>Maior chance</span>
+                <strong>{leadChanceLabel}</strong>
+                <small>{bestChanceGame ? bestChanceGame.game : "aguardando eventos"}</small>
+              </article>
+              <article className="stage-chip">
+                <span>Fonte</span>
+                <strong>{sourceLabel}</strong>
+                <small>
+                  {updatedAt
+                    ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
+                    : emptyMessage}
+                </small>
+              </article>
             </div>
           </div>
-        </section>
 
-        <aside className="sidebar">
-          <section className="sidebar-card">
-            <span className="section-kicker">Radar lateral</span>
-            <h2>Top 5 chances</h2>
+          <div className="board-hud">
+            <div className="board-hud-copy">
+              <span className="section-kicker">Radar principal</span>
+              <h2>{headlineText}</h2>
+              <p>
+                {serverMessage && serverMessage !== "ok"
+                  ? serverMessage
+                  : "O mapa principal prioriza os jogos mais importantes e deixa as laterais apenas como apoio."}
+              </p>
+            </div>
 
-            {topGames.length ? (
-              <div className="top-list">
-                {topGames.map((game, index) => (
-                  <button
-                    key={game.id}
-                    type="button"
-                    className={selectedId === game.id ? "top-item is-active" : "top-item"}
-                    onClick={() => setSelectedId(game.id)}
-                  >
-                    <div className="top-rank">{index + 1}</div>
-                    <div className="top-copy">
-                      <strong>{game.game}</strong>
-                      <span>
-                        {game.league} | {game.pickLabel} | {game.scoreLine} | {formatClock(game)} | Chance {formatChance(game.probability)}
-                      </span>
-                    </div>
-                    <div className="top-ev">{formatChance(game.probability)}</div>
-                  </button>
-                ))}
+            <div className="board-hud-side">
+              <article className="hud-card">
+                <span>{refreshing ? "Atualizando" : "Sincronizado"}</span>
+                <strong>{liveCount ? `${liveCount} ao vivo` : "Sem live agora"}</strong>
+                <small>
+                  {nextKickoffLabel !== "--" ? `Proximo foco ${nextKickoffLabel}` : emptyMessage}
+                </small>
+              </article>
+
+              <div className="legend">
+                <span className="legend-item is-high">alto</span>
+                <span className="legend-item is-medium">medio</span>
+                <span className="legend-item is-low">baixo</span>
               </div>
-            ) : (
-              <div className="empty-inline">{emptyMessage}</div>
-            )}
-          </section>
+            </div>
+          </div>
 
-          <section className="sidebar-card">
-            <span className="section-kicker">Jogo selecionado</span>
-            {selectedGame ? (
-              <>
-                <h2>{selectedGame.game}</h2>
-                <div className="detail-metrics">
-                  <article>
-                    <span>Placar</span>
-                    <strong>{selectedGame.scoreLine}</strong>
-                  </article>
-                  <article>
-                    <span>Status</span>
-                    <strong>{formatClock(selectedGame)}</strong>
-                  </article>
-                  <article>
-                    <span>Leitura</span>
-                    <strong>{selectedGame.pickCode} - {selectedGame.pickLabel}</strong>
-                  </article>
-                  <article>
-                    <span>Chance</span>
-                    <strong>{formatChance(selectedGame.probability)}</strong>
-                  </article>
-                  <article>
-                    <span>Melhor odd</span>
-                    <strong>{formatOdd(selectedGame.oddHome)}</strong>
-                  </article>
-                </div>
+          {loading ? (
+            <div className="empty-state">
+              <h3>Carregando radar...</h3>
+              <p>Buscando livescores, probabilidades e cotacoes.</p>
+            </div>
+          ) : null}
 
-                <div className={`signal-card is-${selectedSignal.tone}`}>
-                  <span className="signal-badge">Previsao</span>
-                  <strong>{selectedSignal.title}</strong>
-                  <p>{selectedSignal.note}</p>
-                </div>
+          {!loading && !renderedBubbles.length ? (
+            <div className="empty-state">
+              <h3>{emptyMessage}</h3>
+              <p>
+                Se nao houver jogos compativeis com os filtros atuais ou a API limitar as
+                consultas, o radar mostra esta mensagem.
+              </p>
+              {debugMessage ? <small className="debug-note">{debugMessage}</small> : null}
+            </div>
+          ) : null}
 
-                <div className="stat-grid">
-                  <article>
-                    <span>EV</span>
-                    <strong>{formatEv(selectedGame.ev)}</strong>
-                  </article>
-                  <article>
-                    <span>Casa</span>
-                    <strong>{selectedGame.bestBookmaker}</strong>
-                  </article>
-                  <article>
-                    <span>Prob. mercado</span>
-                    <strong>{formatPercent(selectedGame.marketProbability || selectedGame.probability)}</strong>
-                  </article>
-                  <article>
-                    <span>Odd justa</span>
-                    <strong>{formatOdd(selectedGame.fairOdd)}</strong>
-                  </article>
-                  <article>
-                    <span>Edge</span>
-                    <strong>{formatOdd(selectedGame.marketEdge)}</strong>
-                  </article>
-                  <article>
-                    <span>Liga</span>
-                    <strong>{selectedGame.league}</strong>
-                  </article>
-                  <article>
-                    <span>Inicio</span>
-                    <strong>{formatKickoff(selectedGame.commenceTime)}</strong>
-                  </article>
-                  <article>
-                    <span>Fonte</span>
-                    <strong>{selectedGame.source}</strong>
-                  </article>
+          {!loading &&
+            renderedBubbles.map((bubble) => (
+              <button
+                key={bubble.id}
+                type="button"
+                className={
+                  selectedId === bubble.id
+                    ? `bubble is-${bubble.tier} is-selected`
+                    : `bubble is-${bubble.tier}`
+                }
+                style={{
+                  width: `${bubble.size}px`,
+                  height: `${bubble.size}px`,
+                  transform: `translate(${bubble.x}px, ${bubble.y}px)`,
+                }}
+                onClick={() => setSelectedId(bubble.id)}
+              >
+                <small className="bubble-game">{bubble.game}</small>
+                <strong>{formatChance(bubble.probability)}</strong>
+                <span>
+                  {bubble.isLive
+                    ? `${bubble.pickCode} | ${formatClock(bubble)} | ${bubble.scoreLine}`
+                    : `${bubble.pickCode} | Odd ${formatOdd(bubble.oddHome)}`}
+                </span>
+              </button>
+            ))}
+
+          <aside className="floating-dock">
+            <section className="dock-card">
+              <span className="section-kicker">Radar lateral</span>
+              <h3>Top 5 chances</h3>
+
+              {topGames.length ? (
+                <div className="top-list">
+                  {topGames.map((game, index) => (
+                    <button
+                      key={game.id}
+                      type="button"
+                      className={selectedId === game.id ? "top-item is-active" : "top-item"}
+                      onClick={() => setSelectedId(game.id)}
+                    >
+                      <div className="top-rank">{index + 1}</div>
+                      <div className="top-copy">
+                        <strong>{game.game}</strong>
+                        <span>
+                          {game.pickLabel} | {game.scoreLine} | {formatClock(game)}
+                        </span>
+                      </div>
+                      <div className="top-ev">{formatChance(game.probability)}</div>
+                    </button>
+                  ))}
                 </div>
-              </>
-            ) : (
-              <div className="empty-inline">{emptyMessage}</div>
-            )}
-          </section>
-        </aside>
-      </main>
+              ) : (
+                <div className="empty-inline">{emptyMessage}</div>
+              )}
+            </section>
+
+            <section className="dock-card">
+              <span className="section-kicker">Jogo selecionado</span>
+
+              {selectedGame ? (
+                <>
+                  <h3>{selectedGame.game}</h3>
+
+                  <div className="detail-grid">
+                    <article>
+                      <span>Leitura</span>
+                      <strong>
+                        {selectedGame.pickCode} - {selectedGame.pickLabel}
+                      </strong>
+                    </article>
+                    <article>
+                      <span>Chance</span>
+                      <strong>{formatChance(selectedGame.probability)}</strong>
+                    </article>
+                    <article>
+                      <span>Status</span>
+                      <strong>{formatClock(selectedGame)}</strong>
+                    </article>
+                    <article>
+                      <span>Odd</span>
+                      <strong>{formatOdd(selectedGame.oddHome)}</strong>
+                    </article>
+                  </div>
+
+                  <div className={`signal-card is-${selectedSignal.tone}`}>
+                    <span className="signal-badge">Previsao</span>
+                    <strong>{selectedSignal.title}</strong>
+                    <p>{selectedSignal.note}</p>
+                  </div>
+
+                  <div className="micro-stats">
+                    <article>
+                      <span>EV</span>
+                      <strong>{formatEv(selectedGame.ev)}</strong>
+                    </article>
+                    <article>
+                      <span>Casa</span>
+                      <strong>{selectedGame.bestBookmaker}</strong>
+                    </article>
+                    <article>
+                      <span>Inicio</span>
+                      <strong>{formatKickoff(selectedGame.commenceTime)}</strong>
+                    </article>
+                    <article>
+                      <span>Liga</span>
+                      <strong>{selectedGame.league}</strong>
+                    </article>
+                  </div>
+                </>
+              ) : (
+                <div className="empty-inline">{emptyMessage}</div>
+              )}
+            </section>
+          </aside>
+
+          <div className="board-footer">
+            <span>{filterLabel}</span>
+            <span>{sortLabel}</span>
+            <span>{sourceLabel}</span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
