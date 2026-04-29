@@ -19,8 +19,8 @@ const SPORT_KEYS = String(process.env.ODDS_API_SPORTS || DEFAULT_SPORTS.join(","
 const REGIONS = String(process.env.ODDS_API_REGIONS || "eu").trim() || "eu";
 const MARKETS = String(process.env.ODDS_API_MARKETS || "h2h").trim() || "h2h";
 const NEXT_LIMIT = Math.max(
-  1,
-  Math.min(18, Number.parseInt(process.env.ODDS_API_NEXT_LIMIT || "8", 10) || 8)
+  24,
+  Math.min(60, Number.parseInt(process.env.ODDS_API_NEXT_LIMIT || "36", 10) || 36)
 );
 const LIVE_WINDOW_MINUTES = Math.max(
   60,
@@ -122,12 +122,7 @@ const mapOutcomeKey = (name, homeTeam, awayTeam) => {
     return "away";
   }
 
-  if (
-    normalizedName === "draw" ||
-    normalizedName === "tie" ||
-    normalizedName === "empate" ||
-    normalizedName === "x"
-  ) {
+  if (normalizedName === "draw" || normalizedName === "tie" || normalizedName === "empate" || normalizedName === "x") {
     return "draw";
   }
 
@@ -292,8 +287,7 @@ const buildGameFromEvent = (event, scoreInfo) => {
     : -1;
 
   const isLiveByTime = elapsedMinutes >= 0 && elapsedMinutes <= LIVE_WINDOW_MINUTES;
-  const isLiveByScore =
-    Boolean(scoreInfo) && scoreInfo.completed === false && (scoreInfo.hasScores || isLiveByTime);
+  const isLiveByScore = Boolean(scoreInfo) && scoreInfo.completed === false && (scoreInfo.hasScores || isLiveByTime);
   const isLive = isLiveByScore || isLiveByTime;
   const minute = isLive ? clamp(elapsedMinutes, 1, 120) : 0;
 
@@ -376,7 +370,10 @@ const sortGames = (games) =>
 export async function GET(_request) {
   if (!API_KEY) {
     return makeJsonResponse(
-      makeEmptyPayload("Sem jogos ao vivo", "ODDS_API_KEY ausente no ambiente do servidor")
+      makeEmptyPayload(
+        "Sem jogos ao vivo",
+        "ODDS_API_KEY ausente no ambiente do servidor"
+      )
     );
   }
 
@@ -396,25 +393,17 @@ export async function GET(_request) {
     }
 
     const liveGames = games.filter((game) => game.isLive);
-
-    if (liveGames.length) {
-      return makeJsonResponse({
-        games: liveGames,
-        updatedAt: new Date().toISOString(),
-        message: "ok",
-        debug:
-          "Jogos ao vivo identificados via The Odds API. O minuto e estimado pelo horario de inicio.",
-      });
-    }
-
-    const upcomingGames = games.filter((game) => !game.isLive).slice(0, NEXT_LIMIT);
+    const mainGames = games.slice(0, NEXT_LIMIT);
 
     return makeJsonResponse({
-      games: upcomingGames,
+      games: mainGames,
       updatedAt: new Date().toISOString(),
-      message: "Sem jogos ao vivo agora; mostrando proximos jogos com cotacoes",
-      debug:
-        "A The Odds API nao retornou partidas em andamento neste momento para as ligas configuradas",
+      message: liveGames.length
+        ? "ok"
+        : "Sem jogos ao vivo agora; mostrando proximos jogos com cotacoes",
+      debug: liveGames.length
+        ? "Jogos ao vivo priorizados no topo. O restante do radar mostra as partidas mais fortes por probabilidade."
+        : "A The Odds API nao retornou partidas em andamento neste momento para as ligas configuradas",
     });
   } catch (error) {
     return makeJsonResponse(
