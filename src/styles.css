@@ -225,7 +225,7 @@ input {
 
 .stage-board {
   position: relative;
-  min-height: calc(100vh - 140px);
+  min-height: calc(100vh - 96px);
   overflow: hidden;
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -237,7 +237,7 @@ input {
 
 .stage-topbar {
   position: absolute;
-  inset: 18px 18px auto 18px;
+  inset: 14px 14px auto 14px;
   z-index: 3;
   display: flex;
   justify-content: space-between;
@@ -246,7 +246,7 @@ input {
 }
 
 .stage-copy {
-  max-width: 42rem;
+  max-width: 26rem;
 }
 
 .stage-copy h1,
@@ -260,9 +260,9 @@ input {
 }
 
 .stage-copy h1 {
-  margin-top: 0.45rem;
-  font-size: clamp(2.25rem, 3.8vw, 4.8rem);
-  line-height: 0.94;
+  margin-top: 0.32rem;
+  font-size: clamp(1.65rem, 2.3vw, 2.8rem);
+  line-height: 0.96;
 }
 
 .stage-copy p,
@@ -277,14 +277,15 @@ input {
 }
 
 .stage-copy p {
-  max-width: 34rem;
-  margin-top: 0.55rem;
+  max-width: 24rem;
+  margin-top: 0.4rem;
+  font-size: 0.94rem;
 }
 
 .stage-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(170px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 10px;
   align-content: start;
 }
 
@@ -298,7 +299,7 @@ input {
 }
 
 .stage-chip {
-  padding: 1rem;
+  padding: 0.88rem;
 }
 
 .stage-chip span,
@@ -320,9 +321,9 @@ input {
 .detail-grid strong,
 .micro-stats strong {
   display: block;
-  margin-top: 0.45rem;
+  margin-top: 0.32rem;
   font-family: "Sora", sans-serif;
-  font-size: 1.26rem;
+  font-size: 1.12rem;
 }
 
 .stage-chip small,
@@ -335,21 +336,22 @@ input {
 
 .board-hud {
   position: absolute;
-  top: 178px;
+  top: 112px;
   left: 24px;
   z-index: 3;
-  max-width: 34rem;
+  max-width: 24rem;
   pointer-events: none;
 }
 
 .board-hud-copy h2 {
   margin-top: 0.35rem;
-  font-size: clamp(1.65rem, 2.4vw, 2.9rem);
+  font-size: clamp(1.15rem, 1.45vw, 1.65rem);
 }
 
 .board-hud-copy p {
-  margin: 0.55rem 0 0;
-  max-width: 30rem;
+  margin: 0.38rem 0 0;
+  max-width: 20rem;
+  font-size: 0.9rem;
 }
 
 .board-hud-side {
@@ -361,8 +363,8 @@ input {
 }
 
 .hud-card {
-  min-width: 240px;
-  padding: 0.95rem 1rem;
+  min-width: 220px;
+  padding: 0.82rem 0.92rem;
 }
 
 .legend {
@@ -488,11 +490,11 @@ input {
 
 .floating-dock {
   position: absolute;
-  top: 122px;
+  top: 104px;
   right: 20px;
   bottom: 72px;
   z-index: 3;
-  width: 306px;
+  width: 286px;
   display: grid;
   gap: 12px;
   align-content: start;
