@@ -420,7 +420,9 @@ export default function App() {
   }, [bubbles, rangeFilter, searchTerm, sortMode, statusFilter]);
 
   const renderedBubbles = useMemo(() => {
-    return filteredBubbles.map((item) => item).map((item) => {
+    return filteredBubbles.map((item) => {
+      return item;
+    }).map((item) => {
       const displaySize = getDisplaySize(item.size, bubbleScale);
 
       return {
@@ -498,6 +500,12 @@ export default function App() {
   const filterLabel = getFilterLabel(statusFilter, rangeFilter);
   const sortLabel = getSortLabel(sortMode);
   const selectedSignal = getSignal(selectedGame);
+  const bestChanceGame = filteredBubbles[0] ?? null;
+  const sourceLabel = bubbles[0]?.source ?? "The Odds API";
+  const nextKickoffLabel = bestChanceGame?.commenceTime
+    ? formatKickoff(bestChanceGame.commenceTime)
+    : "--";
+  const leadChanceLabel = bestChanceGame ? formatChance(bestChanceGame.probability) : "--";
 
   return (
     <div className="app-shell">
@@ -640,45 +648,62 @@ export default function App() {
         <span>{filteredBubbles.length} resultados visiveis</span>
       </div>
 
-      <header className="header">
-        <div className="header-copy">
+      <section className="hero-strip">
+        <div className="hero-main">
           <span className="badge">{badgeLabel}</span>
           <h1>Bubles Live Radar</h1>
-          <p>Radar com The Odds API, bolhas por probabilidade e leitura mais forte em destaque.</p>
+          <p>Interface de mercado com bolhas por chance, filtros no topo e leitura forte em destaque.</p>
         </div>
 
-        <div className="status-panel">
-          <span>{refreshing ? "Atualizando..." : "Sincronizado"}</span>
-          <strong>
-            {filteredBubbles.length ? `${filteredBubbles.length} jogos no radar` : emptyMessage}
-          </strong>
-          <small>
-            {updatedAt
-              ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
-              : emptyMessage}
-          </small>
-          {serverMessage && serverMessage !== "ok" ? <small>{serverMessage}</small> : null}
-          {debugMessage ? <small>{debugMessage}</small> : null}
+        <div className="hero-metrics">
+          <article className="metric-card">
+            <span>Radar agora</span>
+            <strong>{filteredBubbles.length || 0}</strong>
+            <small>{liveCount ? `${liveCount} ao vivo` : "sem live agora"}</small>
+          </article>
+          <article className="metric-card">
+            <span>Maior chance</span>
+            <strong>{leadChanceLabel}</strong>
+            <small>{bestChanceGame ? bestChanceGame.game : "aguardando eventos"}</small>
+          </article>
+          <article className="metric-card">
+            <span>Fonte</span>
+            <strong>{sourceLabel}</strong>
+            <small>{updatedAt ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}` : emptyMessage}</small>
+          </article>
         </div>
-      </header>
+      </section>
 
       <main className="layout">
         <section className="board-shell">
-          <div className="board-top">
-            <div>
-              <span className="section-kicker">Radar de probabilidades</span>
-              <h2>{headlineText}</h2>
-            </div>
-
-            <div className="legend">
-              <span className="legend-item is-high">alto</span>
-              <span className="legend-item is-medium">medio</span>
-              <span className="legend-item is-low">baixo</span>
-            </div>
-          </div>
-
           <div className="board" ref={boardRef}>
             <div className="board-grid" />
+
+            <div className="board-hud">
+              <div className="board-hud-copy">
+                <span className="section-kicker">Radar de probabilidades</span>
+                <h2>{headlineText}</h2>
+                <p>
+                  {serverMessage && serverMessage !== "ok"
+                    ? serverMessage
+                    : "As maiores bolhas representam as maiores probabilidades do radar."}
+                </p>
+              </div>
+
+              <div className="board-hud-side">
+                <article className="hud-card">
+                  <span>{refreshing ? "Atualizando" : "Sincronizado"}</span>
+                  <strong>{liveCount ? `${liveCount} ao vivo` : "Sem live agora"}</strong>
+                  <small>{nextKickoffLabel !== "--" ? `Proximo foco ${nextKickoffLabel}` : emptyMessage}</small>
+                </article>
+
+                <div className="legend">
+                  <span className="legend-item is-high">alto</span>
+                  <span className="legend-item is-medium">medio</span>
+                  <span className="legend-item is-low">baixo</span>
+                </div>
+              </div>
+            </div>
 
             {loading ? (
               <div className="empty-state">
@@ -724,13 +749,19 @@ export default function App() {
                   </span>
                 </button>
               ))}
+
+            <div className="board-footer">
+              <span>{filterLabel}</span>
+              <span>{sortLabel}</span>
+              <span>{sourceLabel}</span>
+            </div>
           </div>
         </section>
 
         <aside className="sidebar">
           <section className="sidebar-card">
-            <span className="section-kicker">TOP 5 probabilidades</span>
-            <h2>Jogos mais fortes</h2>
+            <span className="section-kicker">Radar lateral</span>
+            <h2>Top 5 chances</h2>
 
             {topGames.length ? (
               <div className="top-list">
@@ -758,7 +789,7 @@ export default function App() {
           </section>
 
           <section className="sidebar-card">
-            <span className="section-kicker">Detalhes</span>
+            <span className="section-kicker">Jogo selecionado</span>
             {selectedGame ? (
               <>
                 <h2>{selectedGame.game}</h2>
