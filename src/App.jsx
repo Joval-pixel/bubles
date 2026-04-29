@@ -339,7 +339,7 @@ export default function App() {
     fetchGames(false);
     const timer = window.setInterval(() => {
       fetchGames(true);
-    }, 120000);
+    }, 900000);
 
     return () => {
       isMounted = false;
@@ -515,8 +515,8 @@ export default function App() {
   const hasLiveGames = filteredBubbles.some((item) => item.isLive);
   const badgeLabel = hasLiveGames ? "Ao vivo" : filteredBubbles.length ? "Proximos" : "Radar";
   const headlineText = hasLiveGames
-    ? "Jogos ao vivo e grandes mercados"
-    : "Partidas fortes em destaque";
+    ? "Mapa ao vivo"
+    : "Mapa principal";
   const filterLabel = getFilterLabel(statusFilter, rangeFilter);
   const sortLabel = getSortLabel(sortMode);
   const selectedSignal = getSignal(selectedGame);
@@ -683,10 +683,7 @@ export default function App() {
             <div className="stage-copy">
               <span className="badge">{badgeLabel}</span>
               <h1>Bubles Live Radar</h1>
-              <p>
-                Todas as partidas fortes ficam na tela principal e as maiores bolhas mostram as
-                maiores probabilidades.
-              </p>
+              <p>Bolhas maiores mostram as chances mais fortes do radar.</p>
             </div>
 
             <div className="stage-metrics">
@@ -719,7 +716,7 @@ export default function App() {
               <p>
                 {serverMessage && serverMessage !== "ok"
                   ? serverMessage
-                  : "O mapa principal prioriza os jogos mais importantes e deixa as laterais apenas como apoio."}
+                  : "Jogos importantes ficam no mapa principal e a lateral serve so como apoio."}
               </p>
             </div>
 
