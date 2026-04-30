@@ -1,5 +1,5 @@
 .bubles-wordmark {
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   gap: 0.01em;
   font-family: Sora, Inter, sans-serif;
@@ -10,24 +10,24 @@
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
 }
 
-.letter-blue {
-  color: #4285f4;
+.bubles-wordmark .letter-blue {
+  color: #4285f4 !important;
 }
 
-.letter-yellow {
-  color: #fbbc05;
+.bubles-wordmark .letter-yellow {
+  color: #fbbc05 !important;
 }
 
-.letter-green {
-  color: #34a853;
+.bubles-wordmark .letter-green {
+  color: #34a853 !important;
 }
 
-.letter-white {
-  color: #ffffff;
+.bubles-wordmark .letter-white {
+  color: #ffffff !important;
 }
 
 @media (max-width: 760px) {
   .bubles-wordmark {
-    font-size: 1.55rem;
+    font-size: 1.55rem !important;
   }
 }
