@@ -28,14 +28,14 @@ const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
 
 const getDisplaySize = (size, scaleMode) => {
   if (scaleMode === "compact") {
-    return clamp(size * 0.74, 54, 218);
+    return clamp(size * 0.7, 50, 200);
   }
 
   if (scaleMode === "boost") {
-    return clamp(size * 1.05, 82, 288);
+    return clamp(size * 1.02, 74, 246);
   }
 
-  return clamp(size * 0.88, 62, 252);
+  return clamp(size * 0.82, 58, 224);
 };
 
 const getFilterLabel = (statusFilter, rangeFilter) => {
@@ -207,21 +207,20 @@ const getAiOptionNote = (option, game, leaderProbability) => {
 
 const getLayoutPosition = (index, total, bounds, size) => {
   const width = Math.max(bounds.width || 0, 1360);
-  const height = Math.max(bounds.height || 0, width > 960 ? 860 : 700);
-  const leftPadding = width > 960 ? 16 : 12;
-  const topPadding = width > 1280 ? 120 : width > 760 ? 132 : 118;
-  const bottomPadding = width > 960 ? 28 : 30;
-  const sideDockReserve = width > 1320 ? 320 : width > 1180 ? 286 : 18;
-  const usableWidth = Math.max(360, width - leftPadding - sideDockReserve - 16);
-  const usableHeight = Math.max(340, height - topPadding - bottomPadding);
+  const height = Math.max(bounds.height || 0, width > 960 ? 860 : 820);
+  const leftPadding = width > 960 ? 18 : 12;
+  const topPadding = width > 1280 ? 256 : width > 900 ? 286 : 332;
+  const bottomPadding = width > 960 ? 20 : 18;
+  const usableWidth = Math.max(320, width - leftPadding * 2);
+  const usableHeight = Math.max(280, height - topPadding - bottomPadding);
   const centerX = leftPadding + usableWidth / 2;
   const centerY = topPadding + usableHeight / 2;
   const angle = index * 2.23;
-  const orbitBase = width > 1280 ? 62 : width > 760 ? 52 : 42;
+  const orbitBase = width > 1280 ? 54 : width > 760 ? 46 : 40;
   const orbit = Math.sqrt(index + 1) * orbitBase;
-  const horizontalOrbit = orbit * 1.56;
-  const verticalOrbit = orbit * 1.02;
-  const jitterX = (((index * 19) % 27) - 13) * 2;
+  const horizontalOrbit = orbit * 1.42;
+  const verticalOrbit = orbit * 0.94;
+  const jitterX = (((index * 19) % 27) - 13) * 1.8;
   const jitterY = (((index * 31) % 21) - 10) * 1.7;
   const x = centerX + Math.cos(angle) * horizontalOrbit + jitterX - size / 2;
   const y = centerY + Math.sin(angle) * verticalOrbit + jitterY - size / 2;
@@ -246,7 +245,7 @@ const getTier = (probability) => {
 
 const createBubble = (game, existing, bounds, index, total) => {
   const bubbleStrength = clamp(game.bubbleValue ?? game.probability ?? 0, 0.08, 0.92);
-  const size = clamp(64 + bubbleStrength * 212 + (game.isLive ? 10 : 0), 64, 252);
+  const size = clamp(56 + bubbleStrength * 196 + (game.isLive ? 8 : 0), 56, 228);
   const fallbackPosition = getLayoutPosition(index, total, bounds, size);
 
   return {
@@ -339,9 +338,9 @@ export default function App() {
   const [serverMessage, setServerMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [rangeFilter, setRangeFilter] = useState("top24");
+  const [rangeFilter, setRangeFilter] = useState("all");
   const [sortMode, setSortMode] = useState("probability");
-  const [bubbleScale, setBubbleScale] = useState("compact");
+  const [bubbleScale, setBubbleScale] = useState("smart");
 
   useEffect(() => {
     const syncBounds = () => {
@@ -596,7 +595,6 @@ export default function App() {
   const headlineText = hasLiveGames ? "Ao vivo em destaque" : "Principais do dia";
   const filterLabel = getFilterLabel(statusFilter, rangeFilter);
   const sortLabel = getSortLabel(sortMode);
-  const selectedSignal = getSignal(selectedGame);
   const aiSummary = getAiMarketSummary(selectedGame);
   const aiOptions = useMemo(
     () =>
@@ -766,60 +764,97 @@ export default function App() {
         <div className="stage-board" ref={boardRef}>
           <div className="board-grid" />
 
-          <div className="stage-topbar">
-            <div className="stage-copy">
-              <span className="badge">{badgeLabel}</span>
-              <h1>Bubles Live Radar</h1>
-              <p>Bolhas maiores destacam as maiores chances.</p>
+          <div className="board-overlay" ref={selectedPanelRef}>
+            <div className="board-header">
+              <div className="board-title-panel">
+                <span className="badge">{badgeLabel}</span>
+                <h1>{selectedGame?.game ?? "Bubles Live Radar"}</h1>
+                <p>
+                  {selectedGame
+                    ? `${selectedGame.league} | ${selectedGame.scoreLine} | ${formatClock(selectedGame)} | ${selectedGame.pickLabel}`
+                    : "Selecione uma bolha para abrir as probabilidades e a leitura da IA."}
+                </p>
+              </div>
+
+              <div className="board-metrics">
+                <article className="stage-chip">
+                  <span>Jogos</span>
+                  <strong>{filteredBubbles.length || 0}</strong>
+                  <small>{filterLabel}</small>
+                </article>
+                <article className="stage-chip">
+                  <span>Ao vivo</span>
+                  <strong>{liveCount}</strong>
+                  <small>{liveCount ? `${liveCount} em andamento` : "sem live agora"}</small>
+                </article>
+                <article className="stage-chip">
+                  <span>Maior chance</span>
+                  <strong>{leadChanceLabel}</strong>
+                  <small>{bestChanceGame ? bestChanceGame.game : "aguardando eventos"}</small>
+                </article>
+                <article className="stage-chip">
+                  <span>Fonte</span>
+                  <strong>{sourceLabel}</strong>
+                  <small>
+                    {updatedAt
+                      ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
+                      : emptyMessage}
+                  </small>
+                </article>
+              </div>
             </div>
 
-            <div className="stage-metrics">
-              <article className="stage-chip">
-                <span>Radar agora</span>
-                <strong>{filteredBubbles.length || 0}</strong>
-                <small>{liveCount ? `${liveCount} ao vivo` : "sem live agora"}</small>
-              </article>
-              <article className="stage-chip">
-                <span>Maior chance</span>
-                <strong>{leadChanceLabel}</strong>
-                <small>{bestChanceGame ? bestChanceGame.game : "aguardando eventos"}</small>
-              </article>
-              <article className="stage-chip">
-                <span>Fonte</span>
-                <strong>{sourceLabel}</strong>
-                <small>
-                  {updatedAt
-                    ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
-                    : emptyMessage}
-                </small>
-              </article>
-            </div>
-          </div>
-
-          <div className="board-hud">
-            <div className="board-hud-copy">
-              <span className="section-kicker">Radar principal</span>
-              <h2>{headlineText}</h2>
-              <p>
-                {serverMessage && serverMessage !== "ok"
-                  ? serverMessage
-                  : "Tudo importante fica no mapa; a lateral so ajuda na leitura rapida."}
-              </p>
+            <div className="board-top-strip">
+              {topGames.length ? (
+                topGames.map((game, index) => (
+                  <button
+                    key={game.id}
+                    type="button"
+                    className={selectedId === game.id ? "top-pill is-active" : "top-pill"}
+                    onClick={() => activateBubble(game.id)}
+                  >
+                    <span className="top-pill-rank">{index + 1}</span>
+                    <strong>{game.game}</strong>
+                    <small>{formatChance(game.probability)}</small>
+                  </button>
+                ))
+              ) : (
+                <div className="top-pill-empty">{emptyMessage}</div>
+              )}
             </div>
 
-            <div className="board-hud-side">
-              <article className="hud-card">
-                <span>{refreshing ? "Atualizando" : "Sincronizado"}</span>
-                <strong>{liveCount ? `${liveCount} ao vivo` : "Sem live agora"}</strong>
-                <small>
-                  {nextKickoffLabel !== "--" ? `Proximo foco ${nextKickoffLabel}` : emptyMessage}
-                </small>
-              </article>
+            <div className="board-predictions">
+              <div className="board-predictions-copy">
+                <span className="section-kicker">Previsoes IA</span>
+                <strong>{aiSummary.title}</strong>
+                <p>{aiSummary.note}</p>
+              </div>
 
-              <div className="legend">
-                <span className="legend-item is-high">alto</span>
-                <span className="legend-item is-medium">medio</span>
-                <span className="legend-item is-low">baixo</span>
+              <div className="board-prediction-cards">
+                {aiOptions.length ? (
+                  aiOptions.map((option) => {
+                    const tone = getAiOptionTone(option, leaderOptionCode);
+
+                    return (
+                      <article
+                        key={`${selectedGame?.id ?? "game"}-${option.code}`}
+                        className={`prediction-card is-${tone}`}
+                      >
+                        <div className="prediction-card-top">
+                          <span className="prediction-code">{option.code}</span>
+                          <strong>{option.label}</strong>
+                        </div>
+                        <div className="prediction-card-metrics">
+                          <span>Chance {formatChance(option.probability)}</span>
+                          <span>Odd {formatOdd(option.odd)}</span>
+                        </div>
+                        <p>{getAiOptionNote(option, selectedGame, leaderOptionProbability)}</p>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <div className="top-pill-empty">Sem previsoes detalhadas</div>
+                )}
               </div>
             </div>
           </div>
@@ -870,134 +905,12 @@ export default function App() {
               </button>
             ))}
 
-          <aside className="floating-dock">
-            <section className="dock-card">
-              <span className="section-kicker">Radar lateral</span>
-              <h3>Top 5 chances</h3>
-
-              {topGames.length ? (
-                <div className="top-list">
-                  {topGames.map((game, index) => (
-                    <button
-                      key={game.id}
-                      type="button"
-                      className={selectedId === game.id ? "top-item is-active" : "top-item"}
-                      onClick={() => activateBubble(game.id)}
-                    >
-                      <div className="top-rank">{index + 1}</div>
-                      <div className="top-copy">
-                        <strong>{game.game}</strong>
-                        <span>
-                          {game.pickLabel} | {game.scoreLine} | {formatClock(game)}
-                        </span>
-                      </div>
-                      <div className="top-ev">{formatChance(game.probability)}</div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-inline">{emptyMessage}</div>
-              )}
-            </section>
-
-            <section className="dock-card" ref={selectedPanelRef}>
-              <span className="section-kicker">Jogo selecionado</span>
-
-              {selectedGame ? (
-                <>
-                  <h3>{selectedGame.game}</h3>
-
-                  <div className="detail-grid">
-                    <article>
-                      <span>Leitura</span>
-                      <strong>
-                        {selectedGame.pickCode} - {selectedGame.pickLabel}
-                      </strong>
-                    </article>
-                    <article>
-                      <span>Chance</span>
-                      <strong>{formatChance(selectedGame.probability)}</strong>
-                    </article>
-                    <article>
-                      <span>Status</span>
-                      <strong>{formatClock(selectedGame)}</strong>
-                    </article>
-                    <article>
-                      <span>Odd</span>
-                      <strong>{formatOdd(selectedGame.oddHome)}</strong>
-                    </article>
-                  </div>
-
-                  <div className="ai-market">
-                    <div className="ai-market-header">
-                      <span className="section-kicker">Previsoes IA</span>
-                      <strong>{aiSummary.title}</strong>
-                      <p>{aiSummary.note}</p>
-                    </div>
-
-                    <div className="ai-options">
-                      {aiOptions.length ? (
-                        aiOptions.map((option) => {
-                          const tone = getAiOptionTone(option, leaderOptionCode);
-
-                          return (
-                            <article
-                              key={`${selectedGame.id}-${option.code}`}
-                              className={`ai-option is-${tone}`}
-                            >
-                              <div className="ai-option-top">
-                                <span className="ai-option-code">{option.code}</span>
-                                <strong>{option.label}</strong>
-                              </div>
-                              <div className="ai-option-metrics">
-                                <span>Chance {formatChance(option.probability)}</span>
-                                <span>Odd {formatOdd(option.odd)}</span>
-                              </div>
-                              <p>{getAiOptionNote(option, selectedGame, leaderOptionProbability)}</p>
-                            </article>
-                          );
-                        })
-                      ) : (
-                        <div className="empty-inline">Sem previsoes detalhadas</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={`signal-card is-${selectedSignal.tone}`}>
-                    <span className="signal-badge">Previsao</span>
-                    <strong>{selectedSignal.title}</strong>
-                    <p>{selectedSignal.note}</p>
-                  </div>
-
-                  <div className="micro-stats">
-                    <article>
-                      <span>EV</span>
-                      <strong>{formatEv(selectedGame.ev)}</strong>
-                    </article>
-                    <article>
-                      <span>Casa</span>
-                      <strong>{selectedGame.bestBookmaker}</strong>
-                    </article>
-                    <article>
-                      <span>Inicio</span>
-                      <strong>{formatKickoff(selectedGame.commenceTime)}</strong>
-                    </article>
-                    <article>
-                      <span>Liga</span>
-                      <strong>{selectedGame.league}</strong>
-                    </article>
-                  </div>
-                </>
-              ) : (
-                <div className="empty-inline">{emptyMessage}</div>
-              )}
-            </section>
-          </aside>
-
           <div className="board-footer">
             <span>{filterLabel}</span>
             <span>{sortLabel}</span>
+            <span>{headlineText}</span>
             <span>{sourceLabel}</span>
+            {selectedGame ? <span>{selectedGame.pickCode} | {formatChance(selectedGame.probability)}</span> : null}
           </div>
         </div>
       </section>
