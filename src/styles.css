@@ -86,8 +86,8 @@ input {
 }
 
 .control-deck {
-  display: grid;
-  grid-template-columns: auto minmax(260px, 1fr) repeat(4, auto);
+  display: flex;
+  flex-wrap: nowrap;
   gap: 10px;
   align-items: center;
   position: sticky;
@@ -99,6 +99,15 @@ input {
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(72, 72, 72, 0.94), rgba(44, 44, 44, 0.96));
   box-shadow: var(--shadow);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.control-deck::-webkit-scrollbar,
+.toolbar-summary::-webkit-scrollbar,
+.top-list::-webkit-scrollbar {
+  display: none;
 }
 
 .control-brand {
@@ -106,6 +115,7 @@ input {
   align-items: center;
   gap: 0.75rem;
   color: white;
+  flex: 0 0 auto;
 }
 
 .brand-dot {
@@ -143,10 +153,16 @@ input {
   box-shadow: 0 0 0 1px rgba(59, 255, 124, 0.28);
 }
 
+.control-search {
+  flex: 1 0 280px;
+  min-width: 220px;
+}
+
 .control-cluster {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
+  flex: 0 0 auto;
 }
 
 .chip-button,
@@ -197,9 +213,11 @@ input {
 
 .toolbar-summary {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.65rem;
   margin-bottom: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .toolbar-summary span {
@@ -209,6 +227,7 @@ input {
   background: rgba(22, 22, 22, 0.88);
   color: var(--text-soft);
   font-size: 0.78rem;
+  flex: 0 0 auto;
 }
 
 .badge,
@@ -229,9 +248,9 @@ input {
 
 .stage-board {
   position: relative;
-  min-height: calc(100vh - 84px);
+  min-height: clamp(760px, calc(100vh - 112px), 940px);
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
     radial-gradient(circle at center, rgba(255, 255, 255, 0.03), transparent 18rem),
@@ -251,7 +270,7 @@ input {
 }
 
 .stage-copy {
-  max-width: 18rem;
+  max-width: 14rem;
 }
 
 .stage-copy h1,
@@ -266,7 +285,7 @@ input {
 
 .stage-copy h1 {
   margin-top: 0.32rem;
-  font-size: clamp(1.35rem, 2vw, 2.2rem);
+  font-size: clamp(1.45rem, 2.4vw, 2.45rem);
   line-height: 0.96;
 }
 
@@ -282,17 +301,17 @@ input {
 }
 
 .stage-copy p {
-  max-width: 18rem;
+  max-width: 14rem;
   margin-top: 0.28rem;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
 }
 
 .stage-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(132px, 1fr));
+  grid-template-columns: repeat(3, minmax(130px, 1fr));
   gap: 8px;
   align-content: start;
-  max-width: 420px;
+  max-width: 438px;
 }
 
 .stage-chip,
@@ -342,22 +361,22 @@ input {
 
 .board-hud {
   position: absolute;
-  top: 84px;
-  left: 18px;
+  top: 118px;
+  left: 16px;
   z-index: 3;
-  max-width: 16rem;
+  max-width: 14rem;
   pointer-events: none;
 }
 
 .board-hud-copy h2 {
   margin-top: 0.35rem;
-  font-size: clamp(1rem, 1.25vw, 1.35rem);
+  font-size: clamp(1.1rem, 1.45vw, 1.6rem);
 }
 
 .board-hud-copy p {
   margin: 0.28rem 0 0;
-  max-width: 15rem;
-  font-size: 0.78rem;
+  max-width: 13rem;
+  font-size: 0.76rem;
 }
 
 .board-hud-side {
@@ -370,7 +389,7 @@ input {
 }
 
 .hud-card {
-  min-width: 176px;
+  min-width: 186px;
   padding: 0.72rem 0.82rem;
 }
 
@@ -420,13 +439,13 @@ input {
   gap: 0.12rem;
   padding: 0.62rem;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.24);
   text-align: center;
   color: #ffffff;
   box-shadow:
-    inset 0 6px 12px rgba(255, 255, 255, 0.08),
-    inset 0 -10px 20px rgba(0, 0, 0, 0.4),
-    0 10px 28px rgba(0, 0, 0, 0.34);
+    inset 0 4px 10px rgba(255, 255, 255, 0.08),
+    inset 0 -14px 24px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.34);
   transition: box-shadow 160ms ease, border-color 160ms ease, transform 160ms ease;
   cursor: pointer;
 }
@@ -444,32 +463,32 @@ input {
 
 .bubble.is-high {
   background:
-    radial-gradient(circle at 35% 30%, rgba(48, 58, 48, 0.98) 0%, rgba(35, 45, 35, 0.98) 55%, rgba(39, 255, 96, 0.28) 76%, rgba(40, 255, 92, 0.95) 90%, rgba(15, 95, 42, 1) 100%);
+    radial-gradient(circle at 35% 30%, rgba(51, 58, 51, 0.98) 0%, rgba(31, 36, 31, 0.98) 56%, rgba(44, 255, 108, 0.18) 72%, rgba(44, 255, 108, 0.96) 88%, rgba(15, 95, 42, 1) 100%);
   box-shadow:
     inset 0 8px 16px rgba(255, 255, 255, 0.06),
     inset 0 -12px 24px rgba(0, 0, 0, 0.34),
-    0 0 14px rgba(59, 255, 124, 0.5),
-    0 0 28px rgba(59, 255, 124, 0.24);
+    0 0 18px rgba(59, 255, 124, 0.52),
+    0 0 36px rgba(59, 255, 124, 0.22);
 }
 
 .bubble.is-medium {
   background:
-    radial-gradient(circle at 35% 30%, rgba(63, 58, 40, 0.98) 0%, rgba(49, 45, 31, 0.98) 55%, rgba(255, 211, 73, 0.24) 76%, rgba(255, 210, 73, 0.94) 90%, rgba(125, 91, 10, 1) 100%);
+    radial-gradient(circle at 35% 30%, rgba(65, 60, 42, 0.98) 0%, rgba(36, 34, 29, 0.98) 56%, rgba(255, 211, 73, 0.18) 72%, rgba(255, 210, 73, 0.95) 88%, rgba(125, 91, 10, 1) 100%);
   box-shadow:
     inset 0 8px 16px rgba(255, 255, 255, 0.05),
     inset 0 -12px 24px rgba(0, 0, 0, 0.34),
-    0 0 12px rgba(255, 212, 77, 0.3),
-    0 0 24px rgba(255, 212, 77, 0.18);
+    0 0 16px rgba(255, 212, 77, 0.32),
+    0 0 32px rgba(255, 212, 77, 0.18);
 }
 
 .bubble.is-low {
   background:
-    radial-gradient(circle at 35% 30%, rgba(64, 42, 42, 0.98) 0%, rgba(51, 33, 33, 0.98) 55%, rgba(255, 83, 72, 0.26) 76%, rgba(255, 79, 69, 0.95) 90%, rgba(117, 20, 18, 1) 100%);
+    radial-gradient(circle at 35% 30%, rgba(66, 44, 44, 0.98) 0%, rgba(36, 30, 30, 0.98) 56%, rgba(255, 83, 72, 0.18) 72%, rgba(255, 79, 69, 0.96) 88%, rgba(117, 20, 18, 1) 100%);
   box-shadow:
     inset 0 8px 16px rgba(255, 255, 255, 0.05),
     inset 0 -12px 24px rgba(0, 0, 0, 0.34),
-    0 0 14px rgba(255, 93, 85, 0.34),
-    0 0 28px rgba(255, 93, 85, 0.18);
+    0 0 18px rgba(255, 93, 85, 0.34),
+    0 0 34px rgba(255, 93, 85, 0.18);
 }
 
 .bubble-game {
@@ -497,15 +516,15 @@ input {
 
 .floating-dock {
   position: absolute;
-  top: 92px;
+  top: 84px;
   right: 14px;
-  bottom: 72px;
+  bottom: 16px;
   z-index: 3;
-  width: 252px;
+  width: 286px;
   display: grid;
   gap: 10px;
   align-content: start;
-  max-height: calc(100% - 108px);
+  max-height: calc(100% - 100px);
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -521,6 +540,7 @@ input {
 
 .dock-card {
   padding: 12px;
+  background: rgba(16, 16, 16, 0.92);
 }
 
 .dock-card h3 {
@@ -532,6 +552,8 @@ input {
   display: grid;
   gap: 0.72rem;
   margin-top: 1rem;
+  max-height: 360px;
+  overflow-y: auto;
 }
 
 .top-item {
@@ -700,10 +722,6 @@ input {
 }
 
 @media (max-width: 1520px) {
-  .control-deck {
-    grid-template-columns: 1fr;
-  }
-
   .stage-topbar {
     position: relative;
     inset: 0;
@@ -719,7 +737,8 @@ input {
 
 @media (max-width: 1260px) {
   .stage-board {
-    min-height: 1320px;
+    min-height: 980px;
+    overflow: visible;
   }
 
   .board-hud {
@@ -737,7 +756,7 @@ input {
     bottom: auto;
     width: auto;
     padding: 0 12px 12px;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     max-height: none;
     overflow: visible;
   }
@@ -761,21 +780,10 @@ input {
   }
 
   .control-deck {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    overflow-x: auto;
-    overflow-y: hidden;
     top: 8px;
     gap: 10px;
     padding: 10px;
     border-radius: 16px;
-    scrollbar-width: none;
-  }
-
-  .control-deck::-webkit-scrollbar,
-  .toolbar-summary::-webkit-scrollbar {
-    display: none;
   }
 
   .control-brand,
@@ -814,7 +822,7 @@ input {
   }
 
   .stage-metrics {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .stage-topbar {
@@ -832,6 +840,11 @@ input {
     position: relative;
   }
 
+  .stage-copy {
+    max-width: none;
+  }
+
+  .stage-copy p,
   .board-hud-copy p {
     display: none;
   }
@@ -859,11 +872,47 @@ input {
   }
 
   .stage-board {
-    min-height: 1460px;
+    min-height: 920px;
     overflow: visible;
   }
 
   .floating-dock {
     gap: 12px;
+    grid-template-columns: 1fr;
+  }
+
+  .bubble span {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .control-search {
+    min-width: 190px;
+  }
+
+  .stage-copy h1 {
+    font-size: 1.5rem;
+  }
+
+  .stage-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .stage-board {
+    min-height: 760px;
+  }
+
+  .bubble {
+    padding: 0.48rem;
+  }
+
+  .bubble-game {
+    max-width: 72%;
+    font-size: 0.52rem;
+  }
+
+  .bubble strong {
+    font-size: clamp(0.9rem, 4.6vw, 1.4rem);
   }
 }
