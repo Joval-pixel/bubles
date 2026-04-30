@@ -174,43 +174,6 @@ const normalizeOptions = (options) => {
   }));
 };
 
-const buildFallbackMarket = (fixture) => {
-  const homeName = fixture?.teams?.home?.name || "Mandante";
-  const awayName = fixture?.teams?.away?.name || "Visitante";
-  const seed = stableSeed(`${fixture?.fixture?.id}-${homeName}-${awayName}`);
-  const lean = (seed - 0.5) * 0.16;
-  const draw = 0.27 + (stableSeed(`${fixture?.fixture?.id}-draw`) - 0.5) * 0.04;
-  const home = 0.365 + lean;
-  const away = 1 - draw - home;
-
-  return buildMarketFromOptions(
-    normalizeOptions([
-      createOption({
-        key: "home",
-        code: "1",
-        label: homeName,
-        probability: home,
-        source: "estimate",
-      }),
-      createOption({
-        key: "draw",
-        code: "X",
-        label: "Empate",
-        probability: draw,
-        source: "estimate",
-      }),
-      createOption({
-        key: "away",
-        code: "2",
-        label: awayName,
-        probability: away,
-        source: "estimate",
-      }),
-    ]),
-    "Modelo Bubles"
-  );
-};
-
 const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
   const sorted = [...options].sort((left, right) => right.probability - left.probability);
   const selected = sorted[0];
@@ -241,34 +204,32 @@ const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
   };
 };
 
+const buildFallbackMarket = (fixture) => {
+  const homeName = fixture?.teams?.home?.name || "Mandante";
+  const awayName = fixture?.teams?.away?.name || "Visitante";
+  const seed = stableSeed(`${fixture?.fixture?.id}-${homeName}-${awayName}`);
+  const lean = (seed - 0.5) * 0.16;
+  const draw = 0.27 + (stableSeed(`${fixture?.fixture?.id}-draw`) - 0.5) * 0.04;
+  const home = 0.365 + lean;
+  const away = 1 - draw - home;
+
+  return buildMarketFromOptions(
+    normalizeOptions([
+      createOption({ key: "home", code: "1", label: homeName, probability: home, source: "estimate" }),
+      createOption({ key: "draw", code: "X", label: "Empate", probability: draw, source: "estimate" }),
+      createOption({ key: "away", code: "2", label: awayName, probability: away, source: "estimate" }),
+    ]),
+    "Modelo Bubles"
+  );
+};
+
 const buildMarketFromBookmakers = (entry) => {
   const homeName = entry?.teams?.home?.name || "";
   const awayName = entry?.teams?.away?.name || "";
   const buckets = {
-    home: {
-      key: "home",
-      code: "1",
-      label: homeName,
-      probabilities: [],
-      bestOdd: 0,
-      bookmaker: "",
-    },
-    draw: {
-      key: "draw",
-      code: "X",
-      label: "Empate",
-      probabilities: [],
-      bestOdd: 0,
-      bookmaker: "",
-    },
-    away: {
-      key: "away",
-      code: "2",
-      label: awayName,
-      probabilities: [],
-      bestOdd: 0,
-      bookmaker: "",
-    },
+    home: { key: "home", code: "1", label: homeName, probabilities: [], bestOdd: 0, bookmaker: "" },
+    draw: { key: "draw", code: "X", label: "Empate", probabilities: [], bestOdd: 0, bookmaker: "" },
+    away: { key: "away", code: "2", label: awayName, probabilities: [], bestOdd: 0, bookmaker: "" },
   };
 
   for (const bookmaker of entry?.bookmakers ?? []) {
@@ -435,9 +396,7 @@ const sortGames = (games) =>
 
 const fetchWorldCupOdds = async () => {
   try {
-    const oddsEntries = await fetchFromApi(
-      `/odds?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`
-    );
+    const oddsEntries = await fetchFromApi(`/odds?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`);
     return buildOddsMap(oddsEntries);
   } catch (_error) {
     return new Map();
@@ -482,9 +441,7 @@ export async function GET(_request) {
     return makeJsonResponse({
       games,
       updatedAt: new Date().toISOString(),
-      message: liveCount
-        ? "Jogos ao vivo da Copa 2026 no radar"
-        : "Calendario da Copa 2026 carregado",
+      message: liveCount ? "Jogos ao vivo da Copa 2026 no radar" : "Calendario da Copa 2026 carregado",
       debug: `${games.length} jogos da Copa 2026 carregados. ${oddsCount} com odds oficiais; os demais usam estimativa visual ate odds/previsoes ficarem disponiveis.`,
       tournament: {
         id: WORLD_CUP_LEAGUE_ID,
