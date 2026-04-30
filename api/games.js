@@ -6,8 +6,8 @@ const API_KEY =
   "";
 
 const NEXT_LIMIT = Math.max(
-  24,
-  Math.min(96, Number.parseInt(process.env.API_FOOTBALL_NEXT_LIMIT || "60", 10) || 60)
+  48,
+  Math.min(140, Number.parseInt(process.env.API_FOOTBALL_NEXT_LIMIT || "96", 10) || 96)
 );
 
 const UPCOMING_DAYS = Math.max(
@@ -595,7 +595,7 @@ const fetchUpcomingGames = async () => {
         .filter(isImportantFixture)
     );
 
-    if (upcomingFixtures.length >= NEXT_LIMIT * 2) {
+    if (upcomingFixtures.length >= NEXT_LIMIT * 3) {
       break;
     }
   }
