@@ -28,14 +28,14 @@ const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
 
 const getDisplaySize = (size, scaleMode) => {
   if (scaleMode === "compact") {
-    return clamp(size * 0.8, 60, 244);
+    return clamp(size * 0.72, 56, 226);
   }
 
   if (scaleMode === "boost") {
-    return clamp(size * 1.08, 88, 300);
+    return clamp(size * 1.02, 84, 280);
   }
 
-  return clamp(size * 0.94, 72, 276);
+  return clamp(size * 0.84, 64, 250);
 };
 
 const getFilterLabel = (statusFilter, rangeFilter) => {
@@ -125,21 +125,22 @@ const getSignal = (game) => {
 
 const getLayoutPosition = (index, total, bounds, size) => {
   const width = Math.max(bounds.width || 0, 1360);
-  const height = Math.max(bounds.height || 0, 860);
-  const leftPadding = 28;
-  const topPadding = 112;
-  const bottomPadding = 56;
-  const sideDockReserve = width > 1220 ? 336 : 28;
-  const usableWidth = Math.max(440, width - leftPadding - sideDockReserve);
+  const height = Math.max(bounds.height || 0, 920);
+  const leftPadding = width > 960 ? 18 : 14;
+  const topPadding = width > 1280 ? 88 : width > 760 ? 104 : 116;
+  const bottomPadding = width > 960 ? 32 : 46;
+  const sideDockReserve = width > 1320 ? 302 : width > 1180 ? 274 : 16;
+  const usableWidth = Math.max(360, width - leftPadding - sideDockReserve - 16);
   const usableHeight = Math.max(420, height - topPadding - bottomPadding);
   const centerX = leftPadding + usableWidth / 2;
   const centerY = topPadding + usableHeight / 2;
-  const angle = index * 2.399963229728653;
-  const orbit = Math.sqrt(index + 1) * 72;
-  const horizontalOrbit = orbit * 1.42;
-  const verticalOrbit = orbit * 0.92;
-  const jitterX = (((index * 19) % 27) - 13) * 2.2;
-  const jitterY = (((index * 31) % 21) - 10) * 1.9;
+  const angle = index * 2.14;
+  const orbitBase = width > 1280 ? 56 : width > 760 ? 48 : 40;
+  const orbit = Math.sqrt(index + 1) * orbitBase;
+  const horizontalOrbit = orbit * 1.64;
+  const verticalOrbit = orbit * 1.08;
+  const jitterX = (((index * 19) % 27) - 13) * 1.8;
+  const jitterY = (((index * 31) % 21) - 10) * 1.6;
   const x = centerX + Math.cos(angle) * horizontalOrbit + jitterX - size / 2;
   const y = centerY + Math.sin(angle) * verticalOrbit + jitterY - size / 2;
 
@@ -163,7 +164,7 @@ const getTier = (probability) => {
 
 const createBubble = (game, existing, bounds, index, total) => {
   const bubbleStrength = clamp(game.bubbleValue ?? game.probability ?? 0, 0.08, 0.92);
-  const size = clamp(68 + bubbleStrength * 244 + (game.isLive ? 14 : 0), 68, 284);
+  const size = clamp(60 + bubbleStrength * 224 + (game.isLive ? 12 : 0), 60, 260);
   const fallbackPosition = getLayoutPosition(index, total, bounds, size);
 
   return {
@@ -180,11 +181,11 @@ const createBubble = (game, existing, bounds, index, total) => {
 
 const moveBubbles = (items, bounds) => {
   const width = Math.max(bounds.width || 0, 1360);
-  const height = Math.max(bounds.height || 0, 860);
-  const leftPadding = 28;
-  const topPadding = 112;
-  const bottomPadding = 56;
-  const sideDockReserve = width > 1220 ? 336 : 28;
+  const height = Math.max(bounds.height || 0, 920);
+  const leftPadding = width > 960 ? 18 : 14;
+  const topPadding = width > 1280 ? 88 : width > 760 ? 104 : 116;
+  const bottomPadding = width > 960 ? 32 : 46;
+  const sideDockReserve = width > 1320 ? 302 : width > 1180 ? 274 : 16;
   const maxX = width - sideDockReserve;
   const maxY = height - bottomPadding;
 
@@ -514,9 +515,7 @@ export default function App() {
   const emptyMessage = hasAnyGames ? "Sem jogos para este filtro" : "Sem jogos ao vivo";
   const hasLiveGames = filteredBubbles.some((item) => item.isLive);
   const badgeLabel = hasLiveGames ? "Ao vivo" : filteredBubbles.length ? "Proximos" : "Radar";
-  const headlineText = hasLiveGames
-    ? "Mapa ao vivo"
-    : "Mapa principal";
+  const headlineText = hasLiveGames ? "Mapa ao vivo" : "Mapa principal";
   const filterLabel = getFilterLabel(statusFilter, rangeFilter);
   const sortLabel = getSortLabel(sortMode);
   const selectedSignal = getSignal(selectedGame);
@@ -683,7 +682,7 @@ export default function App() {
             <div className="stage-copy">
               <span className="badge">{badgeLabel}</span>
               <h1>Bubles Live Radar</h1>
-              <p>Bolhas maiores mostram as chances mais fortes do radar.</p>
+              <p>Bolhas maiores mostram as chances mais fortes.</p>
             </div>
 
             <div className="stage-metrics">
@@ -716,7 +715,7 @@ export default function App() {
               <p>
                 {serverMessage && serverMessage !== "ok"
                   ? serverMessage
-                  : "Jogos importantes ficam no mapa principal e a lateral serve so como apoio."}
+                  : "Mapa cheio com os jogos mais fortes; lateral so como apoio."}
               </p>
             </div>
 
