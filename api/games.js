@@ -7,22 +7,10 @@ const API_KEY =
 
 const WORLD_CUP_LEAGUE_ID = Number.parseInt(process.env.WORLD_CUP_LEAGUE_ID || "1", 10) || 1;
 const WORLD_CUP_SEASON = Number.parseInt(process.env.WORLD_CUP_SEASON || "2026", 10) || 2026;
-const WORLD_CUP_LIMIT = Math.max(
-  48,
-  Math.min(140, Number.parseInt(process.env.WORLD_CUP_LIMIT || "120", 10) || 120)
-);
-const TODAY_LIMIT = Math.max(
-  24,
-  Math.min(1000, Number.parseInt(process.env.TODAY_LIMIT || "500", 10) || 500)
-);
-const MARKETS_PER_GAME_LIMIT = Math.max(
-  12,
-  Math.min(120, Number.parseInt(process.env.MARKETS_PER_GAME_LIMIT || "80", 10) || 80)
-);
-const OPTIONS_PER_MARKET_LIMIT = Math.max(
-  4,
-  Math.min(30, Number.parseInt(process.env.OPTIONS_PER_MARKET_LIMIT || "16", 10) || 16)
-);
+const WORLD_CUP_LIMIT = Math.max(48, Math.min(140, Number.parseInt(process.env.WORLD_CUP_LIMIT || "120", 10) || 120));
+const TODAY_LIMIT = Math.max(24, Math.min(1000, Number.parseInt(process.env.TODAY_LIMIT || "500", 10) || 500));
+const MARKETS_PER_GAME_LIMIT = Math.max(12, Math.min(120, Number.parseInt(process.env.MARKETS_PER_GAME_LIMIT || "80", 10) || 80));
+const OPTIONS_PER_MARKET_LIMIT = Math.max(4, Math.min(30, Number.parseInt(process.env.OPTIONS_PER_MARKET_LIMIT || "16", 10) || 16));
 const API_TIMEZONE = process.env.API_FOOTBALL_TIMEZONE || "America/Sao_Paulo";
 
 const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
@@ -38,23 +26,15 @@ const normalizeText = (value) =>
     .toLowerCase();
 
 const toNumber = (value) => {
-  if (value === null || value === undefined || value === "" || value === "null") {
-    return 0;
-  }
-
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
+  if (value === null || value === undefined || value === "" || value === "null") return 0;
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
 
   const parsed = Number.parseFloat(String(value).replace("%", "").replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const average = (values) => {
-  if (!values.length) {
-    return 0;
-  }
-
+  if (!values.length) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 };
 
@@ -85,6 +65,7 @@ const getBrazilDate = () => {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(new Date());
+
   const year = parts.find((part) => part.type === "year")?.value;
   const month = parts.find((part) => part.type === "month")?.value;
   const day = parts.find((part) => part.type === "day")?.value;
@@ -103,13 +84,8 @@ const safeJson = async (response) => {
 const humanizeApiError = (message) => {
   const text = String(message ?? "");
 
-  if (text.includes("REQUESTS")) {
-    return "Limite diario da API-Football atingido no plano atual";
-  }
-
-  if (text.includes("PLAN")) {
-    return "Seu plano atual da API-Football nao cobre esse endpoint";
-  }
+  if (text.includes("REQUESTS")) return "Limite diario da API-Football atingido no plano atual";
+  if (text.includes("PLAN")) return "Seu plano atual da API-Football nao cobre esse endpoint";
 
   return text || "Falha inesperada na API-Football";
 };
@@ -151,17 +127,9 @@ const stableSeed = (input) => {
 const mapOutcomeKey = (label, homeName, awayName) => {
   const normalized = normalizeText(label);
 
-  if (normalized === "1" || normalized === "home" || normalized === normalizeText(homeName)) {
-    return "home";
-  }
-
-  if (normalized === "2" || normalized === "away" || normalized === normalizeText(awayName)) {
-    return "away";
-  }
-
-  if (normalized === "x" || normalized === "draw" || normalized === "tie" || normalized === "empate") {
-    return "draw";
-  }
+  if (normalized === "1" || normalized === "home" || normalized === normalizeText(homeName)) return "home";
+  if (normalized === "2" || normalized === "away" || normalized === normalizeText(awayName)) return "away";
+  if (normalized === "x" || normalized === "draw" || normalized === "tie" || normalized === "empate") return "draw";
 
   return null;
 };
@@ -180,9 +148,7 @@ const getMatchWinnerBet = (bookmaker) => {
 const getBetCategory = (betName) => {
   const name = normalizeText(betName);
 
-  if (name.includes("corner")) {
-    return "Escanteios";
-  }
+  if (name.includes("corner")) return "Escanteios";
 
   if (
     name.includes("goal") ||
@@ -194,25 +160,11 @@ const getBetCategory = (betName) => {
     return "Gols";
   }
 
-  if (name.includes("card") || name.includes("booking")) {
-    return "Cartoes";
-  }
-
-  if (name.includes("handicap") || name.includes("asian")) {
-    return "Handicap";
-  }
-
-  if (name.includes("half") || name.includes("1st") || name.includes("2nd")) {
-    return "Tempo";
-  }
-
-  if (name.includes("score")) {
-    return "Placar";
-  }
-
-  if (name.includes("winner") || name === "1x2" || name.includes("double chance")) {
-    return "Resultado";
-  }
+  if (name.includes("card") || name.includes("booking")) return "Cartoes";
+  if (name.includes("handicap") || name.includes("asian")) return "Handicap";
+  if (name.includes("half") || name.includes("1st") || name.includes("2nd")) return "Tempo";
+  if (name.includes("score")) return "Placar";
+  if (name.includes("winner") || name === "1x2" || name.includes("double chance")) return "Resultado";
 
   return "Outros";
 };
@@ -244,53 +196,13 @@ const createOption = ({ key, code, label, probability, odd, bookmaker, source })
 
 const normalizeOptions = (options) => {
   const total = options.reduce((sum, option) => sum + option.probability, 0);
-
-  if (!(total > 0)) {
-    return options;
-  }
+  if (!(total > 0)) return options;
 
   return options.map((option) => ({
     ...option,
     probability: option.probability / total,
     odd: option.odd > 1 ? option.odd : total / option.probability,
   }));
-};
-
-const buildFallbackMarket = (fixture) => {
-  const homeName = fixture?.teams?.home?.name || "Mandante";
-  const awayName = fixture?.teams?.away?.name || "Visitante";
-  const seed = stableSeed(`${fixture?.fixture?.id}-${homeName}-${awayName}`);
-  const lean = (seed - 0.5) * 0.16;
-  const draw = 0.27 + (stableSeed(`${fixture?.fixture?.id}-draw`) - 0.5) * 0.04;
-  const home = 0.365 + lean;
-  const away = 1 - draw - home;
-
-  return buildMarketFromOptions(
-    normalizeOptions([
-      createOption({
-        key: "home",
-        code: "1",
-        label: homeName,
-        probability: home,
-        source: "estimate",
-      }),
-      createOption({
-        key: "draw",
-        code: "X",
-        label: "Empate",
-        probability: draw,
-        source: "estimate",
-      }),
-      createOption({
-        key: "away",
-        code: "2",
-        label: awayName,
-        probability: away,
-        source: "estimate",
-      }),
-    ]),
-    "Modelo Bubles"
-  );
 };
 
 const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
@@ -323,6 +235,25 @@ const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
   };
 };
 
+const buildFallbackMarket = (fixture) => {
+  const homeName = fixture?.teams?.home?.name || "Mandante";
+  const awayName = fixture?.teams?.away?.name || "Visitante";
+  const seed = stableSeed(`${fixture?.fixture?.id}-${homeName}-${awayName}`);
+  const lean = (seed - 0.5) * 0.16;
+  const draw = 0.27 + (stableSeed(`${fixture?.fixture?.id}-draw`) - 0.5) * 0.04;
+  const home = 0.365 + lean;
+  const away = 1 - draw - home;
+
+  return buildMarketFromOptions(
+    normalizeOptions([
+      createOption({ key: "home", code: "1", label: homeName, probability: home, source: "estimate" }),
+      createOption({ key: "draw", code: "X", label: "Empate", probability: draw, source: "estimate" }),
+      createOption({ key: "away", code: "2", label: awayName, probability: away, source: "estimate" }),
+    ]),
+    "Modelo Bubles"
+  );
+};
+
 const buildBetMarketsFromBookmakers = (entry) => {
   const markets = new Map();
 
@@ -335,15 +266,10 @@ const buildBetMarketsFromBookmakers = (entry) => {
         }))
         .filter((value) => value.label && value.odd > 1);
 
-      if (values.length < 2) {
-        continue;
-      }
+      if (values.length < 2) continue;
 
       const totalImplied = values.reduce((sum, value) => sum + 1 / value.odd, 0);
-
-      if (!(totalImplied > 0)) {
-        continue;
-      }
+      if (!(totalImplied > 0)) continue;
 
       const marketKey = `${bet?.id || ""}-${normalizeText(bet?.name)}`;
       const market =
@@ -404,9 +330,7 @@ const buildBetMarketsFromBookmakers = (entry) => {
       const leader = options[0];
       const second = options[1];
 
-      if (!leader) {
-        return null;
-      }
+      if (!leader) return null;
 
       return {
         id: market.id,
@@ -428,11 +352,7 @@ const buildBetMarketsFromBookmakers = (entry) => {
     .filter(Boolean)
     .sort((left, right) => {
       const rankDiff = getCategoryRank(left.category) - getCategoryRank(right.category);
-
-      if (rankDiff !== 0) {
-        return rankDiff;
-      }
-
+      if (rankDiff !== 0) return rankDiff;
       return (right.leader?.probability || 0) - (left.leader?.probability || 0);
     })
     .slice(0, MARKETS_PER_GAME_LIMIT);
@@ -445,9 +365,10 @@ const createAiInsights = (market, betMarkets) => {
   const cardsPick = betMarkets.find((item) => item.category === "Cartoes")?.leader;
 
   return {
-    headline: market?.confidence === "odds"
-      ? `IA aponta ${mainPick} como leitura principal`
-      : `IA estimou vantagem para ${mainPick}`,
+    headline:
+      market?.confidence === "odds"
+        ? `IA aponta ${mainPick} como leitura principal`
+        : `IA estimou vantagem para ${mainPick}`,
     goals: goalsPick
       ? `Gols: ${goalsPick.label} com ${Math.round(goalsPick.probability * 100)}%`
       : "Gols: mercado nao retornado pela API",
@@ -463,48 +384,23 @@ const createAiInsights = (market, betMarkets) => {
 const buildMarketFromBookmakers = (entry) => {
   const homeName = entry?.teams?.home?.name || "";
   const awayName = entry?.teams?.away?.name || "";
+
   const buckets = {
-    home: {
-      key: "home",
-      code: "1",
-      label: homeName,
-      probabilities: [],
-      bestOdd: 0,
-      bookmaker: "",
-    },
-    draw: {
-      key: "draw",
-      code: "X",
-      label: "Empate",
-      probabilities: [],
-      bestOdd: 0,
-      bookmaker: "",
-    },
-    away: {
-      key: "away",
-      code: "2",
-      label: awayName,
-      probabilities: [],
-      bestOdd: 0,
-      bookmaker: "",
-    },
+    home: { key: "home", code: "1", label: homeName, probabilities: [], bestOdd: 0, bookmaker: "" },
+    draw: { key: "draw", code: "X", label: "Empate", probabilities: [], bestOdd: 0, bookmaker: "" },
+    away: { key: "away", code: "2", label: awayName, probabilities: [], bestOdd: 0, bookmaker: "" },
   };
 
   for (const bookmaker of entry?.bookmakers ?? []) {
     const bet = getMatchWinnerBet(bookmaker);
-
-    if (!bet || !Array.isArray(bet.values)) {
-      continue;
-    }
+    if (!bet || !Array.isArray(bet.values)) continue;
 
     const values = bet.values
       .map((value) => {
         const key = mapOutcomeKey(value?.value, homeName, awayName);
         const odd = toNumber(value?.odd);
 
-        if (!key || odd <= 1) {
-          return null;
-        }
+        if (!key || odd <= 1) return null;
 
         if (odd > buckets[key].bestOdd) {
           buckets[key].bestOdd = odd;
@@ -515,15 +411,10 @@ const buildMarketFromBookmakers = (entry) => {
       })
       .filter(Boolean);
 
-    if (values.length < 2) {
-      continue;
-    }
+    if (values.length < 2) continue;
 
     const totalImplied = values.reduce((sum, value) => sum + 1 / value.odd, 0);
-
-    if (!(totalImplied > 0)) {
-      continue;
-    }
+    if (!(totalImplied > 0)) continue;
 
     for (const value of values) {
       buckets[value.key].probabilities.push((1 / value.odd) / totalImplied);
@@ -544,9 +435,7 @@ const buildMarketFromBookmakers = (entry) => {
     )
     .filter((option) => option.probability > 0 && option.odd > 1);
 
-  if (options.length < 2) {
-    return null;
-  }
+  if (options.length < 2) return null;
 
   return buildMarketFromOptions(options);
 };
@@ -560,10 +449,7 @@ const buildOddsMap = (oddsEntries) => {
     const betMarkets = buildBetMarketsFromBookmakers(entry);
 
     if (fixtureId && (market || betMarkets.length)) {
-      map.set(fixtureId, {
-        market,
-        betMarkets,
-      });
+      map.set(fixtureId, { market, betMarkets });
     }
   }
 
@@ -588,13 +474,8 @@ const getStage = (fixture, mode = "worldcup") => {
 
   const round = normalizeText(fixture?.league?.round);
 
-  if (round.includes("group")) {
-    return "groups";
-  }
-
-  if (round.includes("final") || round.includes("round") || round.includes("semi") || round.includes("third")) {
-    return "knockout";
-  }
+  if (round.includes("group")) return "groups";
+  if (round.includes("final") || round.includes("round") || round.includes("semi") || round.includes("third")) return "knockout";
 
   return "worldcup";
 };
@@ -608,6 +489,7 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
   const isFinished = FINISHED_STATUSES.has(statusShort);
   const market = oddsAnalysis?.market || buildFallbackMarket(fixture);
   const rawBetMarkets = oddsAnalysis?.betMarkets ?? [];
+
   const betMarkets = rawBetMarkets.length
     ? rawBetMarkets
     : [
@@ -635,12 +517,12 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
           })),
         },
       ];
+
   const minute = isLive ? clamp(toNumber(fixture?.fixture?.status?.elapsed), 1, 130) : 0;
   const strongestMarket = betMarkets[0]?.leader;
   const bubbleValue = strongestMarket
     ? clamp(Math.max(market.probability, strongestMarket.probability), 0.03, 0.92)
     : market.probability;
-  const aiInsights = createAiInsights(market, betMarkets);
 
   return {
     id: fixtureId,
@@ -678,29 +560,26 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
     leaderGap: market.leaderGap,
     marketOptions: market.marketOptions,
     betMarkets,
-    aiInsights,
+    aiInsights: createAiInsights(market, betMarkets),
     totalMarkets: betMarkets.length,
   };
 };
 
 const sortGames = (games) =>
   [...games].sort((left, right) => {
-    if (Number(right.isLive) !== Number(left.isLive)) {
-      return Number(right.isLive) - Number(left.isLive);
-    }
+    if (Number(right.isLive) !== Number(left.isLive)) return Number(right.isLive) - Number(left.isLive);
 
-    if (new Date(left.commenceTime || 0).getTime() !== new Date(right.commenceTime || 0).getTime()) {
-      return new Date(left.commenceTime || 0).getTime() - new Date(right.commenceTime || 0).getTime();
-    }
+    const leftTime = new Date(left.commenceTime || 0).getTime();
+    const rightTime = new Date(right.commenceTime || 0).getTime();
+
+    if (leftTime !== rightTime) return leftTime - rightTime;
 
     return (right.bubbleValue || 0) - (left.bubbleValue || 0);
   });
 
 const fetchWorldCupOdds = async () => {
   try {
-    const oddsEntries = await fetchFromApi(
-      `/odds?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`
-    );
+    const oddsEntries = await fetchFromApi(`/odds?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`);
     return buildOddsMap(oddsEntries);
   } catch (_error) {
     return new Map();
@@ -709,9 +588,7 @@ const fetchWorldCupOdds = async () => {
 
 const fetchTodayOdds = async (date) => {
   try {
-    const oddsEntries = await fetchFromApi(
-      `/odds?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`
-    );
+    const oddsEntries = await fetchFromApi(`/odds?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`);
     return buildOddsMap(oddsEntries);
   } catch (_error) {
     return new Map();
@@ -734,6 +611,7 @@ const fetchWorldCupGames = async () => {
 
 const fetchTodayGames = async () => {
   const date = getBrazilDate();
+
   const [fixtures, oddsMap] = await Promise.all([
     fetchFromApi(`/fixtures?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`),
     fetchTodayOdds(date),
@@ -776,16 +654,12 @@ export async function GET(request) {
 
       if (!games.length) {
         return makeJsonResponse(
-          makeEmptyPayload(
-            "Sem jogos de hoje",
-            `Nenhuma fixture retornada para date=${date}`,
-            {
-              id: "today",
-              season: new Date().getFullYear(),
-              name: "Jogos de hoje",
-              date,
-            }
-          )
+          makeEmptyPayload("Sem jogos de hoje", `Nenhuma fixture retornada para date=${date}`, {
+            id: "today",
+            season: new Date().getFullYear(),
+            name: "Jogos de hoje",
+            date,
+          })
         );
       }
 
@@ -819,9 +693,7 @@ export async function GET(request) {
     return makeJsonResponse({
       games,
       updatedAt: new Date().toISOString(),
-      message: liveCount
-        ? "Jogos ao vivo da Copa 2026 no radar"
-        : "Calendario da Copa 2026 carregado",
+      message: liveCount ? "Jogos ao vivo da Copa 2026 no radar" : "Calendario da Copa 2026 carregado",
       debug: `${games.length} jogos da Copa 2026 carregados. ${oddsCount} com odds oficiais; os demais usam estimativa visual ate odds/previsoes ficarem disponiveis.`,
       tournament: {
         id: WORLD_CUP_LEAGUE_ID,
@@ -831,7 +703,10 @@ export async function GET(request) {
     });
   } catch (error) {
     return makeJsonResponse(
-      makeEmptyPayload("Falha ao carregar Copa 2026", humanizeApiError(error?.message))
+      makeEmptyPayload(
+        mode === "today" ? "Falha ao carregar jogos de hoje" : "Falha ao carregar Copa 2026",
+        humanizeApiError(error?.message)
+      )
     );
   }
 }
