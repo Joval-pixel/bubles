@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/widgets",
-      "destination": "/index.html"
-    }
-  ]
-}
