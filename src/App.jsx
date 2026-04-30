@@ -327,7 +327,7 @@ const moveBubbles = (items, bounds) => {
 
 export default function App() {
   const boardRef = useRef(null);
-  const animationRef = useRef(0);
+  const selectedPanelRef = useRef(null);
   const boundsRef = useRef({ width: 0, height: 0 });
 
   const [bubbles, setBubbles] = useState([]);
@@ -430,22 +430,18 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!bubbles.length) {
-      return undefined;
+  const activateBubble = (id) => {
+    setSelectedId(id);
+
+    if (typeof window !== "undefined" && window.innerWidth <= 900) {
+      window.setTimeout(() => {
+        selectedPanelRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 60);
     }
-
-    const animate = () => {
-      setBubbles((current) => moveBubbles(current, boundsRef.current));
-      animationRef.current = window.requestAnimationFrame(animate);
-    };
-
-    animationRef.current = window.requestAnimationFrame(animate);
-
-    return () => {
-      window.cancelAnimationFrame(animationRef.current);
-    };
-  }, [bubbles.length]);
+  };
 
   const filteredBubbles = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -861,7 +857,8 @@ export default function App() {
                   height: `${bubble.size}px`,
                   transform: `translate(${bubble.x}px, ${bubble.y}px)`,
                 }}
-                onClick={() => setSelectedId(bubble.id)}
+                onPointerDown={() => activateBubble(bubble.id)}
+                onClick={() => activateBubble(bubble.id)}
               >
                 <small className="bubble-game">{bubble.game}</small>
                 <strong>{formatChance(bubble.probability)}</strong>
@@ -885,7 +882,7 @@ export default function App() {
                       key={game.id}
                       type="button"
                       className={selectedId === game.id ? "top-item is-active" : "top-item"}
-                      onClick={() => setSelectedId(game.id)}
+                      onClick={() => activateBubble(game.id)}
                     >
                       <div className="top-rank">{index + 1}</div>
                       <div className="top-copy">
@@ -903,7 +900,7 @@ export default function App() {
               )}
             </section>
 
-            <section className="dock-card">
+            <section className="dock-card" ref={selectedPanelRef}>
               <span className="section-kicker">Jogo selecionado</span>
 
               {selectedGame ? (
