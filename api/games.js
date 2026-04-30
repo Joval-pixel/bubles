@@ -11,6 +11,11 @@ const WORLD_CUP_LIMIT = Math.max(
   48,
   Math.min(140, Number.parseInt(process.env.WORLD_CUP_LIMIT || "120", 10) || 120)
 );
+const TODAY_LIMIT = Math.max(
+  24,
+  Math.min(160, Number.parseInt(process.env.TODAY_LIMIT || "120", 10) || 120)
+);
+const API_TIMEZONE = process.env.API_FOOTBALL_TIMEZONE || "America/Sao_Paulo";
 
 const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
 const FINISHED_STATUSES = new Set(["FT", "AET", "PEN"]);
@@ -53,17 +58,31 @@ const makeJsonResponse = (payload, status = 200) =>
     },
   });
 
-const makeEmptyPayload = (message, debug = "") => ({
+const makeEmptyPayload = (message, debug = "", tournament = null) => ({
   games: [],
   updatedAt: new Date().toISOString(),
   message,
   debug,
-  tournament: {
+  tournament: tournament || {
     id: WORLD_CUP_LEAGUE_ID,
     season: WORLD_CUP_SEASON,
     name: "FIFA World Cup 2026",
   },
 });
+
+const getBrazilDate = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: API_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+};
 
 const safeJson = async (response) => {
   try {
@@ -174,6 +193,43 @@ const normalizeOptions = (options) => {
   }));
 };
 
+const buildFallbackMarket = (fixture) => {
+  const homeName = fixture?.teams?.home?.name || "Mandante";
+  const awayName = fixture?.teams?.away?.name || "Visitante";
+  const seed = stableSeed(`${fixture?.fixture?.id}-${homeName}-${awayName}`);
+  const lean = (seed - 0.5) * 0.16;
+  const draw = 0.27 + (stableSeed(`${fixture?.fixture?.id}-draw`) - 0.5) * 0.04;
+  const home = 0.365 + lean;
+  const away = 1 - draw - home;
+
+  return buildMarketFromOptions(
+    normalizeOptions([
+      createOption({
+        key: "home",
+        code: "1",
+        label: homeName,
+        probability: home,
+        source: "estimate",
+      }),
+      createOption({
+        key: "draw",
+        code: "X",
+        label: "Empate",
+        probability: draw,
+        source: "estimate",
+      }),
+      createOption({
+        key: "away",
+        code: "2",
+        label: awayName,
+        probability: away,
+        source: "estimate",
+      }),
+    ]),
+    "Modelo Bubles"
+  );
+};
+
 const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
   const sorted = [...options].sort((left, right) => right.probability - left.probability);
   const selected = sorted[0];
@@ -204,32 +260,34 @@ const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
   };
 };
 
-const buildFallbackMarket = (fixture) => {
-  const homeName = fixture?.teams?.home?.name || "Mandante";
-  const awayName = fixture?.teams?.away?.name || "Visitante";
-  const seed = stableSeed(`${fixture?.fixture?.id}-${homeName}-${awayName}`);
-  const lean = (seed - 0.5) * 0.16;
-  const draw = 0.27 + (stableSeed(`${fixture?.fixture?.id}-draw`) - 0.5) * 0.04;
-  const home = 0.365 + lean;
-  const away = 1 - draw - home;
-
-  return buildMarketFromOptions(
-    normalizeOptions([
-      createOption({ key: "home", code: "1", label: homeName, probability: home, source: "estimate" }),
-      createOption({ key: "draw", code: "X", label: "Empate", probability: draw, source: "estimate" }),
-      createOption({ key: "away", code: "2", label: awayName, probability: away, source: "estimate" }),
-    ]),
-    "Modelo Bubles"
-  );
-};
-
 const buildMarketFromBookmakers = (entry) => {
   const homeName = entry?.teams?.home?.name || "";
   const awayName = entry?.teams?.away?.name || "";
   const buckets = {
-    home: { key: "home", code: "1", label: homeName, probabilities: [], bestOdd: 0, bookmaker: "" },
-    draw: { key: "draw", code: "X", label: "Empate", probabilities: [], bestOdd: 0, bookmaker: "" },
-    away: { key: "away", code: "2", label: awayName, probabilities: [], bestOdd: 0, bookmaker: "" },
+    home: {
+      key: "home",
+      code: "1",
+      label: homeName,
+      probabilities: [],
+      bestOdd: 0,
+      bookmaker: "",
+    },
+    draw: {
+      key: "draw",
+      code: "X",
+      label: "Empate",
+      probabilities: [],
+      bestOdd: 0,
+      bookmaker: "",
+    },
+    away: {
+      key: "away",
+      code: "2",
+      label: awayName,
+      probabilities: [],
+      bestOdd: 0,
+      bookmaker: "",
+    },
   };
 
   for (const bookmaker of entry?.bookmakers ?? []) {
@@ -319,7 +377,11 @@ const getScoreLine = (fixture) => {
   return `${home} x ${away}`;
 };
 
-const getStage = (fixture) => {
+const getStage = (fixture, mode = "worldcup") => {
+  if (mode === "today") {
+    return fixture?.fixture?.status?.short === "NS" ? "today" : "live";
+  }
+
   const round = normalizeText(fixture?.league?.round);
 
   if (round.includes("group")) {
@@ -333,7 +395,7 @@ const getStage = (fixture) => {
   return "worldcup";
 };
 
-const buildGame = (fixture, oddsMarket) => {
+const buildGame = (fixture, oddsMarket, mode = "worldcup") => {
   const fixtureId = fixture?.fixture?.id;
   const homeName = fixture?.teams?.home?.name || "A definir";
   const awayName = fixture?.teams?.away?.name || "A definir";
@@ -350,8 +412,8 @@ const buildGame = (fixture, oddsMarket) => {
     awayTeam: awayName,
     league: fixture?.league?.name || "FIFA World Cup",
     country: fixture?.league?.country || "World",
-    round: fixture?.league?.round || "Copa do Mundo 2026",
-    stage: getStage(fixture),
+    round: fixture?.league?.round || (mode === "today" ? "Jogos de hoje" : "Copa do Mundo 2026"),
+    stage: getStage(fixture, mode),
     venue: fixture?.fixture?.venue?.name || "",
     city: fixture?.fixture?.venue?.city || "",
     minute,
@@ -374,7 +436,7 @@ const buildGame = (fixture, oddsMarket) => {
     updatedAt: new Date().toISOString(),
     commenceTime: fixture?.fixture?.date || null,
     statusShort,
-    source: "API-Football",
+    source: mode === "today" ? "API-Football Hoje" : "API-Football",
     confidence: market.confidence,
     leaderGap: market.leaderGap,
     marketOptions: market.marketOptions,
@@ -396,7 +458,20 @@ const sortGames = (games) =>
 
 const fetchWorldCupOdds = async () => {
   try {
-    const oddsEntries = await fetchFromApi(`/odds?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`);
+    const oddsEntries = await fetchFromApi(
+      `/odds?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`
+    );
+    return buildOddsMap(oddsEntries);
+  } catch (_error) {
+    return new Map();
+  }
+};
+
+const fetchTodayOdds = async (date) => {
+  try {
+    const oddsEntries = await fetchFromApi(
+      `/odds?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`
+    );
     return buildOddsMap(oddsEntries);
   } catch (_error) {
     return new Map();
@@ -412,19 +487,82 @@ const fetchWorldCupGames = async () => {
   return sortGames(
     fixtures
       .slice(0, WORLD_CUP_LIMIT)
-      .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id)))
+      .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), "worldcup"))
       .filter((game) => game?.id)
   );
 };
 
-export async function GET(_request) {
+const fetchTodayGames = async () => {
+  const date = getBrazilDate();
+  const [fixtures, oddsMap] = await Promise.all([
+    fetchFromApi(`/fixtures?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`),
+    fetchTodayOdds(date),
+  ]);
+
+  return {
+    date,
+    games: sortGames(
+      fixtures
+        .slice(0, TODAY_LIMIT)
+        .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), "today"))
+        .filter((game) => game?.id)
+    ),
+  };
+};
+
+const getMode = (request) => {
+  try {
+    const url = new URL(request?.url || "https://bubles.local/api/games");
+    return url.searchParams.get("mode") === "today" ? "today" : "worldcup";
+  } catch (_error) {
+    return "worldcup";
+  }
+};
+
+export async function GET(request) {
   if (!API_KEY) {
     return makeJsonResponse(
       makeEmptyPayload("API_KEY ausente", "Configure API_KEY no ambiente do servidor")
     );
   }
 
+  const mode = getMode(request);
+
   try {
+    if (mode === "today") {
+      const { date, games } = await fetchTodayGames();
+      const oddsCount = games.filter((game) => game.hasOdds).length;
+      const liveCount = games.filter((game) => game.isLive).length;
+
+      if (!games.length) {
+        return makeJsonResponse(
+          makeEmptyPayload(
+            "Sem jogos de hoje",
+            `Nenhuma fixture retornada para date=${date}`,
+            {
+              id: "today",
+              season: new Date().getFullYear(),
+              name: "Jogos de hoje",
+              date,
+            }
+          )
+        );
+      }
+
+      return makeJsonResponse({
+        games,
+        updatedAt: new Date().toISOString(),
+        message: liveCount ? "Jogos ao vivo de hoje no radar" : "Jogos de hoje carregados",
+        debug: `${games.length} jogos de hoje carregados. ${oddsCount} com odds oficiais; os demais usam estimativa visual.`,
+        tournament: {
+          id: "today",
+          season: new Date().getFullYear(),
+          name: "Jogos de hoje",
+          date,
+        },
+      });
+    }
+
     const games = await fetchWorldCupGames();
     const oddsCount = games.filter((game) => game.hasOdds).length;
     const liveCount = games.filter((game) => game.isLive).length;
@@ -441,7 +579,9 @@ export async function GET(_request) {
     return makeJsonResponse({
       games,
       updatedAt: new Date().toISOString(),
-      message: liveCount ? "Jogos ao vivo da Copa 2026 no radar" : "Calendario da Copa 2026 carregado",
+      message: liveCount
+        ? "Jogos ao vivo da Copa 2026 no radar"
+        : "Calendario da Copa 2026 carregado",
       debug: `${games.length} jogos da Copa 2026 carregados. ${oddsCount} com odds oficiais; os demais usam estimativa visual ate odds/previsoes ficarem disponiveis.`,
       tournament: {
         id: WORLD_CUP_LEAGUE_ID,
