@@ -448,6 +448,8 @@ input {
     0 8px 24px rgba(0, 0, 0, 0.34);
   transition: box-shadow 160ms ease, border-color 160ms ease, transform 160ms ease;
   cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .bubble.is-selected,
