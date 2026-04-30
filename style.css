@@ -1,0 +1,62 @@
+body {
+  margin: 0;
+  background: #080808;
+}
+
+.container-fluid,
+.content {
+  max-width: 1440px;
+  margin: auto;
+}
+
+.navbar-brand {
+  font-size: 22px;
+}
+
+.nav-link {
+  color: #ccc;
+  font-weight: 500;
+}
+
+.nav-link.active,
+.nav-link:hover {
+  color: #00ff88 !important;
+}
+
+.card {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.card-header {
+  background: #111;
+  color: #00ff88;
+  border-bottom: 1px solid #333;
+}
+
+#leagues-box,
+#game-content {
+  position: sticky;
+  top: 75px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+}
+
+#standings-content api-sports-widget,
+#team-content api-sports-widget {
+  margin-bottom: 1rem;
+  max-height: 55vh;
+}
+
+api-sports-widget {
+  display: block;
+}
+
+@media (max-width: 991px) {
+  #leagues-box,
+  #game-content {
+    position: relative;
+    top: 0;
+    max-height: none;
+  }
+}
