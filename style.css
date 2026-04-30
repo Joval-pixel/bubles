@@ -8,6 +8,11 @@ body {
   margin: auto;
 }
 
+.navbar-brand {
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+
 .nav-link {
   color: #ccc;
 }
