@@ -127,6 +127,11 @@ button {
   margin-left: auto;
 }
 
+.mode-controls {
+  padding-right: 4px;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 .chip-button,
 .icon-button,
 .chip-link {
