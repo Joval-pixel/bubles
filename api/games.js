@@ -6,13 +6,13 @@ const API_KEY =
   "";
 
 const NEXT_LIMIT = Math.max(
-  18,
-  Math.min(48, Number.parseInt(process.env.API_FOOTBALL_NEXT_LIMIT || "24", 10) || 24)
+  24,
+  Math.min(96, Number.parseInt(process.env.API_FOOTBALL_NEXT_LIMIT || "60", 10) || 60)
 );
 
 const UPCOMING_DAYS = Math.max(
   1,
-  Math.min(2, Number.parseInt(process.env.API_FOOTBALL_UPCOMING_DAYS || "1", 10) || 1)
+  Math.min(3, Number.parseInt(process.env.API_FOOTBALL_UPCOMING_DAYS || "2", 10) || 2)
 );
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
