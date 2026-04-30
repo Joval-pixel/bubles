@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const WIDGET_SPORTS = [
   { key: "football", label: "Football" },
@@ -31,7 +31,10 @@ const SPONSORS = [
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
 const formatOdd = (value) =>
-  value && Number.isFinite(value) && value > 0 ? value.toFixed(2).replace(".", ",") : "--";
+  value && Number.isFinite(value) && value > 0
+    ? value.toFixed(2).replace(".", ",")
+    : "--";
+
 const formatClock = (game) => {
   if (game?.isLive) {
     return `${Math.max(1, Math.round(game.minute || 1))}'`;
@@ -43,38 +46,18 @@ const formatClock = (game) => {
 
   return "PRE";
 };
-const formatKickoff = (value) =>
-  value
-    ? new Date(value).toLocaleString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "--";
 
 const getTier = (probability) => {
-  if (probability >= 0.62) {
-    return "high";
-  }
-
-  if (probability >= 0.44) {
-    return "medium";
-  }
-
+  if (probability >= 0.62) return "high";
+  if (probability >= 0.44) return "medium";
   return "low";
 };
 
 const getDisplaySize = (probability, scale) => {
   const base = 52 + clamp(probability || 0.33, 0.05, 0.9) * 185;
 
-  if (scale === "large") {
-    return clamp(base * 1.14, 78, 260);
-  }
-
-  if (scale === "small") {
-    return clamp(base * 0.74, 48, 172);
-  }
+  if (scale === "large") return clamp(base * 1.14, 78, 260);
+  if (scale === "small") return clamp(base * 0.74, 48, 172);
 
   return clamp(base * 0.9, 58, 214);
 };
@@ -86,12 +69,10 @@ const getInitialPosition = (index, total, bounds, size) => {
   const orbit = Math.sqrt(index + 1) * (width > 900 ? 52 : 38);
   const centerX = width / 2;
   const centerY = height / 2;
-  const x = centerX + Math.cos(angle) * orbit * 1.45 - size / 2;
-  const y = centerY + Math.sin(angle) * orbit * 0.92 - size / 2;
 
   return {
-    x: clamp(x, 12, width - size - 12),
-    y: clamp(y, 12, height - size - 12),
+    x: clamp(centerX + Math.cos(angle) * orbit * 1.45 - size / 2, 12, width - size - 12),
+    y: clamp(centerY + Math.sin(angle) * orbit * 0.92 - size / 2, 12, height - size - 12),
   };
 };
 
@@ -114,6 +95,7 @@ const createBubble = (game, existing, bounds, index, total, scale) => {
 const moveBubbles = (items, bounds) => {
   const width = Math.max(bounds.width || 0, 1280);
   const height = Math.max(bounds.height || 0, 660);
+
   const next = items.map((item) => {
     const bubble = {
       ...item,
@@ -143,13 +125,12 @@ const moveBubbles = (items, bounds) => {
       const distance = Math.hypot(dx, dy) || 1;
       const minDistance = first.radius + second.radius + 3;
 
-      if (distance >= minDistance) {
-        continue;
-      }
+      if (distance >= minDistance) continue;
 
       const overlap = minDistance - distance;
       const normalX = dx / distance;
       const normalY = dy / distance;
+
       first.x += normalX * overlap * 0.5;
       first.y += normalY * overlap * 0.5;
       second.x -= normalX * overlap * 0.5;
@@ -165,17 +146,9 @@ const getAiSummary = (game) => {
   const second = game?.marketOptions?.[1];
   const gap = Math.max(0, (leader?.probability || 0) - (second?.probability || 0));
 
-  if (!leader) {
-    return "Sem leitura completa ainda";
-  }
-
-  if (game?.confidence === "estimate") {
-    return `Modelo visual favorece ${leader.label}`;
-  }
-
-  if (gap >= 0.16) {
-    return `Mercado forte para ${leader.label}`;
-  }
+  if (!leader) return "Sem leitura completa ainda";
+  if (game?.confidence === "estimate") return `Modelo visual favorece ${leader.label}`;
+  if (gap >= 0.16) return `Mercado forte para ${leader.label}`;
 
   return `Jogo competitivo, leve vantagem para ${leader.label}`;
 };
@@ -212,8 +185,7 @@ function WidgetsPage() {
 
       {!widgetKey ? (
         <div className="widgets-warning">
-          Configure <strong>VITE_API_FOOTBALL_WIDGET_KEY</strong> no Vercel para carregar os
-          widgets oficiais.
+          Configure <strong>VITE_API_FOOTBALL_WIDGET_KEY</strong> no Vercel para carregar os widgets oficiais.
         </div>
       ) : null}
 
@@ -221,9 +193,11 @@ function WidgetsPage() {
         <section className="widgets-panel widgets-leagues">
           <api-sports-widget key={`leagues-${sport}`} data-type="leagues" data-sport={sport} />
         </section>
+
         <section id="games-list" className="widgets-panel widgets-games">
           <api-sports-widget key={`games-${sport}`} data-type="games" data-sport={sport} />
         </section>
+
         <aside className="widgets-side">
           <section id="standings-content" className="widgets-panel" />
           <section id="team-content" className="widgets-panel" />
@@ -260,6 +234,7 @@ function BubblesWorldCup() {
   const boardRef = useRef(null);
   const animationRef = useRef(0);
   const boundsRef = useRef({ width: 0, height: 0 });
+
   const [games, setGames] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -274,9 +249,7 @@ function BubblesWorldCup() {
 
   useEffect(() => {
     const syncBounds = () => {
-      if (!boardRef.current) {
-        return;
-      }
+      if (!boardRef.current) return;
 
       const rect = boardRef.current.getBoundingClientRect();
       boundsRef.current = {
@@ -288,55 +261,47 @@ function BubblesWorldCup() {
     syncBounds();
     window.addEventListener("resize", syncBounds);
 
-    return () => {
-      window.removeEventListener("resize", syncBounds);
-    };
+    return () => window.removeEventListener("resize", syncBounds);
   }, []);
 
   useEffect(() => {
     let mounted = true;
 
     const fetchGames = async (silent = false) => {
-      if (silent) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+      if (silent) setRefreshing(true);
+      else setLoading(true);
 
       try {
         const response = await fetch("/api/games", { cache: "no-store" });
         const payload = await response.json();
         const items = Array.isArray(payload?.games) ? payload.games : [];
 
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
 
         setUpdatedAt(payload?.updatedAt || "");
         setMessage(payload?.message || "");
         setDebug(payload?.debug || "");
+
         setGames((current) => {
           const currentMap = new Map(current.map((item) => [item.id, item]));
+
           return items.map((item, index) =>
             createBubble(item, currentMap.get(item.id), boundsRef.current, index, items.length, scale)
           );
         });
+
         setSelectedId((current) =>
           items.some((item) => item.id === current) ? current : items[0]?.id ?? null
         );
       } catch (_error) {
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
 
         setGames([]);
         setSelectedId(null);
         setMessage("Falha ao carregar a Copa 2026");
         setDebug("Nao foi possivel consultar /api/games");
       } finally {
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
 
         setLoading(false);
         setRefreshing(false);
@@ -353,9 +318,7 @@ function BubblesWorldCup() {
   }, [scale]);
 
   useEffect(() => {
-    if (!games.length) {
-      return undefined;
-    }
+    if (!games.length) return undefined;
 
     const animate = () => {
       setGames((current) => moveBubbles(current, boundsRef.current));
@@ -364,9 +327,7 @@ function BubblesWorldCup() {
 
     animationRef.current = window.requestAnimationFrame(animate);
 
-    return () => {
-      window.cancelAnimationFrame(animationRef.current);
-    };
+    return () => window.cancelAnimationFrame(animationRef.current);
   }, [games.length]);
 
   const filteredGames = useMemo(() => {
@@ -379,22 +340,14 @@ function BubblesWorldCup() {
       );
     }
 
-    if (filter === "live") {
-      items = items.filter((game) => game.isLive);
-    } else if (filter === "groups") {
-      items = items.filter((game) => game.stage === "groups");
-    } else if (filter === "knockout") {
-      items = items.filter((game) => game.stage === "knockout");
-    } else if (filter === "odds") {
-      items = items.filter((game) => game.hasOdds);
-    } else if (filter === "sponsors") {
-      items = items.filter((game) => (game.probability || 0) >= 0.5);
-    }
+    if (filter === "live") items = items.filter((game) => game.isLive);
+    else if (filter === "groups") items = items.filter((game) => game.stage === "groups");
+    else if (filter === "knockout") items = items.filter((game) => game.stage === "knockout");
+    else if (filter === "odds") items = items.filter((game) => game.hasOdds);
+    else if (filter === "sponsors") items = items.filter((game) => (game.probability || 0) >= 0.5);
 
     if (sort === "chance") {
       items.sort((left, right) => (right.probability || 0) - (left.probability || 0));
-    } else if (sort === "live") {
-      items.sort((left, right) => Number(right.isLive) - Number(left.isLive));
     } else {
       items.sort(
         (left, right) =>
@@ -413,15 +366,15 @@ function BubblesWorldCup() {
   const oddsCount = games.filter((game) => game.hasOdds).length;
   const groupsCount = games.filter((game) => game.stage === "groups").length;
   const knockoutCount = games.filter((game) => game.stage === "knockout").length;
+
   const topGames = [...filteredGames]
     .sort((left, right) => (right.probability || 0) - (left.probability || 0))
     .slice(0, 5);
+
   const selectedOptions = selectedGame?.marketOptions ?? [];
 
   useEffect(() => {
-    if (!filteredGames.length) {
-      return;
-    }
+    if (!filteredGames.length) return;
 
     const visibleIds = filteredGames.map((game) => game.id);
 
@@ -429,9 +382,7 @@ function BubblesWorldCup() {
       current.map((game) => {
         const visibleIndex = visibleIds.indexOf(game.id);
 
-        if (visibleIndex === -1) {
-          return game;
-        }
+        if (visibleIndex === -1) return game;
 
         const size = getDisplaySize(game.bubbleValue ?? game.probability, scale);
         const position = getInitialPosition(visibleIndex, visibleIds.length, boundsRef.current, size);
@@ -540,7 +491,13 @@ function BubblesWorldCup() {
         <article className="insight-card">
           <span>Radar</span>
           <strong>{filteredGames.length} jogos</strong>
-          <small>{refreshing ? "Atualizando..." : updatedAt ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}` : debug}</small>
+          <small>
+            {refreshing
+              ? "Atualizando..."
+              : updatedAt
+                ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
+                : debug}
+          </small>
         </article>
       </section>
 
@@ -562,7 +519,10 @@ function BubblesWorldCup() {
 
         <div className="option-row">
           {selectedOptions.map((option) => (
-            <article className={option.code === selectedGame?.pickCode ? "option-card is-leader" : "option-card"} key={option.code}>
+            <article
+              className={option.code === selectedGame?.pickCode ? "option-card is-leader" : "option-card"}
+              key={option.code}
+            >
               <span>{option.code}</span>
               <strong>{option.label}</strong>
               <small>{formatChance(option.probability)} | Odd {formatOdd(option.odd)}</small>
@@ -573,6 +533,7 @@ function BubblesWorldCup() {
 
       <main className="bubble-board" ref={boardRef}>
         <div className="board-grid" />
+
         {loading ? (
           <div className="empty-state">
             <h2>Carregando Copa 2026...</h2>
