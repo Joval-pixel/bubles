@@ -36,6 +36,7 @@ body {
     radial-gradient(circle at 90% 18%, rgba(255, 94, 85, 0.08), transparent 22rem),
     #242424;
   color: var(--text);
+  overflow-x: hidden;
 }
 
 button,
@@ -50,7 +51,8 @@ input {
   width: 100%;
   margin: 0;
   padding: 8px 10px 14px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .glow {
@@ -245,6 +247,7 @@ input {
   justify-content: space-between;
   gap: 16px;
   pointer-events: none;
+  align-items: flex-start;
 }
 
 .stage-copy {
@@ -289,6 +292,7 @@ input {
   grid-template-columns: repeat(3, minmax(132px, 1fr));
   gap: 8px;
   align-content: start;
+  max-width: 420px;
 }
 
 .stage-chip,
@@ -362,6 +366,7 @@ input {
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 10px;
+  max-width: 250px;
 }
 
 .hud-card {
@@ -500,6 +505,18 @@ input {
   display: grid;
   gap: 10px;
   align-content: start;
+  max-height: calc(100% - 108px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.floating-dock::-webkit-scrollbar {
+  width: 6px;
+}
+
+.floating-dock::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
 }
 
 .dock-card {
@@ -690,12 +707,13 @@ input {
   .stage-topbar {
     position: relative;
     inset: 0;
-    padding: 18px 18px 0;
+    padding: 14px 14px 0;
     flex-direction: column;
   }
 
   .stage-metrics {
-    grid-template-columns: repeat(3, minmax(140px, 1fr));
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    max-width: none;
   }
 }
 
@@ -720,6 +738,8 @@ input {
     width: auto;
     padding: 0 12px 12px;
     grid-template-columns: 1fr;
+    max-height: none;
+    overflow: visible;
   }
 
   .board-grid {
@@ -802,6 +822,14 @@ input {
     inset: 0;
     padding: 12px 12px 0;
     flex-direction: column;
+  }
+
+  .stage-copy,
+  .board-hud,
+  .stage-metrics,
+  .floating-dock,
+  .board-footer {
+    position: relative;
   }
 
   .board-hud-copy p {
