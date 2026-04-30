@@ -13,7 +13,15 @@ const WORLD_CUP_LIMIT = Math.max(
 );
 const TODAY_LIMIT = Math.max(
   24,
-  Math.min(160, Number.parseInt(process.env.TODAY_LIMIT || "120", 10) || 120)
+  Math.min(1000, Number.parseInt(process.env.TODAY_LIMIT || "500", 10) || 500)
+);
+const MARKETS_PER_GAME_LIMIT = Math.max(
+  12,
+  Math.min(120, Number.parseInt(process.env.MARKETS_PER_GAME_LIMIT || "80", 10) || 80)
+);
+const OPTIONS_PER_MARKET_LIMIT = Math.max(
+  4,
+  Math.min(30, Number.parseInt(process.env.OPTIONS_PER_MARKET_LIMIT || "16", 10) || 16)
 );
 const API_TIMEZONE = process.env.API_FOOTBALL_TIMEZONE || "America/Sao_Paulo";
 
@@ -169,6 +177,61 @@ const getMatchWinnerBet = (bookmaker) => {
   );
 };
 
+const getBetCategory = (betName) => {
+  const name = normalizeText(betName);
+
+  if (name.includes("corner")) {
+    return "Escanteios";
+  }
+
+  if (
+    name.includes("goal") ||
+    name.includes("over") ||
+    name.includes("under") ||
+    name.includes("both teams") ||
+    name.includes("clean sheet")
+  ) {
+    return "Gols";
+  }
+
+  if (name.includes("card") || name.includes("booking")) {
+    return "Cartoes";
+  }
+
+  if (name.includes("handicap") || name.includes("asian")) {
+    return "Handicap";
+  }
+
+  if (name.includes("half") || name.includes("1st") || name.includes("2nd")) {
+    return "Tempo";
+  }
+
+  if (name.includes("score")) {
+    return "Placar";
+  }
+
+  if (name.includes("winner") || name === "1x2" || name.includes("double chance")) {
+    return "Resultado";
+  }
+
+  return "Outros";
+};
+
+const getCategoryRank = (category) => {
+  const ranks = {
+    Resultado: 1,
+    Gols: 2,
+    Escanteios: 3,
+    Cartoes: 4,
+    Handicap: 5,
+    Tempo: 6,
+    Placar: 7,
+    Outros: 8,
+  };
+
+  return ranks[category] || 99;
+};
+
 const createOption = ({ key, code, label, probability, odd, bookmaker, source }) => ({
   key,
   code,
@@ -257,6 +320,143 @@ const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
       bookmaker: option.bookmaker || bookmakerName,
       source: option.source,
     })),
+  };
+};
+
+const buildBetMarketsFromBookmakers = (entry) => {
+  const markets = new Map();
+
+  for (const bookmaker of entry?.bookmakers ?? []) {
+    for (const bet of bookmaker?.bets ?? []) {
+      const values = (bet?.values ?? [])
+        .map((value) => ({
+          label: String(value?.value ?? "").trim(),
+          odd: toNumber(value?.odd),
+        }))
+        .filter((value) => value.label && value.odd > 1);
+
+      if (values.length < 2) {
+        continue;
+      }
+
+      const totalImplied = values.reduce((sum, value) => sum + 1 / value.odd, 0);
+
+      if (!(totalImplied > 0)) {
+        continue;
+      }
+
+      const marketKey = `${bet?.id || ""}-${normalizeText(bet?.name)}`;
+      const market =
+        markets.get(marketKey) || {
+          id: bet?.id || marketKey,
+          name: bet?.name || "Mercado",
+          category: getBetCategory(bet?.name),
+          options: new Map(),
+          bookmakers: new Set(),
+        };
+
+      market.bookmakers.add(bookmaker?.name || "bookmaker");
+
+      for (const value of values) {
+        const optionKey = normalizeText(value.label);
+        const option =
+          market.options.get(optionKey) || {
+            label: value.label,
+            probabilities: [],
+            bestOdd: 0,
+            bookmaker: "",
+          };
+
+        option.probabilities.push((1 / value.odd) / totalImplied);
+
+        if (value.odd > option.bestOdd) {
+          option.bestOdd = value.odd;
+          option.bookmaker = bookmaker?.name || "bookmaker";
+        }
+
+        market.options.set(optionKey, option);
+      }
+
+      markets.set(marketKey, market);
+    }
+  }
+
+  return [...markets.values()]
+    .map((market) => {
+      const options = [...market.options.values()]
+        .map((option) => {
+          const probability = average(option.probabilities);
+          const fairOdd = probability > 0 ? 1 / probability : 0;
+
+          return {
+            label: option.label,
+            probability,
+            odd: option.bestOdd,
+            fairOdd,
+            ev: probability * option.bestOdd - 1,
+            bookmaker: option.bookmaker,
+          };
+        })
+        .filter((option) => option.probability > 0 && option.odd > 1)
+        .sort((left, right) => right.probability - left.probability)
+        .slice(0, OPTIONS_PER_MARKET_LIMIT);
+
+      const leader = options[0];
+      const second = options[1];
+
+      if (!leader) {
+        return null;
+      }
+
+      return {
+        id: market.id,
+        name: market.name,
+        category: market.category,
+        bookmakersCount: market.bookmakers.size,
+        leader: {
+          label: leader.label,
+          probability: leader.probability,
+          odd: leader.odd,
+          fairOdd: leader.fairOdd,
+          ev: leader.ev,
+          bookmaker: leader.bookmaker,
+        },
+        confidence: leader.probability - (second?.probability || 0),
+        options,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => {
+      const rankDiff = getCategoryRank(left.category) - getCategoryRank(right.category);
+
+      if (rankDiff !== 0) {
+        return rankDiff;
+      }
+
+      return (right.leader?.probability || 0) - (left.leader?.probability || 0);
+    })
+    .slice(0, MARKETS_PER_GAME_LIMIT);
+};
+
+const createAiInsights = (market, betMarkets) => {
+  const mainPick = market?.pickLabel || "mercado principal";
+  const goalsPick = betMarkets.find((item) => item.category === "Gols")?.leader;
+  const cornersPick = betMarkets.find((item) => item.category === "Escanteios")?.leader;
+  const cardsPick = betMarkets.find((item) => item.category === "Cartoes")?.leader;
+
+  return {
+    headline: market?.confidence === "odds"
+      ? `IA aponta ${mainPick} como leitura principal`
+      : `IA estimou vantagem para ${mainPick}`,
+    goals: goalsPick
+      ? `Gols: ${goalsPick.label} com ${Math.round(goalsPick.probability * 100)}%`
+      : "Gols: mercado nao retornado pela API",
+    corners: cornersPick
+      ? `Escanteios: ${cornersPick.label} com ${Math.round(cornersPick.probability * 100)}%`
+      : "Escanteios: mercado nao retornado pela API",
+    cards: cardsPick
+      ? `Cartoes: ${cardsPick.label} com ${Math.round(cardsPick.probability * 100)}%`
+      : "Cartoes: mercado nao retornado pela API",
   };
 };
 
@@ -357,9 +557,13 @@ const buildOddsMap = (oddsEntries) => {
   for (const entry of oddsEntries ?? []) {
     const fixtureId = entry?.fixture?.id;
     const market = buildMarketFromBookmakers(entry);
+    const betMarkets = buildBetMarketsFromBookmakers(entry);
 
-    if (fixtureId && market) {
-      map.set(fixtureId, market);
+    if (fixtureId && (market || betMarkets.length)) {
+      map.set(fixtureId, {
+        market,
+        betMarkets,
+      });
     }
   }
 
@@ -395,15 +599,48 @@ const getStage = (fixture, mode = "worldcup") => {
   return "worldcup";
 };
 
-const buildGame = (fixture, oddsMarket, mode = "worldcup") => {
+const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
   const fixtureId = fixture?.fixture?.id;
   const homeName = fixture?.teams?.home?.name || "A definir";
   const awayName = fixture?.teams?.away?.name || "A definir";
   const statusShort = fixture?.fixture?.status?.short || "NS";
   const isLive = LIVE_STATUSES.has(statusShort);
   const isFinished = FINISHED_STATUSES.has(statusShort);
-  const market = oddsMarket || buildFallbackMarket(fixture);
+  const market = oddsAnalysis?.market || buildFallbackMarket(fixture);
+  const rawBetMarkets = oddsAnalysis?.betMarkets ?? [];
+  const betMarkets = rawBetMarkets.length
+    ? rawBetMarkets
+    : [
+        {
+          id: "main-result",
+          name: "Resultado final",
+          category: "Resultado",
+          bookmakersCount: market.confidence === "odds" ? 1 : 0,
+          leader: {
+            label: market.pickLabel,
+            probability: market.probability,
+            odd: market.odd,
+            fairOdd: market.fairOdd,
+            ev: market.ev,
+            bookmaker: market.bestBookmaker,
+          },
+          confidence: market.leaderGap,
+          options: market.marketOptions.map((option) => ({
+            label: option.label,
+            probability: option.probability,
+            odd: option.odd,
+            fairOdd: option.probability > 0 ? 1 / option.probability : 0,
+            ev: option.probability * option.odd - 1,
+            bookmaker: option.bookmaker,
+          })),
+        },
+      ];
   const minute = isLive ? clamp(toNumber(fixture?.fixture?.status?.elapsed), 1, 130) : 0;
+  const strongestMarket = betMarkets[0]?.leader;
+  const bubbleValue = strongestMarket
+    ? clamp(Math.max(market.probability, strongestMarket.probability), 0.03, 0.92)
+    : market.probability;
+  const aiInsights = createAiInsights(market, betMarkets);
 
   return {
     id: fixtureId,
@@ -427,11 +664,11 @@ const buildGame = (fixture, oddsMarket, mode = "worldcup") => {
     bestBookmaker: market.bestBookmaker,
     pickCode: market.pickCode,
     pickLabel: market.pickLabel,
-    hasOdds: market.confidence === "odds",
+    hasOdds: Boolean(oddsAnalysis?.market || rawBetMarkets.length),
     isPositiveEv: market.ev > 0,
     isLive,
     isFinished,
-    bubbleValue: market.probability,
+    bubbleValue,
     scoreLine: getScoreLine(fixture),
     updatedAt: new Date().toISOString(),
     commenceTime: fixture?.fixture?.date || null,
@@ -440,6 +677,9 @@ const buildGame = (fixture, oddsMarket, mode = "worldcup") => {
     confidence: market.confidence,
     leaderGap: market.leaderGap,
     marketOptions: market.marketOptions,
+    betMarkets,
+    aiInsights,
+    totalMarkets: betMarkets.length,
   };
 };
 
