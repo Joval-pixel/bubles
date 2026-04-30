@@ -1,48 +1,512 @@
+:root {
+  color-scheme: dark;
+  --bg: #202020;
+  --panel: rgba(20, 20, 20, 0.94);
+  --panel-2: rgba(34, 34, 34, 0.94);
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #f5f7fa;
+  --muted: #a8b0bb;
+  --green: #25f35f;
+  --red: #ff3232;
+  --yellow: #ffd24a;
+  --shadow: 0 18px 55px rgba(0, 0, 0, 0.38);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
-  background: #080808;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, "Segoe UI", sans-serif;
 }
 
-.content {
-  max-width: 1400px;
-  margin: auto;
+button,
+input {
+  font: inherit;
 }
 
-.navbar-brand {
-  font-size: 22px;
-  letter-spacing: 1px;
+button {
+  cursor: pointer;
 }
 
-.nav-link {
-  color: #ccc;
+.cup-shell,
+.widgets-page {
+  min-height: 100vh;
+  padding: 10px;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(37, 243, 95, 0.1), transparent 24rem),
+    radial-gradient(circle at 88% 20%, rgba(255, 50, 50, 0.08), transparent 22rem),
+    var(--bg);
 }
 
-.nav-link.active,
-.nav-link:hover {
-  color: #00ff88 !important;
-}
-
-.card {
-  border-radius: 12px;
-}
-
-.card-header {
-  background: #111;
-  color: #00ff88;
-}
-
-#leagues-box,
-#game-content {
+.cup-toolbar,
+.widgets-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   position: sticky;
-  top: 70px;
-  max-height: calc(100vh - 90px);
-  overflow-y: auto;
+  top: 8px;
+  z-index: 20;
+  min-height: 60px;
+  padding: 10px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(72, 72, 72, 0.98), rgba(43, 43, 43, 0.98));
+  box-shadow: var(--shadow);
+  scrollbar-width: none;
 }
 
-@media(max-width: 991px){
-  #leagues-box,
-  #game-content {
-    position: relative;
-    max-height: none;
+.cup-toolbar::-webkit-scrollbar,
+.widgets-toolbar::-webkit-scrollbar,
+.cup-controls::-webkit-scrollbar,
+.widgets-sports::-webkit-scrollbar,
+.top-games::-webkit-scrollbar,
+.option-row::-webkit-scrollbar {
+  display: none;
+}
+
+.cup-brand,
+.widgets-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.72rem;
+  flex: 0 0 auto;
+  color: var(--text);
+  font-family: Sora, Inter, sans-serif;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand-dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 35%, white, #54ff8c 42%, #09923a 100%);
+  box-shadow: 0 0 20px rgba(37, 243, 95, 0.56);
+}
+
+.cup-search {
+  flex: 1 0 260px;
+  min-width: 220px;
+  height: 40px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: none;
+  background: rgba(22, 22, 22, 0.96);
+  color: var(--text);
+}
+
+.cup-search:focus {
+  border-color: rgba(37, 243, 95, 0.72);
+}
+
+.cup-controls,
+.widgets-sports {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+  overflow-x: auto;
+}
+
+.cup-controls.compact {
+  margin-left: auto;
+}
+
+.chip-button,
+.icon-button,
+.chip-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(66, 66, 66, 0.78);
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.chip-button,
+.chip-link {
+  padding: 0.58rem 0.8rem;
+}
+
+.icon-button {
+  width: 38px;
+}
+
+.chip-button.is-active,
+.icon-button.is-active {
+  border-color: var(--green);
+  color: #d8ffe2;
+  box-shadow: inset 0 0 0 1px rgba(37, 243, 95, 0.22);
+}
+
+.chip-button.is-neutral {
+  background: rgba(38, 38, 38, 0.92);
+}
+
+.chip-link {
+  border-color: rgba(37, 243, 95, 0.82);
+  background: rgba(37, 243, 95, 0.1);
+}
+
+.sponsor-strip,
+.cup-info,
+.market-bar {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.sponsor-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sponsor-slot,
+.match-card,
+.insight-card,
+.top-pill,
+.option-card,
+.widgets-panel,
+.widgets-warning {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.sponsor-slot {
+  min-height: 72px;
+  padding: 0.78rem;
+}
+
+.sponsor-slot span,
+.match-card span,
+.insight-card span,
+.option-card span {
+  display: block;
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sponsor-slot strong,
+.insight-card strong,
+.option-card strong {
+  display: block;
+  margin-top: 0.28rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1rem;
+}
+
+.sponsor-slot small,
+.insight-card small,
+.option-card small {
+  display: block;
+  margin-top: 0.28rem;
+  color: var(--muted);
+}
+
+.cup-info {
+  grid-template-columns: minmax(320px, 1.25fr) minmax(220px, 0.75fr) minmax(220px, 0.6fr);
+}
+
+.match-card,
+.insight-card {
+  min-height: 92px;
+  padding: 0.9rem;
+}
+
+.match-card h1 {
+  margin: 0.28rem 0 0;
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1.35rem, 2.2vw, 2.5rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.match-card p {
+  margin: 0.42rem 0 0;
+  color: var(--muted);
+}
+
+.market-bar {
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+}
+
+.top-games,
+.option-row {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.top-pill {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 230px;
+  padding: 0.62rem 0.72rem;
+  color: var(--text);
+  text-align: left;
+}
+
+.top-pill.is-active,
+.option-card.is-leader {
+  border-color: rgba(37, 243, 95, 0.62);
+}
+
+.top-pill span {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 900;
+}
+
+.top-pill strong {
+  overflow: hidden;
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-pill small {
+  color: #9cffb6;
+  font-weight: 900;
+}
+
+.option-card {
+  min-width: 190px;
+  padding: 0.62rem 0.72rem;
+}
+
+.bubble-board {
+  position: relative;
+  min-height: clamp(620px, calc(100vh - 320px), 920px);
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.035), transparent 20rem),
+    #272727;
+  box-shadow: var(--shadow);
+}
+
+.board-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  pointer-events: none;
+}
+
+.bubble {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  gap: 0.06rem;
+  padding: 0.52rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  text-align: center;
+  touch-action: manipulation;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.bubble.is-selected,
+.bubble:hover {
+  z-index: 4;
+  border-color: rgba(255, 255, 255, 0.72);
+}
+
+.bubble.is-high {
+  background: radial-gradient(circle at 35% 30%, #384138 0%, #171b17 58%, rgba(37, 243, 95, 0.25) 75%, #22f25e 91%, #0f6b2f 100%);
+  box-shadow: 0 0 18px rgba(37, 243, 95, 0.58), 0 0 42px rgba(37, 243, 95, 0.24);
+}
+
+.bubble.is-medium {
+  background: radial-gradient(circle at 35% 30%, #463f28 0%, #1c1a16 58%, rgba(255, 210, 74, 0.26) 75%, #ffd24a 91%, #795609 100%);
+  box-shadow: 0 0 18px rgba(255, 210, 74, 0.38), 0 0 38px rgba(255, 210, 74, 0.2);
+}
+
+.bubble.is-low {
+  background: radial-gradient(circle at 35% 30%, #462b2b 0%, #1f1717 58%, rgba(255, 50, 50, 0.24) 75%, #ff3232 91%, #7d1616 100%);
+  box-shadow: 0 0 18px rgba(255, 50, 50, 0.42), 0 0 38px rgba(255, 50, 50, 0.2);
+}
+
+.bubble small,
+.bubble em,
+.bubble span {
+  display: block;
+  max-width: 80%;
+  overflow: hidden;
+  font-size: clamp(0.52rem, 0.72vw, 0.82rem);
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bubble strong {
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1rem, 1.8vw, 2.35rem);
+  line-height: 1;
+}
+
+.empty-state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.empty-state h2 {
+  margin: 0;
+  font-family: Sora, Inter, sans-serif;
+}
+
+.empty-state p {
+  color: var(--muted);
+}
+
+.widgets-page {
+  background: #1f1f1f;
+}
+
+.widgets-toolbar {
+  overflow-x: auto;
+}
+
+.widgets-brand {
+  flex: 0 0 auto;
+}
+
+.widgets-sports {
+  display: flex;
+  gap: 8px;
+  flex: 1 0 auto;
+  overflow-x: auto;
+}
+
+.widgets-warning {
+  margin: 10px 0;
+  padding: 0.85rem 1rem;
+  color: #ffe084;
+}
+
+.widgets-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(420px, 1.35fr) minmax(320px, 0.95fr);
+  gap: 10px;
+  margin-top: 10px;
+  align-items: start;
+}
+
+.widgets-panel {
+  min-height: 160px;
+  overflow: hidden;
+}
+
+.widgets-leagues,
+.widgets-side {
+  position: sticky;
+  top: 84px;
+}
+
+.widgets-games {
+  min-height: calc(100vh - 110px);
+}
+
+.widgets-side {
+  display: grid;
+  gap: 10px;
+}
+
+.widgets-page api-sports-widget {
+  display: block;
+}
+
+@media (max-width: 1180px) {
+  .sponsor-strip,
+  .cup-info,
+  .market-bar,
+  .widgets-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .widgets-leagues,
+  .widgets-side {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .cup-shell,
+  .widgets-page {
+    padding: 8px;
+  }
+
+  .cup-toolbar,
+  .widgets-toolbar {
+    top: 8px;
+    align-items: stretch;
+    min-height: auto;
+  }
+
+  .cup-brand {
+    min-width: max-content;
+  }
+
+  .cup-search {
+    min-width: 210px;
+  }
+
+  .sponsor-strip {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .sponsor-slot {
+    min-width: 220px;
+  }
+
+  .bubble-board {
+    min-height: 620px;
+  }
+
+  .bubble span {
+    display: none;
   }
 }
