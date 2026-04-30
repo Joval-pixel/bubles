@@ -28,14 +28,14 @@ const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
 
 const getDisplaySize = (size, scaleMode) => {
   if (scaleMode === "compact") {
-    return clamp(size * 0.72, 56, 226);
+    return clamp(size * 0.74, 54, 218);
   }
 
   if (scaleMode === "boost") {
-    return clamp(size * 1.02, 84, 280);
+    return clamp(size * 1.05, 82, 288);
   }
 
-  return clamp(size * 0.84, 64, 250);
+  return clamp(size * 0.88, 62, 252);
 };
 
 const getFilterLabel = (statusFilter, rangeFilter) => {
@@ -125,22 +125,22 @@ const getSignal = (game) => {
 
 const getLayoutPosition = (index, total, bounds, size) => {
   const width = Math.max(bounds.width || 0, 1360);
-  const height = Math.max(bounds.height || 0, 920);
-  const leftPadding = width > 960 ? 18 : 14;
-  const topPadding = width > 1280 ? 88 : width > 760 ? 104 : 116;
-  const bottomPadding = width > 960 ? 32 : 46;
-  const sideDockReserve = width > 1320 ? 302 : width > 1180 ? 274 : 16;
+  const height = Math.max(bounds.height || 0, width > 960 ? 860 : 700);
+  const leftPadding = width > 960 ? 16 : 12;
+  const topPadding = width > 1280 ? 120 : width > 760 ? 132 : 118;
+  const bottomPadding = width > 960 ? 28 : 30;
+  const sideDockReserve = width > 1320 ? 320 : width > 1180 ? 286 : 18;
   const usableWidth = Math.max(360, width - leftPadding - sideDockReserve - 16);
-  const usableHeight = Math.max(420, height - topPadding - bottomPadding);
+  const usableHeight = Math.max(340, height - topPadding - bottomPadding);
   const centerX = leftPadding + usableWidth / 2;
   const centerY = topPadding + usableHeight / 2;
-  const angle = index * 2.14;
-  const orbitBase = width > 1280 ? 56 : width > 760 ? 48 : 40;
+  const angle = index * 2.23;
+  const orbitBase = width > 1280 ? 62 : width > 760 ? 52 : 42;
   const orbit = Math.sqrt(index + 1) * orbitBase;
-  const horizontalOrbit = orbit * 1.64;
-  const verticalOrbit = orbit * 1.08;
-  const jitterX = (((index * 19) % 27) - 13) * 1.8;
-  const jitterY = (((index * 31) % 21) - 10) * 1.6;
+  const horizontalOrbit = orbit * 1.56;
+  const verticalOrbit = orbit * 1.02;
+  const jitterX = (((index * 19) % 27) - 13) * 2;
+  const jitterY = (((index * 31) % 21) - 10) * 1.7;
   const x = centerX + Math.cos(angle) * horizontalOrbit + jitterX - size / 2;
   const y = centerY + Math.sin(angle) * verticalOrbit + jitterY - size / 2;
 
@@ -164,7 +164,7 @@ const getTier = (probability) => {
 
 const createBubble = (game, existing, bounds, index, total) => {
   const bubbleStrength = clamp(game.bubbleValue ?? game.probability ?? 0, 0.08, 0.92);
-  const size = clamp(60 + bubbleStrength * 224 + (game.isLive ? 12 : 0), 60, 260);
+  const size = clamp(64 + bubbleStrength * 212 + (game.isLive ? 10 : 0), 64, 252);
   const fallbackPosition = getLayoutPosition(index, total, bounds, size);
 
   return {
@@ -181,11 +181,11 @@ const createBubble = (game, existing, bounds, index, total) => {
 
 const moveBubbles = (items, bounds) => {
   const width = Math.max(bounds.width || 0, 1360);
-  const height = Math.max(bounds.height || 0, 920);
-  const leftPadding = width > 960 ? 18 : 14;
-  const topPadding = width > 1280 ? 88 : width > 760 ? 104 : 116;
-  const bottomPadding = width > 960 ? 32 : 46;
-  const sideDockReserve = width > 1320 ? 302 : width > 1180 ? 274 : 16;
+  const height = Math.max(bounds.height || 0, width > 960 ? 860 : 700);
+  const leftPadding = width > 960 ? 16 : 12;
+  const topPadding = width > 1280 ? 120 : width > 760 ? 132 : 118;
+  const bottomPadding = width > 960 ? 28 : 30;
+  const sideDockReserve = width > 1320 ? 320 : width > 1180 ? 286 : 18;
   const maxX = width - sideDockReserve;
   const maxY = height - bottomPadding;
 
@@ -515,7 +515,7 @@ export default function App() {
   const emptyMessage = hasAnyGames ? "Sem jogos para este filtro" : "Sem jogos ao vivo";
   const hasLiveGames = filteredBubbles.some((item) => item.isLive);
   const badgeLabel = hasLiveGames ? "Ao vivo" : filteredBubbles.length ? "Proximos" : "Radar";
-  const headlineText = hasLiveGames ? "Mapa ao vivo" : "Mapa principal";
+  const headlineText = hasLiveGames ? "Ao vivo em destaque" : "Principais do dia";
   const filterLabel = getFilterLabel(statusFilter, rangeFilter);
   const sortLabel = getSortLabel(sortMode);
   const selectedSignal = getSignal(selectedGame);
@@ -682,7 +682,7 @@ export default function App() {
             <div className="stage-copy">
               <span className="badge">{badgeLabel}</span>
               <h1>Bubles Live Radar</h1>
-              <p>Bolhas maiores mostram as chances mais fortes.</p>
+              <p>Bolhas maiores destacam as maiores chances.</p>
             </div>
 
             <div className="stage-metrics">
@@ -715,7 +715,7 @@ export default function App() {
               <p>
                 {serverMessage && serverMessage !== "ok"
                   ? serverMessage
-                  : "Mapa cheio com os jogos mais fortes; lateral so como apoio."}
+                  : "Tudo importante fica no mapa; a lateral so ajuda na leitura rapida."}
               </p>
             </div>
 
