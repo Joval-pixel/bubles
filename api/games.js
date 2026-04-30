@@ -249,27 +249,46 @@ const buildValuesSummary = (values, homeName, awayName, sourceLabel) => {
     return null;
   }
 
-  const selected = available.sort((left, right) => {
+  const ordered = available.sort((left, right) => {
     if (right.probability !== left.probability) {
       return right.probability - left.probability;
     }
 
     return right.bestOdd - left.bestOdd;
-  })[0];
+  });
 
-  const probability = clamp(selected.probability, 0.05, 0.95);
+  const options = ordered.map((item) => {
+    const probability = clamp(item.probability, 0.05, 0.95);
+    const fairOdd = probability > 0 ? 1 / probability : 0;
+
+    return {
+      key: item.key,
+      code: item.code,
+      label: item.label,
+      probability,
+      odd: item.bestOdd,
+      fairOdd,
+      marketEdge: item.bestOdd - fairOdd,
+      bookmaker: item.bestBookmaker,
+    };
+  });
+
+  const selected = options[0];
+  const probability = selected.probability;
   const fairOdd = probability > 0 ? 1 / probability : 0;
-  const ev = probability * selected.bestOdd - 1;
+  const ev = probability * selected.odd - 1;
 
   return {
     pickCode: selected.code,
     pickLabel: selected.label,
-    bestBookmaker: selected.bestBookmaker,
-    odd: selected.bestOdd,
+    bestBookmaker: selected.bookmaker,
+    odd: selected.odd,
     probability,
     fairOdd,
-    marketEdge: selected.bestOdd - fairOdd,
+    marketEdge: selected.marketEdge,
     ev,
+    options,
+    leaderGap: Math.max(0, (options[0]?.probability ?? 0) - (options[1]?.probability ?? 0)),
   };
 };
 
@@ -465,6 +484,8 @@ const buildGame = (fixture, market, isLive) => {
   return {
     id: fixtureId,
     game: `${homeName} x ${awayName}`,
+    homeTeam: homeName,
+    awayTeam: awayName,
     league: fixture?.league?.name || "Football",
     minute,
     minuteLabel: isLive ? "ao vivo" : "pre",
@@ -477,6 +498,8 @@ const buildGame = (fixture, market, isLive) => {
     bestBookmaker: market.bestBookmaker,
     pickCode: market.pickCode,
     pickLabel: market.pickLabel,
+    marketOptions: market.options ?? [],
+    leaderGap: market.leaderGap ?? 0,
     hasOdds: market.odd > 1,
     isPositiveEv: market.ev > 0,
     isLive,
