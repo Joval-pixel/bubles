@@ -91,12 +91,25 @@ button {
   white-space: nowrap;
 }
 
-.brand-dot {
-  width: 1rem;
-  height: 1rem;
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 42px;
+  max-width: 178px;
+  object-fit: contain;
+}
+
+.brand-context {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid rgba(37, 243, 95, 0.35);
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 35%, white, #54ff8c 42%, #09923a 100%);
-  box-shadow: 0 0 20px rgba(37, 243, 95, 0.56);
+  color: #d8ffe2;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  background: rgba(37, 243, 95, 0.08);
 }
 
 .cup-search {
@@ -247,7 +260,6 @@ button {
   font-family: Sora, Inter, sans-serif;
   font-size: clamp(1.35rem, 2.2vw, 2.5rem);
   line-height: 1;
-  letter-spacing: 0;
 }
 
 .match-card p {
@@ -308,6 +320,97 @@ button {
 .option-card {
   min-width: 190px;
   padding: 0.62rem 0.72rem;
+}
+
+.ai-market-panel {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.45fr) minmax(420px, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ai-prediction-card,
+.market-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.ai-prediction-card {
+  padding: 0.86rem;
+}
+
+.ai-prediction-card span,
+.market-card-head span {
+  display: block;
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ai-prediction-card strong,
+.market-card-head strong {
+  display: block;
+  margin-top: 0.3rem;
+  font-family: Sora, Inter, sans-serif;
+}
+
+.ai-prediction-card p,
+.ai-prediction-card li {
+  color: var(--muted);
+}
+
+.ai-prediction-card ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.72rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.markets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 10px;
+  max-height: 340px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.market-card {
+  padding: 0.72rem;
+}
+
+.market-options {
+  display: grid;
+  gap: 6px;
+  margin-top: 0.72rem;
+}
+
+.market-option {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.46rem 0.52rem;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.market-option span,
+.market-option small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-option strong {
+  color: #9cffb6;
+  font-size: 0.82rem;
 }
 
 .bubble-board {
@@ -467,8 +570,14 @@ button {
   .sponsor-strip,
   .cup-info,
   .market-bar,
+  .ai-market-panel,
   .widgets-grid {
     grid-template-columns: 1fr;
+  }
+
+  .markets-grid {
+    grid-template-columns: 1fr;
+    max-height: 300px;
   }
 
   .widgets-leagues,
@@ -492,6 +601,15 @@ button {
 
   .cup-brand {
     min-width: max-content;
+  }
+
+  .brand-logo {
+    height: 34px;
+    max-width: 132px;
+  }
+
+  .brand-context {
+    font-size: 0.68rem;
   }
 
   .cup-search {
