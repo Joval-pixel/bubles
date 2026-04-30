@@ -161,6 +161,10 @@ const moveBubbles = (items, bounds) => {
 };
 
 const getAiSummary = (game) => {
+  if (game?.aiInsights?.headline) {
+    return game.aiInsights.headline;
+  }
+
   const leader = game?.marketOptions?.[0];
   const second = game?.marketOptions?.[1];
   const gap = Math.max(0, (leader?.probability || 0) - (second?.probability || 0));
@@ -429,6 +433,8 @@ function BubblesWorldCup() {
     .sort((left, right) => (right.probability || 0) - (left.probability || 0))
     .slice(0, 5);
   const selectedOptions = selectedGame?.marketOptions ?? [];
+  const selectedMarkets = selectedGame?.betMarkets ?? [];
+  const aiInsights = selectedGame?.aiInsights ?? {};
 
   useEffect(() => {
     if (!filteredGames.length) {
@@ -573,8 +579,8 @@ function BubblesWorldCup() {
           <span>Leitura IA</span>
           <strong>{getAiSummary(selectedGame)}</strong>
           <small>
-            {selectedGame?.confidence === "odds"
-              ? "Baseada em odds oficiais retornadas pela API."
+            {selectedGame?.hasOdds
+              ? `${selectedGame.totalMarkets || 1} mercados analisados pela API.`
               : "Estimativa visual ate odds oficiais ficarem disponiveis."}
           </small>
         </article>
@@ -608,6 +614,39 @@ function BubblesWorldCup() {
               <span>{option.code}</span>
               <strong>{option.label}</strong>
               <small>{formatChance(option.probability)} | Odd {formatOdd(option.odd)}</small>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="ai-market-panel">
+        <article className="ai-prediction-card">
+          <span>Previsoes IA</span>
+          <strong>{selectedGame?.game ?? "Selecione uma bolha"}</strong>
+          <p>{aiInsights.headline || getAiSummary(selectedGame)}</p>
+          <ul>
+            <li>{aiInsights.goals || "Gols: aguardando mercado"}</li>
+            <li>{aiInsights.corners || "Escanteios: aguardando mercado"}</li>
+            <li>{aiInsights.cards || "Cartoes: aguardando mercado"}</li>
+          </ul>
+        </article>
+
+        <div className="markets-grid" aria-label="Todas as opcoes de apostas">
+          {selectedMarkets.map((market) => (
+            <article className="market-card" key={`${market.id}-${market.name}`}>
+              <div className="market-card-head">
+                <span>{market.category}</span>
+                <strong>{market.name}</strong>
+              </div>
+              <div className="market-options">
+                {(market.options || []).map((option) => (
+                  <div className="market-option" key={`${market.id}-${option.label}`}>
+                    <span>{option.label}</span>
+                    <strong>{formatChance(option.probability)}</strong>
+                    <small>Odd {formatOdd(option.odd)}</small>
+                  </div>
+                ))}
+              </div>
             </article>
           ))}
         </div>
