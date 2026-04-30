@@ -123,6 +123,88 @@ const getSignal = (game) => {
   };
 };
 
+const getAiMarketSummary = (game) => {
+  const options = [...(game?.marketOptions ?? [])].sort(
+    (left, right) => (right.probability || 0) - (left.probability || 0)
+  );
+  const leader = options[0];
+  const second = options[1];
+  const gap = Math.max(0, (leader?.probability || 0) - (second?.probability || 0));
+
+  if (!leader) {
+    return {
+      title: "Sem leitura IA",
+      note: "Ainda nao ha opcoes de mercado suficientes para montar a leitura completa.",
+    };
+  }
+
+  if (gap >= 0.18) {
+    return {
+      title: `IA aponta ${leader.label}`,
+      note: "O mercado mostra vantagem clara para esse resultado em relacao as demais opcoes.",
+    };
+  }
+
+  if (gap >= 0.08) {
+    return {
+      title: `IA favorece ${leader.label}`,
+      note: "Existe lideranca visivel, mas com disputa real da segunda melhor opcao.",
+    };
+  }
+
+  return {
+    title: "IA ve confronto equilibrado",
+    note: "As probabilidades estao proximas e o jogo pede mais cautela na leitura.",
+  };
+};
+
+const getAiOptionTone = (option, leaderCode) => {
+  if (!option) {
+    return "neutral";
+  }
+
+  if (option.code === leaderCode && (option.probability || 0) >= 0.5) {
+    return "good";
+  }
+
+  if ((option.probability || 0) >= 0.3) {
+    return "watch";
+  }
+
+  return "bad";
+};
+
+const getAiOptionNote = (option, game, leaderProbability) => {
+  if (!option) {
+    return "Sem leitura disponivel.";
+  }
+
+  const probability = option.probability || 0;
+  const gap = Math.max(0, (leaderProbability || 0) - probability);
+
+  if (option.code === game?.pickCode) {
+    if (gap <= 0.03) {
+      return "Essa e a frente mais forte do radar, mas ainda sem dominancia total.";
+    }
+
+    return "Essa e a opcao lider do mercado para o confronto no momento.";
+  }
+
+  if (option.code === "X") {
+    if (probability >= 0.28) {
+      return "Empate segue vivo e entra como rota secundaria relevante.";
+    }
+
+    return "Empate aparece como rota mais remota neste mercado.";
+  }
+
+  if (gap <= 0.08) {
+    return "Essa opcao ainda pressiona a lideranca e merece monitoramento.";
+  }
+
+  return "Essa rota corre por fora na leitura atual do mercado.";
+};
+
 const getLayoutPosition = (index, total, bounds, size) => {
   const width = Math.max(bounds.width || 0, 1360);
   const height = Math.max(bounds.height || 0, width > 960 ? 860 : 700);
@@ -519,6 +601,16 @@ export default function App() {
   const filterLabel = getFilterLabel(statusFilter, rangeFilter);
   const sortLabel = getSortLabel(sortMode);
   const selectedSignal = getSignal(selectedGame);
+  const aiSummary = getAiMarketSummary(selectedGame);
+  const aiOptions = useMemo(
+    () =>
+      [...(selectedGame?.marketOptions ?? [])].sort(
+        (left, right) => (right.probability || 0) - (left.probability || 0)
+      ),
+    [selectedGame]
+  );
+  const leaderOptionCode = aiOptions[0]?.code ?? "";
+  const leaderOptionProbability = aiOptions[0]?.probability ?? 0;
   const bestChanceGame = filteredBubbles[0] ?? null;
   const sourceLabel = bubbles[0]?.source ?? "API-Football";
   const nextKickoffLabel = bestChanceGame?.commenceTime
@@ -837,6 +929,41 @@ export default function App() {
                       <span>Odd</span>
                       <strong>{formatOdd(selectedGame.oddHome)}</strong>
                     </article>
+                  </div>
+
+                  <div className="ai-market">
+                    <div className="ai-market-header">
+                      <span className="section-kicker">Previsoes IA</span>
+                      <strong>{aiSummary.title}</strong>
+                      <p>{aiSummary.note}</p>
+                    </div>
+
+                    <div className="ai-options">
+                      {aiOptions.length ? (
+                        aiOptions.map((option) => {
+                          const tone = getAiOptionTone(option, leaderOptionCode);
+
+                          return (
+                            <article
+                              key={`${selectedGame.id}-${option.code}`}
+                              className={`ai-option is-${tone}`}
+                            >
+                              <div className="ai-option-top">
+                                <span className="ai-option-code">{option.code}</span>
+                                <strong>{option.label}</strong>
+                              </div>
+                              <div className="ai-option-metrics">
+                                <span>Chance {formatChance(option.probability)}</span>
+                                <span>Odd {formatOdd(option.odd)}</span>
+                              </div>
+                              <p>{getAiOptionNote(option, selectedGame, leaderOptionProbability)}</p>
+                            </article>
+                          );
+                        })
+                      ) : (
+                        <div className="empty-inline">Sem previsoes detalhadas</div>
+                      )}
+                    </div>
                   </div>
 
                   <div className={`signal-card is-${selectedSignal.tone}`}>
