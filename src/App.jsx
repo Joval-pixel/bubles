@@ -327,6 +327,7 @@ const moveBubbles = (items, bounds) => {
 export default function App() {
   const boardRef = useRef(null);
   const selectedPanelRef = useRef(null);
+  const animationRef = useRef(0);
   const boundsRef = useRef({ width: 0, height: 0 });
 
   const [bubbles, setBubbles] = useState([]);
@@ -340,7 +341,7 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [rangeFilter, setRangeFilter] = useState("all");
   const [sortMode, setSortMode] = useState("probability");
-  const [bubbleScale, setBubbleScale] = useState("smart");
+  const [bubbleScale, setBubbleScale] = useState("compact");
 
   useEffect(() => {
     const syncBounds = () => {
@@ -428,6 +429,23 @@ export default function App() {
       window.clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    if (!bubbles.length) {
+      return undefined;
+    }
+
+    const animate = () => {
+      setBubbles((current) => moveBubbles(current, boundsRef.current));
+      animationRef.current = window.requestAnimationFrame(animate);
+    };
+
+    animationRef.current = window.requestAnimationFrame(animate);
+
+    return () => {
+      window.cancelAnimationFrame(animationRef.current);
+    };
+  }, [bubbles.length]);
 
   const activateBubble = (id) => {
     setSelectedId(id);
