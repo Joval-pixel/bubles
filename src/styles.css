@@ -1,0 +1,135 @@
+.chip-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid rgba(46, 255, 114, 0.8);
+  border-radius: 15px;
+  background: rgba(46, 255, 114, 0.08);
+  color: #f0f4f7;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.widgets-page {
+  min-height: 100vh;
+  padding: 10px;
+  background: #1f1f1f;
+  color: var(--text);
+}
+
+.widgets-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 10px;
+  z-index: 10;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(72, 72, 72, 0.96), rgba(42, 42, 42, 0.98));
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.widgets-toolbar::-webkit-scrollbar,
+.widgets-sports::-webkit-scrollbar {
+  display: none;
+}
+
+.widgets-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex: 0 0 auto;
+  color: var(--text);
+  font-family: "Sora", sans-serif;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.widgets-sports {
+  display: flex;
+  gap: 8px;
+  flex: 1 0 auto;
+  overflow-x: auto;
+}
+
+.widgets-warning {
+  margin: 10px 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 212, 77, 0.25);
+  border-radius: 12px;
+  background: rgba(255, 212, 77, 0.08);
+  color: #ffe084;
+}
+
+.widgets-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(420px, 1.35fr) minmax(320px, 0.95fr);
+  gap: 10px;
+  margin-top: 10px;
+  align-items: start;
+}
+
+.widgets-panel {
+  min-height: 160px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(18, 18, 18, 0.94);
+}
+
+.widgets-leagues,
+.widgets-side {
+  position: sticky;
+  top: 84px;
+}
+
+.widgets-games {
+  min-height: calc(100vh - 110px);
+}
+
+.widgets-side {
+  display: grid;
+  gap: 10px;
+}
+
+.widgets-page api-sports-widget {
+  display: block;
+}
+
+#game-content api-sports-widget {
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+}
+
+@media (max-width: 1260px) {
+  .widgets-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .widgets-leagues,
+  .widgets-side {
+    position: static;
+  }
+}
+
+@media (max-width: 900px) {
+  .widgets-page {
+    padding: 8px;
+  }
+
+  .widgets-toolbar {
+    top: 8px;
+    border-radius: 16px;
+  }
+
+  .widgets-games {
+    min-height: auto;
+  }
+}
