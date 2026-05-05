@@ -247,6 +247,28 @@ function WidgetsPage() {
         </div>
       ) : null}
 
+      {widgetKey ? (
+        <api-sports-widget
+          key={`config-${sport}`}
+          data-type="config"
+          data-sport={sport}
+          data-key={widgetKey}
+          data-lang="en"
+          data-theme="grey"
+          data-show-errors="true"
+          data-show-logos="true"
+          data-refresh="20"
+          data-favorite="true"
+          data-standings="true"
+          data-tab="games"
+          data-game-tab="statistics"
+          data-target-league="#games-list"
+          data-target-team="#team-content"
+          data-target-game="#game-content"
+          data-target-standings="#standings-content"
+        />
+      ) : null}
+
       <main className="widgets-grid">
         <section className="widgets-panel widgets-leagues">
           <api-sports-widget key={`leagues-${sport}`} data-type="leagues" data-sport={sport} />
@@ -262,26 +284,6 @@ function WidgetsPage() {
           </section>
         </aside>
       </main>
-
-      <api-sports-widget
-        key={`config-${sport}`}
-        data-type="config"
-        data-sport={sport}
-        data-key={widgetKey}
-        data-lang="pt"
-        data-theme="grey"
-        data-show-error="true"
-        data-show-logos="true"
-        data-refresh="20"
-        data-favorite="true"
-        data-standings="true"
-        data-tab="games"
-        data-game-tab="statistics"
-        data-target-league="#games-list"
-        data-target-team="#team-content"
-        data-target-game="#game-content"
-        data-target-standings="#standings-content"
-      />
     </div>
   );
 }
