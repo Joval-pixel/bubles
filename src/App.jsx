@@ -624,9 +624,9 @@ function BubblesWorldCup() {
             <span>Previsoes IA</span>
             <strong>{aiInsights.headline || getAiSummary(selectedGame)}</strong>
             <ul>
-              <li>{aiInsights.goals || "Gols: aguardando mercado"}</li>
-              <li>{aiInsights.corners || "Escanteios: aguardando mercado"}</li>
-              <li>{aiInsights.cards || "Cartoes: aguardando mercado"}</li>
+              <li>{aiInsights.goals || "Gols: mercado ainda nao retornado pela API."}</li>
+              <li>{aiInsights.corners || "Escanteios: mercado ainda nao retornado pela API."}</li>
+              <li>{aiInsights.cards || "Cartoes: mercado ainda nao retornado pela API."}</li>
             </ul>
           </article>
 
