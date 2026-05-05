@@ -53,6 +53,33 @@ const formatKickoff = (value) =>
       })
     : "--";
 
+const translateBetText = (value) => {
+  const text = String(value || "").trim();
+
+  if (!text) {
+    return "--";
+  }
+
+  return text
+    .replace(/\bMatch Winner\b/gi, "Resultado final")
+    .replace(/\bWinner\b/gi, "Vencedor")
+    .replace(/\bDouble Chance\b/gi, "Dupla chance")
+    .replace(/\bBoth Teams To Score\b/gi, "Ambas marcam")
+    .replace(/\bClean Sheet\b/gi, "Sem sofrer gol")
+    .replace(/\bOver\b/gi, "Mais de")
+    .replace(/\bUnder\b/gi, "Menos de")
+    .replace(/\bYes\b/gi, "Sim")
+    .replace(/\bNo\b/gi, "Nao")
+    .replace(/\bDraw\b/gi, "Empate")
+    .replace(/\bHome\b/gi, "Mandante")
+    .replace(/\bAway\b/gi, "Visitante")
+    .replace(/\bCorners\b/gi, "Escanteios")
+    .replace(/\bCards\b/gi, "Cartoes")
+    .replace(/\bGoals\b/gi, "Gols")
+    .replace(/\bOdd\b/gi, "Impar")
+    .replace(/\bEven\b/gi, "Par");
+};
+
 const getTier = (probability) => {
   if (probability >= 0.62) {
     return "high";
@@ -624,9 +651,12 @@ function BubblesWorldCup() {
             <span>Previsoes IA</span>
             <strong>{aiInsights.headline || getAiSummary(selectedGame)}</strong>
             <ul>
-              <li>{aiInsights.goals || "Gols: mercado ainda nao retornado pela API."}</li>
-              <li>{aiInsights.corners || "Escanteios: mercado ainda nao retornado pela API."}</li>
-              <li>{aiInsights.cards || "Cartoes: mercado ainda nao retornado pela API."}</li>
+              <li>{aiInsights.main || "Chance estimada: aguardando dados."}</li>
+              <li>{aiInsights.confidence || "Confianca: aguardando leitura completa."}</li>
+              <li>{aiInsights.goals || "Gols: sem dados suficientes neste momento."}</li>
+              <li>{aiInsights.corners || "Escanteios: sem dados suficientes neste momento."}</li>
+              <li>{aiInsights.cards || "Cartoes: sem dados suficientes neste momento."}</li>
+              <li>{aiInsights.warning || "Use como apoio para analise. Nao existe aposta garantida."}</li>
             </ul>
           </article>
 
@@ -637,7 +667,7 @@ function BubblesWorldCup() {
                 key={option.code}
               >
                 <span>{option.code}</span>
-                <strong>{option.label}</strong>
+                <strong>{translateBetText(option.label)}</strong>
                 <small>{formatChance(option.probability)} | Odd {formatOdd(option.odd)}</small>
               </article>
             ))}
@@ -664,12 +694,12 @@ function BubblesWorldCup() {
               <article className="market-card" key={`${market.id}-${market.name}`}>
                 <div className="market-card-head">
                   <span>{market.category}</span>
-                  <strong>{market.name}</strong>
+                  <strong>{translateBetText(market.name)}</strong>
                 </div>
                 <div className="market-options">
                   {(market.options || []).map((option) => (
                     <div className="market-option" key={`${market.id}-${option.label}`}>
-                      <span>{option.label}</span>
+                      <span>{translateBetText(option.label)}</span>
                       <strong>{formatChance(option.probability)}</strong>
                       <small>Odd {formatOdd(option.odd)}</small>
                     </div>
