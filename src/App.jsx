@@ -213,7 +213,42 @@ const getAiSummary = (game) => {
 
 function WidgetsPage() {
   const [sport, setSport] = useState("football");
+  const [widgetsReady, setWidgetsReady] = useState(false);
   const widgetKey = import.meta.env.VITE_API_FOOTBALL_WIDGET_KEY || "";
+  const canRenderWidgets = Boolean(widgetKey && widgetsReady);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const markReady = () => {
+      if (!cancelled) {
+        setWidgetsReady(true);
+      }
+    };
+
+    if (typeof window === "undefined" || !window.customElements) {
+      markReady();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (window.customElements.get("api-sports-widget")) {
+      markReady();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    window.customElements.whenDefined("api-sports-widget").then(markReady).catch(markReady);
+
+    const fallback = window.setTimeout(markReady, 2600);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(fallback);
+    };
+  }, []);
 
   return (
     <div className="widgets-page">
@@ -247,7 +282,13 @@ function WidgetsPage() {
         </div>
       ) : null}
 
-      {widgetKey ? (
+      {widgetKey && !widgetsReady ? (
+        <div className="widgets-warning">
+          Carregando widgets oficiais da API-SPORTS...
+        </div>
+      ) : null}
+
+      {canRenderWidgets ? (
         <api-sports-widget
           key={`config-${sport}`}
           data-type="config"
@@ -271,16 +312,28 @@ function WidgetsPage() {
 
       <main className="widgets-grid">
         <section className="widgets-panel widgets-leagues">
-          <api-sports-widget key={`leagues-${sport}`} data-type="leagues" data-sport={sport} />
+          {canRenderWidgets ? (
+            <api-sports-widget key={`leagues-${sport}`} data-type="leagues" data-sport={sport} />
+          ) : (
+            <div className="widgets-placeholder">Aguardando widgets...</div>
+          )}
         </section>
         <section id="games-list" className="widgets-panel widgets-games">
-          <api-sports-widget key={`games-${sport}`} data-type="games" data-sport={sport} />
+          {canRenderWidgets ? (
+            <api-sports-widget key={`games-${sport}`} data-type="games" data-sport={sport} />
+          ) : (
+            <div className="widgets-placeholder">Aguardando jogos...</div>
+          )}
         </section>
         <aside className="widgets-side">
           <section id="standings-content" className="widgets-panel" />
           <section id="team-content" className="widgets-panel" />
           <section id="game-content" className="widgets-panel">
-            <api-sports-widget key={`game-${sport}`} data-type="game" data-sport={sport} />
+            {canRenderWidgets ? (
+              <api-sports-widget key={`game-${sport}`} data-type="game" data-sport={sport} />
+            ) : (
+              <div className="widgets-placeholder">Selecione um jogo quando carregar.</div>
+            )}
           </section>
         </aside>
       </main>
