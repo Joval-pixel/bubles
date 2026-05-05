@@ -464,32 +464,64 @@ const translatePickLabel = (label) => {
     .replace(/\bEven\b/gi, "Par");
 };
 
-const getConfidenceText = (market) => {
+const getConfidenceLevel = (market) => {
+  const probability = market?.probability || 0;
   const gap = market?.leaderGap || 0;
 
   if (market?.confidence !== "odds") {
-    return "estimativa visual enquanto a API nao retorna odds oficiais";
+    return "media";
   }
 
-  if (gap >= 0.18) {
-    return "sinal forte nas odds oficiais";
+  if (probability >= 0.68 || gap >= 0.18) {
+    return "alta";
   }
 
-  if (gap >= 0.1) {
-    return "boa vantagem nas odds oficiais";
+  if (probability >= 0.54 || gap >= 0.1) {
+    return "media";
   }
 
-  return "jogo equilibrado, entrada exige mais cautela";
+  return "baixa";
+};
+
+const getConfidenceText = (market) => {
+  const level = getConfidenceLevel(market);
+
+  if (market?.confidence !== "odds") {
+    return "Confianca media: a IA esta usando estimativa visual porque ainda nao ha odds oficiais suficientes.";
+  }
+
+  if (level === "alta") {
+    return "Confianca alta: as odds mostram uma vantagem clara para este palpite.";
+  }
+
+  if (level === "media") {
+    return "Confianca media: existe vantagem, mas o jogo ainda pede cuidado.";
+  }
+
+  return "Confianca baixa: jogo equilibrado, melhor usar como observacao e nao como entrada forte.";
+};
+
+const getReadableChanceText = (value) => {
+  if (value >= 0.68) {
+    return "chance forte";
+  }
+
+  if (value >= 0.54) {
+    return "chance boa";
+  }
+
+  return "chance moderada";
 };
 
 const makeInsightLine = (category, pick) => {
   if (!pick) {
-    return `${category}: mercado ainda nao retornado pela API.`;
+    return `${category}: sem dados suficientes neste momento.`;
   }
 
-  return `${category}: melhor leitura em ${translatePickLabel(pick.label)}, ${formatInsightPercent(
-    pick.probability
-  )} de chance, odd ${formatInsightOdd(pick.odd)}.`;
+  const chance = formatInsightPercent(pick.probability);
+  const level = getReadableChanceText(pick.probability);
+
+  return `${category}: ${translatePickLabel(pick.label)} aparece como melhor opcao, com ${chance} de chance (${level}).`;
 };
 
 const createAiInsights = (market, betMarkets) => {
@@ -499,12 +531,15 @@ const createAiInsights = (market, betMarkets) => {
   const cardsPick = betMarkets.find((item) => item.category === "Cartoes")?.leader;
 
   return {
-    headline: market?.confidence === "odds"
-      ? `IA aponta ${mainPick} como palpite principal: ${getConfidenceText(market)}.`
-      : `IA estimou vantagem para ${mainPick}: ${getConfidenceText(market)}.`,
+    headline: `Melhor palpite: ${mainPick}`,
+    main: `Chance estimada: ${formatInsightPercent(market?.probability)} | Odd atual: ${formatInsightOdd(
+      market?.odd
+    )}.`,
+    confidence: getConfidenceText(market),
     goals: makeInsightLine("Gols", goalsPick),
     corners: makeInsightLine("Escanteios", cornersPick),
     cards: makeInsightLine("Cartoes", cardsPick),
+    warning: "Use como apoio para analise. Nao existe aposta garantida.",
   };
 };
 
