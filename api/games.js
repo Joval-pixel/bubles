@@ -1,5 +1,4 @@
 const API_BASE = "https://v3.football.api-sports.io";
-
 const API_KEY =
   process.env.API_KEY ||
   process.env.APISPORTS_KEY ||
@@ -14,7 +13,7 @@ const WORLD_CUP_LIMIT = Math.max(
 );
 const TODAY_LIMIT = Math.max(
   24,
-  Math.min(1000, Number.parseInt(process.env.TODAY_LIMIT || "120", 10) || 120)
+  Math.min(1000, Number.parseInt(process.env.TODAY_LIMIT || "500", 10) || 500)
 );
 const MARKETS_PER_GAME_LIMIT = Math.max(
   12,
@@ -52,7 +51,10 @@ const toNumber = (value) => {
 };
 
 const average = (values) => {
-  if (!values.length) return 0;
+  if (!values.length) {
+    return 0;
+  }
+
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 };
 
@@ -60,7 +62,7 @@ const makeJsonResponse = (payload, status = 200) =>
   Response.json(payload, {
     status,
     headers: {
-      "Cache-Control": "s-maxage=180, stale-while-revalidate=420",
+      "Cache-Control": "s-maxage=240, stale-while-revalidate=600",
     },
   });
 
@@ -83,7 +85,6 @@ const getBrazilDate = () => {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(new Date());
-
   const year = parts.find((part) => part.type === "year")?.value;
   const month = parts.find((part) => part.type === "month")?.value;
   const day = parts.find((part) => part.type === "day")?.value;
@@ -102,35 +103,15 @@ const safeJson = async (response) => {
 const humanizeApiError = (message) => {
   const text = String(message ?? "");
 
-  if (text.includes("REQUESTS") || text.toLowerCase().includes("requests")) {
+  if (text.includes("REQUESTS")) {
     return "Limite diario da API-Football atingido no plano atual";
   }
 
-  if (text.includes("PLAN") || text.toLowerCase().includes("plan")) {
+  if (text.includes("PLAN")) {
     return "Seu plano atual da API-Football nao cobre esse endpoint";
   }
 
-  if (text.includes("KEY") || text.includes("401") || text.includes("403")) {
-    return "API_KEY invalida ou sem permissao";
-  }
-
   return text || "Falha inesperada na API-Football";
-};
-
-const extractApiErrors = (payload) => {
-  const errors = payload?.errors;
-
-  if (!errors) return [];
-
-  if (Array.isArray(errors)) {
-    return errors.filter(Boolean).map((error) => ["error", error]);
-  }
-
-  if (typeof errors === "object") {
-    return Object.entries(errors).filter(([, value]) => Boolean(value));
-  }
-
-  return [["error", errors]];
 };
 
 const fetchFromApi = async (path) => {
@@ -140,13 +121,12 @@ const fetchFromApi = async (path) => {
     },
   });
 
-  const payload = await safeJson(response);
-
   if (!response.ok) {
     throw new Error(`API_FOOTBALL_${response.status}`);
   }
 
-  const errors = extractApiErrors(payload);
+  const payload = await safeJson(response);
+  const errors = Object.entries(payload?.errors ?? {}).filter(([, value]) => Boolean(value));
 
   if (errors.length) {
     const [type, message] = errors[0];
@@ -200,7 +180,9 @@ const getMatchWinnerBet = (bookmaker) => {
 const getBetCategory = (betName) => {
   const name = normalizeText(betName);
 
-  if (name.includes("corner")) return "Escanteios";
+  if (name.includes("corner")) {
+    return "Escanteios";
+  }
 
   if (
     name.includes("goal") ||
@@ -212,11 +194,25 @@ const getBetCategory = (betName) => {
     return "Gols";
   }
 
-  if (name.includes("card") || name.includes("booking")) return "Cartoes";
-  if (name.includes("handicap") || name.includes("asian")) return "Handicap";
-  if (name.includes("half") || name.includes("1st") || name.includes("2nd")) return "Tempo";
-  if (name.includes("score")) return "Placar";
-  if (name.includes("winner") || name === "1x2" || name.includes("double chance")) return "Resultado";
+  if (name.includes("card") || name.includes("booking")) {
+    return "Cartoes";
+  }
+
+  if (name.includes("handicap") || name.includes("asian")) {
+    return "Handicap";
+  }
+
+  if (name.includes("half") || name.includes("1st") || name.includes("2nd")) {
+    return "Tempo";
+  }
+
+  if (name.includes("score")) {
+    return "Placar";
+  }
+
+  if (name.includes("winner") || name === "1x2" || name.includes("double chance")) {
+    return "Resultado";
+  }
 
   return "Outros";
 };
@@ -249,43 +245,15 @@ const createOption = ({ key, code, label, probability, odd, bookmaker, source })
 const normalizeOptions = (options) => {
   const total = options.reduce((sum, option) => sum + option.probability, 0);
 
-  if (!(total > 0)) return options;
+  if (!(total > 0)) {
+    return options;
+  }
 
   return options.map((option) => ({
     ...option,
     probability: option.probability / total,
     odd: option.odd > 1 ? option.odd : total / option.probability,
   }));
-};
-
-const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
-  const sorted = [...options].sort((left, right) => right.probability - left.probability);
-  const selected = sorted[0];
-  const second = sorted[1];
-  const probability = clamp(selected?.probability || 0, 0.03, 0.94);
-  const odd = selected?.odd > 1 ? selected.odd : probability > 0 ? 1 / probability : 0;
-  const fairOdd = probability > 0 ? 1 / probability : 0;
-
-  return {
-    pickCode: selected?.code || "1",
-    pickLabel: selected?.label || "Favorito",
-    bestBookmaker: selected?.bookmaker || bookmakerName,
-    odd,
-    probability,
-    fairOdd,
-    marketEdge: odd - fairOdd,
-    ev: probability * odd - 1,
-    leaderGap: Math.max(0, probability - (second?.probability || 0)),
-    confidence: selected?.source === "odds" ? "odds" : "estimate",
-    marketOptions: sorted.map((option) => ({
-      code: option.code,
-      label: option.label,
-      probability: option.probability,
-      odd: option.odd,
-      bookmaker: option.bookmaker || bookmakerName,
-      source: option.source,
-    })),
-  };
 };
 
 const buildFallbackMarket = (fixture) => {
@@ -325,6 +293,36 @@ const buildFallbackMarket = (fixture) => {
   );
 };
 
+const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
+  const sorted = [...options].sort((left, right) => right.probability - left.probability);
+  const selected = sorted[0];
+  const second = sorted[1];
+  const probability = clamp(selected?.probability || 0, 0.03, 0.94);
+  const odd = selected?.odd > 1 ? selected.odd : probability > 0 ? 1 / probability : 0;
+  const fairOdd = probability > 0 ? 1 / probability : 0;
+
+  return {
+    pickCode: selected?.code || "1",
+    pickLabel: selected?.label || "Favorito",
+    bestBookmaker: selected?.bookmaker || bookmakerName,
+    odd,
+    probability,
+    fairOdd,
+    marketEdge: odd - fairOdd,
+    ev: probability * odd - 1,
+    leaderGap: Math.max(0, probability - (second?.probability || 0)),
+    confidence: selected?.source === "odds" ? "odds" : "estimate",
+    marketOptions: sorted.map((option) => ({
+      code: option.code,
+      label: option.label,
+      probability: option.probability,
+      odd: option.odd,
+      bookmaker: option.bookmaker || bookmakerName,
+      source: option.source,
+    })),
+  };
+};
+
 const buildBetMarketsFromBookmakers = (entry) => {
   const markets = new Map();
 
@@ -337,10 +335,15 @@ const buildBetMarketsFromBookmakers = (entry) => {
         }))
         .filter((value) => value.label && value.odd > 1);
 
-      if (values.length < 2) continue;
+      if (values.length < 2) {
+        continue;
+      }
 
       const totalImplied = values.reduce((sum, value) => sum + 1 / value.odd, 0);
-      if (!(totalImplied > 0)) continue;
+
+      if (!(totalImplied > 0)) {
+        continue;
+      }
 
       const marketKey = `${bet?.id || ""}-${normalizeText(bet?.name)}`;
       const market =
@@ -401,7 +404,9 @@ const buildBetMarketsFromBookmakers = (entry) => {
       const leader = options[0];
       const second = options[1];
 
-      if (!leader) return null;
+      if (!leader) {
+        return null;
+      }
 
       return {
         id: market.id,
@@ -424,40 +429,88 @@ const buildBetMarketsFromBookmakers = (entry) => {
     .sort((left, right) => {
       const rankDiff = getCategoryRank(left.category) - getCategoryRank(right.category);
 
-      if (rankDiff !== 0) return rankDiff;
+      if (rankDiff !== 0) {
+        return rankDiff;
+      }
 
       return (right.leader?.probability || 0) - (left.leader?.probability || 0);
     })
     .slice(0, MARKETS_PER_GAME_LIMIT);
 };
 
+const formatInsightPercent = (value) => `${Math.round((value || 0) * 100)}%`;
+
+const formatInsightOdd = (value) =>
+  value && Number.isFinite(value) && value > 1 ? value.toFixed(2).replace(".", ",") : "--";
+
+const translatePickLabel = (label) => {
+  const text = String(label || "").trim();
+
+  if (!text) {
+    return "mercado principal";
+  }
+
+  return text
+    .replace(/\bOver\b/gi, "Mais de")
+    .replace(/\bUnder\b/gi, "Menos de")
+    .replace(/\bYes\b/gi, "Sim")
+    .replace(/\bNo\b/gi, "Nao")
+    .replace(/\bDraw\b/gi, "Empate")
+    .replace(/\bHome\b/gi, "Mandante")
+    .replace(/\bAway\b/gi, "Visitante")
+    .replace(/\bBoth Teams To Score\b/gi, "Ambas marcam")
+    .replace(/\bClean Sheet\b/gi, "Sem sofrer gol")
+    .replace(/\bOdd\b/gi, "Impar")
+    .replace(/\bEven\b/gi, "Par");
+};
+
+const getConfidenceText = (market) => {
+  const gap = market?.leaderGap || 0;
+
+  if (market?.confidence !== "odds") {
+    return "estimativa visual enquanto a API nao retorna odds oficiais";
+  }
+
+  if (gap >= 0.18) {
+    return "sinal forte nas odds oficiais";
+  }
+
+  if (gap >= 0.1) {
+    return "boa vantagem nas odds oficiais";
+  }
+
+  return "jogo equilibrado, entrada exige mais cautela";
+};
+
+const makeInsightLine = (category, pick) => {
+  if (!pick) {
+    return `${category}: mercado ainda nao retornado pela API.`;
+  }
+
+  return `${category}: melhor leitura em ${translatePickLabel(pick.label)}, ${formatInsightPercent(
+    pick.probability
+  )} de chance, odd ${formatInsightOdd(pick.odd)}.`;
+};
+
 const createAiInsights = (market, betMarkets) => {
-  const mainPick = market?.pickLabel || "mercado principal";
+  const mainPick = translatePickLabel(market?.pickLabel || "mercado principal");
   const goalsPick = betMarkets.find((item) => item.category === "Gols")?.leader;
   const cornersPick = betMarkets.find((item) => item.category === "Escanteios")?.leader;
   const cardsPick = betMarkets.find((item) => item.category === "Cartoes")?.leader;
 
   return {
-    headline:
-      market?.confidence === "odds"
-        ? `IA aponta ${mainPick} como leitura principal`
-        : `IA estimou vantagem para ${mainPick}`,
-    goals: goalsPick
-      ? `Gols: ${goalsPick.label} com ${Math.round(goalsPick.probability * 100)}%`
-      : "Gols: mercado nao retornado pela API",
-    corners: cornersPick
-      ? `Escanteios: ${cornersPick.label} com ${Math.round(cornersPick.probability * 100)}%`
-      : "Escanteios: mercado nao retornado pela API",
-    cards: cardsPick
-      ? `Cartoes: ${cardsPick.label} com ${Math.round(cardsPick.probability * 100)}%`
-      : "Cartoes: mercado nao retornado pela API",
+    headline: market?.confidence === "odds"
+      ? `IA aponta ${mainPick} como palpite principal: ${getConfidenceText(market)}.`
+      : `IA estimou vantagem para ${mainPick}: ${getConfidenceText(market)}.`,
+    goals: makeInsightLine("Gols", goalsPick),
+    corners: makeInsightLine("Escanteios", cornersPick),
+    cards: makeInsightLine("Cartoes", cardsPick),
   };
 };
 
 const buildMarketFromBookmakers = (entry) => {
   const homeName = entry?.teams?.home?.name || "";
   const awayName = entry?.teams?.away?.name || "";
-
   const buckets = {
     home: {
       key: "home",
@@ -488,14 +541,18 @@ const buildMarketFromBookmakers = (entry) => {
   for (const bookmaker of entry?.bookmakers ?? []) {
     const bet = getMatchWinnerBet(bookmaker);
 
-    if (!bet || !Array.isArray(bet.values)) continue;
+    if (!bet || !Array.isArray(bet.values)) {
+      continue;
+    }
 
     const values = bet.values
       .map((value) => {
         const key = mapOutcomeKey(value?.value, homeName, awayName);
         const odd = toNumber(value?.odd);
 
-        if (!key || odd <= 1) return null;
+        if (!key || odd <= 1) {
+          return null;
+        }
 
         if (odd > buckets[key].bestOdd) {
           buckets[key].bestOdd = odd;
@@ -506,10 +563,15 @@ const buildMarketFromBookmakers = (entry) => {
       })
       .filter(Boolean);
 
-    if (values.length < 2) continue;
+    if (values.length < 2) {
+      continue;
+    }
 
     const totalImplied = values.reduce((sum, value) => sum + 1 / value.odd, 0);
-    if (!(totalImplied > 0)) continue;
+
+    if (!(totalImplied > 0)) {
+      continue;
+    }
 
     for (const value of values) {
       buckets[value.key].probabilities.push((1 / value.odd) / totalImplied);
@@ -530,7 +592,9 @@ const buildMarketFromBookmakers = (entry) => {
     )
     .filter((option) => option.probability > 0 && option.odd > 1);
 
-  if (options.length < 2) return null;
+  if (options.length < 2) {
+    return null;
+  }
 
   return buildMarketFromOptions(options);
 };
@@ -554,22 +618,6 @@ const buildOddsMap = (oddsEntries) => {
   return map;
 };
 
-const mergeFixtures = (...fixtureLists) => {
-  const map = new Map();
-
-  for (const list of fixtureLists) {
-    for (const fixture of list || []) {
-      const id = fixture?.fixture?.id;
-
-      if (id && !map.has(id)) {
-        map.set(id, fixture);
-      }
-    }
-  }
-
-  return [...map.values()];
-};
-
 const getScoreLine = (fixture) => {
   const home = fixture?.goals?.home;
   const away = fixture?.goals?.away;
@@ -588,7 +636,9 @@ const getStage = (fixture, mode = "worldcup") => {
 
   const round = normalizeText(fixture?.league?.round);
 
-  if (round.includes("group")) return "groups";
+  if (round.includes("group")) {
+    return "groups";
+  }
 
   if (round.includes("final") || round.includes("round") || round.includes("semi") || round.includes("third")) {
     return "knockout";
@@ -606,7 +656,6 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
   const isFinished = FINISHED_STATUSES.has(statusShort);
   const market = oddsAnalysis?.market || buildFallbackMarket(fixture);
   const rawBetMarkets = oddsAnalysis?.betMarkets ?? [];
-
   const betMarkets = rawBetMarkets.length
     ? rawBetMarkets
     : [
@@ -634,12 +683,12 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
           })),
         },
       ];
-
   const minute = isLive ? clamp(toNumber(fixture?.fixture?.status?.elapsed), 1, 130) : 0;
   const strongestMarket = betMarkets[0]?.leader;
   const bubbleValue = strongestMarket
     ? clamp(Math.max(market.probability, strongestMarket.probability), 0.03, 0.92)
     : market.probability;
+  const aiInsights = createAiInsights(market, betMarkets);
 
   return {
     id: fixtureId,
@@ -677,7 +726,7 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
     leaderGap: market.leaderGap,
     marketOptions: market.marketOptions,
     betMarkets,
-    aiInsights: createAiInsights(market, betMarkets),
+    aiInsights,
     totalMarkets: betMarkets.length,
   };
 };
@@ -688,10 +737,9 @@ const sortGames = (games) =>
       return Number(right.isLive) - Number(left.isLive);
     }
 
-    const leftTime = new Date(left.commenceTime || 0).getTime();
-    const rightTime = new Date(right.commenceTime || 0).getTime();
-
-    if (leftTime !== rightTime) return leftTime - rightTime;
+    if (new Date(left.commenceTime || 0).getTime() !== new Date(right.commenceTime || 0).getTime()) {
+      return new Date(left.commenceTime || 0).getTime() - new Date(right.commenceTime || 0).getTime();
+    }
 
     return (right.bubbleValue || 0) - (left.bubbleValue || 0);
   });
@@ -701,7 +749,6 @@ const fetchWorldCupOdds = async () => {
     const oddsEntries = await fetchFromApi(
       `/odds?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`
     );
-
     return buildOddsMap(oddsEntries);
   } catch (_error) {
     return new Map();
@@ -713,7 +760,6 @@ const fetchTodayOdds = async (date) => {
     const oddsEntries = await fetchFromApi(
       `/odds?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`
     );
-
     return buildOddsMap(oddsEntries);
   } catch (_error) {
     return new Map();
@@ -734,29 +780,10 @@ const fetchWorldCupGames = async () => {
   );
 };
 
-const fetchTodayFixtures = async (date) => {
-  const todayResult = await Promise.allSettled([
-    fetchFromApi(`/fixtures?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`),
-    fetchFromApi(`/fixtures?live=all&timezone=${encodeURIComponent(API_TIMEZONE)}`),
-  ]);
-
-  const fulfilled = todayResult
-    .filter((result) => result.status === "fulfilled")
-    .map((result) => result.value);
-
-  if (!fulfilled.length) {
-    const firstError = todayResult.find((result) => result.status === "rejected")?.reason;
-    throw firstError || new Error("Falha ao carregar fixtures");
-  }
-
-  return mergeFixtures(...fulfilled);
-};
-
 const fetchTodayGames = async () => {
   const date = getBrazilDate();
-
   const [fixtures, oddsMap] = await Promise.all([
-    fetchTodayFixtures(date),
+    fetchFromApi(`/fixtures?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`),
     fetchTodayOdds(date),
   ]);
 
@@ -774,9 +801,9 @@ const fetchTodayGames = async () => {
 const getMode = (request) => {
   try {
     const url = new URL(request?.url || "https://bubles.local/api/games");
-    return url.searchParams.get("mode") === "worldcup" ? "worldcup" : "today";
+    return url.searchParams.get("mode") === "today" ? "today" : "worldcup";
   } catch (_error) {
-    return "today";
+    return "worldcup";
   }
 };
 
@@ -797,12 +824,16 @@ export async function GET(request) {
 
       if (!games.length) {
         return makeJsonResponse(
-          makeEmptyPayload("Sem jogos de hoje", `Nenhuma fixture retornada para date=${date}`, {
-            id: "today",
-            season: new Date().getFullYear(),
-            name: "Jogos de hoje",
-            date,
-          })
+          makeEmptyPayload(
+            "Sem jogos de hoje",
+            `Nenhuma fixture retornada para date=${date}`,
+            {
+              id: "today",
+              season: new Date().getFullYear(),
+              name: "Jogos de hoje",
+              date,
+            }
+          )
         );
       }
 
@@ -810,7 +841,7 @@ export async function GET(request) {
         games,
         updatedAt: new Date().toISOString(),
         message: liveCount ? "Jogos ao vivo de hoje no radar" : "Jogos de hoje carregados",
-        debug: `${games.length} jogos carregados. ${liveCount} ao vivo. ${oddsCount} com odds oficiais; os demais usam estimativa visual.`,
+        debug: `${games.length} jogos de hoje carregados. ${oddsCount} com odds oficiais; os demais usam estimativa visual.`,
         tournament: {
           id: "today",
           season: new Date().getFullYear(),
@@ -839,7 +870,7 @@ export async function GET(request) {
       message: liveCount
         ? "Jogos ao vivo da Copa 2026 no radar"
         : "Calendario da Copa 2026 carregado",
-      debug: `${games.length} jogos da Copa 2026 carregados. ${oddsCount} com odds oficiais; os demais usam estimativa visual.`,
+      debug: `${games.length} jogos da Copa 2026 carregados. ${oddsCount} com odds oficiais; os demais usam estimativa visual ate odds/previsoes ficarem disponiveis.`,
       tournament: {
         id: WORLD_CUP_LEAGUE_ID,
         season: WORLD_CUP_SEASON,
@@ -848,35 +879,23 @@ export async function GET(request) {
     });
   } catch (error) {
     return makeJsonResponse(
-      makeEmptyPayload(
-        mode === "today" ? "Falha ao carregar jogos de hoje" : "Falha ao carregar Copa 2026",
-        humanizeApiError(error?.message)
-      )
+      makeEmptyPayload("Falha ao carregar Copa 2026", humanizeApiError(error?.message))
     );
   }
 }
 
-export default async function handler(req, res) {
-  if (req?.method && res?.status) {
-    if (req.method !== "GET") {
-      res.setHeader("Allow", "GET");
-      res.status(405).send("Method Not Allowed");
-      return;
+export default {
+  fetch(request) {
+    if (request.method !== "GET") {
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: {
+          Allow: "GET",
+          "Cache-Control": "no-store",
+        },
+      });
     }
 
-    const protocol = req.headers?.["x-forwarded-proto"] || "https";
-    const host = req.headers?.host || "bubles.local";
-    const requestUrl = new URL(req.url || "/api/games", `${protocol}://${host}`);
-    const response = await GET(new Request(requestUrl, { method: "GET" }));
-    const body = await response.text();
-
-    response.headers.forEach((value, key) => {
-      res.setHeader(key, value);
-    });
-
-    res.status(response.status).send(body);
-    return;
-  }
-
-  return GET(req);
-}
+    return GET(request);
+  },
+};
