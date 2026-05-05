@@ -704,6 +704,16 @@ button {
   overflow: hidden;
 }
 
+.widgets-placeholder {
+  display: grid;
+  min-height: 160px;
+  place-items: center;
+  padding: 1.25rem;
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+}
+
 .widgets-leagues,
 .widgets-side {
   position: sticky;
