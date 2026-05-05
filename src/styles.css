@@ -2,6 +2,7 @@
   color-scheme: dark;
   --bg: #202020;
   --panel: rgba(20, 20, 20, 0.94);
+  --panel-2: rgba(34, 34, 34, 0.94);
   --line: rgba(255, 255, 255, 0.1);
   --text: #f5f7fa;
   --muted: #a8b0bb;
@@ -90,32 +91,20 @@ button {
   white-space: nowrap;
 }
 
-.bubles-wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.01em;
-  font-family: Sora, Inter, sans-serif;
-  font-size: 2rem;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.08em;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+.brand-dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 35%, white, #54ff8c 42%, #09923a 100%);
+  box-shadow: 0 0 20px rgba(37, 243, 95, 0.56);
 }
 
-.letter-blue {
-  color: #4285f4;
-}
-
-.letter-yellow {
-  color: #fbbc05;
-}
-
-.letter-green {
-  color: #34a853;
-}
-
-.letter-white {
-  color: #ffffff;
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 42px;
+  max-width: 178px;
+  object-fit: contain;
 }
 
 .brand-context {
@@ -207,8 +196,7 @@ button {
 
 .sponsor-strip,
 .cup-info,
-.market-bar,
-.ai-market-panel {
+.market-bar {
   display: grid;
   gap: 10px;
   margin-top: 10px;
@@ -218,25 +206,11 @@ button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.cup-info {
-  grid-template-columns: minmax(320px, 1.25fr) minmax(220px, 0.75fr) minmax(220px, 0.6fr);
-}
-
-.market-bar {
-  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
-}
-
-.ai-market-panel {
-  grid-template-columns: minmax(280px, 0.45fr) minmax(420px, 1fr);
-}
-
 .sponsor-slot,
 .match-card,
 .insight-card,
 .top-pill,
 .option-card,
-.ai-prediction-card,
-.market-card,
 .widgets-panel,
 .widgets-warning {
   border: 1px solid var(--line);
@@ -245,30 +219,15 @@ button {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
 }
 
-.sponsor-slot,
-.match-card,
-.insight-card,
-.option-card,
-.ai-prediction-card,
-.market-card {
-  padding: 0.78rem;
-}
-
 .sponsor-slot {
   min-height: 72px;
-}
-
-.match-card,
-.insight-card {
-  min-height: 92px;
+  padding: 0.78rem;
 }
 
 .sponsor-slot span,
 .match-card span,
 .insight-card span,
-.option-card span,
-.ai-prediction-card span,
-.market-card-head span {
+.option-card span {
   display: block;
   color: #9cffb6;
   font-size: 0.72rem;
@@ -279,9 +238,7 @@ button {
 
 .sponsor-slot strong,
 .insight-card strong,
-.option-card strong,
-.ai-prediction-card strong,
-.market-card-head strong {
+.option-card strong {
   display: block;
   margin-top: 0.28rem;
   font-family: Sora, Inter, sans-serif;
@@ -290,11 +247,20 @@ button {
 
 .sponsor-slot small,
 .insight-card small,
-.option-card small,
-.match-card p,
-.ai-prediction-card p,
-.ai-prediction-card li {
+.option-card small {
+  display: block;
+  margin-top: 0.28rem;
   color: var(--muted);
+}
+
+.cup-info {
+  grid-template-columns: minmax(320px, 1.25fr) minmax(220px, 0.75fr) minmax(220px, 0.6fr);
+}
+
+.match-card,
+.insight-card {
+  min-height: 92px;
+  padding: 0.9rem;
 }
 
 .match-card h1 {
@@ -302,10 +268,16 @@ button {
   font-family: Sora, Inter, sans-serif;
   font-size: clamp(1.35rem, 2.2vw, 2.5rem);
   line-height: 1;
+  letter-spacing: 0;
 }
 
 .match-card p {
   margin: 0.42rem 0 0;
+  color: var(--muted);
+}
+
+.market-bar {
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
 }
 
 .top-games,
@@ -349,14 +321,55 @@ button {
   white-space: nowrap;
 }
 
-.top-pill small,
-.market-option strong {
+.top-pill small {
   color: #9cffb6;
   font-weight: 900;
 }
 
 .option-card {
   min-width: 190px;
+  padding: 0.62rem 0.72rem;
+}
+
+.ai-market-panel {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.45fr) minmax(420px, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ai-prediction-card,
+.market-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.ai-prediction-card {
+  padding: 0.86rem;
+}
+
+.ai-prediction-card span,
+.market-card-head span {
+  display: block;
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ai-prediction-card strong,
+.market-card-head strong {
+  display: block;
+  margin-top: 0.3rem;
+  font-family: Sora, Inter, sans-serif;
+}
+
+.ai-prediction-card p,
+.ai-prediction-card li {
+  color: var(--muted);
 }
 
 .ai-prediction-card ul {
@@ -373,6 +386,10 @@ button {
   max-height: 340px;
   overflow: auto;
   padding-right: 2px;
+}
+
+.market-card {
+  padding: 0.72rem;
 }
 
 .market-options {
@@ -400,10 +417,23 @@ button {
   white-space: nowrap;
 }
 
+.market-option strong {
+  color: #9cffb6;
+  font-size: 0.82rem;
+}
+
+.radar-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 420px);
+  gap: 10px;
+  margin-top: 10px;
+  align-items: start;
+}
+
 .bubble-board {
   position: relative;
-  min-height: clamp(620px, calc(100vh - 320px), 920px);
-  margin-top: 10px;
+  min-height: clamp(640px, calc(100vh - 96px), 940px);
+  margin-top: 0;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -423,12 +453,54 @@ button {
   pointer-events: none;
 }
 
+.board-status {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  min-width: 180px;
+  padding: 0.72rem 0.82rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(12, 12, 12, 0.78);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+.board-status span,
+.side-card span,
+.side-top-games > span {
+  display: block;
+  color: #9cffb6;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.board-status strong {
+  display: block;
+  margin-top: 0.18rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.08rem;
+}
+
+.board-status small {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .bubble {
   position: absolute;
   display: grid;
-  place-items: center;
-  gap: 0.06rem;
-  padding: 0.52rem;
+  grid-template-rows: auto auto auto auto;
+  align-content: center;
+  justify-items: center;
+  gap: 0.08rem;
+  padding: clamp(0.38rem, 0.75vw, 0.72rem);
+  overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   color: white;
@@ -474,8 +546,106 @@ button {
 
 .bubble strong {
   font-family: Sora, Inter, sans-serif;
-  font-size: clamp(1rem, 1.8vw, 2.35rem);
+  font-size: clamp(0.98rem, 1.45vw, 2.05rem);
   line-height: 1;
+}
+
+.bubble .bubble-team {
+  display: -webkit-box;
+  width: 82%;
+  max-width: 82%;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: clamp(0.48rem, 0.62vw, 0.74rem);
+  font-weight: 900;
+  line-height: 1.04;
+  text-wrap: balance;
+  text-overflow: clip;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.bubble .bubble-away {
+  opacity: 0.92;
+}
+
+.bubble .bubble-meta {
+  width: 84%;
+  max-width: 84%;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(0.48rem, 0.58vw, 0.68rem);
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prediction-sidebar {
+  position: sticky;
+  top: 84px;
+  display: grid;
+  gap: 10px;
+  max-height: calc(100vh - 96px);
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.prediction-sidebar::-webkit-scrollbar,
+.side-markets::-webkit-scrollbar {
+  width: 0;
+}
+
+.side-card,
+.side-top-games {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.side-card {
+  padding: 0.86rem;
+}
+
+.selected-card h1 {
+  margin: 0.32rem 0 0;
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1.3rem, 2.1vw, 2.25rem);
+  line-height: 1.03;
+}
+
+.selected-card p,
+.side-card p,
+.side-card li {
+  color: var(--muted);
+}
+
+.side-options {
+  display: grid;
+  gap: 8px;
+}
+
+.side-options .option-card {
+  min-width: 0;
+}
+
+.side-top-games {
+  display: grid;
+  gap: 8px;
+  padding: 0.78rem;
+}
+
+.side-top-games .top-pill {
+  width: 100%;
+  min-width: 0;
+}
+
+.side-markets {
+  grid-template-columns: 1fr;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .empty-state {
@@ -500,8 +670,19 @@ button {
   background: #1f1f1f;
 }
 
+.widgets-toolbar {
+  overflow-x: auto;
+}
+
+.widgets-brand {
+  flex: 0 0 auto;
+}
+
 .widgets-sports {
+  display: flex;
+  gap: 8px;
   flex: 1 0 auto;
+  overflow-x: auto;
 }
 
 .widgets-warning {
@@ -547,8 +728,15 @@ button {
   .cup-info,
   .market-bar,
   .ai-market-panel,
+  .radar-stage,
   .widgets-grid {
     grid-template-columns: 1fr;
+  }
+
+  .prediction-sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
   }
 
   .markets-grid {
@@ -579,8 +767,9 @@ button {
     min-width: max-content;
   }
 
-  .bubles-wordmark {
-    font-size: 1.55rem;
+  .brand-logo {
+    height: 34px;
+    max-width: 132px;
   }
 
   .brand-context {
@@ -601,10 +790,24 @@ button {
   }
 
   .bubble-board {
-    min-height: 620px;
+    min-height: 660px;
   }
 
-  .bubble span {
-    display: none;
+  .board-status {
+    top: 10px;
+    left: 10px;
+    min-width: 150px;
+    padding: 0.58rem 0.66rem;
+  }
+
+  .bubble .bubble-team {
+    width: 86%;
+    max-width: 86%;
+    font-size: clamp(0.46rem, 2.3vw, 0.66rem);
+    -webkit-line-clamp: 2;
+  }
+
+  .bubble .bubble-meta {
+    font-size: clamp(0.44rem, 2vw, 0.6rem);
   }
 }
