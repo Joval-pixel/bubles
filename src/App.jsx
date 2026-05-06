@@ -1,3 +1,703 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+
+const WIDGET_SPORTS = [
+  { key: "football", label: "Football" },
+  { key: "basketball", label: "Basketball" },
+  { key: "baseball", label: "Baseball" },
+  { key: "hockey", label: "Hockey" },
+  { key: "rugby", label: "Rugby" },
+  { key: "volleyball", label: "Volleyball" },
+  { key: "handball", label: "Handball" },
+];
+
+const SPONSORS = [
+  {
+    label: "Patrocinador master",
+    title: "Espaco premium",
+    note: "Topo do radar da Copa 2026",
+  },
+  {
+    label: "Odds parceiras",
+    title: "Disponivel",
+    note: "Cota principal por jogo",
+  },
+  {
+    label: "Publicidade",
+    title: "Cota lateral",
+    note: "Marca visivel no mapa",
+  },
+];
+
+function BublesLogo() {
+  return (
+    <span className="bubles-wordmark" aria-label="Bubles">
+      <span className="logo-blue">B</span>
+      <span className="logo-yellow">u</span>
+      <span className="logo-green">b</span>
+      <span className="logo-white">l</span>
+      <span className="logo-blue">e</span>
+      <span className="logo-yellow">s</span>
+    </span>
+  );
+}
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
+const formatOdd = (value) =>
+  value && Number.isFinite(value) && value > 0 ? value.toFixed(2).replace(".", ",") : "--";
+const formatClock = (game) => {
+  if (game?.isLive) {
+    return `${Math.max(1, Math.round(game.minute || 1))}'`;
+  }
+
+  if (game?.isFinished) {
+    return "FT";
+  }
+
+  return "PRE";
+};
+
+const hasScoreLine = (game) => {
+  const score = String(game?.scoreLine || "").trim();
+  return Boolean(score && score !== "Pre-jogo");
+};
+
+const formatScoreLine = (game) => {
+  if (hasScoreLine(game)) {
+    return game.scoreLine;
+  }
+
+  if (game?.isLive) {
+    return "-- x --";
+  }
+
+  return "Pre-jogo";
+};
+
+const formatKickoff = (value) =>
+  value
+    ? new Date(value).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "--";
+
+const formatKickoffTime = (value) =>
+  value
+    ? new Date(value).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "--";
+
+const getGameStatusLabel = (game) => {
+  if (game?.isLive) {
+    return `Ao vivo ${formatClock(game)}`;
+  }
+
+  if (game?.isFinished) {
+    return "Encerrado";
+  }
+
+  return "Pre-jogo";
+};
+
+const formatScoreContext = (game) => {
+  if (game?.isLive) {
+    return `Online agora, ${formatClock(game)}`;
+  }
+
+  if (game?.isFinished) {
+    return "Resultado final";
+  }
+
+  return `Comeca em ${formatKickoff(game?.commenceTime)}`;
+};
+
+const translateBetText = (value) => {
+  const text = String(value || "").trim();
+
+  if (!text) {
+    return "--";
+  }
+
+  return text
+    .replace(/\bMatch Winner\b/gi, "Resultado final")
+    .replace(/\bWinner\b/gi, "Vencedor")
+    .replace(/\bDouble Chance\b/gi, "Dupla chance")
+    .replace(/\bBoth Teams To Score\b/gi, "Ambas marcam")
+    .replace(/\bClean Sheet\b/gi, "Sem sofrer gol")
+    .replace(/\bOver\b/gi, "Mais de")
+    .replace(/\bUnder\b/gi, "Menos de")
+    .replace(/\bYes\b/gi, "Sim")
+    .replace(/\bNo\b/gi, "Nao")
+    .replace(/\bDraw\b/gi, "Empate")
+    .replace(/\bHome\b/gi, "Mandante")
+    .replace(/\bAway\b/gi, "Visitante")
+    .replace(/\bCorners\b/gi, "Escanteios")
+    .replace(/\bCards\b/gi, "Cartoes")
+    .replace(/\bGoals\b/gi, "Gols")
+    .replace(/\bOdd\b/gi, "Impar")
+    .replace(/\bEven\b/gi, "Par");
+};
+
+const getBeforeColon = (value, fallback = "--") => {
+  const text = String(value || "").trim();
+
+  if (!text) {
+    return fallback;
+  }
+
+  return text.split(":")[0] || fallback;
+};
+
+const getTier = (probability) => {
+  if (probability >= 0.45) {
+    return "high";
+  }
+
+  return "low";
+};
+
+const EDGE_PADDING = 14;
+const COLLISION_GAP = 20;
+const COLLISION_PASSES = 9;
+const DRIFT_INTERVAL_MS = 48;
+const FRAME_STEP_LIMIT = 1.55;
+const VELOCITY_LIMIT = 0.082;
+const BOUNCE_DAMPING = 0.74;
+const COLLISION_DAMPING = 0.88;
+const DEFAULT_BUBBLE_SCALE = "small";
+
+const getCrowdFactor = (total = 0) => {
+  if (total >= 110) {
+    return 0.64;
+  }
+
+  if (total >= 80) {
+    return 0.72;
+  }
+
+  if (total >= 55) {
+    return 0.82;
+  }
+
+  if (total >= 32) {
+    return 0.92;
+  }
+
+  return 1;
+};
+
+const limitVelocity = (value) => clamp(value, -VELOCITY_LIMIT, VELOCITY_LIMIT);
+
+const getInitialVelocity = (index, axis) => {
+  const direction = axis === "x" ? (index % 2 ? 1 : -1) : (index % 3 ? 1 : -1);
+  const base = axis === "x" ? 0.035 : 0.028;
+  const spread = axis === "x" ? (index % 7) * 0.006 : (index % 5) * 0.005;
+
+  return limitVelocity(direction * (base + spread));
+};
+
+const getDisplaySize = (probability, scale, total = 0) => {
+  const crowdFactor = getCrowdFactor(total);
+  const base = (48 + clamp(probability || 0.33, 0.05, 0.9) * 170) * crowdFactor;
+
+  if (scale === "large") {
+    return clamp(base * 1.1, 58, 238);
+  }
+
+  if (scale === "small") {
+    return clamp(base * 0.78, 42, 150);
+  }
+
+  return clamp(base * 0.92, 50, 198);
+};
+
+const getInitialPosition = (index, total, bounds, size) => {
+  const width = Math.max(bounds.width || 0, 1280);
+  const height = Math.max(bounds.height || 0, 660);
+  const angle = index * 2.399963229728653;
+  const orbit = Math.sqrt(index + 1) * (width > 900 ? 68 : 48);
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const x = centerX + Math.cos(angle) * orbit * 1.68 - size / 2;
+  const y = centerY + Math.sin(angle) * orbit * 1.08 - size / 2;
+
+  return {
+    x: clamp(x, 18, width - size - 18),
+    y: clamp(y, 18, height - size - 18),
+  };
+};
+
+const createBubble = (game, existing, bounds, index, total, scale) => {
+  const size = getDisplaySize(game.bubbleValue ?? game.probability, scale, total);
+  const position = existing ?? getInitialPosition(index, total, bounds, size);
+
+  return {
+    ...game,
+    size,
+    radius: size / 2,
+    tier: getTier(game.bubbleValue ?? game.probability),
+    x: position.x,
+    y: position.y,
+    vx: existing?.vx ? limitVelocity(existing.vx) : getInitialVelocity(index, "x"),
+    vy: existing?.vy ? limitVelocity(existing.vy) : getInitialVelocity(index, "y"),
+  };
+};
+
+const moveBubbles = (items, bounds, step = 1) => {
+  const width = Math.max(bounds.width || 0, 1280);
+  const height = Math.max(bounds.height || 0, 660);
+  const safeStep = clamp(step, 0, FRAME_STEP_LIMIT);
+  const next = items.map((item) => {
+    const bubble = {
+      ...item,
+      x: item.x + item.vx * safeStep,
+      y: item.y + item.vy * safeStep,
+    };
+
+    if (bubble.x <= EDGE_PADDING || bubble.x >= width - bubble.size - EDGE_PADDING) {
+      bubble.vx = limitVelocity(bubble.vx * -BOUNCE_DAMPING);
+      bubble.x = clamp(bubble.x, EDGE_PADDING, width - bubble.size - EDGE_PADDING);
+    }
+
+    if (bubble.y <= EDGE_PADDING || bubble.y >= height - bubble.size - EDGE_PADDING) {
+      bubble.vy = limitVelocity(bubble.vy * -BOUNCE_DAMPING);
+      bubble.y = clamp(bubble.y, EDGE_PADDING, height - bubble.size - EDGE_PADDING);
+    }
+
+    return bubble;
+  });
+
+  for (let pass = 0; pass < COLLISION_PASSES; pass += 1) {
+    for (let index = 0; index < next.length; index += 1) {
+      for (let compare = index + 1; compare < next.length; compare += 1) {
+        const first = next[index];
+        const second = next[compare];
+        const dx = first.x + first.radius - (second.x + second.radius);
+        const dy = first.y + first.radius - (second.y + second.radius);
+        const distance = Math.hypot(dx, dy) || 1;
+        const minDistance = first.radius + second.radius + COLLISION_GAP;
+
+        if (distance >= minDistance) {
+          continue;
+        }
+
+        const overlap = minDistance - distance;
+        const normalX = dx / distance;
+        const normalY = dy / distance;
+        const radiusTotal = first.radius + second.radius || 1;
+        const firstPush = second.radius / radiusTotal;
+        const secondPush = first.radius / radiusTotal;
+
+        first.x = clamp(
+          first.x + normalX * overlap * firstPush,
+          EDGE_PADDING,
+          width - first.size - EDGE_PADDING
+        );
+        first.y = clamp(
+          first.y + normalY * overlap * firstPush,
+          EDGE_PADDING,
+          height - first.size - EDGE_PADDING
+        );
+        second.x = clamp(
+          second.x - normalX * overlap * secondPush,
+          EDGE_PADDING,
+          width - second.size - EDGE_PADDING
+        );
+        second.y = clamp(
+          second.y - normalY * overlap * secondPush,
+          EDGE_PADDING,
+          height - second.size - EDGE_PADDING
+        );
+
+        first.vx = limitVelocity((first.vx + normalX * 0.012) * COLLISION_DAMPING);
+        first.vy = limitVelocity((first.vy + normalY * 0.012) * COLLISION_DAMPING);
+        second.vx = limitVelocity((second.vx - normalX * 0.012) * COLLISION_DAMPING);
+        second.vy = limitVelocity((second.vy - normalY * 0.012) * COLLISION_DAMPING);
+      }
+    }
+  }
+
+  return next;
+};
+
+const getAiSummary = (game) => {
+  if (game?.aiInsights?.headline) {
+    return game.aiInsights.headline;
+  }
+
+  const leader = game?.marketOptions?.[0];
+  const second = game?.marketOptions?.[1];
+  const gap = Math.max(0, (leader?.probability || 0) - (second?.probability || 0));
+
+  if (!leader) {
+    return "Sem leitura completa ainda";
+  }
+
+  if (game?.confidence === "estimate") {
+    return `Modelo visual favorece ${leader.label}`;
+  }
+
+  if (gap >= 0.16) {
+    return `Mercado forte para ${leader.label}`;
+  }
+
+  return `Jogo competitivo, leve vantagem para ${leader.label}`;
+};
+
+function WidgetsPage() {
+  const [sport, setSport] = useState("football");
+  const [widgetsReady, setWidgetsReady] = useState(false);
+  const widgetKey = import.meta.env.VITE_API_FOOTBALL_WIDGET_KEY || "";
+  const canRenderWidgets = Boolean(widgetKey && widgetsReady);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const markReady = () => {
+      if (!cancelled) {
+        setWidgetsReady(true);
+      }
+    };
+
+    if (typeof window === "undefined" || !window.customElements) {
+      markReady();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (window.customElements.get("api-sports-widget")) {
+      markReady();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    window.customElements.whenDefined("api-sports-widget").then(markReady).catch(markReady);
+
+    const fallback = window.setTimeout(markReady, 2600);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(fallback);
+    };
+  }, []);
+
+  return (
+    <div className="widgets-page">
+      <header className="widgets-toolbar">
+        <a className="widgets-brand" href="/">
+          <BublesLogo />
+        </a>
+
+        <nav className="widgets-sports" aria-label="Esportes">
+          {WIDGET_SPORTS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={sport === item.key ? "chip-button is-active" : "chip-button"}
+              onClick={() => setSport(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <a className="chip-link" href="/">
+          Voltar ao radar
+        </a>
+      </header>
+
+      {!widgetKey ? (
+        <div className="widgets-warning">
+          Configure <strong>VITE_API_FOOTBALL_WIDGET_KEY</strong> no Vercel para carregar os
+          widgets oficiais.
+        </div>
+      ) : null}
+
+      {widgetKey && !widgetsReady ? (
+        <div className="widgets-warning">
+          Carregando widgets oficiais da API-SPORTS...
+        </div>
+      ) : null}
+
+      {canRenderWidgets ? (
+        <api-sports-widget
+          key={`config-${sport}`}
+          data-type="config"
+          data-sport={sport}
+          data-key={widgetKey}
+          data-lang="en"
+          data-theme="grey"
+          data-show-errors="true"
+          data-show-logos="true"
+          data-refresh="20"
+          data-favorite="true"
+          data-standings="true"
+          data-tab="games"
+          data-game-tab="statistics"
+          data-target-league="#games-list"
+          data-target-team="#team-content"
+          data-target-game="#game-content"
+          data-target-standings="#standings-content"
+        />
+      ) : null}
+
+      <main className="widgets-grid">
+        <section className="widgets-panel widgets-leagues">
+          {canRenderWidgets ? (
+            <api-sports-widget key={`leagues-${sport}`} data-type="leagues" data-sport={sport} />
+          ) : (
+            <div className="widgets-placeholder">Aguardando widgets...</div>
+          )}
+        </section>
+        <section id="games-list" className="widgets-panel widgets-games">
+          {canRenderWidgets ? (
+            <api-sports-widget key={`games-${sport}`} data-type="games" data-sport={sport} />
+          ) : (
+            <div className="widgets-placeholder">Aguardando jogos...</div>
+          )}
+        </section>
+        <aside className="widgets-side">
+          <section id="standings-content" className="widgets-panel" />
+          <section id="team-content" className="widgets-panel" />
+          <section id="game-content" className="widgets-panel">
+            {canRenderWidgets ? (
+              <api-sports-widget key={`game-${sport}`} data-type="game" data-sport={sport} />
+            ) : (
+              <div className="widgets-placeholder">Selecione um jogo quando carregar.</div>
+            )}
+          </section>
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+function BubblesWorldCup() {
+  const boardRef = useRef(null);
+  const animationRef = useRef(0);
+  const lastFrameRef = useRef(0);
+  const boundsRef = useRef({ width: 0, height: 0 });
+  const [games, setGames] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState("");
+  const [message, setMessage] = useState("");
+  const [debug, setDebug] = useState("");
+  const [mode, setMode] = useState("today");
+  const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTodayListOpen, setIsTodayListOpen] = useState(false);
+
+  const openGameModal = (id) => {
+    setSelectedId(id);
+    setIsModalOpen(true);
+  };
+
+  const closeGameModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const openTodayList = () => {
+    if (mode !== "today") {
+      setMode("today");
+      setFilter("all");
+    }
+
+    setIsTodayListOpen(true);
+  };
+
+  useEffect(() => {
+    const syncBounds = () => {
+      if (!boardRef.current) {
+        return;
+      }
+
+      const rect = boardRef.current.getBoundingClientRect();
+      boundsRef.current = {
+        width: rect.width,
+        height: rect.height,
+      };
+    };
+
+    syncBounds();
+    window.addEventListener("resize", syncBounds);
+
+    return () => {
+      window.removeEventListener("resize", syncBounds);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchGames = async (silent = false) => {
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      try {
+        const response = await fetch(`/api/games?mode=${mode}`, { cache: "no-store" });
+        const payload = await response.json();
+        const items = Array.isArray(payload?.games) ? payload.games : [];
+
+        if (!mounted) {
+          return;
+        }
+
+        setUpdatedAt(payload?.updatedAt || "");
+        setMessage(payload?.message || "");
+        setDebug(payload?.debug || "");
+        setGames((current) => {
+          const currentMap = new Map(current.map((item) => [item.id, item]));
+          return moveBubbles(
+            items.map((item, index) =>
+              createBubble(
+                item,
+                currentMap.get(item.id),
+                boundsRef.current,
+                index,
+                items.length,
+                DEFAULT_BUBBLE_SCALE
+              )
+            ),
+            boundsRef.current,
+            0
+          );
+        });
+        setSelectedId((current) =>
+          items.some((item) => item.id === current) ? current : items[0]?.id ?? null
+        );
+      } catch (_error) {
+        if (!mounted) {
+          return;
+        }
+
+        setGames([]);
+        setSelectedId(null);
+        setMessage(mode === "today" ? "Falha ao carregar jogos de hoje" : "Falha ao carregar a Copa 2026");
+        setDebug("Nao foi possivel consultar /api/games");
+      } finally {
+        if (!mounted) {
+          return;
+        }
+
+        setLoading(false);
+        setRefreshing(false);
+      }
+    };
+
+    fetchGames(false);
+    const refreshMs = mode === "today" ? 60000 : 240000;
+    const timer = window.setInterval(() => fetchGames(true), refreshMs);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(timer);
+    };
+  }, [mode]);
+
+  useEffect(() => {
+    setFilter("all");
+    setSelectedId(null);
+    setIsModalOpen(false);
+  }, [mode]);
+
+  useEffect(() => {
+    if (!isModalOpen && !isTodayListOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsModalOpen(false);
+        setIsTodayListOpen(false);
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isModalOpen, isTodayListOpen]);
+
+  useEffect(() => {
+    if (!games.length) {
+      return undefined;
+    }
+
+    const animate = (timestamp = 0) => {
+      if (!lastFrameRef.current) {
+        lastFrameRef.current = timestamp;
+      }
+
+      const elapsed = timestamp - lastFrameRef.current;
+
+      if (elapsed >= DRIFT_INTERVAL_MS) {
+        const frameStep = elapsed / 16.67;
+        setGames((current) => moveBubbles(current, boundsRef.current, frameStep));
+        lastFrameRef.current = timestamp;
+      }
+
+      animationRef.current = window.requestAnimationFrame(animate);
+    };
+
+    lastFrameRef.current = 0;
+    animationRef.current = window.requestAnimationFrame(animate);
+
+    return () => {
+      window.cancelAnimationFrame(animationRef.current);
+      lastFrameRef.current = 0;
+    };
+  }, [games.length]);
+
+  const filteredGames = useMemo(() => {
+    const text = query.trim().toLowerCase();
+    let items = [...games];
+
+    if (text) {
+      items = items.filter((game) =>
+        `${game.game} ${game.round} ${game.venue} ${game.city}`.toLowerCase().includes(text)
+      );
+    }
+
+    if (filter === "live") {
+      items = items.filter((game) => game.isLive);
+    } else if (filter === "pre") {
+      items = items.filter((game) => !game.isLive && !game.isFinished);
+    } else if (filter === "finished") {
+      items = items.filter((game) => game.isFinished);
+    } else if (filter === "groups") {
+      items = items.filter((game) => game.stage === "groups");
+    } else if (filter === "knockout") {
+      items = items.filter((game) => game.stage === "knockout");
+    }
+
+    items.sort(
+      (left, right) =>
+        Number(right.isLive) - Number(left.isLive) ||
+        (right.probability || 0) - (left.probability || 0) ||
+        new Date(left.commenceTime || 0).getTime() -
+          new Date(right.commenceTime || 0).getTime()
+    );
+
+    return items;
+  }, [filter, games, query]);
+
   const selectedGame =
     filteredGames.find((game) => game.id === selectedId) ?? filteredGames[0] ?? games[0] ?? null;
 
@@ -21,11 +721,9 @@
   const finishedCount = games.filter((game) => game.isFinished).length;
   const groupsCount = games.filter((game) => game.stage === "groups").length;
   const knockoutCount = games.filter((game) => game.stage === "knockout").length;
-
   const topGames = [...filteredGames]
     .sort((left, right) => (right.probability || 0) - (left.probability || 0))
     .slice(0, 5);
-
   const selectedOptions = selectedGame?.marketOptions ?? [];
   const selectedMarkets = selectedGame?.betMarkets ?? [];
   const aiInsights = selectedGame?.aiInsights ?? {};
@@ -98,7 +796,6 @@
           >
             Jogos de hoje
           </button>
-
           <button
             className={mode === "worldcup" ? "chip-button is-active" : "chip-button"}
             onClick={() => {
@@ -112,55 +809,27 @@
         </nav>
 
         <nav className="cup-controls" aria-label="Filtros da Copa">
-          <button
-            className={filter === "all" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setFilter("all")}
-            type="button"
-          >
+          <button className={filter === "all" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("all")} type="button">
             Todos {games.length}
           </button>
-
-          <button
-            className={filter === "live" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setFilter("live")}
-            type="button"
-          >
+          <button className={filter === "live" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("live")} type="button">
             Ao vivo {liveCount}
           </button>
-
           {mode === "today" ? (
             <>
-              <button
-                className={filter === "pre" ? "chip-button is-active" : "chip-button"}
-                onClick={() => setFilter("pre")}
-                type="button"
-              >
+              <button className={filter === "pre" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("pre")} type="button">
                 Pre {preCount}
               </button>
-
-              <button
-                className={filter === "finished" ? "chip-button is-active" : "chip-button"}
-                onClick={() => setFilter("finished")}
-                type="button"
-              >
+              <button className={filter === "finished" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("finished")} type="button">
                 Fim {finishedCount}
               </button>
             </>
           ) : (
             <>
-              <button
-                className={filter === "groups" ? "chip-button is-active" : "chip-button"}
-                onClick={() => setFilter("groups")}
-                type="button"
-              >
+              <button className={filter === "groups" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("groups")} type="button">
                 Grupos {groupsCount}
               </button>
-
-              <button
-                className={filter === "knockout" ? "chip-button is-active" : "chip-button"}
-                onClick={() => setFilter("knockout")}
-                type="button"
-              >
+              <button className={filter === "knockout" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("knockout")} type="button">
                 Mata-mata {knockoutCount}
               </button>
             </>
@@ -171,7 +840,6 @@
           <button className="chip-button today-list-button" onClick={openTodayList} type="button">
             Todos jogos de hoje {mode === "today" ? games.length : ""}
           </button>
-
           <a className="chip-link" href="/widgets">
             Widgets
           </a>
@@ -181,7 +849,6 @@
       <section className="radar-stage">
         <main className="bubble-board" ref={boardRef}>
           <div className="board-grid" />
-
           <div className="board-status">
             <span>{mode === "today" ? "Jogos de hoje" : "Copa 2026"}</span>
             <strong>{filteredGames.length} jogos</strong>
@@ -228,18 +895,325 @@
                 type="button"
               >
                 <span className="bubble-team bubble-home">{game.homeTeam}</span>
-
                 <strong>{formatChance(game.probability)}</strong>
-
                 {hasScoreLine(game) || game.isLive ? (
                   <span className={game.isLive ? "bubble-score is-live" : "bubble-score"}>
                     {formatScoreLine(game)}
                   </span>
                 ) : null}
-
                 <span className="bubble-team bubble-away">{game.awayTeam}</span>
                 <span className="bubble-meta">{game.pickCode} | {formatClock(game)}</span>
               </button>
             ))}
         </main>
       </section>
+
+      {isModalOpen && selectedGame ? (
+        <div className="prediction-modal-backdrop" onClick={closeGameModal} role="presentation">
+          <section
+            aria-label={`Previsoes de ${selectedGame.game}`}
+            aria-modal="true"
+            className="prediction-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <header className="prediction-modal-header">
+              <div>
+                <span>{selectedGame.isLive ? "Ao vivo" : mode === "today" ? "Jogo selecionado" : "Copa 2026"}</span>
+                <h2>{selectedGame.game}</h2>
+                <p>
+                  {selectedGame.round} | {formatScoreLine(selectedGame)} | {formatClock(selectedGame)} | {formatKickoff(selectedGame.commenceTime)}
+                </p>
+              </div>
+
+              <button className="modal-close-button" onClick={closeGameModal} type="button" aria-label="Fechar previsoes">
+                x
+              </button>
+            </header>
+
+            <div className="modal-summary-grid">
+              <article>
+                <span>Placar online</span>
+                <strong>{formatScoreLine(selectedGame)}</strong>
+                <small>{formatScoreContext(selectedGame)}</small>
+              </article>
+              <article>
+                <span>Acao IA</span>
+                <strong>{aiInsights.action || "Verificar"}</strong>
+                <small>{aiInsights.headline || getAiSummary(selectedGame)}</small>
+              </article>
+              <article>
+                <span>Score IA</span>
+                <strong>{aiInsights.score || Math.round((selectedGame.probability || 0) * 100)}/100</strong>
+                <small>{aiInsights.main || "Chance estimada: aguardando dados."}</small>
+              </article>
+              <article>
+                <span>Risco</span>
+                <strong>{getBeforeColon(aiInsights.risk, "Risco medio")}</strong>
+                <small>{aiInsights.risk || aiInsights.confidence || "Aguardando leitura completa."}</small>
+              </article>
+              <article>
+                <span>Odd atual</span>
+                <strong>{formatOdd(selectedGame.oddHome)}</strong>
+                <small>{selectedGame.hasOdds ? "Odds oficiais" : "Estimativa visual"}</small>
+              </article>
+            </div>
+
+            <section className="modal-ai-card">
+              <span>Leitura facil</span>
+              <ul>
+                <li>{aiInsights.goals || "Gols: sem dados suficientes neste momento."}</li>
+                <li>{aiInsights.corners || "Escanteios: sem dados suficientes neste momento."}</li>
+                <li>{aiInsights.cards || "Cartoes: sem dados suficientes neste momento."}</li>
+                <li>{aiInsights.warning || "Use como apoio para analise. Nao existe aposta garantida."}</li>
+              </ul>
+            </section>
+
+            <section className="modal-verification-grid">
+              <article className="modal-ai-card">
+                <span>Por que verificar</span>
+                <ul>
+                  {(aiWhy.length ? aiWhy : ["A IA ainda esta montando a leitura desse jogo."]).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+
+              <article className="modal-ai-card">
+                <span>Checklist rapido</span>
+                <ul>
+                  {(aiChecklist.length ? aiChecklist : ["Confira odd, placar e status antes de apostar."]).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+
+              <article className="modal-ai-card">
+                <span>Evite se</span>
+                <ul>
+                  {(aiAvoidIf.length ? aiAvoidIf : ["Evite se a leitura nao estiver clara."]).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+            </section>
+
+            <section className="modal-best-markets">
+              <span>Melhores mercados para conferir</span>
+              <div>
+                {(aiBestMarkets.length ? aiBestMarkets : selectedMarkets.slice(0, 4).map((market) => ({
+                  category: market.category,
+                  market: market.name,
+                  pick: market.leader?.label,
+                  probability: market.leader?.probability,
+                  odd: market.leader?.odd,
+                  note: "",
+                }))).map((market) => (
+                  <article className="ai-market-mini" key={`${market.category}-${market.market}-${market.pick}`}>
+                    <span>{market.category}</span>
+                    <strong>{translateBetText(market.pick)}</strong>
+                    <small>
+                      {formatChance(market.probability)} | Odd {formatOdd(market.odd)}
+                    </small>
+                    <em>{market.note || translateBetText(market.market)}</em>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="modal-options">
+              <span>Opcoes principais</span>
+              <div>
+                {selectedOptions.map((option) => (
+                  <article
+                    className={option.code === selectedGame.pickCode ? "option-card is-leader" : "option-card"}
+                    key={option.code}
+                  >
+                    <span>{option.code}</span>
+                    <strong>{translateBetText(option.label)}</strong>
+                    <small>{formatChance(option.probability)} | Odd {formatOdd(option.odd)}</small>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="modal-markets">
+              <span>Mercados para verificar</span>
+              <div className="markets-grid modal-markets-grid">
+                {selectedMarkets.map((market) => (
+                  <article className="market-card" key={`${market.id}-${market.name}`}>
+                    <div className="market-card-head">
+                      <span>{market.category}</span>
+                      <strong>{translateBetText(market.name)}</strong>
+                    </div>
+                    <div className="market-options">
+                      {(market.options || []).map((option) => (
+                        <div className="market-option" key={`${market.id}-${option.label}`}>
+                          <span>{translateBetText(option.label)}</span>
+                          <strong>{formatChance(option.probability)}</strong>
+                          <small>Odd {formatOdd(option.odd)}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="modal-top-games">
+              <span>Top chances do filtro</span>
+              <div>
+                {topGames.map((game, index) => (
+                  <button
+                    className={selectedGame.id === game.id ? "top-pill is-active" : "top-pill"}
+                    key={game.id}
+                    onClick={() => setSelectedId(game.id)}
+                    type="button"
+                  >
+                    <span>{index + 1}</span>
+                    <strong>{game.game}</strong>
+                    <small>{formatChance(game.probability)}</small>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </section>
+        </div>
+      ) : null}
+
+      {isTodayListOpen ? (
+        <div
+          className="today-games-backdrop"
+          onClick={() => setIsTodayListOpen(false)}
+          role="presentation"
+        >
+          <section
+            aria-label="Todos jogos de hoje"
+            aria-modal="true"
+            className="today-games-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <header className="today-games-header">
+              <div>
+                <span>Lista completa</span>
+                <h2>Todos jogos de hoje</h2>
+                <p>
+                  Horarios em {Intl.DateTimeFormat().resolvedOptions().timeZone || "horario local"}.
+                  Clique em um jogo para abrir os palpites de IA.
+                </p>
+              </div>
+
+              <button
+                className="modal-close-button"
+                onClick={() => setIsTodayListOpen(false)}
+                type="button"
+                aria-label="Fechar lista"
+              >
+                x
+              </button>
+            </header>
+
+            <div className="today-games-stats">
+              <article>
+                <span>Total</span>
+                <strong>{todayListGames.length}</strong>
+              </article>
+              <article>
+                <span>Ao vivo</span>
+                <strong>{liveCount}</strong>
+              </article>
+              <article>
+                <span>Pre-jogo</span>
+                <strong>{preCount}</strong>
+              </article>
+              <article>
+                <span>Encerrados</span>
+                <strong>{finishedCount}</strong>
+              </article>
+            </div>
+
+            <div className="today-games-table-wrap">
+              <table className="today-games-table">
+                <thead>
+                  <tr>
+                    <th>Hora</th>
+                    <th>Campeonato</th>
+                    <th>Mandante</th>
+                    <th>Placar</th>
+                    <th>Visitante</th>
+                    <th>Palpite IA</th>
+                    <th>Chance</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {todayListGames.map((game) => (
+                    <tr
+                      className={game.isLive ? "is-live-row" : ""}
+                      key={game.id}
+                      onClick={() => {
+                        openGameModal(game.id);
+                        setIsTodayListOpen(false);
+                      }}
+                    >
+                      <td>
+                        <strong>{game.isLive ? formatClock(game) : formatKickoffTime(game.commenceTime)}</strong>
+                      </td>
+                      <td>
+                        <span>{game.league}</span>
+                        <small>{game.country}</small>
+                      </td>
+                      <td>{game.homeTeam}</td>
+                      <td className="score-cell">{formatScoreLine(game)}</td>
+                      <td>{game.awayTeam}</td>
+                      <td>
+                        <strong>{translateBetText(game.pickLabel)}</strong>
+                        <small>{game.aiInsights?.action || "Verificar"}</small>
+                      </td>
+                      <td className={game.probability >= 0.45 ? "chance-high" : "chance-low"}>
+                        {formatChance(game.probability)}
+                      </td>
+                      <td>{getGameStatusLabel(game)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {!loading && !todayListGames.length ? (
+                <div className="today-games-empty">
+                  <strong>Nenhum jogo de hoje retornado.</strong>
+                  <span>{debug || message || "Tente atualizar novamente em alguns minutos."}</span>
+                </div>
+              ) : null}
+
+              {loading ? (
+                <div className="today-games-empty">
+                  <strong>Carregando todos os jogos de hoje...</strong>
+                  <span>Buscando horarios, placares e leitura IA.</span>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      <section className="sponsor-strip sponsor-strip-bottom" aria-label="Espacos comerciais">
+        {SPONSORS.map((sponsor) => (
+          <article className="sponsor-slot" key={sponsor.label}>
+            <span>{sponsor.label}</span>
+            <strong>{sponsor.title}</strong>
+            <small>{sponsor.note}</small>
+          </article>
+        ))}
+      </section>
+    </div>
+  );
+}
+
+export default function App() {
+  const isWidgetsPage =
+    typeof window !== "undefined" && window.location.pathname.startsWith("/widgets");
+
+  return isWidgetsPage ? <WidgetsPage /> : <BubblesWorldCup />;
+}
