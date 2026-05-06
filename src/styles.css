@@ -107,6 +107,40 @@ button {
   object-fit: contain;
 }
 
+.bubles-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.01em;
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1.6rem, 2.4vw, 2.28rem);
+  font-weight: 900;
+  letter-spacing: -0.08em;
+  line-height: 1;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18),
+    0 7px 20px rgba(0, 0, 0, 0.36);
+}
+
+.bubles-wordmark span {
+  display: inline-block;
+}
+
+.logo-blue {
+  color: #4285f4;
+}
+
+.logo-yellow {
+  color: #fbbc05;
+}
+
+.logo-green {
+  color: #34a853;
+}
+
+.logo-white {
+  color: #ffffff;
+}
+
 .brand-context {
   display: inline-flex;
   align-items: center;
