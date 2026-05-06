@@ -58,11 +58,15 @@ const average = (values) => {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 };
 
-const makeJsonResponse = (payload, status = 200) =>
+const makeJsonResponse = (
+  payload,
+  status = 200,
+  cacheControl = "s-maxage=240, stale-while-revalidate=600"
+) =>
   Response.json(payload, {
     status,
     headers: {
-      "Cache-Control": "s-maxage=240, stale-while-revalidate=600",
+      "Cache-Control": cacheControl,
     },
   });
 
@@ -1112,6 +1116,30 @@ const fetchTodayOdds = async (date) => {
   }
 };
 
+const fetchLiveFixtures = async () => {
+  try {
+    return await fetchFromApi(`/fixtures?live=all&timezone=${encodeURIComponent(API_TIMEZONE)}`);
+  } catch (_error) {
+    return [];
+  }
+};
+
+const mergeFixturesById = (...fixtureGroups) => {
+  const map = new Map();
+
+  fixtureGroups.flat().forEach((fixture) => {
+    const id = fixture?.fixture?.id;
+
+    if (!id) {
+      return;
+    }
+
+    map.set(id, fixture);
+  });
+
+  return [...map.values()];
+};
+
 const fetchWorldCupGames = async () => {
   const [fixtures, oddsMap] = await Promise.all([
     fetchFromApi(`/fixtures?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`),
@@ -1128,19 +1156,22 @@ const fetchWorldCupGames = async () => {
 
 const fetchTodayGames = async () => {
   const date = getBrazilDate();
-  const [fixtures, oddsMap] = await Promise.all([
+  const [todayFixtures, liveFixtures, oddsMap] = await Promise.all([
     fetchFromApi(`/fixtures?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`),
+    fetchLiveFixtures(),
     fetchTodayOdds(date),
   ]);
+  const fixtures = mergeFixturesById(liveFixtures, todayFixtures);
+  const games = fixtures
+    .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), "today"))
+    .filter((game) => game?.id);
+  const liveGames = games.filter((game) => game.isLive);
+  const otherGames = sortGames(games.filter((game) => !game.isLive));
+  const remainingLimit = Math.max(TODAY_LIMIT - liveGames.length, 0);
 
   return {
     date,
-    games: sortGames(
-      fixtures
-        .slice(0, TODAY_LIMIT)
-        .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), "today"))
-        .filter((game) => game?.id)
-    ),
+    games: sortGames([...liveGames, ...otherGames.slice(0, remainingLimit)]),
   };
 };
 
@@ -1179,7 +1210,9 @@ export async function GET(request) {
               name: "Jogos de hoje",
               date,
             }
-          )
+          ),
+          200,
+          "s-maxage=45, stale-while-revalidate=90"
         );
       }
 
@@ -1194,7 +1227,7 @@ export async function GET(request) {
           name: "Jogos de hoje",
           date,
         },
-      });
+      }, 200, "s-maxage=45, stale-while-revalidate=90");
     }
 
     const games = await fetchWorldCupGames();
