@@ -133,15 +133,15 @@ const getInitialPosition = (index, total, bounds, size) => {
   const width = Math.max(bounds.width || 0, 1280);
   const height = Math.max(bounds.height || 0, 660);
   const angle = index * 2.399963229728653;
-  const orbit = Math.sqrt(index + 1) * (width > 900 ? 52 : 38);
+  const orbit = Math.sqrt(index + 1) * (width > 900 ? 68 : 48);
   const centerX = width / 2;
   const centerY = height / 2;
-  const x = centerX + Math.cos(angle) * orbit * 1.45 - size / 2;
-  const y = centerY + Math.sin(angle) * orbit * 0.92 - size / 2;
+  const x = centerX + Math.cos(angle) * orbit * 1.68 - size / 2;
+  const y = centerY + Math.sin(angle) * orbit * 1.08 - size / 2;
 
   return {
-    x: clamp(x, 12, width - size - 12),
-    y: clamp(y, 12, height - size - 12),
+    x: clamp(x, 18, width - size - 18),
+    y: clamp(y, 18, height - size - 18),
   };
 };
 
@@ -184,26 +184,35 @@ const moveBubbles = (items, bounds) => {
     return bubble;
   });
 
-  for (let index = 0; index < next.length; index += 1) {
-    for (let compare = index + 1; compare < next.length; compare += 1) {
-      const first = next[index];
-      const second = next[compare];
-      const dx = first.x + first.radius - (second.x + second.radius);
-      const dy = first.y + first.radius - (second.y + second.radius);
-      const distance = Math.hypot(dx, dy) || 1;
-      const minDistance = first.radius + second.radius + 3;
+  for (let pass = 0; pass < 4; pass += 1) {
+    for (let index = 0; index < next.length; index += 1) {
+      for (let compare = index + 1; compare < next.length; compare += 1) {
+        const first = next[index];
+        const second = next[compare];
+        const dx = first.x + first.radius - (second.x + second.radius);
+        const dy = first.y + first.radius - (second.y + second.radius);
+        const distance = Math.hypot(dx, dy) || 1;
+        const minDistance = first.radius + second.radius + 14;
 
-      if (distance >= minDistance) {
-        continue;
+        if (distance >= minDistance) {
+          continue;
+        }
+
+        const overlap = minDistance - distance;
+        const normalX = dx / distance;
+        const normalY = dy / distance;
+        first.x = clamp(first.x + normalX * overlap * 0.56, 8, width - first.size - 8);
+        first.y = clamp(first.y + normalY * overlap * 0.56, 8, height - first.size - 8);
+        second.x = clamp(second.x - normalX * overlap * 0.56, 8, width - second.size - 8);
+        second.y = clamp(second.y - normalY * overlap * 0.56, 8, height - second.size - 8);
+
+        const swapX = first.vx;
+        const swapY = first.vy;
+        first.vx = second.vx * 0.98;
+        first.vy = second.vy * 0.98;
+        second.vx = swapX * 0.98;
+        second.vy = swapY * 0.98;
       }
-
-      const overlap = minDistance - distance;
-      const normalX = dx / distance;
-      const normalY = dy / distance;
-      first.x += normalX * overlap * 0.5;
-      first.y += normalY * overlap * 0.5;
-      second.x -= normalX * overlap * 0.5;
-      second.y -= normalY * overlap * 0.5;
     }
   }
 
@@ -584,24 +593,27 @@ function BubblesWorldCup() {
     const visibleIds = filteredGames.map((game) => game.id);
 
     setGames((current) =>
-      current.map((game) => {
-        const visibleIndex = visibleIds.indexOf(game.id);
+      moveBubbles(
+        current.map((game) => {
+          const visibleIndex = visibleIds.indexOf(game.id);
 
-        if (visibleIndex === -1) {
-          return game;
-        }
+          if (visibleIndex === -1) {
+            return game;
+          }
 
-        const size = getDisplaySize(game.bubbleValue ?? game.probability, scale);
-        const position = getInitialPosition(visibleIndex, visibleIds.length, boundsRef.current, size);
+          const size = getDisplaySize(game.bubbleValue ?? game.probability, scale);
+          const position = getInitialPosition(visibleIndex, visibleIds.length, boundsRef.current, size);
 
-        return {
-          ...game,
-          size,
-          radius: size / 2,
-          x: position.x,
-          y: position.y,
-        };
-      })
+          return {
+            ...game,
+            size,
+            radius: size / 2,
+            x: position.x,
+            y: position.y,
+          };
+        }),
+        boundsRef.current
+      )
     );
   }, [filter, query, scale, sort, updatedAt, filteredGames.length]);
 
