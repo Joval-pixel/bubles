@@ -721,7 +721,7 @@ button {
 
 .prediction-modal {
   position: relative;
-  width: min(790px, calc(100vw - 20px));
+  width: min(980px, calc(100vw - 20px));
   max-height: calc(100vh - 26px);
   overflow: auto;
   padding: clamp(0.9rem, 2vw, 1.28rem);
@@ -752,6 +752,8 @@ button {
 .modal-options > span,
 .modal-markets > span,
 .modal-top-games > span,
+.modal-best-markets > span,
+.ai-market-mini span,
 .modal-summary-grid span {
   display: block;
   color: #9cffb6;
@@ -789,7 +791,7 @@ button {
 
 .modal-summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -797,6 +799,8 @@ button {
 .modal-ai-card,
 .modal-options,
 .modal-markets,
+.modal-best-markets,
+.ai-market-mini,
 .modal-top-games {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
@@ -827,9 +831,20 @@ button {
 .modal-ai-card,
 .modal-options,
 .modal-markets,
+.modal-best-markets,
 .modal-top-games {
   margin-top: 10px;
   padding: 0.82rem;
+}
+
+.modal-verification-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.modal-verification-grid .modal-ai-card {
+  margin-top: 10px;
 }
 
 .modal-ai-card ul {
@@ -841,6 +856,7 @@ button {
 }
 
 .modal-options > div,
+.modal-best-markets > div,
 .modal-top-games > div {
   display: flex;
   gap: 8px;
@@ -850,8 +866,37 @@ button {
 }
 
 .modal-options > div::-webkit-scrollbar,
+.modal-best-markets > div::-webkit-scrollbar,
 .modal-top-games > div::-webkit-scrollbar {
   display: none;
+}
+
+.ai-market-mini {
+  flex: 0 0 210px;
+  padding: 0.7rem;
+}
+
+.ai-market-mini strong {
+  display: block;
+  margin-top: 0.32rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1rem;
+  line-height: 1.05;
+}
+
+.ai-market-mini small,
+.ai-market-mini em {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.ai-market-mini small {
+  color: #9cffb6;
+  font-weight: 900;
 }
 
 .modal-markets-grid {
@@ -967,6 +1012,7 @@ button {
   }
 
   .modal-summary-grid,
+  .modal-verification-grid,
   .modal-markets-grid {
     grid-template-columns: 1fr;
   }
