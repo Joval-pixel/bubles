@@ -1,351 +1,245 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+  const selectedGame =
+    filteredGames.find((game) => game.id === selectedId) ?? filteredGames[0] ?? games[0] ?? null;
 
-const WIDGET_SPORTS = [
-  { key: "football", label: "Football" },
-  { key: "basketball", label: "Basketball" },
-  { key: "baseball", label: "Baseball" },
-  { key: "hockey", label: "Hockey" },
-  { key: "rugby", label: "Rugby" },
-  { key: "volleyball", label: "Volleyball" },
-  { key: "handball", label: "Handball" },
-];
+  const todayListGames = useMemo(() => {
+    if (mode !== "today") {
+      return [];
+    }
 
-const SPONSORS = [
-  {
-    label: "Patrocinador master",
-    title: "Espaco premium",
-    note: "Topo do radar da Copa 2026",
-  },
-  {
-    label: "Odds parceiras",
-    title: "Disponivel",
-    note: "Cota principal por jogo",
-  },
-  {
-    label: "Publicidade",
-    title: "Cota lateral",
-    note: "Marca visivel no mapa",
-  },
-];
+    return [...games].sort(
+      (left, right) =>
+        Number(right.isLive) - Number(left.isLive) ||
+        Number(left.isFinished) - Number(right.isFinished) ||
+        new Date(left.commenceTime || 0).getTime() -
+          new Date(right.commenceTime || 0).getTime() ||
+        (right.probability || 0) - (left.probability || 0)
+    );
+  }, [games, mode]);
 
-function BublesLogo() {
+  const liveCount = games.filter((game) => game.isLive).length;
+  const preCount = games.filter((game) => !game.isLive && !game.isFinished).length;
+  const finishedCount = games.filter((game) => game.isFinished).length;
+  const groupsCount = games.filter((game) => game.stage === "groups").length;
+  const knockoutCount = games.filter((game) => game.stage === "knockout").length;
+
+  const topGames = [...filteredGames]
+    .sort((left, right) => (right.probability || 0) - (left.probability || 0))
+    .slice(0, 5);
+
+  const selectedOptions = selectedGame?.marketOptions ?? [];
+  const selectedMarkets = selectedGame?.betMarkets ?? [];
+  const aiInsights = selectedGame?.aiInsights ?? {};
+  const aiWhy = Array.isArray(aiInsights.why) ? aiInsights.why : [];
+  const aiChecklist = Array.isArray(aiInsights.checklist) ? aiInsights.checklist : [];
+  const aiAvoidIf = Array.isArray(aiInsights.avoidIf) ? aiInsights.avoidIf : [];
+  const aiBestMarkets = Array.isArray(aiInsights.bestMarkets) ? aiInsights.bestMarkets : [];
+
+  useEffect(() => {
+    if (!filteredGames.length) {
+      return;
+    }
+
+    const visibleIds = filteredGames.map((game) => game.id);
+
+    setGames((current) =>
+      moveBubbles(
+        current.map((game) => {
+          const visibleIndex = visibleIds.indexOf(game.id);
+
+          if (visibleIndex === -1) {
+            return game;
+          }
+
+          const size = getDisplaySize(
+            game.bubbleValue ?? game.probability,
+            DEFAULT_BUBBLE_SCALE,
+            visibleIds.length
+          );
+          const position = getInitialPosition(visibleIndex, visibleIds.length, boundsRef.current, size);
+
+          return {
+            ...game,
+            size,
+            radius: size / 2,
+            x: position.x,
+            y: position.y,
+          };
+        }),
+        boundsRef.current,
+        0
+      )
+    );
+  }, [filter, query, updatedAt, filteredGames.length]);
+
   return (
-    <span className="bubles-wordmark" aria-label="Bubles">
-      <span className="logo-blue">B</span>
-      <span className="logo-yellow">u</span>
-      <span className="logo-green">b</span>
-      <span className="logo-white">l</span>
-      <span className="logo-blue">e</span>
-      <span className="logo-yellow">s</span>
-    </span>
-  );
-}
+    <div className="cup-shell">
+      <header className="cup-toolbar">
+        <a className="cup-brand" href="/">
+          <BublesLogo />
+          <strong className="brand-context">{mode === "today" ? "AO VIVO" : "COPA 2026"}</strong>
+        </a>
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
-const formatOdd = (value) =>
-  value && Number.isFinite(value) && value > 0 ? value.toFixed(2).replace(".", ",") : "--";
+        <input
+          className="cup-search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Buscar selecao, jogo, estadio"
+          type="search"
+        />
 
-const formatClock = (game) => {
-  if (game?.isLive) {
-    return `${Math.max(1, Math.round(game.minute || 1))}'`;
-  }
+        <nav className="cup-controls mode-controls" aria-label="Modo do radar">
+          <button
+            className={mode === "today" ? "chip-button is-active" : "chip-button"}
+            onClick={() => {
+              setMode("today");
+              setFilter("all");
+            }}
+            type="button"
+          >
+            Jogos de hoje
+          </button>
 
-  if (game?.isFinished) {
-    return "FT";
-  }
+          <button
+            className={mode === "worldcup" ? "chip-button is-active" : "chip-button"}
+            onClick={() => {
+              setMode("worldcup");
+              setFilter("all");
+            }}
+            type="button"
+          >
+            Copa 2026
+          </button>
+        </nav>
 
-  return "PRE";
-};
+        <nav className="cup-controls" aria-label="Filtros da Copa">
+          <button
+            className={filter === "all" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setFilter("all")}
+            type="button"
+          >
+            Todos {games.length}
+          </button>
 
-const hasScoreLine = (game) => {
-  const score = String(game?.scoreLine || "").trim();
-  return Boolean(score && score !== "Pre-jogo");
-};
+          <button
+            className={filter === "live" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setFilter("live")}
+            type="button"
+          >
+            Ao vivo {liveCount}
+          </button>
 
-const formatScoreLine = (game) => {
-  if (hasScoreLine(game)) {
-    return game.scoreLine;
-  }
+          {mode === "today" ? (
+            <>
+              <button
+                className={filter === "pre" ? "chip-button is-active" : "chip-button"}
+                onClick={() => setFilter("pre")}
+                type="button"
+              >
+                Pre {preCount}
+              </button>
 
-  if (game?.isLive) {
-    return "-- x --";
-  }
+              <button
+                className={filter === "finished" ? "chip-button is-active" : "chip-button"}
+                onClick={() => setFilter("finished")}
+                type="button"
+              >
+                Fim {finishedCount}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className={filter === "groups" ? "chip-button is-active" : "chip-button"}
+                onClick={() => setFilter("groups")}
+                type="button"
+              >
+                Grupos {groupsCount}
+              </button>
 
-  return "Pre-jogo";
-};
+              <button
+                className={filter === "knockout" ? "chip-button is-active" : "chip-button"}
+                onClick={() => setFilter("knockout")}
+                type="button"
+              >
+                Mata-mata {knockoutCount}
+              </button>
+            </>
+          )}
+        </nav>
 
-const formatKickoff = (value) =>
-  value
-    ? new Date(value).toLocaleString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "--";
+        <nav className="cup-controls compact" aria-label="Atalhos">
+          <button className="chip-button today-list-button" onClick={openTodayList} type="button">
+            Todos jogos de hoje {mode === "today" ? games.length : ""}
+          </button>
 
-const formatKickoffTime = (value) =>
-  value
-    ? new Date(value).toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "--";
+          <a className="chip-link" href="/widgets">
+            Widgets
+          </a>
+        </nav>
+      </header>
 
-const getGameStatusLabel = (game) => {
-  if (game?.isLive) {
-    return `Ao vivo ${formatClock(game)}`;
-  }
+      <section className="radar-stage">
+        <main className="bubble-board" ref={boardRef}>
+          <div className="board-grid" />
 
-  if (game?.isFinished) {
-    return "Encerrado";
-  }
+          <div className="board-status">
+            <span>{mode === "today" ? "Jogos de hoje" : "Copa 2026"}</span>
+            <strong>{filteredGames.length} jogos</strong>
+            <small>
+              {refreshing
+                ? "Atualizando..."
+                : updatedAt
+                  ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
+                  : debug}
+            </small>
+          </div>
 
-  return "Pre-jogo";
-};
+          {loading ? (
+            <div className="empty-state">
+              <h2>{mode === "today" ? "Carregando jogos de hoje..." : "Carregando Copa 2026..."}</h2>
+              <p>Buscando jogos, odds e estimativas.</p>
+            </div>
+          ) : null}
 
-const formatScoreContext = (game) => {
-  if (game?.isLive) {
-    return `Online agora, ${formatClock(game)}`;
-  }
+          {!loading && !filteredGames.length ? (
+            <div className="empty-state">
+              <h2>Sem jogos neste filtro</h2>
+              <p>{debug || "Tente outro filtro no topo."}</p>
+            </div>
+          ) : null}
 
-  if (game?.isFinished) {
-    return "Resultado final";
-  }
+          {!loading &&
+            filteredGames.map((game) => (
+              <button
+                aria-label={`Abrir previsoes de ${game.game}`}
+                className={
+                  selectedGame?.id === game.id
+                    ? `bubble is-${game.tier} is-selected`
+                    : `bubble is-${game.tier}`
+                }
+                key={game.id}
+                onClick={() => openGameModal(game.id)}
+                style={{
+                  width: `${game.size}px`,
+                  height: `${game.size}px`,
+                  transform: `translate(${game.x}px, ${game.y}px)`,
+                }}
+                title={game.game}
+                type="button"
+              >
+                <span className="bubble-team bubble-home">{game.homeTeam}</span>
 
-  return `Comeca em ${formatKickoff(game?.commenceTime)}`;
-};
+                <strong>{formatChance(game.probability)}</strong>
 
-const translateBetText = (value) => {
-  const text = String(value || "").trim();
+                {hasScoreLine(game) || game.isLive ? (
+                  <span className={game.isLive ? "bubble-score is-live" : "bubble-score"}>
+                    {formatScoreLine(game)}
+                  </span>
+                ) : null}
 
-  if (!text) {
-    return "--";
-  }
-
-  return text
-    .replace(/\bMatch Winner\b/gi, "Resultado final")
-    .replace(/\bWinner\b/gi, "Vencedor")
-    .replace(/\bDouble Chance\b/gi, "Dupla chance")
-    .replace(/\bBoth Teams To Score\b/gi, "Ambas marcam")
-    .replace(/\bClean Sheet\b/gi, "Sem sofrer gol")
-    .replace(/\bOver\b/gi, "Mais de")
-    .replace(/\bUnder\b/gi, "Menos de")
-    .replace(/\bYes\b/gi, "Sim")
-    .replace(/\bNo\b/gi, "Nao")
-    .replace(/\bDraw\b/gi, "Empate")
-    .replace(/\bHome\b/gi, "Mandante")
-    .replace(/\bAway\b/gi, "Visitante")
-    .replace(/\bCorners\b/gi, "Escanteios")
-    .replace(/\bCards\b/gi, "Cartoes")
-    .replace(/\bGoals\b/gi, "Gols")
-    .replace(/\bOdd\b/gi, "Impar")
-    .replace(/\bEven\b/gi, "Par");
-};
-
-const getBeforeColon = (value, fallback = "--") => {
-  const text = String(value || "").trim();
-
-  if (!text) {
-    return fallback;
-  }
-
-  return text.split(":")[0] || fallback;
-};
-
-const getTier = (probability) => {
-  if (probability >= 0.45) {
-    return "high";
-  }
-
-  return "low";
-};
-
-const EDGE_PADDING = 14;
-const COLLISION_GAP = 20;
-const COLLISION_PASSES = 9;
-const DRIFT_INTERVAL_MS = 48;
-const FRAME_STEP_LIMIT = 1.55;
-const VELOCITY_LIMIT = 0.082;
-const BOUNCE_DAMPING = 0.74;
-const COLLISION_DAMPING = 0.88;
-const DEFAULT_BUBBLE_SCALE = "small";
-
-const getCrowdFactor = (total = 0) => {
-  if (total >= 110) {
-    return 0.64;
-  }
-
-  if (total >= 80) {
-    return 0.72;
-  }
-
-  if (total >= 55) {
-    return 0.82;
-  }
-
-  if (total >= 32) {
-    return 0.92;
-  }
-
-  return 1;
-};
-
-const limitVelocity = (value) => clamp(value, -VELOCITY_LIMIT, VELOCITY_LIMIT);
-
-const getInitialVelocity = (index, axis) => {
-  const direction = axis === "x" ? (index % 2 ? 1 : -1) : (index % 3 ? 1 : -1);
-  const base = axis === "x" ? 0.035 : 0.028;
-  const spread = axis === "x" ? (index % 7) * 0.006 : (index % 5) * 0.005;
-
-  return limitVelocity(direction * (base + spread));
-};
-
-const getDisplaySize = (probability, scale, total = 0) => {
-  const crowdFactor = getCrowdFactor(total);
-  const base = (48 + clamp(probability || 0.33, 0.05, 0.9) * 170) * crowdFactor;
-
-  if (scale === "large") {
-    return clamp(base * 1.1, 58, 238);
-  }
-
-  if (scale === "small") {
-    return clamp(base * 0.78, 42, 150);
-  }
-
-  return clamp(base * 0.92, 50, 198);
-};
-
-const getInitialPosition = (index, total, bounds, size) => {
-  const width = Math.max(bounds.width || 0, 1280);
-  const height = Math.max(bounds.height || 0, 660);
-  const angle = index * 2.399963229728653;
-  const orbit = Math.sqrt(index + 1) * (width > 900 ? 68 : 48);
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const x = centerX + Math.cos(angle) * orbit * 1.68 - size / 2;
-  const y = centerY + Math.sin(angle) * orbit * 1.08 - size / 2;
-
-  return {
-    x: clamp(x, 18, width - size - 18),
-    y: clamp(y, 18, height - size - 18),
-  };
-};
-
-const createBubble = (game, existing, bounds, index, total, scale) => {
-  const size = getDisplaySize(game.bubbleValue ?? game.probability, scale, total);
-  const position = existing ?? getInitialPosition(index, total, bounds, size);
-
-  return {
-    ...game,
-    size,
-    radius: size / 2,
-    tier: getTier(game.bubbleValue ?? game.probability),
-    x: position.x,
-    y: position.y,
-    vx: existing?.vx ? limitVelocity(existing.vx) : getInitialVelocity(index, "x"),
-    vy: existing?.vy ? limitVelocity(existing.vy) : getInitialVelocity(index, "y"),
-  };
-};
-
-const moveBubbles = (items, bounds, step = 1) => {
-  const width = Math.max(bounds.width || 0, 1280);
-  const height = Math.max(bounds.height || 0, 660);
-  const safeStep = clamp(step, 0, FRAME_STEP_LIMIT);
-  const next = items.map((item) => {
-    const bubble = {
-      ...item,
-      x: item.x + item.vx * safeStep,
-      y: item.y + item.vy * safeStep,
-    };
-
-    if (bubble.x <= EDGE_PADDING || bubble.x >= width - bubble.size - EDGE_PADDING) {
-      bubble.vx = limitVelocity(bubble.vx * -BOUNCE_DAMPING);
-      bubble.x = clamp(bubble.x, EDGE_PADDING, width - bubble.size - EDGE_PADDING);
-    }
-
-    if (bubble.y <= EDGE_PADDING || bubble.y >= height - bubble.size - EDGE_PADDING) {
-      bubble.vy = limitVelocity(bubble.vy * -BOUNCE_DAMPING);
-      bubble.y = clamp(bubble.y, EDGE_PADDING, height - bubble.size - EDGE_PADDING);
-    }
-
-    return bubble;
-  });
-
-  for (let pass = 0; pass < COLLISION_PASSES; pass += 1) {
-    for (let index = 0; index < next.length; index += 1) {
-      for (let compare = index + 1; compare < next.length; compare += 1) {
-        const first = next[index];
-        const second = next[compare];
-        const dx = first.x + first.radius - (second.x + second.radius);
-        const dy = first.y + first.radius - (second.y + second.radius);
-        const distance = Math.hypot(dx, dy) || 1;
-        const minDistance = first.radius + second.radius + COLLISION_GAP;
-
-        if (distance >= minDistance) {
-          continue;
-        }
-
-        const overlap = minDistance - distance;
-        const normalX = dx / distance;
-        const normalY = dy / distance;
-        const radiusTotal = first.radius + second.radius || 1;
-        const firstPush = second.radius / radiusTotal;
-        const secondPush = first.radius / radiusTotal;
-
-        first.x = clamp(
-          first.x + normalX * overlap * firstPush,
-          EDGE_PADDING,
-          width - first.size - EDGE_PADDING
-        );
-        first.y = clamp(
-          first.y + normalY * overlap * firstPush,
-          EDGE_PADDING,
-          height - first.size - EDGE_PADDING
-        );
-        second.x = clamp(
-          second.x - normalX * overlap * secondPush,
-          EDGE_PADDING,
-          width - second.size - EDGE_PADDING
-        );
-        second.y = clamp(
-          second.y - normalY * overlap * secondPush,
-          EDGE_PADDING,
-          height - second.size - EDGE_PADDING
-        );
-
-        first.vx = limitVelocity((first.vx + normalX * 0.012) * COLLISION_DAMPING);
-        first.vy = limitVelocity((first.vy + normalY * 0.012) * COLLISION_DAMPING);
-        second.vx = limitVelocity((second.vx - normalX * 0.012) * COLLISION_DAMPING);
-        second.vy = limitVelocity((second.vy - normalY * 0.012) * COLLISION_DAMPING);
-      }
-    }
-  }
-
-  return next;
-};
-
-const getAiSummary = (game) => {
-  if (game?.aiInsights?.headline) {
-    return game.aiInsights.headline;
-  }
-
-  const leader = game?.marketOptions?.[0];
-  const second = game?.marketOptions?.[1];
-  const gap = Math.max(0, (leader?.probability || 0) - (second?.probability || 0));
-
-  if (!leader) {
-    return "Sem leitura completa ainda";
-  }
-
-  if (game?.confidence === "estimate") {
-    return `Modelo visual favorece ${leader.label}`;
-  }
-
-  if (gap >= 0.16) {
-    return `Mercado forte para ${leader.label}`;
-  }
-
-  return `Jogo competitivo, leve vantagem para ${leader.label}`;
-};
+                <span className="bubble-team bubble-away">{game.awayTeam}</span>
+                <span className="bubble-meta">{game.pickCode} | {formatClock(game)}</span>
+              </button>
+            ))}
+        </main>
+      </section>
