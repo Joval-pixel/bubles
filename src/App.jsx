@@ -28,6 +28,19 @@ const SPONSORS = [
   },
 ];
 
+function BublesLogo() {
+  return (
+    <span className="bubles-wordmark" aria-label="Bubles">
+      <span className="logo-blue">B</span>
+      <span className="logo-yellow">u</span>
+      <span className="logo-green">b</span>
+      <span className="logo-white">l</span>
+      <span className="logo-blue">e</span>
+      <span className="logo-yellow">s</span>
+    </span>
+  );
+}
+
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
 const formatOdd = (value) =>
@@ -254,7 +267,7 @@ function WidgetsPage() {
     <div className="widgets-page">
       <header className="widgets-toolbar">
         <a className="widgets-brand" href="/">
-          <img className="brand-logo" src="/logo-bubles-transparent.png" alt="Bubles" />
+          <BublesLogo />
         </a>
 
         <nav className="widgets-sports" aria-label="Esportes">
@@ -582,7 +595,7 @@ function BubblesWorldCup() {
     <div className="cup-shell">
       <header className="cup-toolbar">
         <a className="cup-brand" href="/">
-          <img className="brand-logo" src="/logo-bubles-transparent.png" alt="Bubles" />
+          <BublesLogo />
           <strong className="brand-context">{mode === "today" ? "AO VIVO" : "COPA 2026"}</strong>
         </a>
 
