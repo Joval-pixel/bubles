@@ -13,7 +13,7 @@ const WORLD_CUP_LIMIT = Math.max(
 );
 const TODAY_LIMIT = Math.max(
   24,
-  Math.min(1000, Number.parseInt(process.env.TODAY_LIMIT || "500", 10) || 500)
+  Math.min(1000, Number.parseInt(process.env.TODAY_LIMIT || "1000", 10) || 1000)
 );
 const MARKETS_PER_GAME_LIMIT = Math.max(
   12,
