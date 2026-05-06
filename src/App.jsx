@@ -56,6 +56,24 @@ const formatClock = (game) => {
 
   return "PRE";
 };
+
+const hasScoreLine = (game) => {
+  const score = String(game?.scoreLine || "").trim();
+  return Boolean(score && score !== "Pre-jogo");
+};
+
+const formatScoreLine = (game) => {
+  if (hasScoreLine(game)) {
+    return game.scoreLine;
+  }
+
+  if (game?.isLive) {
+    return "-- x --";
+  }
+
+  return "Pre-jogo";
+};
+
 const formatKickoff = (value) =>
   value
     ? new Date(value).toLocaleString("pt-BR", {
@@ -65,6 +83,18 @@ const formatKickoff = (value) =>
         minute: "2-digit",
       })
     : "--";
+
+const formatScoreContext = (game) => {
+  if (game?.isLive) {
+    return `Online agora, ${formatClock(game)}`;
+  }
+
+  if (game?.isFinished) {
+    return "Resultado final";
+  }
+
+  return `Comeca em ${formatKickoff(game?.commenceTime)}`;
+};
 
 const translateBetText = (value) => {
   const text = String(value || "").trim();
@@ -536,7 +566,8 @@ function BubblesWorldCup() {
     };
 
     fetchGames(false);
-    const timer = window.setInterval(() => fetchGames(true), 240000);
+    const refreshMs = mode === "today" ? 60000 : 240000;
+    const timer = window.setInterval(() => fetchGames(true), refreshMs);
 
     return () => {
       mounted = false;
@@ -838,6 +869,11 @@ function BubblesWorldCup() {
               >
                 <span className="bubble-team bubble-home">{game.homeTeam}</span>
                 <strong>{formatChance(game.probability)}</strong>
+                {hasScoreLine(game) || game.isLive ? (
+                  <span className={game.isLive ? "bubble-score is-live" : "bubble-score"}>
+                    {formatScoreLine(game)}
+                  </span>
+                ) : null}
                 <span className="bubble-team bubble-away">{game.awayTeam}</span>
                 <span className="bubble-meta">{game.pickCode} | {formatClock(game)}</span>
               </button>
@@ -859,7 +895,7 @@ function BubblesWorldCup() {
                 <span>{selectedGame.isLive ? "Ao vivo" : mode === "today" ? "Jogo selecionado" : "Copa 2026"}</span>
                 <h2>{selectedGame.game}</h2>
                 <p>
-                  {selectedGame.round} | {selectedGame.scoreLine} | {formatClock(selectedGame)} | {formatKickoff(selectedGame.commenceTime)}
+                  {selectedGame.round} | {formatScoreLine(selectedGame)} | {formatClock(selectedGame)} | {formatKickoff(selectedGame.commenceTime)}
                 </p>
               </div>
 
@@ -869,6 +905,11 @@ function BubblesWorldCup() {
             </header>
 
             <div className="modal-summary-grid">
+              <article>
+                <span>Placar online</span>
+                <strong>{formatScoreLine(selectedGame)}</strong>
+                <small>{formatScoreContext(selectedGame)}</small>
+              </article>
               <article>
                 <span>Acao IA</span>
                 <strong>{aiInsights.action || "Verificar"}</strong>
