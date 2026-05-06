@@ -134,12 +134,8 @@ const getBeforeColon = (value, fallback = "--") => {
 };
 
 const getTier = (probability) => {
-  if (probability >= 0.62) {
+  if (probability >= 0.45) {
     return "high";
-  }
-
-  if (probability >= 0.44) {
-    return "medium";
   }
 
   return "low";
