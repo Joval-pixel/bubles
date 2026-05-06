@@ -115,18 +115,58 @@ const getTier = (probability) => {
   return "low";
 };
 
-const getDisplaySize = (probability, scale) => {
-  const base = 52 + clamp(probability || 0.33, 0.05, 0.9) * 185;
+const EDGE_PADDING = 14;
+const COLLISION_GAP = 20;
+const COLLISION_PASSES = 9;
+const DRIFT_INTERVAL_MS = 48;
+const FRAME_STEP_LIMIT = 1.55;
+const VELOCITY_LIMIT = 0.082;
+const BOUNCE_DAMPING = 0.74;
+const COLLISION_DAMPING = 0.88;
+
+const getCrowdFactor = (total = 0) => {
+  if (total >= 110) {
+    return 0.64;
+  }
+
+  if (total >= 80) {
+    return 0.72;
+  }
+
+  if (total >= 55) {
+    return 0.82;
+  }
+
+  if (total >= 32) {
+    return 0.92;
+  }
+
+  return 1;
+};
+
+const limitVelocity = (value) => clamp(value, -VELOCITY_LIMIT, VELOCITY_LIMIT);
+
+const getInitialVelocity = (index, axis) => {
+  const direction = axis === "x" ? (index % 2 ? 1 : -1) : (index % 3 ? 1 : -1);
+  const base = axis === "x" ? 0.035 : 0.028;
+  const spread = axis === "x" ? (index % 7) * 0.006 : (index % 5) * 0.005;
+
+  return limitVelocity(direction * (base + spread));
+};
+
+const getDisplaySize = (probability, scale, total = 0) => {
+  const crowdFactor = getCrowdFactor(total);
+  const base = (48 + clamp(probability || 0.33, 0.05, 0.9) * 170) * crowdFactor;
 
   if (scale === "large") {
-    return clamp(base * 1.14, 78, 260);
+    return clamp(base * 1.1, 58, 238);
   }
 
   if (scale === "small") {
-    return clamp(base * 0.74, 48, 172);
+    return clamp(base * 0.78, 42, 150);
   }
 
-  return clamp(base * 0.9, 58, 214);
+  return clamp(base * 0.92, 50, 198);
 };
 
 const getInitialPosition = (index, total, bounds, size) => {
@@ -146,7 +186,7 @@ const getInitialPosition = (index, total, bounds, size) => {
 };
 
 const createBubble = (game, existing, bounds, index, total, scale) => {
-  const size = getDisplaySize(game.bubbleValue ?? game.probability, scale);
+  const size = getDisplaySize(game.bubbleValue ?? game.probability, scale, total);
   const position = existing ?? getInitialPosition(index, total, bounds, size);
 
   return {
@@ -156,35 +196,36 @@ const createBubble = (game, existing, bounds, index, total, scale) => {
     tier: getTier(game.bubbleValue ?? game.probability),
     x: position.x,
     y: position.y,
-    vx: existing?.vx ?? ((index % 2 ? 1 : -1) * (0.22 + (index % 7) * 0.035)),
-    vy: existing?.vy ?? ((index % 3 ? 1 : -1) * (0.18 + (index % 5) * 0.035)),
+    vx: existing?.vx ? limitVelocity(existing.vx) : getInitialVelocity(index, "x"),
+    vy: existing?.vy ? limitVelocity(existing.vy) : getInitialVelocity(index, "y"),
   };
 };
 
-const moveBubbles = (items, bounds) => {
+const moveBubbles = (items, bounds, step = 1) => {
   const width = Math.max(bounds.width || 0, 1280);
   const height = Math.max(bounds.height || 0, 660);
+  const safeStep = clamp(step, 0, FRAME_STEP_LIMIT);
   const next = items.map((item) => {
     const bubble = {
       ...item,
-      x: item.x + item.vx,
-      y: item.y + item.vy,
+      x: item.x + item.vx * safeStep,
+      y: item.y + item.vy * safeStep,
     };
 
-    if (bubble.x <= 8 || bubble.x >= width - bubble.size - 8) {
-      bubble.vx *= -1;
-      bubble.x = clamp(bubble.x, 8, width - bubble.size - 8);
+    if (bubble.x <= EDGE_PADDING || bubble.x >= width - bubble.size - EDGE_PADDING) {
+      bubble.vx = limitVelocity(bubble.vx * -BOUNCE_DAMPING);
+      bubble.x = clamp(bubble.x, EDGE_PADDING, width - bubble.size - EDGE_PADDING);
     }
 
-    if (bubble.y <= 8 || bubble.y >= height - bubble.size - 8) {
-      bubble.vy *= -1;
-      bubble.y = clamp(bubble.y, 8, height - bubble.size - 8);
+    if (bubble.y <= EDGE_PADDING || bubble.y >= height - bubble.size - EDGE_PADDING) {
+      bubble.vy = limitVelocity(bubble.vy * -BOUNCE_DAMPING);
+      bubble.y = clamp(bubble.y, EDGE_PADDING, height - bubble.size - EDGE_PADDING);
     }
 
     return bubble;
   });
 
-  for (let pass = 0; pass < 4; pass += 1) {
+  for (let pass = 0; pass < COLLISION_PASSES; pass += 1) {
     for (let index = 0; index < next.length; index += 1) {
       for (let compare = index + 1; compare < next.length; compare += 1) {
         const first = next[index];
@@ -192,7 +233,7 @@ const moveBubbles = (items, bounds) => {
         const dx = first.x + first.radius - (second.x + second.radius);
         const dy = first.y + first.radius - (second.y + second.radius);
         const distance = Math.hypot(dx, dy) || 1;
-        const minDistance = first.radius + second.radius + 14;
+        const minDistance = first.radius + second.radius + COLLISION_GAP;
 
         if (distance >= minDistance) {
           continue;
@@ -201,17 +242,35 @@ const moveBubbles = (items, bounds) => {
         const overlap = minDistance - distance;
         const normalX = dx / distance;
         const normalY = dy / distance;
-        first.x = clamp(first.x + normalX * overlap * 0.56, 8, width - first.size - 8);
-        first.y = clamp(first.y + normalY * overlap * 0.56, 8, height - first.size - 8);
-        second.x = clamp(second.x - normalX * overlap * 0.56, 8, width - second.size - 8);
-        second.y = clamp(second.y - normalY * overlap * 0.56, 8, height - second.size - 8);
+        const radiusTotal = first.radius + second.radius || 1;
+        const firstPush = second.radius / radiusTotal;
+        const secondPush = first.radius / radiusTotal;
 
-        const swapX = first.vx;
-        const swapY = first.vy;
-        first.vx = second.vx * 0.98;
-        first.vy = second.vy * 0.98;
-        second.vx = swapX * 0.98;
-        second.vy = swapY * 0.98;
+        first.x = clamp(
+          first.x + normalX * overlap * firstPush,
+          EDGE_PADDING,
+          width - first.size - EDGE_PADDING
+        );
+        first.y = clamp(
+          first.y + normalY * overlap * firstPush,
+          EDGE_PADDING,
+          height - first.size - EDGE_PADDING
+        );
+        second.x = clamp(
+          second.x - normalX * overlap * secondPush,
+          EDGE_PADDING,
+          width - second.size - EDGE_PADDING
+        );
+        second.y = clamp(
+          second.y - normalY * overlap * secondPush,
+          EDGE_PADDING,
+          height - second.size - EDGE_PADDING
+        );
+
+        first.vx = limitVelocity((first.vx + normalX * 0.012) * COLLISION_DAMPING);
+        first.vy = limitVelocity((first.vy + normalY * 0.012) * COLLISION_DAMPING);
+        second.vx = limitVelocity((second.vx - normalX * 0.012) * COLLISION_DAMPING);
+        second.vy = limitVelocity((second.vy - normalY * 0.012) * COLLISION_DAMPING);
       }
     }
   }
@@ -376,6 +435,7 @@ function WidgetsPage() {
 function BubblesWorldCup() {
   const boardRef = useRef(null);
   const animationRef = useRef(0);
+  const lastFrameRef = useRef(0);
   const boundsRef = useRef({ width: 0, height: 0 });
   const [games, setGames] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -445,8 +505,12 @@ function BubblesWorldCup() {
         setDebug(payload?.debug || "");
         setGames((current) => {
           const currentMap = new Map(current.map((item) => [item.id, item]));
-          return items.map((item, index) =>
-            createBubble(item, currentMap.get(item.id), boundsRef.current, index, items.length, scale)
+          return moveBubbles(
+            items.map((item, index) =>
+              createBubble(item, currentMap.get(item.id), boundsRef.current, index, items.length, scale)
+            ),
+            boundsRef.current,
+            0
           );
         });
         setSelectedId((current) =>
@@ -512,15 +576,28 @@ function BubblesWorldCup() {
       return undefined;
     }
 
-    const animate = () => {
-      setGames((current) => moveBubbles(current, boundsRef.current));
+    const animate = (timestamp = 0) => {
+      if (!lastFrameRef.current) {
+        lastFrameRef.current = timestamp;
+      }
+
+      const elapsed = timestamp - lastFrameRef.current;
+
+      if (elapsed >= DRIFT_INTERVAL_MS) {
+        const frameStep = elapsed / 16.67;
+        setGames((current) => moveBubbles(current, boundsRef.current, frameStep));
+        lastFrameRef.current = timestamp;
+      }
+
       animationRef.current = window.requestAnimationFrame(animate);
     };
 
+    lastFrameRef.current = 0;
     animationRef.current = window.requestAnimationFrame(animate);
 
     return () => {
       window.cancelAnimationFrame(animationRef.current);
+      lastFrameRef.current = 0;
     };
   }, [games.length]);
 
@@ -601,7 +678,11 @@ function BubblesWorldCup() {
             return game;
           }
 
-          const size = getDisplaySize(game.bubbleValue ?? game.probability, scale);
+          const size = getDisplaySize(
+            game.bubbleValue ?? game.probability,
+            scale,
+            visibleIds.length
+          );
           const position = getInitialPosition(visibleIndex, visibleIds.length, boundsRef.current, size);
 
           return {
@@ -612,7 +693,8 @@ function BubblesWorldCup() {
             y: position.y,
           };
         }),
-        boundsRef.current
+        boundsRef.current,
+        0
       )
     );
   }, [filter, query, scale, sort, updatedAt, filteredGames.length]);
