@@ -93,6 +93,16 @@ const translateBetText = (value) => {
     .replace(/\bEven\b/gi, "Par");
 };
 
+const getBeforeColon = (value, fallback = "--") => {
+  const text = String(value || "").trim();
+
+  if (!text) {
+    return fallback;
+  }
+
+  return text.split(":")[0] || fallback;
+};
+
 const getTier = (probability) => {
   if (probability >= 0.62) {
     return "high";
@@ -561,6 +571,10 @@ function BubblesWorldCup() {
   const selectedOptions = selectedGame?.marketOptions ?? [];
   const selectedMarkets = selectedGame?.betMarkets ?? [];
   const aiInsights = selectedGame?.aiInsights ?? {};
+  const aiWhy = Array.isArray(aiInsights.why) ? aiInsights.why : [];
+  const aiChecklist = Array.isArray(aiInsights.checklist) ? aiInsights.checklist : [];
+  const aiAvoidIf = Array.isArray(aiInsights.avoidIf) ? aiInsights.avoidIf : [];
+  const aiBestMarkets = Array.isArray(aiInsights.bestMarkets) ? aiInsights.bestMarkets : [];
 
   useEffect(() => {
     if (!filteredGames.length) {
@@ -762,14 +776,19 @@ function BubblesWorldCup() {
 
             <div className="modal-summary-grid">
               <article>
-                <span>Palpite IA</span>
-                <strong>{aiInsights.headline || getAiSummary(selectedGame)}</strong>
+                <span>Acao IA</span>
+                <strong>{aiInsights.action || "Verificar"}</strong>
+                <small>{aiInsights.headline || getAiSummary(selectedGame)}</small>
+              </article>
+              <article>
+                <span>Score IA</span>
+                <strong>{aiInsights.score || Math.round((selectedGame.probability || 0) * 100)}/100</strong>
                 <small>{aiInsights.main || "Chance estimada: aguardando dados."}</small>
               </article>
               <article>
-                <span>Confianca</span>
-                <strong>{formatChance(selectedGame.probability)}</strong>
-                <small>{aiInsights.confidence || "Aguardando leitura completa."}</small>
+                <span>Risco</span>
+                <strong>{getBeforeColon(aiInsights.risk, "Risco medio")}</strong>
+                <small>{aiInsights.risk || aiInsights.confidence || "Aguardando leitura completa."}</small>
               </article>
               <article>
                 <span>Odd atual</span>
@@ -779,13 +798,65 @@ function BubblesWorldCup() {
             </div>
 
             <section className="modal-ai-card">
-              <span>Leitura simples</span>
+              <span>Leitura facil</span>
               <ul>
                 <li>{aiInsights.goals || "Gols: sem dados suficientes neste momento."}</li>
                 <li>{aiInsights.corners || "Escanteios: sem dados suficientes neste momento."}</li>
                 <li>{aiInsights.cards || "Cartoes: sem dados suficientes neste momento."}</li>
                 <li>{aiInsights.warning || "Use como apoio para analise. Nao existe aposta garantida."}</li>
               </ul>
+            </section>
+
+            <section className="modal-verification-grid">
+              <article className="modal-ai-card">
+                <span>Por que verificar</span>
+                <ul>
+                  {(aiWhy.length ? aiWhy : ["A IA ainda esta montando a leitura desse jogo."]).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+
+              <article className="modal-ai-card">
+                <span>Checklist rapido</span>
+                <ul>
+                  {(aiChecklist.length ? aiChecklist : ["Confira odd, placar e status antes de apostar."]).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+
+              <article className="modal-ai-card">
+                <span>Evite se</span>
+                <ul>
+                  {(aiAvoidIf.length ? aiAvoidIf : ["Evite se a leitura nao estiver clara."]).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+            </section>
+
+            <section className="modal-best-markets">
+              <span>Melhores mercados para conferir</span>
+              <div>
+                {(aiBestMarkets.length ? aiBestMarkets : selectedMarkets.slice(0, 4).map((market) => ({
+                  category: market.category,
+                  market: market.name,
+                  pick: market.leader?.label,
+                  probability: market.leader?.probability,
+                  odd: market.leader?.odd,
+                  note: "",
+                }))).map((market) => (
+                  <article className="ai-market-mini" key={`${market.category}-${market.market}-${market.pick}`}>
+                    <span>{market.category}</span>
+                    <strong>{translateBetText(market.pick)}</strong>
+                    <small>
+                      {formatChance(market.probability)} | Odd {formatOdd(market.odd)}
+                    </small>
+                    <em>{market.note || translateBetText(market.market)}</em>
+                  </article>
+                ))}
+              </div>
             </section>
 
             <section className="modal-options">
