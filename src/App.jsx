@@ -153,6 +153,7 @@ const FRAME_STEP_LIMIT = 1.55;
 const VELOCITY_LIMIT = 0.082;
 const BOUNCE_DAMPING = 0.74;
 const COLLISION_DAMPING = 0.88;
+const DEFAULT_BUBBLE_SCALE = "small";
 
 const getCrowdFactor = (total = 0) => {
   if (total >= 110) {
@@ -476,8 +477,6 @@ function BubblesWorldCup() {
   const [debug, setDebug] = useState("");
   const [mode, setMode] = useState("today");
   const [filter, setFilter] = useState("all");
-  const [sort, setSort] = useState("time");
-  const [scale, setScale] = useState("small");
   const [query, setQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -537,7 +536,14 @@ function BubblesWorldCup() {
           const currentMap = new Map(current.map((item) => [item.id, item]));
           return moveBubbles(
             items.map((item, index) =>
-              createBubble(item, currentMap.get(item.id), boundsRef.current, index, items.length, scale)
+              createBubble(
+                item,
+                currentMap.get(item.id),
+                boundsRef.current,
+                index,
+                items.length,
+                DEFAULT_BUBBLE_SCALE
+              )
             ),
             boundsRef.current,
             0
@@ -573,7 +579,7 @@ function BubblesWorldCup() {
       mounted = false;
       window.clearInterval(timer);
     };
-  }, [mode, scale]);
+  }, [mode]);
 
   useEffect(() => {
     setFilter("all");
@@ -652,26 +658,18 @@ function BubblesWorldCup() {
       items = items.filter((game) => game.stage === "groups");
     } else if (filter === "knockout") {
       items = items.filter((game) => game.stage === "knockout");
-    } else if (filter === "odds") {
-      items = items.filter((game) => game.hasOdds);
-    } else if (filter === "sponsors") {
-      items = items.filter((game) => (game.probability || 0) >= 0.5);
     }
 
-    if (sort === "chance") {
-      items.sort((left, right) => (right.probability || 0) - (left.probability || 0));
-    } else if (sort === "live") {
-      items.sort((left, right) => Number(right.isLive) - Number(left.isLive));
-    } else {
-      items.sort(
-        (left, right) =>
-          new Date(left.commenceTime || 0).getTime() -
+    items.sort(
+      (left, right) =>
+        Number(right.isLive) - Number(left.isLive) ||
+        (right.probability || 0) - (left.probability || 0) ||
+        new Date(left.commenceTime || 0).getTime() -
           new Date(right.commenceTime || 0).getTime()
-      );
-    }
+    );
 
     return items;
-  }, [filter, games, query, sort]);
+  }, [filter, games, query]);
 
   const selectedGame =
     filteredGames.find((game) => game.id === selectedId) ?? filteredGames[0] ?? games[0] ?? null;
@@ -679,7 +677,6 @@ function BubblesWorldCup() {
   const liveCount = games.filter((game) => game.isLive).length;
   const preCount = games.filter((game) => !game.isLive && !game.isFinished).length;
   const finishedCount = games.filter((game) => game.isFinished).length;
-  const oddsCount = games.filter((game) => game.hasOdds).length;
   const groupsCount = games.filter((game) => game.stage === "groups").length;
   const knockoutCount = games.filter((game) => game.stage === "knockout").length;
   const topGames = [...filteredGames]
@@ -711,7 +708,7 @@ function BubblesWorldCup() {
 
           const size = getDisplaySize(
             game.bubbleValue ?? game.probability,
-            scale,
+            DEFAULT_BUBBLE_SCALE,
             visibleIds.length
           );
           const position = getInitialPosition(visibleIndex, visibleIds.length, boundsRef.current, size);
@@ -728,7 +725,7 @@ function BubblesWorldCup() {
         0
       )
     );
-  }, [filter, query, scale, sort, updatedAt, filteredGames.length]);
+  }, [filter, query, updatedAt, filteredGames.length]);
 
   return (
     <div className="cup-shell">
@@ -749,14 +746,20 @@ function BubblesWorldCup() {
         <nav className="cup-controls mode-controls" aria-label="Modo do radar">
           <button
             className={mode === "today" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setMode("today")}
+            onClick={() => {
+              setMode("today");
+              setFilter("all");
+            }}
             type="button"
           >
             Jogos de hoje
           </button>
           <button
             className={mode === "worldcup" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setMode("worldcup")}
+            onClick={() => {
+              setMode("worldcup");
+              setFilter("all");
+            }}
             type="button"
           >
             Copa 2026
@@ -789,30 +792,9 @@ function BubblesWorldCup() {
               </button>
             </>
           )}
-          <button className={filter === "odds" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("odds")} type="button">
-            Odds {oddsCount}
-          </button>
-          <button className={filter === "sponsors" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("sponsors")} type="button">
-            Comercial
-          </button>
         </nav>
 
-        <nav className="cup-controls compact" aria-label="Ordenacao">
-          <button className={sort === "time" ? "chip-button is-neutral is-active" : "chip-button is-neutral"} onClick={() => setSort("time")} type="button">
-            Hora
-          </button>
-          <button className={sort === "chance" ? "chip-button is-neutral is-active" : "chip-button is-neutral"} onClick={() => setSort("chance")} type="button">
-            Chance
-          </button>
-          <button className={scale === "small" ? "icon-button is-active" : "icon-button"} onClick={() => setScale("small")} type="button">
-            S
-          </button>
-          <button className={scale === "normal" ? "icon-button is-active" : "icon-button"} onClick={() => setScale("normal")} type="button">
-            M
-          </button>
-          <button className={scale === "large" ? "icon-button is-active" : "icon-button"} onClick={() => setScale("large")} type="button">
-            L
-          </button>
+        <nav className="cup-controls compact" aria-label="Atalhos">
           <a className="chip-link" href="/widgets">
             Widgets
           </a>
