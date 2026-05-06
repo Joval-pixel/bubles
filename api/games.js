@@ -524,6 +524,124 @@ const makeInsightLine = (category, pick) => {
   return `${category}: ${translatePickLabel(pick.label)} aparece como melhor opcao, com ${chance} de chance (${level}).`;
 };
 
+const getActionText = (market) => {
+  const probability = market?.probability || 0;
+  const gap = market?.leaderGap || 0;
+
+  if (market?.confidence !== "odds") {
+    return "Aguardar odds oficiais";
+  }
+
+  if (probability >= 0.66 && gap >= 0.14) {
+    return "Entrada para verificar";
+  }
+
+  if (probability >= 0.54) {
+    return "Verificar com cautela";
+  }
+
+  return "So observar";
+};
+
+const getRiskText = (market) => {
+  const probability = market?.probability || 0;
+  const gap = market?.leaderGap || 0;
+
+  if (market?.confidence !== "odds") {
+    return "Risco medio: ainda e estimativa visual.";
+  }
+
+  if (probability >= 0.66 && gap >= 0.14) {
+    return "Risco menor: leitura forte nas odds.";
+  }
+
+  if (probability >= 0.54) {
+    return "Risco medio: existe vantagem, mas precisa confirmar.";
+  }
+
+  return "Risco alto: jogo equilibrado.";
+};
+
+const getAiScore = (market) => {
+  const probability = market?.probability || 0;
+  const gap = market?.leaderGap || 0;
+  const oddsBonus = market?.confidence === "odds" ? 10 : 0;
+
+  return clamp(Math.round(probability * 68 + gap * 110 + oddsBonus), 1, 99);
+};
+
+const getWhyList = (market, betMarkets) => {
+  const reasons = [
+    `Palpite principal com ${formatInsightPercent(market?.probability)} de chance.`,
+  ];
+
+  if (market?.confidence === "odds") {
+    reasons.push("A leitura usa odds oficiais retornadas pela API.");
+  } else {
+    reasons.push("A leitura e uma estimativa enquanto as odds oficiais nao vierem completas.");
+  }
+
+  if ((market?.leaderGap || 0) >= 0.14) {
+    reasons.push("Existe boa distancia para a segunda opcao do mercado.");
+  } else {
+    reasons.push("A vantagem para a segunda opcao ainda e curta.");
+  }
+
+  if (betMarkets.length > 1) {
+    reasons.push(`${betMarkets.length} mercados foram encontrados para comparacao.`);
+  }
+
+  return reasons;
+};
+
+const getChecklist = (market) => {
+  const items = [
+    "Compare a odd atual com a odd mostrada no radar.",
+    "Confirme se o placar, minuto e status do jogo nao mudaram.",
+    "Veja se a chance ainda faz sentido antes de entrar.",
+  ];
+
+  if (market?.confidence === "odds") {
+    items.push("Priorize mercados com odds oficiais e chance acima de 54%.");
+  } else {
+    items.push("Se aparecer apenas estimativa, use como observacao e aguarde odds oficiais.");
+  }
+
+  return items;
+};
+
+const getAvoidList = (market) => {
+  const items = [
+    "Evite se a odd cair muito abaixo da odd mostrada.",
+    "Evite se houver noticia, escalação ou cartao que mude o jogo.",
+  ];
+
+  if ((market?.probability || 0) < 0.54) {
+    items.push("Evite entrada forte quando a chance estiver abaixo de 54%.");
+  }
+
+  if (market?.confidence !== "odds") {
+    items.push("Evite apostar forte quando a API ainda nao trouxe odds oficiais.");
+  }
+
+  return items;
+};
+
+const getBestMarkets = (betMarkets) =>
+  betMarkets
+    .filter((market) => market?.leader)
+    .slice(0, 6)
+    .map((market) => ({
+      category: market.category,
+      market: market.name,
+      pick: translatePickLabel(market.leader.label),
+      probability: market.leader.probability,
+      odd: market.leader.odd,
+      note: `${translatePickLabel(market.leader.label)} com ${formatInsightPercent(
+        market.leader.probability
+      )} de chance.`,
+    }));
+
 const createAiInsights = (market, betMarkets) => {
   const mainPick = translatePickLabel(market?.pickLabel || "mercado principal");
   const goalsPick = betMarkets.find((item) => item.category === "Gols")?.leader;
@@ -539,6 +657,13 @@ const createAiInsights = (market, betMarkets) => {
     goals: makeInsightLine("Gols", goalsPick),
     corners: makeInsightLine("Escanteios", cornersPick),
     cards: makeInsightLine("Cartoes", cardsPick),
+    action: getActionText(market),
+    risk: getRiskText(market),
+    score: getAiScore(market),
+    why: getWhyList(market, betMarkets),
+    checklist: getChecklist(market),
+    avoidIf: getAvoidList(market),
+    bestMarkets: getBestMarkets(betMarkets),
     warning: "Use como apoio para analise. Nao existe aposta garantida.",
   };
 };
