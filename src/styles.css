@@ -904,6 +904,191 @@ button {
   display: none;
 }
 
+.today-games-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 78;
+  display: grid;
+  place-items: center;
+  padding: clamp(10px, 2vw, 24px);
+  background:
+    radial-gradient(circle at 50% 28%, rgba(37, 243, 95, 0.14), transparent 26rem),
+    rgba(0, 0, 0, 0.46);
+  backdrop-filter: blur(8px);
+}
+
+.today-games-modal {
+  width: min(1180px, calc(100vw - 20px));
+  max-height: calc(100vh - 28px);
+  overflow: hidden;
+  padding: clamp(0.82rem, 1.7vw, 1.15rem);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(52, 52, 52, 0.98), rgba(19, 19, 19, 0.98)),
+    var(--panel);
+  box-shadow:
+    0 24px 90px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.today-games-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.today-games-header span,
+.today-games-stats span {
+  display: block;
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.today-games-header h2 {
+  margin: 0.28rem 0 0;
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1.6rem, 3vw, 2.55rem);
+  line-height: 1;
+}
+
+.today-games-header p {
+  margin: 0.42rem 0 0;
+  color: var(--muted);
+}
+
+.today-games-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 0.78rem;
+}
+
+.today-games-stats article {
+  min-height: 76px;
+  padding: 0.72rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(14, 14, 14, 0.68);
+}
+
+.today-games-stats strong {
+  display: block;
+  margin-top: 0.26rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.35rem;
+}
+
+.today-games-table-wrap {
+  position: relative;
+  max-height: min(62vh, 620px);
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(10, 10, 10, 0.58);
+}
+
+.today-games-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.today-games-table th,
+.today-games-table td {
+  padding: 0.72rem 0.74rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.today-games-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(22, 22, 22, 0.98);
+  color: #9cffb6;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.today-games-table tbody tr {
+  cursor: pointer;
+  transition: background 150ms ease, box-shadow 150ms ease;
+}
+
+.today-games-table tbody tr:hover {
+  background: rgba(37, 243, 95, 0.08);
+  box-shadow: inset 3px 0 0 rgba(37, 243, 95, 0.9);
+}
+
+.today-games-table tbody tr.is-live-row {
+  background: rgba(255, 224, 77, 0.055);
+}
+
+.today-games-table td {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.today-games-table td strong,
+.today-games-table td span,
+.today-games-table td small {
+  display: block;
+}
+
+.today-games-table td small {
+  margin-top: 0.18rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.today-games-table .score-cell {
+  color: var(--yellow);
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  text-shadow: 0 0 12px rgba(255, 224, 77, 0.38);
+  white-space: nowrap;
+}
+
+.today-games-table .chance-high {
+  color: #6dff91;
+  font-family: Sora, Inter, sans-serif;
+  font-weight: 900;
+}
+
+.today-games-table .chance-low {
+  color: #ff8585;
+  font-family: Sora, Inter, sans-serif;
+  font-weight: 900;
+}
+
+.today-games-empty {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 180px;
+  place-items: center;
+  padding: 2rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.today-games-empty strong {
+  color: var(--text);
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.15rem;
+}
+
 .ai-market-mini {
   flex: 0 0 210px;
   padding: 0.7rem;
@@ -1046,7 +1231,8 @@ button {
 
   .modal-summary-grid,
   .modal-verification-grid,
-  .modal-markets-grid {
+  .modal-markets-grid,
+  .today-games-stats {
     grid-template-columns: 1fr;
   }
 
@@ -1115,5 +1301,21 @@ button {
 
   .bubble .bubble-meta {
     font-size: clamp(0.32rem, 1.7vw, 0.48rem);
+  }
+
+  .today-games-modal {
+    padding: 0.72rem;
+  }
+
+  .today-games-header {
+    gap: 0.72rem;
+  }
+
+  .today-games-header h2 {
+    font-size: 1.45rem;
+  }
+
+  .today-games-table-wrap {
+    max-height: 66vh;
   }
 }
