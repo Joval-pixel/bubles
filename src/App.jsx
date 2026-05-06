@@ -357,6 +357,16 @@ function BubblesWorldCup() {
   const [sort, setSort] = useState("time");
   const [scale, setScale] = useState("small");
   const [query, setQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openGameModal = (id) => {
+    setSelectedId(id);
+    setIsModalOpen(true);
+  };
+
+  const closeGameModal = () => {
+    setIsModalOpen(false);
+  };
 
   useEffect(() => {
     const syncBounds = () => {
@@ -441,7 +451,29 @@ function BubblesWorldCup() {
   useEffect(() => {
     setFilter("all");
     setSelectedId(null);
+    setIsModalOpen(false);
   }, [mode]);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closeGameModal();
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isModalOpen]);
 
   useEffect(() => {
     if (!games.length) {
@@ -674,7 +706,7 @@ function BubblesWorldCup() {
                     : `bubble is-${game.tier}`
                 }
                 key={game.id}
-                onClick={() => setSelectedId(game.id)}
+                onClick={() => openGameModal(game.id)}
                 style={{
                   width: `${game.size}px`,
                   height: `${game.size}px`,
@@ -690,81 +722,118 @@ function BubblesWorldCup() {
               </button>
             ))}
         </main>
-
-        <aside className="prediction-sidebar" aria-label="Previsoes do jogo selecionado">
-          <article className="side-card selected-card">
-            <span>{selectedGame?.isLive ? "Ao vivo" : mode === "today" ? "Jogo selecionado" : "Copa 2026"}</span>
-            <h1>{selectedGame?.game ?? "Selecione uma bolha"}</h1>
-            <p>
-              {selectedGame
-                ? `${selectedGame.round} | ${selectedGame.scoreLine} | ${formatClock(selectedGame)}`
-                : message || "Clique em uma bolha para abrir a leitura."}
-            </p>
-          </article>
-
-          <article className="side-card ai-prediction-card">
-            <span>Previsoes IA</span>
-            <strong>{aiInsights.headline || getAiSummary(selectedGame)}</strong>
-            <ul>
-              <li>{aiInsights.main || "Chance estimada: aguardando dados."}</li>
-              <li>{aiInsights.confidence || "Confianca: aguardando leitura completa."}</li>
-              <li>{aiInsights.goals || "Gols: sem dados suficientes neste momento."}</li>
-              <li>{aiInsights.corners || "Escanteios: sem dados suficientes neste momento."}</li>
-              <li>{aiInsights.cards || "Cartoes: sem dados suficientes neste momento."}</li>
-              <li>{aiInsights.warning || "Use como apoio para analise. Nao existe aposta garantida."}</li>
-            </ul>
-          </article>
-
-          <div className="side-options">
-            {selectedOptions.map((option) => (
-              <article
-                className={option.code === selectedGame?.pickCode ? "option-card is-leader" : "option-card"}
-                key={option.code}
-              >
-                <span>{option.code}</span>
-                <strong>{translateBetText(option.label)}</strong>
-                <small>{formatChance(option.probability)} | Odd {formatOdd(option.odd)}</small>
-              </article>
-            ))}
-          </div>
-
-          <section className="side-top-games">
-            <span>Top chances</span>
-            {topGames.map((game, index) => (
-              <button
-                className={selectedGame?.id === game.id ? "top-pill is-active" : "top-pill"}
-                key={game.id}
-                onClick={() => setSelectedId(game.id)}
-                type="button"
-              >
-                <span>{index + 1}</span>
-                <strong>{game.game}</strong>
-                <small>{formatChance(game.probability)}</small>
-              </button>
-            ))}
-          </section>
-
-          <div className="markets-grid side-markets" aria-label="Todas as opcoes de apostas">
-            {selectedMarkets.map((market) => (
-              <article className="market-card" key={`${market.id}-${market.name}`}>
-                <div className="market-card-head">
-                  <span>{market.category}</span>
-                  <strong>{translateBetText(market.name)}</strong>
-                </div>
-                <div className="market-options">
-                  {(market.options || []).map((option) => (
-                    <div className="market-option" key={`${market.id}-${option.label}`}>
-                      <span>{translateBetText(option.label)}</span>
-                      <strong>{formatChance(option.probability)}</strong>
-                      <small>Odd {formatOdd(option.odd)}</small>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        </aside>
       </section>
+
+      {isModalOpen && selectedGame ? (
+        <div className="prediction-modal-backdrop" onClick={closeGameModal} role="presentation">
+          <section
+            aria-label={`Previsoes de ${selectedGame.game}`}
+            aria-modal="true"
+            className="prediction-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <header className="prediction-modal-header">
+              <div>
+                <span>{selectedGame.isLive ? "Ao vivo" : mode === "today" ? "Jogo selecionado" : "Copa 2026"}</span>
+                <h2>{selectedGame.game}</h2>
+                <p>
+                  {selectedGame.round} | {selectedGame.scoreLine} | {formatClock(selectedGame)} | {formatKickoff(selectedGame.commenceTime)}
+                </p>
+              </div>
+
+              <button className="modal-close-button" onClick={closeGameModal} type="button" aria-label="Fechar previsoes">
+                x
+              </button>
+            </header>
+
+            <div className="modal-summary-grid">
+              <article>
+                <span>Palpite IA</span>
+                <strong>{aiInsights.headline || getAiSummary(selectedGame)}</strong>
+                <small>{aiInsights.main || "Chance estimada: aguardando dados."}</small>
+              </article>
+              <article>
+                <span>Confianca</span>
+                <strong>{formatChance(selectedGame.probability)}</strong>
+                <small>{aiInsights.confidence || "Aguardando leitura completa."}</small>
+              </article>
+              <article>
+                <span>Odd atual</span>
+                <strong>{formatOdd(selectedGame.oddHome)}</strong>
+                <small>{selectedGame.hasOdds ? "Odds oficiais" : "Estimativa visual"}</small>
+              </article>
+            </div>
+
+            <section className="modal-ai-card">
+              <span>Leitura simples</span>
+              <ul>
+                <li>{aiInsights.goals || "Gols: sem dados suficientes neste momento."}</li>
+                <li>{aiInsights.corners || "Escanteios: sem dados suficientes neste momento."}</li>
+                <li>{aiInsights.cards || "Cartoes: sem dados suficientes neste momento."}</li>
+                <li>{aiInsights.warning || "Use como apoio para analise. Nao existe aposta garantida."}</li>
+              </ul>
+            </section>
+
+            <section className="modal-options">
+              <span>Opcoes principais</span>
+              <div>
+                {selectedOptions.map((option) => (
+                  <article
+                    className={option.code === selectedGame.pickCode ? "option-card is-leader" : "option-card"}
+                    key={option.code}
+                  >
+                    <span>{option.code}</span>
+                    <strong>{translateBetText(option.label)}</strong>
+                    <small>{formatChance(option.probability)} | Odd {formatOdd(option.odd)}</small>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="modal-markets">
+              <span>Mercados para verificar</span>
+              <div className="markets-grid modal-markets-grid">
+                {selectedMarkets.map((market) => (
+                  <article className="market-card" key={`${market.id}-${market.name}`}>
+                    <div className="market-card-head">
+                      <span>{market.category}</span>
+                      <strong>{translateBetText(market.name)}</strong>
+                    </div>
+                    <div className="market-options">
+                      {(market.options || []).map((option) => (
+                        <div className="market-option" key={`${market.id}-${option.label}`}>
+                          <span>{translateBetText(option.label)}</span>
+                          <strong>{formatChance(option.probability)}</strong>
+                          <small>Odd {formatOdd(option.odd)}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="modal-top-games">
+              <span>Top chances do filtro</span>
+              <div>
+                {topGames.map((game, index) => (
+                  <button
+                    className={selectedGame.id === game.id ? "top-pill is-active" : "top-pill"}
+                    key={game.id}
+                    onClick={() => setSelectedId(game.id)}
+                    type="button"
+                  >
+                    <span>{index + 1}</span>
+                    <strong>{game.game}</strong>
+                    <small>{formatChance(game.probability)}</small>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </section>
+        </div>
+      ) : null}
 
       <section className="sponsor-strip sponsor-strip-bottom" aria-label="Espacos comerciais">
         {SPONSORS.map((sponsor) => (
