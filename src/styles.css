@@ -615,24 +615,30 @@ button {
   max-width: 76%;
   margin: 0.02rem 0;
   padding: 0.04rem 0.3rem;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 224, 77, 0.72);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.38);
-  color: rgba(255, 255, 255, 0.94);
+  background: rgba(0, 0, 0, 0.5);
+  color: #ffe04d;
   font-family: Sora, Inter, sans-serif;
   font-size: clamp(0.42rem, 0.58vw, 0.72rem);
   font-weight: 900;
   letter-spacing: 0.01em;
   line-height: 1;
-  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.08);
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    0 0 10px rgba(255, 224, 77, 0.72);
+  box-shadow:
+    inset 0 0 12px rgba(255, 224, 77, 0.16),
+    0 0 16px rgba(255, 224, 77, 0.28);
 }
 
 .bubble .bubble-score.is-live {
-  border-color: rgba(156, 255, 182, 0.58);
-  color: #9cffb6;
+  border-color: rgba(255, 224, 77, 0.9);
+  color: #ffe04d;
   box-shadow:
-    inset 0 0 12px rgba(37, 243, 95, 0.16),
-    0 0 16px rgba(37, 243, 95, 0.26);
+    inset 0 0 12px rgba(255, 224, 77, 0.18),
+    0 0 18px rgba(255, 224, 77, 0.42),
+    0 0 26px rgba(37, 243, 95, 0.22);
 }
 
 .bubble .bubble-team {
