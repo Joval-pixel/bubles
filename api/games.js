@@ -293,6 +293,188 @@ const buildFallbackMarket = (fixture) => {
   );
 };
 
+const buildBetMarket = ({ id, name, category, options, bookmaker = "Modelo Bubles" }) => {
+  const normalizedOptions = normalizeOptions(options)
+    .sort((left, right) => right.probability - left.probability)
+    .map((option) => ({
+      label: option.label,
+      probability: option.probability,
+      odd: option.odd,
+      fairOdd: option.probability > 0 ? 1 / option.probability : 0,
+      ev: option.probability * option.odd - 1,
+      bookmaker: option.bookmaker || bookmaker,
+      source: option.source || "estimate",
+    }));
+  const leader = normalizedOptions[0];
+  const second = normalizedOptions[1];
+
+  return {
+    id,
+    name,
+    category,
+    bookmakersCount: bookmaker === "Modelo Bubles" ? 0 : 1,
+    leader: {
+      label: leader?.label || "Aguardando mercado",
+      probability: leader?.probability || 0,
+      odd: leader?.odd || 0,
+      fairOdd: leader?.fairOdd || 0,
+      ev: leader?.ev || 0,
+      bookmaker,
+    },
+    confidence: Math.max(0, (leader?.probability || 0) - (second?.probability || 0)),
+    options: normalizedOptions,
+  };
+};
+
+const getFixtureScore = (fixture) => {
+  const home = toNumber(fixture?.goals?.home);
+  const away = toNumber(fixture?.goals?.away);
+
+  return {
+    home,
+    away,
+    total: home + away,
+    bothScored: home > 0 && away > 0,
+  };
+};
+
+const buildFallbackBetMarkets = (fixture, mainMarket) => {
+  const fixtureId = fixture?.fixture?.id || `${fixture?.teams?.home?.name}-${fixture?.teams?.away?.name}`;
+  const score = getFixtureScore(fixture);
+  const statusShort = fixture?.fixture?.status?.short || "NS";
+  const isLive = LIVE_STATUSES.has(statusShort);
+  const minute = isLive ? clamp(toNumber(fixture?.fixture?.status?.elapsed), 1, 130) : 0;
+  const favoriteChance = mainMarket?.probability || 0.45;
+  const goalSeed = stableSeed(`${fixtureId}-goals`);
+  const bttsSeed = stableSeed(`${fixtureId}-btts`);
+  const cornerSeed = stableSeed(`${fixtureId}-corners`);
+  const cardSeed = stableSeed(`${fixtureId}-cards`);
+  const paceBoost = isLive ? clamp((score.total * 0.08) + (minute < 35 && score.total ? 0.04 : 0), 0, 0.22) : 0;
+  const over25 = clamp(0.46 + (goalSeed - 0.5) * 0.22 + paceBoost, 0.31, 0.76);
+  const over15 = clamp(over25 + 0.18, 0.5, 0.86);
+  const bttsYes = clamp(0.44 + (bttsSeed - 0.5) * 0.2 + (score.bothScored ? 0.34 : score.total ? 0.06 : 0), 0.28, 0.78);
+  const cornersOver85 = clamp(0.48 + (cornerSeed - 0.5) * 0.24 + (isLive && minute < 25 ? 0.02 : 0), 0.3, 0.72);
+  const cornersOver95 = clamp(cornersOver85 - 0.08, 0.24, 0.68);
+  const cardsOver35 = clamp(0.43 + (cardSeed - 0.5) * 0.22 + (isLive && minute > 55 ? 0.04 : 0), 0.26, 0.7);
+  const cardsOver45 = clamp(cardsOver35 - 0.09, 0.2, 0.62);
+  const favoriteLabel = mainMarket?.pickLabel || "Favorito";
+
+  return [
+    buildBetMarket({
+      id: "modelo-gols-15",
+      name: "Total de gols 1.5",
+      category: "Gols",
+      options: [
+        createOption({ code: "O1.5", label: "Mais de 1.5 gols", probability: over15, source: "estimate" }),
+        createOption({ code: "U1.5", label: "Menos de 1.5 gols", probability: 1 - over15, source: "estimate" }),
+      ],
+    }),
+    buildBetMarket({
+      id: "modelo-gols-25",
+      name: "Total de gols 2.5",
+      category: "Gols",
+      options: [
+        createOption({ code: "O2.5", label: "Mais de 2.5 gols", probability: over25, source: "estimate" }),
+        createOption({ code: "U2.5", label: "Menos de 2.5 gols", probability: 1 - over25, source: "estimate" }),
+      ],
+    }),
+    buildBetMarket({
+      id: "modelo-ambas-marcam",
+      name: "Ambas as equipes marcam",
+      category: "Gols",
+      options: [
+        createOption({ code: "BTTS-S", label: "Ambas marcam - Sim", probability: bttsYes, source: "estimate" }),
+        createOption({ code: "BTTS-N", label: "Ambas marcam - Nao", probability: 1 - bttsYes, source: "estimate" }),
+      ],
+    }),
+    buildBetMarket({
+      id: "modelo-escanteios-85",
+      name: "Total de escanteios 8.5",
+      category: "Escanteios",
+      options: [
+        createOption({ code: "C+8.5", label: "Mais de 8.5 escanteios", probability: cornersOver85, source: "estimate" }),
+        createOption({ code: "C-8.5", label: "Menos de 8.5 escanteios", probability: 1 - cornersOver85, source: "estimate" }),
+      ],
+    }),
+    buildBetMarket({
+      id: "modelo-escanteios-95",
+      name: "Total de escanteios 9.5",
+      category: "Escanteios",
+      options: [
+        createOption({ code: "C+9.5", label: "Mais de 9.5 escanteios", probability: cornersOver95, source: "estimate" }),
+        createOption({ code: "C-9.5", label: "Menos de 9.5 escanteios", probability: 1 - cornersOver95, source: "estimate" }),
+      ],
+    }),
+    buildBetMarket({
+      id: "modelo-cartoes-35",
+      name: "Total de cartoes 3.5",
+      category: "Cartoes",
+      options: [
+        createOption({ code: "CA+3.5", label: "Mais de 3.5 cartoes", probability: cardsOver35, source: "estimate" }),
+        createOption({ code: "CA-3.5", label: "Menos de 3.5 cartoes", probability: 1 - cardsOver35, source: "estimate" }),
+      ],
+    }),
+    buildBetMarket({
+      id: "modelo-cartoes-45",
+      name: "Total de cartoes 4.5",
+      category: "Cartoes",
+      options: [
+        createOption({ code: "CA+4.5", label: "Mais de 4.5 cartoes", probability: cardsOver45, source: "estimate" }),
+        createOption({ code: "CA-4.5", label: "Menos de 4.5 cartoes", probability: 1 - cardsOver45, source: "estimate" }),
+      ],
+    }),
+    buildBetMarket({
+      id: "modelo-dupla-chance",
+      name: "Dupla chance segura",
+      category: "Resultado",
+      options: [
+        createOption({
+          code: "DC",
+          label: `${favoriteLabel} ou empate`,
+          probability: clamp(favoriteChance + 0.26, 0.48, 0.88),
+          source: "estimate",
+        }),
+        createOption({
+          code: "FORA",
+          label: "Resultado contrario",
+          probability: clamp(0.74 - favoriteChance, 0.12, 0.52),
+          source: "estimate",
+        }),
+      ],
+    }),
+  ];
+};
+
+const mergeMissingBetMarkets = (fixture, mainMarket, officialMarkets) => {
+  const fallbackMarkets = buildFallbackBetMarkets(fixture, mainMarket);
+  const byName = new Set(officialMarkets.map((market) => normalizeText(`${market.category}-${market.name}`)));
+  const categoryCounts = officialMarkets.reduce((counts, market) => {
+    counts[market.category] = (counts[market.category] || 0) + 1;
+    return counts;
+  }, {});
+  const neededFallbacks = fallbackMarkets.filter((market) => {
+    const key = normalizeText(`${market.category}-${market.name}`);
+
+    if (byName.has(key)) {
+      return false;
+    }
+
+    return (categoryCounts[market.category] || 0) < 2;
+  });
+
+  return [...officialMarkets, ...neededFallbacks]
+    .sort((left, right) => {
+      const rankDiff = getCategoryRank(left.category) - getCategoryRank(right.category);
+
+      if (rankDiff !== 0) {
+        return rankDiff;
+      }
+
+      return (right.leader?.probability || 0) - (left.leader?.probability || 0);
+    })
+    .slice(0, MARKETS_PER_GAME_LIMIT);
+};
+
 const buildMarketFromOptions = (options, bookmakerName = "bookmaker") => {
   const sorted = [...options].sort((left, right) => right.probability - left.probability);
   const selected = sorted[0];
@@ -637,7 +819,9 @@ const getBestMarkets = (betMarkets) =>
       pick: translatePickLabel(market.leader.label),
       probability: market.leader.probability,
       odd: market.leader.odd,
-      note: `${translatePickLabel(market.leader.label)} com ${formatInsightPercent(
+      note: `${market.bookmakersCount ? "Odd oficial" : "Estimativa Bubles"}: ${translatePickLabel(
+        market.leader.label
+      )} com ${formatInsightPercent(
         market.leader.probability
       )} de chance.`,
     }));
@@ -816,33 +1000,35 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
   const isFinished = FINISHED_STATUSES.has(statusShort);
   const market = oddsAnalysis?.market || buildFallbackMarket(fixture);
   const rawBetMarkets = oddsAnalysis?.betMarkets ?? [];
-  const betMarkets = rawBetMarkets.length
-    ? rawBetMarkets
-    : [
-        {
-          id: "main-result",
-          name: "Resultado final",
-          category: "Resultado",
-          bookmakersCount: market.confidence === "odds" ? 1 : 0,
-          leader: {
-            label: market.pickLabel,
-            probability: market.probability,
-            odd: market.odd,
-            fairOdd: market.fairOdd,
-            ev: market.ev,
-            bookmaker: market.bestBookmaker,
-          },
-          confidence: market.leaderGap,
-          options: market.marketOptions.map((option) => ({
-            label: option.label,
-            probability: option.probability,
-            odd: option.odd,
-            fairOdd: option.probability > 0 ? 1 / option.probability : 0,
-            ev: option.probability * option.odd - 1,
-            bookmaker: option.bookmaker,
-          })),
-        },
-      ];
+  const resultMarket = {
+    id: "main-result",
+    name: "Resultado final",
+    category: "Resultado",
+    bookmakersCount: market.confidence === "odds" ? 1 : 0,
+    leader: {
+      label: market.pickLabel,
+      probability: market.probability,
+      odd: market.odd,
+      fairOdd: market.fairOdd,
+      ev: market.ev,
+      bookmaker: market.bestBookmaker,
+    },
+    confidence: market.leaderGap,
+    options: market.marketOptions.map((option) => ({
+      label: option.label,
+      probability: option.probability,
+      odd: option.odd,
+      fairOdd: option.probability > 0 ? 1 / option.probability : 0,
+      ev: option.probability * option.odd - 1,
+      bookmaker: option.bookmaker,
+      source: option.source,
+    })),
+  };
+  const betMarkets = mergeMissingBetMarkets(
+    fixture,
+    market,
+    rawBetMarkets.length ? rawBetMarkets : [resultMarket]
+  );
   const minute = isLive ? clamp(toNumber(fixture?.fixture?.status?.elapsed), 1, 130) : 0;
   const strongestMarket = betMarkets[0]?.leader;
   const bubbleValue = strongestMarket
