@@ -32,6 +32,8 @@ const RADAR_INITIAL_LIMIT = 12;
 const VALID_FILTERS = new Set(["best", "live", "goals", "corners", "btts"]);
 const VALID_MODES = new Set(["today", "worldcup"]);
 const VALID_VIEWS = new Set(["radar", "list"]);
+const BRASILIA_TIMEZONE = "America/Sao_Paulo";
+const BRASILIA_TIMEZONE_LABEL = "Horario de Brasilia";
 
 const getInitialSearchParam = (name, fallback) => {
   if (typeof window === "undefined") {
@@ -101,6 +103,7 @@ const formatScoreLine = (game) => {
 const formatKickoff = (value) =>
   value
     ? new Date(value).toLocaleString("pt-BR", {
+        timeZone: BRASILIA_TIMEZONE,
         day: "2-digit",
         month: "2-digit",
         hour: "2-digit",
@@ -111,8 +114,19 @@ const formatKickoff = (value) =>
 const formatKickoffTime = (value) =>
   value
     ? new Date(value).toLocaleTimeString("pt-BR", {
+        timeZone: BRASILIA_TIMEZONE,
         hour: "2-digit",
         minute: "2-digit",
+      })
+    : "--";
+
+const formatBrasiliaUpdateTime = (value) =>
+  value
+    ? new Date(value).toLocaleTimeString("pt-BR", {
+        timeZone: BRASILIA_TIMEZONE,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
       })
     : "--";
 
@@ -1348,7 +1362,7 @@ function BubblesWorldCup() {
               {refreshing
                 ? "Atualizando..."
                 : updatedAt
-                  ? `Atualizado as ${new Date(updatedAt).toLocaleTimeString("pt-BR")}`
+                  ? `Atualizado as ${formatBrasiliaUpdateTime(updatedAt)} (${BRASILIA_TIMEZONE_LABEL})`
                   : debug}
             </small>
           </div>
@@ -1370,7 +1384,7 @@ function BubblesWorldCup() {
           {!loading && viewMode === "list" && filteredGames.length ? (
             <div className="radar-list-view">
               <div className="radar-list-head">
-                <span>Hora</span>
+                <span>Hora BR</span>
                 <span>Jogo</span>
                 <span>Palpite</span>
                 <span>Chance</span>
@@ -1682,7 +1696,7 @@ function BubblesWorldCup() {
                 <span>Lista completa</span>
                 <h2>Todos jogos de hoje</h2>
                 <p>
-                  Horarios em {Intl.DateTimeFormat().resolvedOptions().timeZone || "horario local"}.
+                  Horarios no {BRASILIA_TIMEZONE_LABEL}.
                   Clique em um jogo para abrir os palpites de IA.
                 </p>
               </div>
@@ -1720,7 +1734,7 @@ function BubblesWorldCup() {
               <table className="today-games-table">
                 <thead>
                   <tr>
-                    <th>Hora</th>
+                    <th>Hora BR</th>
                     <th>Campeonato</th>
                     <th>Mandante</th>
                     <th>Placar</th>
