@@ -156,9 +156,14 @@ button {
   background: rgba(37, 243, 95, 0.08);
 }
 
-.cup-search {
+.search-shell {
+  position: relative;
   flex: 1 0 260px;
   min-width: 220px;
+}
+
+.cup-search {
+  width: 100%;
   height: 40px;
   padding: 0 0.9rem;
   border: 1px solid var(--line);
@@ -170,6 +175,50 @@ button {
 
 .cup-search:focus {
   border-color: rgba(37, 243, 95, 0.72);
+}
+
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  display: grid;
+  width: min(520px, 92vw);
+  overflow: hidden;
+  border: 1px solid rgba(37, 243, 95, 0.34);
+  border-radius: 12px;
+  background: rgba(18, 18, 18, 0.98);
+  box-shadow: var(--shadow);
+}
+
+.search-suggestion {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.68rem 0.8rem;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.search-suggestion:hover,
+.search-suggestion:focus-visible {
+  outline: none;
+  background: rgba(37, 243, 95, 0.1);
+}
+
+.search-suggestion strong,
+.search-suggestion span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-suggestion span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .cup-controls,
@@ -187,6 +236,10 @@ button {
 .mode-controls {
   padding-right: 4px;
   border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.view-controls {
+  padding-left: 2px;
 }
 
 .chip-button,
@@ -606,10 +659,10 @@ button {
 .bubble {
   position: absolute;
   display: grid;
-  grid-template-rows: auto auto auto auto;
+  grid-template-rows: auto auto auto;
   align-content: center;
   justify-items: center;
-  gap: 0.02rem;
+  gap: 0.08rem;
   padding: clamp(0.22rem, 0.48vw, 0.5rem);
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.24);
@@ -683,8 +736,27 @@ button {
 
 .bubble strong {
   font-family: Sora, Inter, sans-serif;
-  font-size: clamp(0.72rem, 1vw, 1.48rem);
+  font-size: clamp(1rem, 1.35vw, 2rem);
   line-height: 1;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.7),
+    0 0 15px rgba(255, 255, 255, 0.32);
+}
+
+.bubble .bubble-primary {
+  display: -webkit-box;
+  width: 86%;
+  max-width: 86%;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: clamp(0.42rem, 0.58vw, 0.72rem);
+  font-weight: 900;
+  line-height: 0.98;
+  text-overflow: clip;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.72);
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .bubble .bubble-pick {
@@ -758,6 +830,156 @@ button {
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.bubble-tooltip {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 6;
+  width: min(340px, calc(100% - 28px));
+  padding: 0.9rem;
+  border: 1px solid rgba(37, 243, 95, 0.36);
+  border-radius: 14px;
+  background: rgba(12, 12, 12, 0.9);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.bubble-tooltip span,
+.bubble-tooltip small {
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bubble-tooltip strong {
+  display: block;
+  margin-top: 0.28rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.1rem;
+  line-height: 1.05;
+}
+
+.bubble-tooltip p {
+  margin: 0.42rem 0 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.bubble-tooltip div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  margin-top: 0.62rem;
+}
+
+.bubble-tooltip small {
+  padding: 0.28rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(37, 243, 95, 0.1);
+}
+
+.radar-actions {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 5;
+}
+
+.load-more-button {
+  min-height: 38px;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(37, 243, 95, 0.78);
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.78);
+  color: #d8ffe2;
+  font-weight: 900;
+  box-shadow: var(--shadow);
+}
+
+.radar-list-view {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  gap: 8px;
+  max-width: 1180px;
+  margin: 120px auto 24px;
+  padding: 0 14px 16px;
+}
+
+.radar-list-head,
+.radar-list-row {
+  display: grid;
+  grid-template-columns: 90px minmax(220px, 1.45fr) minmax(180px, 0.9fr) 90px 90px;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.radar-list-head {
+  padding: 0 0.85rem;
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.radar-list-row {
+  min-height: 72px;
+  padding: 0.72rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(13, 13, 13, 0.76);
+  color: var(--text);
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.radar-list-row:hover,
+.radar-list-row.is-active {
+  border-color: rgba(37, 243, 95, 0.62);
+  background: rgba(37, 243, 95, 0.08);
+}
+
+.radar-list-row strong,
+.radar-list-row span,
+.radar-list-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radar-list-row strong {
+  display: grid;
+  gap: 0.16rem;
+  font-family: Sora, Inter, sans-serif;
+}
+
+.radar-list-row small {
+  color: var(--muted);
+  font-family: Inter, "Segoe UI", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.radar-list-row em {
+  color: #9cffb6;
+  font-family: Sora, Inter, sans-serif;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.list-time {
+  display: grid;
+  gap: 0.16rem;
+  color: var(--yellow);
+  font-weight: 900;
+}
+
+.list-time.is-live {
+  color: #9cffb6;
 }
 
 .prediction-sidebar {
@@ -974,6 +1196,69 @@ button {
   margin: 0.72rem 0 0;
   padding-left: 1.05rem;
   color: rgba(255, 255, 255, 0.78);
+}
+
+.primary-reading {
+  border-color: rgba(37, 243, 95, 0.26);
+  background:
+    linear-gradient(135deg, rgba(37, 243, 95, 0.08), rgba(14, 14, 14, 0.68)),
+    rgba(14, 14, 14, 0.68);
+}
+
+.modal-accordion-stack {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.modal-accordion {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(14, 14, 14, 0.58);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+}
+
+.modal-accordion summary {
+  padding: 0.82rem 0.9rem;
+  color: #d8ffe2;
+  font-weight: 900;
+  list-style: none;
+  cursor: pointer;
+}
+
+.modal-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.modal-accordion summary::after {
+  content: "+";
+  float: right;
+  color: #9cffb6;
+}
+
+.modal-accordion[open] summary::after {
+  content: "-";
+}
+
+.modal-accordion ul {
+  display: grid;
+  gap: 0.42rem;
+  margin: 0;
+  padding: 0 1rem 1rem 2rem;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.accordion-cards {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 0.9rem 0.9rem;
+  scrollbar-width: none;
+}
+
+.accordion-cards::-webkit-scrollbar {
+  display: none;
 }
 
 .modal-options > div,
@@ -1372,11 +1657,20 @@ button {
     font-size: 0.62rem;
   }
 
+  .search-shell {
+    width: 100%;
+    min-width: 0;
+  }
+
   .cup-search {
     width: 100%;
     min-width: 0;
     height: 36px;
     font-size: 0.88rem;
+  }
+
+  .search-suggestions {
+    width: 100%;
   }
 
   .cup-controls,
@@ -1388,6 +1682,7 @@ button {
   }
 
   .mode-controls,
+  .view-controls,
   .cup-controls.compact {
     grid-column: 1 / -1;
     margin-left: 0;
@@ -1439,7 +1734,7 @@ button {
   }
 
   .bubble-board {
-    min-height: max(980px, calc(100dvh - 210px));
+    min-height: max(660px, calc(100dvh - 210px));
     border-radius: 10px;
   }
 
@@ -1459,7 +1754,14 @@ button {
   }
 
   .bubble strong {
-    font-size: clamp(0.72rem, 5vw, 1.04rem);
+    font-size: clamp(0.95rem, 6vw, 1.3rem);
+  }
+
+  .bubble .bubble-primary {
+    width: 86%;
+    max-width: 86%;
+    font-size: clamp(0.34rem, 2.3vw, 0.54rem);
+    -webkit-line-clamp: 2;
   }
 
   .bubble .bubble-team {
@@ -1479,6 +1781,44 @@ button {
 
   .bubble .bubble-score {
     font-size: clamp(0.34rem, 1.8vw, 0.52rem);
+  }
+
+  .bubble-tooltip {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: auto;
+    padding: 0.72rem;
+  }
+
+  .radar-actions {
+    right: 10px;
+    top: auto;
+    bottom: 10px;
+  }
+
+  .radar-list-view {
+    margin-top: 112px;
+    padding: 0 10px 14px;
+  }
+
+  .radar-list-head {
+    display: none;
+  }
+
+  .radar-list-row {
+    grid-template-columns: 70px minmax(0, 1fr) auto;
+    gap: 0.54rem;
+    min-height: 86px;
+  }
+
+  .radar-list-row > span:nth-of-type(2),
+  .radar-list-row > span:last-child {
+    grid-column: 2 / -1;
+  }
+
+  .radar-list-row em {
+    justify-self: end;
   }
 
   .today-games-modal {
