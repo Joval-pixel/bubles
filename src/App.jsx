@@ -28,6 +28,9 @@ const SPONSORS = [
   },
 ];
 
+const BEST_FILTER_LIMIT = 18;
+const MARKET_FILTER_LIMIT = 30;
+
 function BublesLogo() {
   return (
     <span className="bubles-wordmark" aria-label="Bubles">
@@ -349,6 +352,154 @@ const getAiSummary = (game) => {
   return `Jogo competitivo, leve vantagem para ${leader.label}`;
 };
 
+const getAiScoreNumber = (game) => Number(game?.aiInsights?.score || 0);
+
+const findMarketByCategory = (game, category) =>
+  (game?.betMarkets || []).find((market) => market?.category === category && market?.leader);
+
+const findBttsMarket = (game) =>
+  (game?.betMarkets || []).find((market) => {
+    const name = `${market?.name || ""} ${market?.leader?.label || ""}`.toLowerCase();
+    return market?.leader && (name.includes("ambas") || name.includes("both teams"));
+  });
+
+const getBestMarket = (game) =>
+  [...(game?.betMarkets || [])]
+    .filter((market) => market?.leader)
+    .sort(
+      (left, right) =>
+        (right.leader?.probability || 0) - (left.leader?.probability || 0) ||
+        (right.confidence || 0) - (left.confidence || 0)
+    )[0];
+
+const getDisplayMarket = (game, activeFilter) => {
+  if (activeFilter === "goals") {
+    const market = findMarketByCategory(game, "Gols");
+    return market?.leader
+      ? {
+          category: "Gols",
+          name: market.name,
+          label: market.leader.label,
+          probability: market.leader.probability,
+          odd: market.leader.odd,
+        }
+      : null;
+  }
+
+  if (activeFilter === "corners") {
+    const market = findMarketByCategory(game, "Escanteios");
+    return market?.leader
+      ? {
+          category: "Escanteios",
+          name: market.name,
+          label: market.leader.label,
+          probability: market.leader.probability,
+          odd: market.leader.odd,
+        }
+      : null;
+  }
+
+  if (activeFilter === "btts") {
+    const market = findBttsMarket(game);
+    return market?.leader
+      ? {
+          category: "Ambas marcam",
+          name: market.name,
+          label: market.leader.label,
+          probability: market.leader.probability,
+          odd: market.leader.odd,
+        }
+      : null;
+  }
+
+  if (activeFilter === "best") {
+    const market = getBestMarket(game);
+
+    if (market?.leader) {
+      return {
+        category: market.category || "Principal",
+        name: market.name || "Melhor palpite",
+        label: market.leader.label,
+        probability: market.leader.probability,
+        odd: market.leader.odd,
+      };
+    }
+  }
+
+  return {
+    category: "Principal",
+    name: "Melhor palpite",
+    label: game?.pickLabel || "Palpite principal",
+    probability: game?.probability || 0,
+    odd: game?.oddHome || 0,
+  };
+};
+
+const withDisplayMarket = (game, activeFilter) => {
+  const market = getDisplayMarket(game, activeFilter);
+
+  if (!market) {
+    return null;
+  }
+
+  return {
+    ...game,
+    displayMarketCategory: market.category,
+    displayMarketName: market.name,
+    displayPickLabel: market.label,
+    displayProbability: market.probability,
+    displayOdd: market.odd,
+  };
+};
+
+const getFilterTitle = (activeFilter, mode) => {
+  if (activeFilter === "live") {
+    return "Jogos ao vivo";
+  }
+
+  if (activeFilter === "goals") {
+    return "Palpites de gols";
+  }
+
+  if (activeFilter === "corners") {
+    return "Palpites de escanteios";
+  }
+
+  if (activeFilter === "btts") {
+    return "Ambas marcam";
+  }
+
+  if (mode === "worldcup") {
+    return "Melhores da Copa 2026";
+  }
+
+  return "Melhores palpites de hoje";
+};
+
+const getFilterSubtitle = (activeFilter) => {
+  if (activeFilter === "best") {
+    return "Poucas bolhas, melhores oportunidades primeiro.";
+  }
+
+  if (activeFilter === "live") {
+    return "Somente jogos em andamento agora.";
+  }
+
+  if (activeFilter === "goals") {
+    return "Mercados de gols mais faceis de conferir.";
+  }
+
+  if (activeFilter === "corners") {
+    return "Mercados de escanteios para acompanhar.";
+  }
+
+  if (activeFilter === "btts") {
+    return "Jogos em que ambas marcam merece atencao.";
+  }
+
+  return "Mapa completo do radar.";
+};
+
 function WidgetsPage() {
   const [sport, setSport] = useState("football");
   const [widgetsReady, setWidgetsReady] = useState(false);
@@ -492,7 +643,7 @@ function BubblesWorldCup() {
   const [message, setMessage] = useState("");
   const [debug, setDebug] = useState("");
   const [mode, setMode] = useState("today");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("best");
   const [query, setQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTodayListOpen, setIsTodayListOpen] = useState(false);
@@ -509,7 +660,7 @@ function BubblesWorldCup() {
   const openTodayList = () => {
     if (mode !== "today") {
       setMode("today");
-      setFilter("all");
+      setFilter("best");
     }
 
     setIsTodayListOpen(true);
@@ -608,7 +759,7 @@ function BubblesWorldCup() {
   }, [mode]);
 
   useEffect(() => {
-    setFilter("all");
+    setFilter("best");
     setSelectedId(null);
     setIsModalOpen(false);
   }, [mode]);
@@ -677,23 +828,27 @@ function BubblesWorldCup() {
 
     if (filter === "live") {
       items = items.filter((game) => game.isLive);
-    } else if (filter === "pre") {
-      items = items.filter((game) => !game.isLive && !game.isFinished);
-    } else if (filter === "finished") {
-      items = items.filter((game) => game.isFinished);
-    } else if (filter === "groups") {
-      items = items.filter((game) => game.stage === "groups");
-    } else if (filter === "knockout") {
-      items = items.filter((game) => game.stage === "knockout");
     }
+
+    items = items
+      .map((game) => withDisplayMarket(game, filter))
+      .filter(Boolean);
 
     items.sort(
       (left, right) =>
         Number(right.isLive) - Number(left.isLive) ||
-        (right.probability || 0) - (left.probability || 0) ||
+        getAiScoreNumber(right) - getAiScoreNumber(left) ||
+        (right.displayProbability || right.probability || 0) -
+          (left.displayProbability || left.probability || 0) ||
         new Date(left.commenceTime || 0).getTime() -
           new Date(right.commenceTime || 0).getTime()
     );
+
+    if (filter === "best") {
+      items = items.slice(0, BEST_FILTER_LIMIT);
+    } else if (filter === "goals" || filter === "corners" || filter === "btts") {
+      items = items.slice(0, MARKET_FILTER_LIMIT);
+    }
 
     return items;
   }, [filter, games, query]);
@@ -719,10 +874,13 @@ function BubblesWorldCup() {
   const liveCount = games.filter((game) => game.isLive).length;
   const preCount = games.filter((game) => !game.isLive && !game.isFinished).length;
   const finishedCount = games.filter((game) => game.isFinished).length;
-  const groupsCount = games.filter((game) => game.stage === "groups").length;
-  const knockoutCount = games.filter((game) => game.stage === "knockout").length;
   const topGames = [...filteredGames]
-    .sort((left, right) => (right.probability || 0) - (left.probability || 0))
+    .sort(
+      (left, right) =>
+        getAiScoreNumber(right) - getAiScoreNumber(left) ||
+        (right.displayProbability || right.probability || 0) -
+          (left.displayProbability || left.probability || 0)
+    )
     .slice(0, 5);
   const selectedOptions = selectedGame?.marketOptions ?? [];
   const selectedMarkets = selectedGame?.betMarkets ?? [];
@@ -774,33 +932,64 @@ function BubblesWorldCup() {
       <header className="cup-toolbar">
         <a className="cup-brand" href="/">
           <BublesLogo />
-          <strong className="brand-context">{mode === "today" ? "AO VIVO" : "COPA 2026"}</strong>
+          <strong className="brand-context">PALPITES</strong>
         </a>
 
         <input
           className="cup-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar selecao, jogo, estadio"
+          placeholder="Buscar jogo, time ou campeonato"
           type="search"
         />
 
-        <nav className="cup-controls mode-controls" aria-label="Modo do radar">
+        <nav className="cup-controls mode-controls" aria-label="Filtros simples">
           <button
-            className={mode === "today" ? "chip-button is-active" : "chip-button"}
+            className={mode === "today" && filter === "best" ? "chip-button is-active" : "chip-button"}
             onClick={() => {
               setMode("today");
-              setFilter("all");
+              setFilter("best");
             }}
             type="button"
           >
-            Jogos de hoje
+            Melhores
+          </button>
+          <button
+            className={filter === "live" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setFilter("live")}
+            type="button"
+          >
+            Ao vivo {liveCount}
+          </button>
+          <button className="chip-button" onClick={openTodayList} type="button">
+            Todos de hoje {mode === "today" ? games.length : ""}
+          </button>
+          <button
+            className={filter === "goals" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setFilter("goals")}
+            type="button"
+          >
+            Gols
+          </button>
+          <button
+            className={filter === "corners" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setFilter("corners")}
+            type="button"
+          >
+            Escanteios
+          </button>
+          <button
+            className={filter === "btts" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setFilter("btts")}
+            type="button"
+          >
+            Ambas marcam
           </button>
           <button
             className={mode === "worldcup" ? "chip-button is-active" : "chip-button"}
             onClick={() => {
               setMode("worldcup");
-              setFilter("all");
+              setFilter("best");
             }}
             type="button"
           >
@@ -808,50 +997,48 @@ function BubblesWorldCup() {
           </button>
         </nav>
 
-        <nav className="cup-controls" aria-label="Filtros da Copa">
-          <button className={filter === "all" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("all")} type="button">
-            Todos {games.length}
-          </button>
-          <button className={filter === "live" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("live")} type="button">
-            Ao vivo {liveCount}
-          </button>
-          {mode === "today" ? (
-            <>
-              <button className={filter === "pre" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("pre")} type="button">
-                Pre {preCount}
-              </button>
-              <button className={filter === "finished" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("finished")} type="button">
-                Fim {finishedCount}
-              </button>
-            </>
-          ) : (
-            <>
-              <button className={filter === "groups" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("groups")} type="button">
-                Grupos {groupsCount}
-              </button>
-              <button className={filter === "knockout" ? "chip-button is-active" : "chip-button"} onClick={() => setFilter("knockout")} type="button">
-                Mata-mata {knockoutCount}
-              </button>
-            </>
-          )}
-        </nav>
-
         <nav className="cup-controls compact" aria-label="Atalhos">
-          <button className="chip-button today-list-button" onClick={openTodayList} type="button">
-            Todos jogos de hoje {mode === "today" ? games.length : ""}
-          </button>
           <a className="chip-link" href="/widgets">
             Widgets
           </a>
         </nav>
       </header>
 
+      <section className="simple-guide" aria-label="Resumo dos palpites">
+        <article className="simple-guide-main">
+          <span>{getFilterTitle(filter, mode)}</span>
+          <h1>{topGames[0]?.game || "Radar de palpites"}</h1>
+          <p>
+            {topGames[0]
+              ? `${translateBetText(topGames[0].displayPickLabel || topGames[0].pickLabel)} com ${formatChance(
+                  topGames[0].displayProbability || topGames[0].probability
+                )} de chance.`
+              : "Assim que os jogos carregarem, os melhores palpites aparecem primeiro."}
+          </p>
+        </article>
+
+        <article className="simple-guide-card">
+          <span>Como usar</span>
+          <strong>Escolha uma bolha</strong>
+          <small>Clique para ver palpite principal, gols, escanteios e risco da IA.</small>
+        </article>
+
+        <article className="simple-guide-card">
+          <span>Lista completa</span>
+          <strong>{mode === "today" ? `${games.length} jogos` : "Copa 2026"}</strong>
+          <button type="button" onClick={openTodayList}>
+            Ver todos
+          </button>
+        </article>
+      </section>
+
       <section className="radar-stage">
         <main className="bubble-board" ref={boardRef}>
           <div className="board-grid" />
           <div className="board-status">
-            <span>{mode === "today" ? "Jogos de hoje" : "Copa 2026"}</span>
+            <span>{getFilterTitle(filter, mode)}</span>
             <strong>{filteredGames.length} jogos</strong>
+            <em>{getFilterSubtitle(filter)}</em>
             <small>
               {refreshing
                 ? "Atualizando..."
@@ -895,14 +1082,19 @@ function BubblesWorldCup() {
                 type="button"
               >
                 <span className="bubble-team bubble-home">{game.homeTeam}</span>
-                <strong>{formatChance(game.probability)}</strong>
+                <strong>{formatChance(game.displayProbability || game.probability)}</strong>
+                <span className="bubble-pick">
+                  {translateBetText(game.displayPickLabel || game.pickLabel)}
+                </span>
                 {hasScoreLine(game) || game.isLive ? (
                   <span className={game.isLive ? "bubble-score is-live" : "bubble-score"}>
                     {formatScoreLine(game)}
                   </span>
                 ) : null}
                 <span className="bubble-team bubble-away">{game.awayTeam}</span>
-                <span className="bubble-meta">{game.pickCode} | {formatClock(game)}</span>
+                <span className="bubble-meta">
+                  Odd {formatOdd(game.displayOdd || game.oddHome)} | {formatClock(game)}
+                </span>
               </button>
             ))}
         </main>
@@ -919,10 +1111,13 @@ function BubblesWorldCup() {
           >
             <header className="prediction-modal-header">
               <div>
-                <span>{selectedGame.isLive ? "Ao vivo" : mode === "today" ? "Jogo selecionado" : "Copa 2026"}</span>
+                <span>{selectedGame.isLive ? "Ao vivo" : "Melhor leitura da IA"}</span>
                 <h2>{selectedGame.game}</h2>
                 <p>
-                  {selectedGame.round} | {formatScoreLine(selectedGame)} | {formatClock(selectedGame)} | {formatKickoff(selectedGame.commenceTime)}
+                  {translateBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)} |{" "}
+                  {formatChance(selectedGame.displayProbability || selectedGame.probability)} |{" "}
+                  Odd {formatOdd(selectedGame.displayOdd || selectedGame.oddHome)} |{" "}
+                  {formatScoreLine(selectedGame)} | {formatClock(selectedGame)}
                 </p>
               </div>
 
@@ -938,13 +1133,13 @@ function BubblesWorldCup() {
                 <small>{formatScoreContext(selectedGame)}</small>
               </article>
               <article>
-                <span>Acao IA</span>
-                <strong>{aiInsights.action || "Verificar"}</strong>
+                <span>Palpite principal</span>
+                <strong>{translateBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)}</strong>
                 <small>{aiInsights.headline || getAiSummary(selectedGame)}</small>
               </article>
               <article>
-                <span>Score IA</span>
-                <strong>{aiInsights.score || Math.round((selectedGame.probability || 0) * 100)}/100</strong>
+                <span>Chance IA</span>
+                <strong>{formatChance(selectedGame.displayProbability || selectedGame.probability)}</strong>
                 <small>{aiInsights.main || "Chance estimada: aguardando dados."}</small>
               </article>
               <article>
@@ -954,7 +1149,7 @@ function BubblesWorldCup() {
               </article>
               <article>
                 <span>Odd atual</span>
-                <strong>{formatOdd(selectedGame.oddHome)}</strong>
+                <strong>{formatOdd(selectedGame.displayOdd || selectedGame.oddHome)}</strong>
                 <small>{selectedGame.hasOdds ? "Odds oficiais" : "Estimativa visual"}</small>
               </article>
             </div>
@@ -1072,7 +1267,7 @@ function BubblesWorldCup() {
                   >
                     <span>{index + 1}</span>
                     <strong>{game.game}</strong>
-                    <small>{formatChance(game.probability)}</small>
+                    <small>{formatChance(game.displayProbability || game.probability)}</small>
                   </button>
                 ))}
               </div>
@@ -1148,35 +1343,45 @@ function BubblesWorldCup() {
                   </tr>
                 </thead>
                 <tbody>
-                  {todayListGames.map((game) => (
-                    <tr
-                      className={game.isLive ? "is-live-row" : ""}
-                      key={game.id}
-                      onClick={() => {
-                        openGameModal(game.id);
-                        setIsTodayListOpen(false);
-                      }}
-                    >
-                      <td>
-                        <strong>{game.isLive ? formatClock(game) : formatKickoffTime(game.commenceTime)}</strong>
-                      </td>
-                      <td>
-                        <span>{game.league}</span>
-                        <small>{game.country}</small>
-                      </td>
-                      <td>{game.homeTeam}</td>
-                      <td className="score-cell">{formatScoreLine(game)}</td>
-                      <td>{game.awayTeam}</td>
-                      <td>
-                        <strong>{translateBetText(game.pickLabel)}</strong>
-                        <small>{game.aiInsights?.action || "Verificar"}</small>
-                      </td>
-                      <td className={game.probability >= 0.45 ? "chance-high" : "chance-low"}>
-                        {formatChance(game.probability)}
-                      </td>
-                      <td>{getGameStatusLabel(game)}</td>
-                    </tr>
-                  ))}
+                  {todayListGames.map((game) => {
+                    const rowGame = withDisplayMarket(game, "best") || game;
+
+                    return (
+                      <tr
+                        className={game.isLive ? "is-live-row" : ""}
+                        key={game.id}
+                        onClick={() => {
+                          openGameModal(game.id);
+                          setIsTodayListOpen(false);
+                        }}
+                      >
+                        <td>
+                          <strong>{game.isLive ? formatClock(game) : formatKickoffTime(game.commenceTime)}</strong>
+                        </td>
+                        <td>
+                          <span>{game.league}</span>
+                          <small>{game.country}</small>
+                        </td>
+                        <td>{game.homeTeam}</td>
+                        <td className="score-cell">{formatScoreLine(game)}</td>
+                        <td>{game.awayTeam}</td>
+                        <td>
+                          <strong>{translateBetText(rowGame.displayPickLabel || rowGame.pickLabel)}</strong>
+                          <small>{game.aiInsights?.action || "Verificar"}</small>
+                        </td>
+                        <td
+                          className={
+                            (rowGame.displayProbability || rowGame.probability) >= 0.45
+                              ? "chance-high"
+                              : "chance-low"
+                          }
+                        >
+                          {formatChance(rowGame.displayProbability || rowGame.probability)}
+                        </td>
+                        <td>{getGameStatusLabel(game)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
 
