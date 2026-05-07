@@ -167,12 +167,15 @@ const getTier = (probability) => {
 const EDGE_PADDING = 10;
 const COLLISION_GAP = 12;
 const COLLISION_PASSES = 9;
-const DRIFT_INTERVAL_MS = 48;
-const FRAME_STEP_LIMIT = 1.55;
-const VELOCITY_LIMIT = 0.082;
+const DRIFT_INTERVAL_MS = 72;
+const FRAME_STEP_LIMIT = 0.72;
+const VELOCITY_LIMIT = 0.026;
 const BOUNCE_DAMPING = 0.74;
 const COLLISION_DAMPING = 0.88;
 const DEFAULT_BUBBLE_SCALE = "small";
+const MOBILE_BOARD_WIDTH = 520;
+
+const isMobileBounds = (bounds = {}) => (bounds.width || 0) > 0 && bounds.width <= MOBILE_BOARD_WIDTH;
 
 const getCrowdFactor = (total = 0) => {
   if (total >= 110) {
@@ -198,8 +201,8 @@ const limitVelocity = (value) => clamp(value, -VELOCITY_LIMIT, VELOCITY_LIMIT);
 
 const getInitialVelocity = (index, axis) => {
   const direction = axis === "x" ? (index % 2 ? 1 : -1) : (index % 3 ? 1 : -1);
-  const base = axis === "x" ? 0.035 : 0.028;
-  const spread = axis === "x" ? (index % 7) * 0.006 : (index % 5) * 0.005;
+  const base = axis === "x" ? 0.011 : 0.009;
+  const spread = axis === "x" ? (index % 7) * 0.002 : (index % 5) * 0.0018;
 
   return limitVelocity(direction * (base + spread));
 };
@@ -211,19 +214,36 @@ const getDisplaySize = (probability, scale, total = 0, bounds = {}) => {
   const base = (48 + clamp(probability || 0.33, 0.05, 0.9) * 170) * crowdFactor * boardFactor;
 
   if (scale === "large") {
-    return clamp(base * 1.1, boardWidth <= 420 ? 46 : 58, boardWidth <= 420 ? 108 : 238);
+    return clamp(base * 1.1, boardWidth <= MOBILE_BOARD_WIDTH ? 46 : 58, boardWidth <= MOBILE_BOARD_WIDTH ? 74 : 238);
   }
 
   if (scale === "small") {
-    return clamp(base * 0.78, boardWidth <= 420 ? 38 : 42, boardWidth <= 420 ? 86 : 150);
+    return clamp(base * 0.78, boardWidth <= MOBILE_BOARD_WIDTH ? 38 : 42, boardWidth <= MOBILE_BOARD_WIDTH ? 68 : 150);
   }
 
-  return clamp(base * 0.92, boardWidth <= 420 ? 42 : 50, boardWidth <= 420 ? 98 : 198);
+  return clamp(base * 0.92, boardWidth <= MOBILE_BOARD_WIDTH ? 42 : 50, boardWidth <= MOBILE_BOARD_WIDTH ? 72 : 198);
 };
 
 const getInitialPosition = (index, total, bounds, size) => {
   const width = Math.max(bounds.width || 0, 320);
   const height = Math.max(bounds.height || 0, 560);
+
+  if (isMobileBounds(bounds)) {
+    const columns = width <= 380 ? 3 : 4;
+    const topOffset = 108;
+    const slotWidth = (width - EDGE_PADDING * 2) / columns;
+    const slotHeight = Math.max(76, size + 12);
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const x = EDGE_PADDING + column * slotWidth + Math.max(0, (slotWidth - size) / 2);
+    const y = topOffset + row * slotHeight;
+
+    return {
+      x: clamp(x, EDGE_PADDING, width - size - EDGE_PADDING),
+      y: clamp(y, EDGE_PADDING, height - size - EDGE_PADDING),
+    };
+  }
+
   const angle = index * 2.399963229728653;
   const orbit = Math.sqrt(index + 1) * (width > 900 ? 68 : width > 520 ? 44 : 30);
   const centerX = width / 2;
@@ -239,7 +259,8 @@ const getInitialPosition = (index, total, bounds, size) => {
 
 const createBubble = (game, existing, bounds, index, total, scale) => {
   const size = getDisplaySize(game.bubbleValue ?? game.probability, scale, total, bounds);
-  const position = existing ?? getInitialPosition(index, total, bounds, size);
+  const mobile = isMobileBounds(bounds);
+  const position = mobile ? getInitialPosition(index, total, bounds, size) : existing ?? getInitialPosition(index, total, bounds, size);
 
   return {
     ...game,
@@ -248,14 +269,25 @@ const createBubble = (game, existing, bounds, index, total, scale) => {
     tier: getTier(game.bubbleValue ?? game.probability),
     x: position.x,
     y: position.y,
-    vx: existing?.vx ? limitVelocity(existing.vx) : getInitialVelocity(index, "x"),
-    vy: existing?.vy ? limitVelocity(existing.vy) : getInitialVelocity(index, "y"),
+    vx: mobile ? 0 : existing?.vx ? limitVelocity(existing.vx) : getInitialVelocity(index, "x"),
+    vy: mobile ? 0 : existing?.vy ? limitVelocity(existing.vy) : getInitialVelocity(index, "y"),
   };
 };
 
 const moveBubbles = (items, bounds, step = 1) => {
   const width = Math.max(bounds.width || 0, 320);
   const height = Math.max(bounds.height || 0, 560);
+
+  if (isMobileBounds(bounds)) {
+    return items.map((item) => ({
+      ...item,
+      x: clamp(item.x, EDGE_PADDING, width - item.size - EDGE_PADDING),
+      y: clamp(item.y, EDGE_PADDING, height - item.size - EDGE_PADDING),
+      vx: 0,
+      vy: 0,
+    }));
+  }
+
   const safeStep = clamp(step, 0, FRAME_STEP_LIMIT);
   const next = items.map((item) => {
     const bubble = {
@@ -319,10 +351,10 @@ const moveBubbles = (items, bounds, step = 1) => {
           height - second.size - EDGE_PADDING
         );
 
-        first.vx = limitVelocity((first.vx + normalX * 0.012) * COLLISION_DAMPING);
-        first.vy = limitVelocity((first.vy + normalY * 0.012) * COLLISION_DAMPING);
-        second.vx = limitVelocity((second.vx - normalX * 0.012) * COLLISION_DAMPING);
-        second.vy = limitVelocity((second.vy - normalY * 0.012) * COLLISION_DAMPING);
+        first.vx = limitVelocity((first.vx + normalX * 0.0035) * COLLISION_DAMPING);
+        first.vy = limitVelocity((first.vy + normalY * 0.0035) * COLLISION_DAMPING);
+        second.vx = limitVelocity((second.vx - normalX * 0.0035) * COLLISION_DAMPING);
+        second.vy = limitVelocity((second.vy - normalY * 0.0035) * COLLISION_DAMPING);
       }
     }
   }
