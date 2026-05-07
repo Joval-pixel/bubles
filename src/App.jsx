@@ -28,8 +28,6 @@ const SPONSORS = [
   },
 ];
 
-const BEST_FILTER_LIMIT = 18;
-const MARKET_FILTER_LIMIT = 30;
 const RADAR_INITIAL_LIMIT = 12;
 const VALID_FILTERS = new Set(["best", "live", "goals", "corners", "btts"]);
 const VALID_MODES = new Set(["today", "worldcup"]);
@@ -1069,12 +1067,6 @@ function BubblesWorldCup() {
           new Date(right.commenceTime || 0).getTime()
     );
 
-    if (filter === "best") {
-      items = items.slice(0, BEST_FILTER_LIMIT);
-    } else if (filter === "goals" || filter === "corners" || filter === "btts") {
-      items = items.slice(0, MARKET_FILTER_LIMIT);
-    }
-
     return items;
   }, [filter, games, query]);
 
@@ -1735,12 +1727,14 @@ function BubblesWorldCup() {
                     <th>Visitante</th>
                     <th>Palpite IA</th>
                     <th>Chance</th>
+                    <th>Selo IA</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {todayListGames.map((game) => {
                     const rowGame = withDisplayMarket(game, "best") || game;
+                    const hitState = getAiHitState(rowGame);
 
                     return (
                       <tr
@@ -1773,6 +1767,12 @@ function BubblesWorldCup() {
                           }
                         >
                           {formatChance(rowGame.displayProbability || rowGame.probability)}
+                        </td>
+                        <td>
+                          <span className={`table-ai-hit is-${hitState.state}`}>
+                            <AiHitLogo state={hitState.state} compact />
+                            {hitState.label}
+                          </span>
                         </td>
                         <td>{getGameStatusLabel(game)}</td>
                       </tr>
