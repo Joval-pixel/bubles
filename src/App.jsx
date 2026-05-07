@@ -30,6 +30,18 @@ const SPONSORS = [
 
 const BEST_FILTER_LIMIT = 18;
 const MARKET_FILTER_LIMIT = 30;
+const RADAR_INITIAL_LIMIT = 12;
+const VALID_FILTERS = new Set(["best", "live", "goals", "corners", "btts"]);
+const VALID_MODES = new Set(["today", "worldcup"]);
+const VALID_VIEWS = new Set(["radar", "list"]);
+
+const getInitialSearchParam = (name, fallback) => {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  return new URLSearchParams(window.location.search).get(name) || fallback;
+};
 
 function BublesLogo() {
   return (
@@ -154,6 +166,26 @@ const getBeforeColon = (value, fallback = "--") => {
   }
 
   return text.split(":")[0] || fallback;
+};
+
+const getBubbleMainLabel = (game) => {
+  const pick = String(game?.displayPickLabel || game?.pickLabel || "").toLowerCase();
+  const home = String(game?.homeTeam || "");
+  const away = String(game?.awayTeam || "");
+
+  if (home && pick.includes(home.toLowerCase())) {
+    return home;
+  }
+
+  if (away && pick.includes(away.toLowerCase())) {
+    return away;
+  }
+
+  if (pick.includes("empate") || pick.includes("draw")) {
+    return "Empate";
+  }
+
+  return home || game?.game || "Jogo";
 };
 
 const getTier = (probability) => {
@@ -714,9 +746,22 @@ function BubblesWorldCup() {
   const [updatedAt, setUpdatedAt] = useState("");
   const [message, setMessage] = useState("");
   const [debug, setDebug] = useState("");
-  const [mode, setMode] = useState("today");
-  const [filter, setFilter] = useState("best");
+  const [mode, setMode] = useState(() => {
+    const initialMode = getInitialSearchParam("mode", "today");
+    return VALID_MODES.has(initialMode) ? initialMode : "today";
+  });
+  const [filter, setFilter] = useState(() => {
+    const initialFilter = getInitialSearchParam("filter", "best");
+    return VALID_FILTERS.has(initialFilter) ? initialFilter : "best";
+  });
+  const [viewMode, setViewMode] = useState(() => {
+    const initialView = getInitialSearchParam("view", "radar");
+    return VALID_VIEWS.has(initialView) ? initialView : "radar";
+  });
+  const [radarLimit, setRadarLimit] = useState(RADAR_INITIAL_LIMIT);
   const [query, setQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [hoveredId, setHoveredId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTodayListOpen, setIsTodayListOpen] = useState(false);
 
@@ -831,10 +876,25 @@ function BubblesWorldCup() {
   }, [mode]);
 
   useEffect(() => {
-    setFilter("best");
     setSelectedId(null);
     setIsModalOpen(false);
   }, [mode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("mode", mode);
+    url.searchParams.set("filter", filter);
+    url.searchParams.set("view", viewMode);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [filter, mode, viewMode]);
+
+  useEffect(() => {
+    setRadarLimit(RADAR_INITIAL_LIMIT);
+  }, [filter, mode, query, viewMode]);
 
   useEffect(() => {
     if (!isModalOpen && !isTodayListOpen) {
@@ -925,8 +985,38 @@ function BubblesWorldCup() {
     return items;
   }, [filter, games, query]);
 
+  const radarGames = useMemo(
+    () => filteredGames.slice(0, radarLimit),
+    [filteredGames, radarLimit]
+  );
+
+  const searchSuggestions = useMemo(() => {
+    const text = query.trim().toLowerCase();
+
+    if (!isSearchFocused || text.length < 2) {
+      return [];
+    }
+
+    return games
+      .filter((game) =>
+        `${game.game} ${game.homeTeam} ${game.awayTeam} ${game.league} ${game.country}`
+          .toLowerCase()
+          .includes(text)
+      )
+      .slice(0, 6)
+      .map((game) => withDisplayMarket(game, "best") || game);
+  }, [games, isSearchFocused, query]);
+
   const selectedGame =
-    filteredGames.find((game) => game.id === selectedId) ?? filteredGames[0] ?? games[0] ?? null;
+    filteredGames.find((game) => game.id === selectedId) ??
+    games.find((game) => game.id === selectedId) ??
+    filteredGames[0] ??
+    games[0] ??
+    null;
+  const hoveredGame =
+    radarGames.find((game) => game.id === hoveredId) ??
+    filteredGames.find((game) => game.id === hoveredId) ??
+    null;
 
   const todayListGames = useMemo(() => {
     if (mode !== "today") {
@@ -963,11 +1053,11 @@ function BubblesWorldCup() {
   const aiBestMarkets = Array.isArray(aiInsights.bestMarkets) ? aiInsights.bestMarkets : [];
 
   useEffect(() => {
-    if (!filteredGames.length) {
+    if (viewMode !== "radar" || !radarGames.length) {
       return;
     }
 
-    const visibleIds = filteredGames.map((game) => game.id);
+    const visibleIds = radarGames.map((game) => game.id);
 
     setGames((current) =>
       moveBubbles(
@@ -998,7 +1088,7 @@ function BubblesWorldCup() {
         0
       )
     );
-  }, [filter, query, updatedAt, filteredGames.length]);
+  }, [filter, query, radarGames.length, radarLimit, updatedAt, viewMode]);
 
   return (
     <div className="cup-shell">
@@ -1008,13 +1098,41 @@ function BubblesWorldCup() {
           <strong className="brand-context">PALPITES</strong>
         </a>
 
-        <input
-          className="cup-search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar jogo, time ou campeonato"
-          type="search"
-        />
+        <div className="search-shell">
+          <input
+            className="cup-search"
+            value={query}
+            onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 120)}
+            onChange={(event) => setQuery(event.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            placeholder="Buscar jogo, time ou campeonato"
+            type="search"
+          />
+
+          {searchSuggestions.length ? (
+            <div className="search-suggestions" role="listbox">
+              {searchSuggestions.map((game) => (
+                <button
+                  className="search-suggestion"
+                  key={game.id}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    setQuery(game.game);
+                    setIsSearchFocused(false);
+                    openGameModal(game.id);
+                  }}
+                  type="button"
+                >
+                  <strong>{game.game}</strong>
+                  <span>
+                    {getGameStatusLabel(game)} | {translateBetText(game.displayPickLabel || game.pickLabel)} |{" "}
+                    {formatChance(game.displayProbability || game.probability)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <nav className="cup-controls mode-controls" aria-label="Filtros simples">
           <button
@@ -1070,6 +1188,23 @@ function BubblesWorldCup() {
           </button>
         </nav>
 
+        <nav className="cup-controls view-controls" aria-label="Visualizacao">
+          <button
+            className={viewMode === "radar" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setViewMode("radar")}
+            type="button"
+          >
+            Radar
+          </button>
+          <button
+            className={viewMode === "list" ? "chip-button is-active" : "chip-button"}
+            onClick={() => setViewMode("list")}
+            type="button"
+          >
+            Lista
+          </button>
+        </nav>
+
         <nav className="cup-controls compact" aria-label="Atalhos">
           <a className="chip-link" href="/widgets">
             Widgets
@@ -1110,7 +1245,11 @@ function BubblesWorldCup() {
           <div className="board-grid" />
           <div className="board-status">
             <span>{getFilterTitle(filter, mode)}</span>
-            <strong>{filteredGames.length} jogos</strong>
+            <strong>
+              {viewMode === "radar"
+                ? `${radarGames.length} de ${filteredGames.length} jogos`
+                : `${filteredGames.length} jogos`}
+            </strong>
             <em>{getFilterSubtitle(filter)}</em>
             <small>
               {refreshing
@@ -1135,8 +1274,42 @@ function BubblesWorldCup() {
             </div>
           ) : null}
 
+          {!loading && viewMode === "list" && filteredGames.length ? (
+            <div className="radar-list-view">
+              <div className="radar-list-head">
+                <span>Hora</span>
+                <span>Jogo</span>
+                <span>Palpite</span>
+                <span>Chance</span>
+                <span>Odd</span>
+              </div>
+
+              {filteredGames.map((game) => (
+                <button
+                  className={selectedGame?.id === game.id ? "radar-list-row is-active" : "radar-list-row"}
+                  key={game.id}
+                  onClick={() => openGameModal(game.id)}
+                  type="button"
+                >
+                  <span className={game.isLive ? "list-time is-live" : "list-time"}>
+                    {game.isLive ? formatClock(game) : formatKickoffTime(game.commenceTime)}
+                    <small>{formatScoreLine(game)}</small>
+                  </span>
+                  <strong>
+                    {game.game}
+                    <small>{game.league}</small>
+                  </strong>
+                  <span>{translateBetText(game.displayPickLabel || game.pickLabel)}</span>
+                  <em>{formatChance(game.displayProbability || game.probability)}</em>
+                  <span>Odd {formatOdd(game.displayOdd || game.oddHome)}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           {!loading &&
-            filteredGames.map((game) => (
+            viewMode === "radar" &&
+            radarGames.map((game) => (
               <button
                 aria-label={`Abrir previsoes de ${game.game}`}
                 className={
@@ -1145,7 +1318,12 @@ function BubblesWorldCup() {
                     : `bubble is-${game.tier}`
                 }
                 key={game.id}
+                onBlur={() => setHoveredId(null)}
+                onFocus={() => setHoveredId(game.id)}
                 onClick={() => openGameModal(game.id)}
+                onMouseEnter={() => setHoveredId(game.id)}
+                onMouseLeave={() => setHoveredId(null)}
+                onTouchStart={() => setHoveredId(game.id)}
                 style={{
                   width: `${game.size}px`,
                   height: `${game.size}px`,
@@ -1154,22 +1332,40 @@ function BubblesWorldCup() {
                 title={game.game}
                 type="button"
               >
-                <span className="bubble-team bubble-home">{game.homeTeam}</span>
+                <span className="bubble-primary">{getBubbleMainLabel(game)}</span>
                 <strong>{formatChance(game.displayProbability || game.probability)}</strong>
-                <span className="bubble-pick">
-                  {translateBetText(game.displayPickLabel || game.pickLabel)}
-                </span>
                 {hasScoreLine(game) || game.isLive ? (
                   <span className={game.isLive ? "bubble-score is-live" : "bubble-score"}>
                     {formatScoreLine(game)}
                   </span>
                 ) : null}
-                <span className="bubble-team bubble-away">{game.awayTeam}</span>
-                <span className="bubble-meta">
-                  Odd {formatOdd(game.displayOdd || game.oddHome)} | {formatClock(game)}
-                </span>
               </button>
             ))}
+
+          {!loading && viewMode === "radar" && hoveredGame ? (
+            <aside className="bubble-tooltip" aria-live="polite">
+              <span>{getGameStatusLabel(hoveredGame)}</span>
+              <strong>{hoveredGame.game}</strong>
+              <p>{translateBetText(hoveredGame.displayPickLabel || hoveredGame.pickLabel)}</p>
+              <div>
+                <small>{formatChance(hoveredGame.displayProbability || hoveredGame.probability)} chance</small>
+                <small>Odd {formatOdd(hoveredGame.displayOdd || hoveredGame.oddHome)}</small>
+                <small>{formatScoreLine(hoveredGame)}</small>
+              </div>
+            </aside>
+          ) : null}
+
+          {!loading && viewMode === "radar" && filteredGames.length > radarGames.length ? (
+            <div className="radar-actions">
+              <button
+                className="load-more-button"
+                onClick={() => setRadarLimit((current) => current + RADAR_INITIAL_LIMIT)}
+                type="button"
+              >
+                Carregar mais {Math.min(RADAR_INITIAL_LIMIT, filteredGames.length - radarGames.length)}
+              </button>
+            </div>
+          ) : null}
         </main>
       </section>
 
@@ -1227,7 +1423,7 @@ function BubblesWorldCup() {
               </article>
             </div>
 
-            <section className="modal-ai-card">
+            <section className="modal-ai-card primary-reading">
               <span>Leitura facil</span>
               <ul>
                 <li>{aiInsights.goals || "Gols: sem dados suficientes neste momento."}</li>
@@ -1237,114 +1433,114 @@ function BubblesWorldCup() {
               </ul>
             </section>
 
-            <section className="modal-verification-grid">
-              <article className="modal-ai-card">
-                <span>Por que verificar</span>
-                <ul>
-                  {(aiWhy.length ? aiWhy : ["A IA ainda esta montando a leitura desse jogo."]).map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </article>
-
-              <article className="modal-ai-card">
-                <span>Checklist rapido</span>
+            <div className="modal-accordion-stack">
+              <details className="modal-accordion">
+                <summary>Checklist rapido</summary>
                 <ul>
                   {(aiChecklist.length ? aiChecklist : ["Confira odd, placar e status antes de apostar."]).map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
-              </article>
+              </details>
 
-              <article className="modal-ai-card">
-                <span>Evite se</span>
+              <details className="modal-accordion">
+                <summary>Por que verificar</summary>
+                <ul>
+                  {(aiWhy.length ? aiWhy : ["A IA ainda esta montando a leitura desse jogo."]).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </details>
+
+              <details className="modal-accordion">
+                <summary>Evite se</summary>
                 <ul>
                   {(aiAvoidIf.length ? aiAvoidIf : ["Evite se a leitura nao estiver clara."]).map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
-              </article>
-            </section>
+              </details>
 
-            <section className="modal-best-markets">
-              <span>Melhores mercados para conferir</span>
-              <div>
-                {(aiBestMarkets.length ? aiBestMarkets : selectedMarkets.slice(0, 4).map((market) => ({
-                  category: market.category,
-                  market: market.name,
-                  pick: market.leader?.label,
-                  probability: market.leader?.probability,
-                  odd: market.leader?.odd,
-                  note: "",
-                }))).map((market) => (
-                  <article className="ai-market-mini" key={`${market.category}-${market.market}-${market.pick}`}>
-                    <span>{market.category}</span>
-                    <strong>{translateBetText(market.pick)}</strong>
-                    <small>
-                      {formatChance(market.probability)} | Odd {formatOdd(market.odd)}
-                    </small>
-                    <em>{market.note || translateBetText(market.market)}</em>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="modal-options">
-              <span>Opcoes principais</span>
-              <div>
-                {selectedOptions.map((option) => (
-                  <article
-                    className={option.code === selectedGame.pickCode ? "option-card is-leader" : "option-card"}
-                    key={option.code}
-                  >
-                    <span>{option.code}</span>
-                    <strong>{translateBetText(option.label)}</strong>
-                    <small>{formatChance(option.probability)} | Odd {formatOdd(option.odd)}</small>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="modal-markets">
-              <span>Mercados para verificar</span>
-              <div className="markets-grid modal-markets-grid">
-                {selectedMarkets.map((market) => (
-                  <article className="market-card" key={`${market.id}-${market.name}`}>
-                    <div className="market-card-head">
+              <details className="modal-accordion">
+                <summary>Melhores mercados para conferir</summary>
+                <div className="accordion-cards">
+                  {(aiBestMarkets.length ? aiBestMarkets : selectedMarkets.slice(0, 4).map((market) => ({
+                    category: market.category,
+                    market: market.name,
+                    pick: market.leader?.label,
+                    probability: market.leader?.probability,
+                    odd: market.leader?.odd,
+                    note: "",
+                  }))).map((market) => (
+                    <article className="ai-market-mini" key={`${market.category}-${market.market}-${market.pick}`}>
                       <span>{market.category}</span>
-                      <strong>{translateBetText(market.name)}</strong>
-                    </div>
-                    <div className="market-options">
-                      {(market.options || []).map((option) => (
-                        <div className="market-option" key={`${market.id}-${option.label}`}>
-                          <span>{translateBetText(option.label)}</span>
-                          <strong>{formatChance(option.probability)}</strong>
-                          <small>Odd {formatOdd(option.odd)}</small>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
+                      <strong>{translateBetText(market.pick)}</strong>
+                      <small>
+                        {formatChance(market.probability)} | Odd {formatOdd(market.odd)}
+                      </small>
+                      <em>{market.note || translateBetText(market.market)}</em>
+                    </article>
+                  ))}
+                </div>
+              </details>
 
-            <section className="modal-top-games">
-              <span>Top chances do filtro</span>
-              <div>
-                {topGames.map((game, index) => (
-                  <button
-                    className={selectedGame.id === game.id ? "top-pill is-active" : "top-pill"}
-                    key={game.id}
-                    onClick={() => setSelectedId(game.id)}
-                    type="button"
-                  >
-                    <span>{index + 1}</span>
-                    <strong>{game.game}</strong>
-                    <small>{formatChance(game.displayProbability || game.probability)}</small>
-                  </button>
-                ))}
-              </div>
-            </section>
+              <details className="modal-accordion">
+                <summary>Opcoes principais</summary>
+                <div className="accordion-cards">
+                  {selectedOptions.map((option) => (
+                    <article
+                      className={option.code === selectedGame.pickCode ? "option-card is-leader" : "option-card"}
+                      key={option.code}
+                    >
+                      <span>{option.code}</span>
+                      <strong>{translateBetText(option.label)}</strong>
+                      <small>{formatChance(option.probability)} | Odd {formatOdd(option.odd)}</small>
+                    </article>
+                  ))}
+                </div>
+              </details>
+
+              <details className="modal-accordion">
+                <summary>Todos os mercados</summary>
+                <div className="markets-grid modal-markets-grid">
+                  {selectedMarkets.map((market) => (
+                    <article className="market-card" key={`${market.id}-${market.name}`}>
+                      <div className="market-card-head">
+                        <span>{market.category}</span>
+                        <strong>{translateBetText(market.name)}</strong>
+                      </div>
+                      <div className="market-options">
+                        {(market.options || []).map((option) => (
+                          <div className="market-option" key={`${market.id}-${option.label}`}>
+                            <span>{translateBetText(option.label)}</span>
+                            <strong>{formatChance(option.probability)}</strong>
+                            <small>Odd {formatOdd(option.odd)}</small>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </details>
+
+              <details className="modal-accordion">
+                <summary>Outros jogos fortes deste filtro</summary>
+                <div className="accordion-cards">
+                  {topGames.map((game, index) => (
+                    <button
+                      className={selectedGame.id === game.id ? "top-pill is-active" : "top-pill"}
+                      key={game.id}
+                      onClick={() => setSelectedId(game.id)}
+                      type="button"
+                    >
+                      <span>{index + 1}</span>
+                      <strong>{game.game}</strong>
+                      <small>{formatChance(game.displayProbability || game.probability)}</small>
+                    </button>
+                  ))}
+                </div>
+              </details>
+            </div>
           </section>
         </div>
       ) : null}
