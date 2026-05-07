@@ -228,6 +228,72 @@ button {
   background: rgba(37, 243, 95, 0.1);
 }
 
+.simple-guide {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.2fr) minmax(220px, 0.45fr) minmax(220px, 0.45fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.simple-guide-main,
+.simple-guide-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgba(19, 19, 19, 0.96), rgba(36, 36, 36, 0.92)),
+    var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.simple-guide-main {
+  min-height: 118px;
+  padding: 0.95rem 1rem;
+}
+
+.simple-guide-card {
+  min-height: 118px;
+  padding: 0.82rem;
+}
+
+.simple-guide span {
+  display: block;
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.simple-guide-main h1 {
+  margin: 0.3rem 0 0;
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1.5rem, 2.7vw, 3rem);
+  line-height: 0.98;
+}
+
+.simple-guide-main p,
+.simple-guide-card small {
+  color: var(--muted);
+}
+
+.simple-guide-card strong {
+  display: block;
+  margin: 0.35rem 0;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.1rem;
+}
+
+.simple-guide-card button {
+  min-height: 34px;
+  margin-top: 0.45rem;
+  padding: 0 0.72rem;
+  border: 1px solid rgba(37, 243, 95, 0.82);
+  border-radius: 999px;
+  background: rgba(37, 243, 95, 0.1);
+  color: #d8ffe2;
+  font-weight: 900;
+}
+
 .sponsor-strip,
 .cup-info,
 .market-bar {
@@ -524,6 +590,15 @@ button {
   font-size: 0.78rem;
 }
 
+.board-status em {
+  display: block;
+  margin-top: 0.18rem;
+  color: #d8ffe2;
+  font-size: 0.74rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
 .bubble {
   position: absolute;
   display: grid;
@@ -606,6 +681,15 @@ button {
   font-family: Sora, Inter, sans-serif;
   font-size: clamp(0.72rem, 1vw, 1.48rem);
   line-height: 1;
+}
+
+.bubble .bubble-pick {
+  width: 88%;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: clamp(0.32rem, 0.46vw, 0.58rem);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
 }
 
 .bubble .bubble-score {
@@ -1211,6 +1295,7 @@ button {
 
 @media (max-width: 1180px) {
   .sponsor-strip,
+  .simple-guide,
   .cup-info,
   .market-bar,
   .ai-market-panel,
@@ -1279,6 +1364,19 @@ button {
 
   .sponsor-slot {
     min-width: 220px;
+  }
+
+  .simple-guide {
+    gap: 8px;
+  }
+
+  .simple-guide-main,
+  .simple-guide-card {
+    min-height: auto;
+  }
+
+  .simple-guide-main h1 {
+    font-size: 1.55rem;
   }
 
   .bubble-board {
