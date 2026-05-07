@@ -11,10 +11,6 @@ const WORLD_CUP_LIMIT = Math.max(
   48,
   Math.min(140, Number.parseInt(process.env.WORLD_CUP_LIMIT || "120", 10) || 120)
 );
-const TODAY_LIMIT = Math.max(
-  24,
-  Math.min(1000, Number.parseInt(process.env.TODAY_LIMIT || "1000", 10) || 1000)
-);
 const MARKETS_PER_GAME_LIMIT = Math.max(
   12,
   Math.min(120, Number.parseInt(process.env.MARKETS_PER_GAME_LIMIT || "80", 10) || 80)
@@ -1167,11 +1163,10 @@ const fetchTodayGames = async () => {
     .filter((game) => game?.id);
   const liveGames = games.filter((game) => game.isLive);
   const otherGames = sortGames(games.filter((game) => !game.isLive));
-  const remainingLimit = Math.max(TODAY_LIMIT - liveGames.length, 0);
 
   return {
     date,
-    games: sortGames([...liveGames, ...otherGames.slice(0, remainingLimit)]),
+    games: sortGames([...liveGames, ...otherGames]),
   };
 };
 
