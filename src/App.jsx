@@ -57,12 +57,14 @@ function BublesLogo() {
 }
 
 function AiHitLogo({ state = "pending", compact = false }) {
+  const symbol = state === "miss" ? "X" : "V";
+
   return (
     <span
       aria-hidden="true"
       className={compact ? `ai-hit-logo is-${state} is-compact` : `ai-hit-logo is-${state}`}
     >
-      V
+      {symbol}
     </span>
   );
 }
@@ -129,6 +131,11 @@ const formatBrasiliaUpdateTime = (value) =>
         second: "2-digit",
       })
     : "--";
+
+const getKickoffStamp = (game) => {
+  const stamp = new Date(game?.commenceTime || "").getTime();
+  return Number.isFinite(stamp) ? stamp : Number.MAX_SAFE_INTEGER;
+};
 
 const getGameStatusLabel = (game) => {
   if (game?.isLive) {
@@ -246,19 +253,35 @@ const getAiHitState = (game) => {
   const totalGoals = score.home + score.away;
   const pickCode = String(game?.pickCode || "").toUpperCase();
   const pickText = `${game?.displayPickLabel || ""} ${game?.pickLabel || ""}`.toLowerCase();
+  const homeText = String(game?.homeTeam || "").toLowerCase();
+  const awayText = String(game?.awayTeam || "").toLowerCase();
+  const hasHome = Boolean(homeText && pickText.includes(homeText));
+  const hasAway = Boolean(awayText && pickText.includes(awayText));
+  const hasDraw = pickText.includes("empate") || pickText.includes("draw");
+  const isHomeOrDraw =
+    pickCode === "1X" ||
+    pickText.includes("1x") ||
+    pickText.includes("mandante ou empate") ||
+    pickText.includes("casa ou empate") ||
+    (hasHome && hasDraw);
+  const isAwayOrDraw =
+    pickCode === "X2" ||
+    pickText.includes("x2") ||
+    pickText.includes("visitante ou empate") ||
+    pickText.includes("fora ou empate") ||
+    (hasAway && hasDraw);
+  const isNoDraw =
+    pickCode === "12" ||
+    pickText.includes("12") ||
+    pickText.includes("sem empate") ||
+    pickText.includes("sem draw");
   let hit = null;
 
-  if (pickCode === "1" || pickText.includes(String(game?.homeTeam || "").toLowerCase())) {
-    hit = homeWon;
-  } else if (pickCode === "2" || pickText.includes(String(game?.awayTeam || "").toLowerCase())) {
-    hit = awayWon;
-  } else if (pickCode === "X" || pickText.includes("empate") || pickText.includes("draw")) {
-    hit = draw;
-  } else if (pickCode === "1X") {
+  if (isHomeOrDraw) {
     hit = homeWon || draw;
-  } else if (pickCode === "X2") {
+  } else if (isAwayOrDraw) {
     hit = awayWon || draw;
-  } else if (pickCode === "12") {
+  } else if (isNoDraw) {
     hit = !draw;
   } else if (pickText.includes("ambas") || pickText.includes("both teams")) {
     hit = pickText.includes("nao") || pickText.includes("no")
@@ -270,6 +293,12 @@ const getAiHitState = (game) => {
   } else if (pickText.includes("menos de") || pickText.includes("under")) {
     const line = getLineValue(pickText);
     hit = line === null ? null : totalGoals < line;
+  } else if (pickCode === "1" || hasHome) {
+    hit = homeWon;
+  } else if (pickCode === "2" || hasAway) {
+    hit = awayWon;
+  } else if (pickCode === "X" || hasDraw) {
+    hit = draw;
   }
 
   if (hit === null) {
@@ -1059,7 +1088,9 @@ function BubblesWorldCup() {
 
     if (text) {
       items = items.filter((game) =>
-        `${game.game} ${game.round} ${game.venue} ${game.city}`.toLowerCase().includes(text)
+        `${game.game} ${game.round} ${game.venue} ${game.city} ${game.homeTeam} ${game.awayTeam} ${game.league} ${game.country}`
+          .toLowerCase()
+          .includes(text)
       );
     }
 
@@ -1079,6 +1110,37 @@ function BubblesWorldCup() {
           (left.displayProbability || left.probability || 0) ||
         new Date(left.commenceTime || 0).getTime() -
           new Date(right.commenceTime || 0).getTime()
+    );
+
+    return items;
+  }, [filter, games, query]);
+
+  const chronologicalGames = useMemo(() => {
+    const text = query.trim().toLowerCase();
+    let items = [...games];
+
+    if (text) {
+      items = items.filter((game) =>
+        `${game.game} ${game.round} ${game.venue} ${game.city} ${game.homeTeam} ${game.awayTeam} ${game.league} ${game.country}`
+          .toLowerCase()
+          .includes(text)
+      );
+    }
+
+    if (filter === "live") {
+      items = items.filter((game) => game.isLive);
+    }
+
+    items = items
+      .map((game) => withDisplayMarket(game, filter))
+      .filter(Boolean);
+
+    items.sort(
+      (left, right) =>
+        getKickoffStamp(left) - getKickoffStamp(right) ||
+        Number(right.isLive) - Number(left.isLive) ||
+        (right.displayProbability || right.probability || 0) -
+          (left.displayProbability || left.probability || 0)
     );
 
     return items;
@@ -1124,10 +1186,8 @@ function BubblesWorldCup() {
 
     return [...games].sort(
       (left, right) =>
+        getKickoffStamp(left) - getKickoffStamp(right) ||
         Number(right.isLive) - Number(left.isLive) ||
-        Number(left.isFinished) - Number(right.isFinished) ||
-        new Date(left.commenceTime || 0).getTime() -
-          new Date(right.commenceTime || 0).getTime() ||
         (right.probability || 0) - (left.probability || 0)
     );
   }, [games, mode]);
@@ -1152,6 +1212,7 @@ function BubblesWorldCup() {
   const aiBestMarkets = Array.isArray(aiInsights.bestMarkets) ? aiInsights.bestMarkets : [];
   const selectedHitState = selectedGame ? getAiHitState(selectedGame) : null;
   const topHitState = topGames[0] ? getAiHitState(topGames[0]) : null;
+  const boardGamesCount = viewMode === "list" ? chronologicalGames.length : filteredGames.length;
 
   useEffect(() => {
     if (viewMode !== "radar" || !radarGames.length) {
@@ -1355,7 +1416,7 @@ function BubblesWorldCup() {
             <strong>
               {viewMode === "radar"
                 ? `${radarGames.length} de ${filteredGames.length} jogos`
-                : `${filteredGames.length} jogos`}
+                : `${chronologicalGames.length} jogos em ordem`}
             </strong>
             <em>{getFilterSubtitle(filter)}</em>
             <small>
@@ -1374,14 +1435,14 @@ function BubblesWorldCup() {
             </div>
           ) : null}
 
-          {!loading && !filteredGames.length ? (
+          {!loading && !boardGamesCount ? (
             <div className="empty-state">
               <h2>Sem jogos neste filtro</h2>
               <p>{debug || "Tente outro filtro no topo."}</p>
             </div>
           ) : null}
 
-          {!loading && viewMode === "list" && filteredGames.length ? (
+          {!loading && viewMode === "list" && chronologicalGames.length ? (
             <div className="radar-list-view">
               <div className="radar-list-head">
                 <span>Hora BR</span>
@@ -1391,7 +1452,7 @@ function BubblesWorldCup() {
                 <span>IA</span>
               </div>
 
-              {filteredGames.map((game) => {
+              {chronologicalGames.map((game) => {
                 const hitState = getAiHitState(game);
 
                 return (
