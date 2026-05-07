@@ -317,7 +317,7 @@ const getAiHitState = (game) => {
       }
     : {
         state: "miss",
-        label: "Revisar leitura",
+        label: "IA errou!",
         note: "O resultado final nao confirmou o palpite principal.",
       };
 };
