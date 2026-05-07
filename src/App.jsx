@@ -174,7 +174,7 @@ const BOUNCE_DAMPING = 0.74;
 const COLLISION_DAMPING = 0.88;
 const DEFAULT_BUBBLE_SCALE = "small";
 const MOBILE_BOARD_WIDTH = 520;
-const MOBILE_VELOCITY_LIMIT = 0.006;
+const MOBILE_VELOCITY_LIMIT = 0.14;
 
 const isMobileBounds = (bounds = {}) => (bounds.width || 0) > 0 && bounds.width <= MOBILE_BOARD_WIDTH;
 
@@ -211,8 +211,8 @@ const getInitialVelocity = (index, axis) => {
 
 const getMobileVelocity = (index, axis) => {
   const direction = axis === "x" ? (index % 2 ? 1 : -1) : (index % 3 ? 1 : -1);
-  const base = axis === "x" ? 0.0024 : 0.0018;
-  const spread = axis === "x" ? (index % 5) * 0.00045 : (index % 4) * 0.00035;
+  const base = axis === "x" ? 0.075 : 0.052;
+  const spread = axis === "x" ? (index % 5) * 0.011 : (index % 4) * 0.009;
 
   return limitMobileVelocity(direction * (base + spread));
 };
@@ -301,7 +301,7 @@ const moveBubbles = (items, bounds, step = 1) => {
   const height = Math.max(bounds.height || 0, 560);
 
   if (isMobileBounds(bounds)) {
-    const safeStep = clamp(step, 0, 0.42);
+    const safeStep = clamp(step, 0, 0.55);
 
     return items.map((item) => {
       const next = {
