@@ -56,6 +56,17 @@ function BublesLogo() {
   );
 }
 
+function AiHitLogo({ state = "pending", compact = false }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={compact ? `ai-hit-logo is-${state} is-compact` : `ai-hit-logo is-${state}`}
+    >
+      V
+    </span>
+  );
+}
+
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
 const formatOdd = (value) =>
@@ -186,6 +197,88 @@ const getBubbleMainLabel = (game) => {
   }
 
   return home || game?.game || "Jogo";
+};
+
+const parseScore = (game) => {
+  const match = String(game?.scoreLine || "").match(/(\d+)\s*x\s*(\d+)/i);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    home: Number(match[1]),
+    away: Number(match[2]),
+  };
+};
+
+const getLineValue = (text) => {
+  const match = String(text || "").replace(",", ".").match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : null;
+};
+
+const getAiHitState = (game) => {
+  const score = parseScore(game);
+
+  if (!game?.isFinished || !score) {
+    return {
+      state: "pending",
+      label: "Em validacao",
+      note: "O jogo ainda nao terminou para confirmar o palpite.",
+    };
+  }
+
+  const homeWon = score.home > score.away;
+  const awayWon = score.away > score.home;
+  const draw = score.home === score.away;
+  const totalGoals = score.home + score.away;
+  const pickCode = String(game?.pickCode || "").toUpperCase();
+  const pickText = `${game?.displayPickLabel || ""} ${game?.pickLabel || ""}`.toLowerCase();
+  let hit = null;
+
+  if (pickCode === "1" || pickText.includes(String(game?.homeTeam || "").toLowerCase())) {
+    hit = homeWon;
+  } else if (pickCode === "2" || pickText.includes(String(game?.awayTeam || "").toLowerCase())) {
+    hit = awayWon;
+  } else if (pickCode === "X" || pickText.includes("empate") || pickText.includes("draw")) {
+    hit = draw;
+  } else if (pickCode === "1X") {
+    hit = homeWon || draw;
+  } else if (pickCode === "X2") {
+    hit = awayWon || draw;
+  } else if (pickCode === "12") {
+    hit = !draw;
+  } else if (pickText.includes("ambas") || pickText.includes("both teams")) {
+    hit = pickText.includes("nao") || pickText.includes("no")
+      ? !(score.home > 0 && score.away > 0)
+      : score.home > 0 && score.away > 0;
+  } else if (pickText.includes("mais de") || pickText.includes("over")) {
+    const line = getLineValue(pickText);
+    hit = line === null ? null : totalGoals > line;
+  } else if (pickText.includes("menos de") || pickText.includes("under")) {
+    const line = getLineValue(pickText);
+    hit = line === null ? null : totalGoals < line;
+  }
+
+  if (hit === null) {
+    return {
+      state: "pending",
+      label: "Sem conferencia",
+      note: "Este mercado precisa de dados extras para confirmar o acerto.",
+    };
+  }
+
+  return hit
+    ? {
+        state: "hit",
+        label: "IA acertou",
+        note: "O resultado final bateu com a leitura principal.",
+      }
+    : {
+        state: "miss",
+        label: "Revisar leitura",
+        note: "O resultado final nao confirmou o palpite principal.",
+      };
 };
 
 const getTier = (probability) => {
@@ -1051,6 +1144,8 @@ function BubblesWorldCup() {
   const aiChecklist = Array.isArray(aiInsights.checklist) ? aiInsights.checklist : [];
   const aiAvoidIf = Array.isArray(aiInsights.avoidIf) ? aiInsights.avoidIf : [];
   const aiBestMarkets = Array.isArray(aiInsights.bestMarkets) ? aiInsights.bestMarkets : [];
+  const selectedHitState = selectedGame ? getAiHitState(selectedGame) : null;
+  const topHitState = topGames[0] ? getAiHitState(topGames[0]) : null;
 
   useEffect(() => {
     if (viewMode !== "radar" || !radarGames.length) {
@@ -1214,7 +1309,13 @@ function BubblesWorldCup() {
 
       <section className="simple-guide" aria-label="Resumo dos palpites">
         <article className="simple-guide-main">
-          <span>{getFilterTitle(filter, mode)}</span>
+          <div className="guide-kicker">
+            <span>{getFilterTitle(filter, mode)}</span>
+            <span className={topHitState ? `ai-hit-badge is-${topHitState.state}` : "ai-hit-badge is-pending"}>
+              <AiHitLogo state={topHitState?.state || "pending"} compact />
+              Acertos IA
+            </span>
+          </div>
           <h1>{topGames[0]?.game || "Radar de palpites"}</h1>
           <p>
             {topGames[0]
@@ -1281,66 +1382,78 @@ function BubblesWorldCup() {
                 <span>Jogo</span>
                 <span>Palpite</span>
                 <span>Chance</span>
-                <span>Odd</span>
+                <span>IA</span>
               </div>
 
-              {filteredGames.map((game) => (
-                <button
-                  className={selectedGame?.id === game.id ? "radar-list-row is-active" : "radar-list-row"}
-                  key={game.id}
-                  onClick={() => openGameModal(game.id)}
-                  type="button"
-                >
-                  <span className={game.isLive ? "list-time is-live" : "list-time"}>
-                    {game.isLive ? formatClock(game) : formatKickoffTime(game.commenceTime)}
-                    <small>{formatScoreLine(game)}</small>
-                  </span>
-                  <strong>
-                    {game.game}
-                    <small>{game.league}</small>
-                  </strong>
-                  <span>{translateBetText(game.displayPickLabel || game.pickLabel)}</span>
-                  <em>{formatChance(game.displayProbability || game.probability)}</em>
-                  <span>Odd {formatOdd(game.displayOdd || game.oddHome)}</span>
-                </button>
-              ))}
+              {filteredGames.map((game) => {
+                const hitState = getAiHitState(game);
+
+                return (
+                  <button
+                    className={selectedGame?.id === game.id ? "radar-list-row is-active" : "radar-list-row"}
+                    key={game.id}
+                    onClick={() => openGameModal(game.id)}
+                    type="button"
+                  >
+                    <span className={game.isLive ? "list-time is-live" : "list-time"}>
+                      {game.isLive ? formatClock(game) : formatKickoffTime(game.commenceTime)}
+                      <small>{formatScoreLine(game)}</small>
+                    </span>
+                    <strong>
+                      {game.game}
+                      <small>{game.league}</small>
+                    </strong>
+                    <span>{translateBetText(game.displayPickLabel || game.pickLabel)}</span>
+                    <em>{formatChance(game.displayProbability || game.probability)}</em>
+                    <span className={`list-ai-hit is-${hitState.state}`}>
+                      <AiHitLogo state={hitState.state} compact />
+                      {hitState.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           ) : null}
 
           {!loading &&
             viewMode === "radar" &&
-            radarGames.map((game) => (
-              <button
-                aria-label={`Abrir previsoes de ${game.game}`}
-                className={
-                  selectedGame?.id === game.id
-                    ? `bubble is-${game.tier} is-selected`
-                    : `bubble is-${game.tier}`
-                }
-                key={game.id}
-                onBlur={() => setHoveredId(null)}
-                onFocus={() => setHoveredId(game.id)}
-                onClick={() => openGameModal(game.id)}
-                onMouseEnter={() => setHoveredId(game.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                onTouchStart={() => setHoveredId(game.id)}
-                style={{
-                  width: `${game.size}px`,
-                  height: `${game.size}px`,
-                  transform: `translate(${game.x}px, ${game.y}px)`,
-                }}
-                title={game.game}
-                type="button"
-              >
-                <span className="bubble-primary">{getBubbleMainLabel(game)}</span>
-                <strong>{formatChance(game.displayProbability || game.probability)}</strong>
-                {hasScoreLine(game) || game.isLive ? (
-                  <span className={game.isLive ? "bubble-score is-live" : "bubble-score"}>
-                    {formatScoreLine(game)}
-                  </span>
-                ) : null}
-              </button>
-            ))}
+            radarGames.map((game) => {
+              const hitState = getAiHitState(game);
+
+              return (
+                <button
+                  aria-label={`Abrir previsoes de ${game.game}`}
+                  className={
+                    selectedGame?.id === game.id
+                      ? `bubble is-${game.tier} is-selected`
+                      : `bubble is-${game.tier}`
+                  }
+                  key={game.id}
+                  onBlur={() => setHoveredId(null)}
+                  onFocus={() => setHoveredId(game.id)}
+                  onClick={() => openGameModal(game.id)}
+                  onMouseEnter={() => setHoveredId(game.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  onTouchStart={() => setHoveredId(game.id)}
+                  style={{
+                    width: `${game.size}px`,
+                    height: `${game.size}px`,
+                    transform: `translate(${game.x}px, ${game.y}px)`,
+                  }}
+                  title={game.game}
+                  type="button"
+                >
+                  {hitState.state === "hit" ? <AiHitLogo state="hit" compact /> : null}
+                  <span className="bubble-primary">{getBubbleMainLabel(game)}</span>
+                  <strong>{formatChance(game.displayProbability || game.probability)}</strong>
+                  {hasScoreLine(game) || game.isLive ? (
+                    <span className={game.isLive ? "bubble-score is-live" : "bubble-score"}>
+                      {formatScoreLine(game)}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
 
           {!loading && viewMode === "radar" && hoveredGame ? (
             <aside className="bubble-tooltip" aria-live="polite">
@@ -1380,7 +1493,13 @@ function BubblesWorldCup() {
           >
             <header className="prediction-modal-header">
               <div>
-                <span>{selectedGame.isLive ? "Ao vivo" : "Melhor leitura da IA"}</span>
+                <div className="modal-title-kicker">
+                  <span>{selectedGame.isLive ? "Ao vivo" : "Melhor leitura da IA"}</span>
+                  <span className={`ai-hit-badge is-${selectedHitState?.state || "pending"}`}>
+                    <AiHitLogo state={selectedHitState?.state || "pending"} compact />
+                    {selectedHitState?.label || "Em validacao"}
+                  </span>
+                </div>
                 <h2>{selectedGame.game}</h2>
                 <p>
                   {translateBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)} |{" "}
@@ -1410,6 +1529,14 @@ function BubblesWorldCup() {
                 <span>Chance IA</span>
                 <strong>{formatChance(selectedGame.displayProbability || selectedGame.probability)}</strong>
                 <small>{aiInsights.main || "Chance estimada: aguardando dados."}</small>
+              </article>
+              <article className={`hit-summary-card is-${selectedHitState?.state || "pending"}`}>
+                <span>Acertos IA</span>
+                <strong>
+                  <AiHitLogo state={selectedHitState?.state || "pending"} compact />
+                  {selectedHitState?.label || "Em validacao"}
+                </strong>
+                <small>{selectedHitState?.note || "Aguardando conferencia do resultado."}</small>
               </article>
               <article>
                 <span>Risco</span>
