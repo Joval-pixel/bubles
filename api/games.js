@@ -23,6 +23,17 @@ const API_TIMEZONE = process.env.API_FOOTBALL_TIMEZONE || "America/Sao_Paulo";
 
 const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
 const FINISHED_STATUSES = new Set(["FT", "AET", "PEN"]);
+const BLOCKED_MARKET_TERMS = [
+  "card",
+  "booking",
+  "corner",
+  "handicap",
+  "asian",
+  "offside",
+  "penalty",
+  "throw",
+  "substitution",
+];
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -180,11 +191,21 @@ const getMatchWinnerBet = (bookmaker) => {
 const getBetCategory = (betName) => {
   const name = normalizeText(betName);
 
-  if (name.includes("corner")) {
-    return "Escanteios";
+  if (
+    (name.includes("winner") && name.includes("both teams")) ||
+    (name.includes("result") && name.includes("both teams")) ||
+    (name.includes("both teams") && name.includes("over")) ||
+    (name.includes("both teams") && name.includes("2.5"))
+  ) {
+    return "Resultado + Gols";
+  }
+
+  if (name.includes("winner") || name === "1x2" || name.includes("double chance")) {
+    return "Resultado";
   }
 
   if (
+    name.includes("btts") ||
     name.includes("goal") ||
     name.includes("over") ||
     name.includes("under") ||
@@ -194,42 +215,39 @@ const getBetCategory = (betName) => {
     return "Gols";
   }
 
-  if (name.includes("card") || name.includes("booking")) {
-    return "Cartoes";
-  }
-
-  if (name.includes("handicap") || name.includes("asian")) {
-    return "Handicap";
-  }
-
-  if (name.includes("half") || name.includes("1st") || name.includes("2nd")) {
-    return "Tempo";
-  }
-
-  if (name.includes("score")) {
-    return "Placar";
-  }
-
-  if (name.includes("winner") || name === "1x2" || name.includes("double chance")) {
-    return "Resultado";
-  }
-
   return "Outros";
 };
 
 const getCategoryRank = (category) => {
   const ranks = {
     Resultado: 1,
-    Gols: 2,
-    Escanteios: 3,
-    Cartoes: 4,
-    Handicap: 5,
-    Tempo: 6,
-    Placar: 7,
+    "Resultado + Gols": 2,
+    Gols: 3,
     Outros: 8,
   };
 
   return ranks[category] || 99;
+};
+
+const isAllowedPredictionMarket = (betName) => {
+  const name = normalizeText(betName);
+
+  if (!name || BLOCKED_MARKET_TERMS.some((term) => name.includes(term))) {
+    return false;
+  }
+
+  return (
+    name.includes("match winner") ||
+    name === "winner" ||
+    name === "1x2" ||
+    name.includes("double chance") ||
+    name.includes("both teams") ||
+    name.includes("btts") ||
+    name.includes("goal") ||
+    name.includes("over") ||
+    name.includes("under") ||
+    name.includes("result")
+  );
 };
 
 const createOption = ({ key, code, label, probability, odd, bookmaker, source }) => ({
@@ -347,19 +365,35 @@ const buildFallbackBetMarkets = (fixture, mainMarket) => {
   const favoriteChance = mainMarket?.probability || 0.45;
   const goalSeed = stableSeed(`${fixtureId}-goals`);
   const bttsSeed = stableSeed(`${fixtureId}-btts`);
-  const cornerSeed = stableSeed(`${fixtureId}-corners`);
-  const cardSeed = stableSeed(`${fixtureId}-cards`);
+  const comboSeed = stableSeed(`${fixtureId}-combo`);
   const paceBoost = isLive ? clamp((score.total * 0.08) + (minute < 35 && score.total ? 0.04 : 0), 0, 0.22) : 0;
   const over25 = clamp(0.46 + (goalSeed - 0.5) * 0.22 + paceBoost, 0.31, 0.76);
   const over15 = clamp(over25 + 0.18, 0.5, 0.86);
   const bttsYes = clamp(0.44 + (bttsSeed - 0.5) * 0.2 + (score.bothScored ? 0.34 : score.total ? 0.06 : 0), 0.28, 0.78);
-  const cornersOver85 = clamp(0.48 + (cornerSeed - 0.5) * 0.24 + (isLive && minute < 25 ? 0.02 : 0), 0.3, 0.72);
-  const cornersOver95 = clamp(cornersOver85 - 0.08, 0.24, 0.68);
-  const cardsOver35 = clamp(0.43 + (cardSeed - 0.5) * 0.22 + (isLive && minute > 55 ? 0.04 : 0), 0.26, 0.7);
-  const cardsOver45 = clamp(cardsOver35 - 0.09, 0.2, 0.62);
+  const favoriteAndBtts = clamp((favoriteChance * bttsYes) + 0.08 + (comboSeed - 0.5) * 0.08, 0.18, 0.62);
+  const bttsAndOver25 = clamp((bttsYes * over25) + 0.12 + (comboSeed - 0.5) * 0.08, 0.2, 0.66);
   const favoriteLabel = mainMarket?.pickLabel || "Favorito";
 
   return [
+    buildBetMarket({
+      id: "modelo-dupla-chance",
+      name: "Dupla chance",
+      category: "Resultado",
+      options: [
+        createOption({
+          code: "DC",
+          label: `${favoriteLabel} ou empate`,
+          probability: clamp(favoriteChance + 0.26, 0.48, 0.88),
+          source: "estimate",
+        }),
+        createOption({
+          code: "FORA",
+          label: "Resultado contrario",
+          probability: clamp(0.74 - favoriteChance, 0.12, 0.52),
+          source: "estimate",
+        }),
+      ],
+    }),
     buildBetMarket({
       id: "modelo-gols-15",
       name: "Total de gols 1.5",
@@ -388,56 +422,39 @@ const buildFallbackBetMarkets = (fixture, mainMarket) => {
       ],
     }),
     buildBetMarket({
-      id: "modelo-escanteios-85",
-      name: "Total de escanteios 8.5",
-      category: "Escanteios",
-      options: [
-        createOption({ code: "C+8.5", label: "Mais de 8.5 escanteios", probability: cornersOver85, source: "estimate" }),
-        createOption({ code: "C-8.5", label: "Menos de 8.5 escanteios", probability: 1 - cornersOver85, source: "estimate" }),
-      ],
-    }),
-    buildBetMarket({
-      id: "modelo-escanteios-95",
-      name: "Total de escanteios 9.5",
-      category: "Escanteios",
-      options: [
-        createOption({ code: "C+9.5", label: "Mais de 9.5 escanteios", probability: cornersOver95, source: "estimate" }),
-        createOption({ code: "C-9.5", label: "Menos de 9.5 escanteios", probability: 1 - cornersOver95, source: "estimate" }),
-      ],
-    }),
-    buildBetMarket({
-      id: "modelo-cartoes-35",
-      name: "Total de cartoes 3.5",
-      category: "Cartoes",
-      options: [
-        createOption({ code: "CA+3.5", label: "Mais de 3.5 cartoes", probability: cardsOver35, source: "estimate" }),
-        createOption({ code: "CA-3.5", label: "Menos de 3.5 cartoes", probability: 1 - cardsOver35, source: "estimate" }),
-      ],
-    }),
-    buildBetMarket({
-      id: "modelo-cartoes-45",
-      name: "Total de cartoes 4.5",
-      category: "Cartoes",
-      options: [
-        createOption({ code: "CA+4.5", label: "Mais de 4.5 cartoes", probability: cardsOver45, source: "estimate" }),
-        createOption({ code: "CA-4.5", label: "Menos de 4.5 cartoes", probability: 1 - cardsOver45, source: "estimate" }),
-      ],
-    }),
-    buildBetMarket({
-      id: "modelo-dupla-chance",
-      name: "Dupla chance segura",
-      category: "Resultado",
+      id: "modelo-vencedor-ambas",
+      name: "Vencedor do jogo e ambas marcam",
+      category: "Resultado + Gols",
       options: [
         createOption({
-          code: "DC",
-          label: `${favoriteLabel} ou empate`,
-          probability: clamp(favoriteChance + 0.26, 0.48, 0.88),
+          code: "WIN-BTTS-S",
+          label: `${favoriteLabel} e ambas marcam`,
+          probability: favoriteAndBtts,
           source: "estimate",
         }),
         createOption({
-          code: "FORA",
-          label: "Resultado contrario",
-          probability: clamp(0.74 - favoriteChance, 0.12, 0.52),
+          code: "WIN-BTTS-N",
+          label: `${favoriteLabel} e ambas nao marcam`,
+          probability: clamp(favoriteChance - favoriteAndBtts + 0.08, 0.16, 0.58),
+          source: "estimate",
+        }),
+      ],
+    }),
+    buildBetMarket({
+      id: "modelo-ambas-over-25",
+      name: "Ambas marcam e mais de 2.5 gols",
+      category: "Resultado + Gols",
+      options: [
+        createOption({
+          code: "BTTS-O2.5-S",
+          label: "Ambas marcam e mais de 2.5 gols",
+          probability: bttsAndOver25,
+          source: "estimate",
+        }),
+        createOption({
+          code: "BTTS-O2.5-N",
+          label: "Nao combina ambas marcam com mais de 2.5 gols",
+          probability: clamp(1 - bttsAndOver25, 0.22, 0.74),
           source: "estimate",
         }),
       ],
@@ -510,6 +527,10 @@ const buildBetMarketsFromBookmakers = (entry) => {
 
   for (const bookmaker of entry?.bookmakers ?? []) {
     for (const bet of bookmaker?.bets ?? []) {
+      if (!isAllowedPredictionMarket(bet?.name)) {
+        continue;
+      }
+
       const values = (bet?.values ?? [])
         .map((value) => ({
           label: String(value?.value ?? "").trim(),
@@ -828,9 +849,13 @@ const getBestMarkets = (betMarkets) =>
 
 const createAiInsights = (market, betMarkets) => {
   const mainPick = translatePickLabel(market?.pickLabel || "mercado principal");
+  const resultPick = betMarkets.find((item) => item.category === "Resultado")?.leader;
   const goalsPick = betMarkets.find((item) => item.category === "Gols")?.leader;
-  const cornersPick = betMarkets.find((item) => item.category === "Escanteios")?.leader;
-  const cardsPick = betMarkets.find((item) => item.category === "Cartoes")?.leader;
+  const bttsPick = betMarkets.find((item) => {
+    const text = normalizeText(`${item?.name || ""} ${item?.leader?.label || ""}`);
+    return text.includes("ambas") || text.includes("both teams") || text.includes("btts");
+  })?.leader;
+  const comboPick = betMarkets.find((item) => item.category === "Resultado + Gols")?.leader;
 
   return {
     headline: `Melhor palpite: ${mainPick}`,
@@ -838,9 +863,10 @@ const createAiInsights = (market, betMarkets) => {
       market?.odd
     )}.`,
     confidence: getConfidenceText(market),
+    result: makeInsightLine("Resultado", resultPick),
     goals: makeInsightLine("Gols", goalsPick),
-    corners: makeInsightLine("Escanteios", cornersPick),
-    cards: makeInsightLine("Cartoes", cardsPick),
+    btts: makeInsightLine("Ambas marcam", bttsPick),
+    combo: makeInsightLine("Combinada", comboPick),
     action: getActionText(market),
     risk: getRiskText(market),
     score: getAiScore(market),
