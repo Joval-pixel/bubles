@@ -164,8 +164,8 @@ const getTier = (probability) => {
   return "low";
 };
 
-const EDGE_PADDING = 14;
-const COLLISION_GAP = 20;
+const EDGE_PADDING = 10;
+const COLLISION_GAP = 12;
 const COLLISION_PASSES = 9;
 const DRIFT_INTERVAL_MS = 48;
 const FRAME_STEP_LIMIT = 1.55;
@@ -204,30 +204,32 @@ const getInitialVelocity = (index, axis) => {
   return limitVelocity(direction * (base + spread));
 };
 
-const getDisplaySize = (probability, scale, total = 0) => {
+const getDisplaySize = (probability, scale, total = 0, bounds = {}) => {
   const crowdFactor = getCrowdFactor(total);
-  const base = (48 + clamp(probability || 0.33, 0.05, 0.9) * 170) * crowdFactor;
+  const boardWidth = bounds.width || 1280;
+  const boardFactor = boardWidth <= 420 ? 0.62 : boardWidth <= 760 ? 0.72 : boardWidth <= 1024 ? 0.86 : 1;
+  const base = (48 + clamp(probability || 0.33, 0.05, 0.9) * 170) * crowdFactor * boardFactor;
 
   if (scale === "large") {
-    return clamp(base * 1.1, 58, 238);
+    return clamp(base * 1.1, boardWidth <= 420 ? 46 : 58, boardWidth <= 420 ? 108 : 238);
   }
 
   if (scale === "small") {
-    return clamp(base * 0.78, 42, 150);
+    return clamp(base * 0.78, boardWidth <= 420 ? 38 : 42, boardWidth <= 420 ? 86 : 150);
   }
 
-  return clamp(base * 0.92, 50, 198);
+  return clamp(base * 0.92, boardWidth <= 420 ? 42 : 50, boardWidth <= 420 ? 98 : 198);
 };
 
 const getInitialPosition = (index, total, bounds, size) => {
-  const width = Math.max(bounds.width || 0, 1280);
-  const height = Math.max(bounds.height || 0, 660);
+  const width = Math.max(bounds.width || 0, 320);
+  const height = Math.max(bounds.height || 0, 560);
   const angle = index * 2.399963229728653;
-  const orbit = Math.sqrt(index + 1) * (width > 900 ? 68 : 48);
+  const orbit = Math.sqrt(index + 1) * (width > 900 ? 68 : width > 520 ? 44 : 30);
   const centerX = width / 2;
   const centerY = height / 2;
-  const x = centerX + Math.cos(angle) * orbit * 1.68 - size / 2;
-  const y = centerY + Math.sin(angle) * orbit * 1.08 - size / 2;
+  const x = centerX + Math.cos(angle) * orbit * (width > 520 ? 1.68 : 1.08) - size / 2;
+  const y = centerY + Math.sin(angle) * orbit * (width > 520 ? 1.08 : 1.28) - size / 2;
 
   return {
     x: clamp(x, 18, width - size - 18),
@@ -236,7 +238,7 @@ const getInitialPosition = (index, total, bounds, size) => {
 };
 
 const createBubble = (game, existing, bounds, index, total, scale) => {
-  const size = getDisplaySize(game.bubbleValue ?? game.probability, scale, total);
+  const size = getDisplaySize(game.bubbleValue ?? game.probability, scale, total, bounds);
   const position = existing ?? getInitialPosition(index, total, bounds, size);
 
   return {
@@ -252,8 +254,8 @@ const createBubble = (game, existing, bounds, index, total, scale) => {
 };
 
 const moveBubbles = (items, bounds, step = 1) => {
-  const width = Math.max(bounds.width || 0, 1280);
-  const height = Math.max(bounds.height || 0, 660);
+  const width = Math.max(bounds.width || 0, 320);
+  const height = Math.max(bounds.height || 0, 560);
   const safeStep = clamp(step, 0, FRAME_STEP_LIMIT);
   const next = items.map((item) => {
     const bubble = {
@@ -909,7 +911,8 @@ function BubblesWorldCup() {
           const size = getDisplaySize(
             game.bubbleValue ?? game.probability,
             DEFAULT_BUBBLE_SCALE,
-            visibleIds.length
+            visibleIds.length,
+            boundsRef.current
           );
           const position = getInitialPosition(visibleIndex, visibleIds.length, boundsRef.current, size);
 
