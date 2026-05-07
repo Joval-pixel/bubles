@@ -1439,7 +1439,7 @@ button {
   }
 
   .bubble-board {
-    min-height: min(720px, calc(100dvh - 210px));
+    min-height: max(980px, calc(100dvh - 210px));
     border-radius: 10px;
   }
 
@@ -1459,7 +1459,7 @@ button {
   }
 
   .bubble strong {
-    font-size: clamp(0.72rem, 5.5vw, 1.15rem);
+    font-size: clamp(0.72rem, 5vw, 1.04rem);
   }
 
   .bubble .bubble-team {
