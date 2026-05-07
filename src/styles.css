@@ -156,6 +156,80 @@ button {
   background: rgba(37, 243, 95, 0.08);
 }
 
+.ai-hit-logo {
+  display: inline-grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.95), transparent 26%),
+    linear-gradient(135deg, #12ff5a, #04963b);
+  color: #ffffff;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 1000;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    0 0 0 2px rgba(37, 243, 95, 0.18),
+    0 0 22px rgba(37, 243, 95, 0.58);
+}
+
+.ai-hit-logo.is-compact {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-width: 1px;
+  font-size: 0.82rem;
+}
+
+.ai-hit-logo.is-pending {
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.82), transparent 26%),
+    linear-gradient(135deg, #ffe04d, #9e7e05);
+  box-shadow:
+    0 0 0 2px rgba(255, 224, 77, 0.16),
+    0 0 20px rgba(255, 224, 77, 0.38);
+}
+
+.ai-hit-logo.is-miss {
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.82), transparent 26%),
+    linear-gradient(135deg, #ff5757, #9d0505);
+  box-shadow:
+    0 0 0 2px rgba(255, 5, 5, 0.16),
+    0 0 20px rgba(255, 5, 5, 0.42);
+}
+
+.ai-hit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  width: fit-content;
+  min-height: 30px;
+  padding: 0.18rem 0.52rem 0.18rem 0.2rem;
+  border: 1px solid rgba(37, 243, 95, 0.34);
+  border-radius: 999px;
+  background: rgba(37, 243, 95, 0.08);
+  color: #d8ffe2;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.ai-hit-badge.is-pending {
+  border-color: rgba(255, 224, 77, 0.32);
+  background: rgba(255, 224, 77, 0.08);
+  color: #fff1a6;
+}
+
+.ai-hit-badge.is-miss {
+  border-color: rgba(255, 5, 5, 0.32);
+  background: rgba(255, 5, 5, 0.08);
+  color: #ffc1c1;
+}
+
 .search-shell {
   position: relative;
   flex: 1 0 260px;
@@ -317,6 +391,20 @@ button {
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.guide-kicker,
+.modal-title-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.simple-guide .ai-hit-badge,
+.prediction-modal-header .ai-hit-badge {
+  display: inline-flex;
+  text-transform: none;
 }
 
 .simple-guide-main h1 {
@@ -832,6 +920,20 @@ button {
   white-space: nowrap;
 }
 
+.bubble > .ai-hit-logo {
+  position: absolute;
+  top: 10%;
+  right: 10%;
+  z-index: 2;
+  width: 18%;
+  min-width: 18px;
+  max-width: 28px;
+  height: 18%;
+  min-height: 18px;
+  max-height: 28px;
+  font-size: clamp(0.58rem, 0.55vw, 0.82rem);
+}
+
 .bubble-tooltip {
   position: absolute;
   right: 14px;
@@ -969,6 +1071,23 @@ button {
   font-family: Sora, Inter, sans-serif;
   font-style: normal;
   font-weight: 900;
+}
+
+.list-ai-hit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  color: #d8ffe2;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.list-ai-hit.is-pending {
+  color: #fff1a6;
+}
+
+.list-ai-hit.is-miss {
+  color: #ffc1c1;
 }
 
 .list-time {
@@ -1169,6 +1288,24 @@ button {
   margin-top: 0.38rem;
   color: var(--muted);
   line-height: 1.35;
+}
+
+.hit-summary-card {
+  border-color: rgba(37, 243, 95, 0.24);
+}
+
+.hit-summary-card.is-pending {
+  border-color: rgba(255, 224, 77, 0.22);
+}
+
+.hit-summary-card.is-miss {
+  border-color: rgba(255, 5, 5, 0.22);
+}
+
+.hit-summary-card strong {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
 }
 
 .modal-ai-card,
