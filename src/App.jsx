@@ -73,19 +73,6 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
 const getPredictionChance = (game) =>
   clamp(Number(game?.displayProbability ?? game?.probability ?? 0), 0, 1);
-
-function AiAccuracyLine({ game }) {
-  const hitChance = getPredictionChance(game);
-  const errorChance = clamp(1 - hitChance, 0, 1);
-
-  return (
-    <small className="ai-accuracy-line">
-      <span>Acerto {formatChance(hitChance)}</span>
-      <span className="ai-error-rate">Erro {formatChance(errorChance)}</span>
-    </small>
-  );
-}
-
 const formatOdd = (value) =>
   value && Number.isFinite(value) && value > 0 ? value.toFixed(2).replace(".", ",") : "--";
 const formatClock = (game) => {
@@ -1621,7 +1608,6 @@ function BubblesWorldCup() {
                     </strong>
                     <span className="prediction-summary">
                       <b>{translateBetText(game.displayPickLabel || game.pickLabel)}</b>
-                      <AiAccuracyLine game={game} />
                     </span>
                     <em>{formatChance(game.displayProbability || game.probability)}</em>
                     <span className={`list-ai-hit is-${hitState.state}`}>
@@ -2004,7 +1990,6 @@ function BubblesWorldCup() {
                         <td>{game.awayTeam}</td>
                         <td>
                           <strong>{translateBetText(rowGame.displayPickLabel || rowGame.pickLabel)}</strong>
-                          <AiAccuracyLine game={rowGame} />
                           <small>{getBetHelpText(rowGame.displayPickLabel || rowGame.pickLabel) || game.aiInsights?.action || "Verificar"}</small>
                         </td>
                         <td
