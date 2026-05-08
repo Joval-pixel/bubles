@@ -28,7 +28,7 @@ const SPONSORS = [
   },
 ];
 
-const RADAR_INITIAL_LIMIT = 12;
+const RADAR_INITIAL_LIMIT = 30;
 const VALID_FILTERS = new Set(["best", "live", "goals", "btts"]);
 const VALID_MODES = new Set(["today", "worldcup"]);
 const VALID_VIEWS = new Set(["radar", "list"]);
@@ -337,13 +337,13 @@ const EDGE_PADDING = 10;
 const COLLISION_GAP = 12;
 const COLLISION_PASSES = 9;
 const DRIFT_INTERVAL_MS = 72;
-const FRAME_STEP_LIMIT = 0.72;
-const VELOCITY_LIMIT = 0.026;
+const FRAME_STEP_LIMIT = 0.38;
+const VELOCITY_LIMIT = 0.009;
 const BOUNCE_DAMPING = 0.74;
-const COLLISION_DAMPING = 0.88;
+const COLLISION_DAMPING = 0.78;
 const DEFAULT_BUBBLE_SCALE = "small";
 const MOBILE_BOARD_WIDTH = 520;
-const MOBILE_VELOCITY_LIMIT = 0.14;
+const MOBILE_VELOCITY_LIMIT = 0.04;
 
 const isMobileBounds = (bounds = {}) => (bounds.width || 0) > 0 && bounds.width <= MOBILE_BOARD_WIDTH;
 
@@ -372,16 +372,16 @@ const limitMobileVelocity = (value) => clamp(value, -MOBILE_VELOCITY_LIMIT, MOBI
 
 const getInitialVelocity = (index, axis) => {
   const direction = axis === "x" ? (index % 2 ? 1 : -1) : (index % 3 ? 1 : -1);
-  const base = axis === "x" ? 0.011 : 0.009;
-  const spread = axis === "x" ? (index % 7) * 0.002 : (index % 5) * 0.0018;
+  const base = axis === "x" ? 0.0042 : 0.0034;
+  const spread = axis === "x" ? (index % 7) * 0.0007 : (index % 5) * 0.0006;
 
   return limitVelocity(direction * (base + spread));
 };
 
 const getMobileVelocity = (index, axis) => {
   const direction = axis === "x" ? (index % 2 ? 1 : -1) : (index % 3 ? 1 : -1);
-  const base = axis === "x" ? 0.075 : 0.052;
-  const spread = axis === "x" ? (index % 5) * 0.011 : (index % 4) * 0.009;
+  const base = axis === "x" ? 0.018 : 0.014;
+  const spread = axis === "x" ? (index % 5) * 0.0025 : (index % 4) * 0.002;
 
   return limitMobileVelocity(direction * (base + spread));
 };
@@ -470,7 +470,7 @@ const moveBubbles = (items, bounds, step = 1) => {
   const height = Math.max(bounds.height || 0, 560);
 
   if (isMobileBounds(bounds)) {
-    const safeStep = clamp(step, 0, 0.55);
+    const safeStep = clamp(step, 0, 0.28);
 
     return items.map((item) => {
       const next = {
@@ -558,10 +558,10 @@ const moveBubbles = (items, bounds, step = 1) => {
           height - second.size - EDGE_PADDING
         );
 
-        first.vx = limitVelocity((first.vx + normalX * 0.0035) * COLLISION_DAMPING);
-        first.vy = limitVelocity((first.vy + normalY * 0.0035) * COLLISION_DAMPING);
-        second.vx = limitVelocity((second.vx - normalX * 0.0035) * COLLISION_DAMPING);
-        second.vy = limitVelocity((second.vy - normalY * 0.0035) * COLLISION_DAMPING);
+        first.vx = limitVelocity((first.vx + normalX * 0.0012) * COLLISION_DAMPING);
+        first.vy = limitVelocity((first.vy + normalY * 0.0012) * COLLISION_DAMPING);
+        second.vx = limitVelocity((second.vx - normalX * 0.0012) * COLLISION_DAMPING);
+        second.vy = limitVelocity((second.vy - normalY * 0.0012) * COLLISION_DAMPING);
       }
     }
   }
