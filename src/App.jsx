@@ -31,14 +31,13 @@ const SPONSORS = [
 const RADAR_INITIAL_LIMIT = 30;
 const VALID_FILTERS = new Set(["best", "live", "goals", "btts"]);
 const VALID_MODES = new Set(["today", "worldcup"]);
-const VALID_VIEWS = new Set(["radar", "list"]);
 const BRASILIA_TIMEZONE = "America/Sao_Paulo";
 const BRASILIA_TIMEZONE_LABEL = "Horario de Brasilia";
 const ROUTE_DEFAULTS = {
   "/": { mode: "today", filter: "best", view: "radar" },
   "/palpites-de-hoje": { mode: "today", filter: "best", view: "radar" },
   "/jogos-ao-vivo": { mode: "today", filter: "live", view: "radar" },
-  "/lista-jogos-hoje": { mode: "today", filter: "best", view: "list" },
+  "/lista-jogos-hoje": { mode: "today", filter: "best", view: "radar" },
   "/palpites-gols": { mode: "today", filter: "goals", view: "radar" },
   "/ambas-marcam": { mode: "today", filter: "btts", view: "radar" },
   "/copa-2026": { mode: "worldcup", filter: "best", view: "radar" },
@@ -1107,10 +1106,6 @@ function BubblesWorldCup() {
     const initialFilter = getInitialRouteValue("filter", "best");
     return VALID_FILTERS.has(initialFilter) ? initialFilter : "best";
   });
-  const [viewMode, setViewMode] = useState(() => {
-    const initialView = getInitialRouteValue("view", "radar");
-    return VALID_VIEWS.has(initialView) ? initialView : "radar";
-  });
   const [radarLimit, setRadarLimit] = useState(RADAR_INITIAL_LIMIT);
   const [query, setQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -1241,13 +1236,13 @@ function BubblesWorldCup() {
     const url = new URL(window.location.href);
     url.searchParams.set("mode", mode);
     url.searchParams.set("filter", filter);
-    url.searchParams.set("view", viewMode);
+    url.searchParams.set("view", "radar");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [filter, mode, viewMode]);
+  }, [filter, mode]);
 
   useEffect(() => {
     setRadarLimit(RADAR_INITIAL_LIMIT);
-  }, [filter, mode, query, viewMode]);
+  }, [filter, mode, query]);
 
   useEffect(() => {
     if (!isModalOpen && !isTodayListOpen) {
@@ -1329,37 +1324,6 @@ function BubblesWorldCup() {
           (left.displayProbability || left.probability || 0) ||
         new Date(left.commenceTime || 0).getTime() -
           new Date(right.commenceTime || 0).getTime()
-    );
-
-    return items;
-  }, [filter, games, query]);
-
-  const chronologicalGames = useMemo(() => {
-    const text = query.trim().toLowerCase();
-    let items = [...games];
-
-    if (text) {
-      items = items.filter((game) =>
-        `${game.game} ${game.round} ${game.venue} ${game.city} ${game.homeTeam} ${game.awayTeam} ${game.league} ${game.country}`
-          .toLowerCase()
-          .includes(text)
-      );
-    }
-
-    if (filter === "live") {
-      items = items.filter((game) => game.isLive);
-    }
-
-    items = items
-      .map((game) => withDisplayMarket(game, filter))
-      .filter(Boolean);
-
-    items.sort(
-      (left, right) =>
-        getKickoffStamp(left) - getKickoffStamp(right) ||
-        Number(right.isLive) - Number(left.isLive) ||
-        (right.displayProbability || right.probability || 0) -
-          (left.displayProbability || left.probability || 0)
     );
 
     return items;
@@ -1457,10 +1421,10 @@ function BubblesWorldCup() {
   const aiAvoidIf = Array.isArray(aiInsights.avoidIf) ? aiInsights.avoidIf : [];
   const aiBestMarkets = Array.isArray(aiInsights.bestMarkets) ? aiInsights.bestMarkets : [];
   const selectedHitState = selectedGame ? getAiHitState(selectedGame) : null;
-  const boardGamesCount = viewMode === "list" ? chronologicalGames.length : filteredGames.length;
+  const boardGamesCount = filteredGames.length;
 
   useEffect(() => {
-    if (viewMode !== "radar" || !radarGames.length) {
+    if (!radarGames.length) {
       return;
     }
 
@@ -1498,7 +1462,7 @@ function BubblesWorldCup() {
         0
       )
     );
-  }, [filter, query, radarGames.length, radarLimit, updatedAt, viewMode]);
+  }, [filter, query, radarGames.length, radarLimit, updatedAt]);
 
   return (
     <div className="cup-shell">
@@ -1563,7 +1527,7 @@ function BubblesWorldCup() {
             Ao vivo {liveCount}
           </button>
           <button className="chip-button" onClick={openTodayList} type="button">
-            Todos de hoje {mode === "today" ? games.length : ""}
+            Todos jogos de hoje {mode === "today" ? games.length : ""}
           </button>
           <button
             className={filter === "goals" ? "chip-button is-active" : "chip-button"}
@@ -1588,23 +1552,6 @@ function BubblesWorldCup() {
             type="button"
           >
             Copa 2026
-          </button>
-        </nav>
-
-        <nav className="cup-controls view-controls" aria-label="Visualizacao">
-          <button
-            className={viewMode === "radar" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setViewMode("radar")}
-            type="button"
-          >
-            Radar
-          </button>
-          <button
-            className={viewMode === "list" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setViewMode("list")}
-            type="button"
-          >
-            Lista
           </button>
         </nav>
 
@@ -1638,10 +1585,10 @@ function BubblesWorldCup() {
         </article>
 
         <article className="simple-guide-card">
-          <span>Lista completa</span>
+          <span>Todos jogos de hoje</span>
           <strong>{mode === "today" ? `${games.length} jogos` : "Copa 2026"}</strong>
           <button type="button" onClick={openTodayList}>
-            Ver todos
+            Ver todos os jogos
           </button>
         </article>
       </section>
@@ -1651,11 +1598,7 @@ function BubblesWorldCup() {
           <div className="board-grid" />
           <div className="board-status">
             <span>{getFilterTitle(filter, mode)}</span>
-            <strong>
-              {viewMode === "radar"
-                ? `${radarGames.length} de ${filteredGames.length} jogos`
-                : `${chronologicalGames.length} jogos em ordem`}
-            </strong>
+            <strong>{`${radarGames.length} de ${filteredGames.length} jogos`}</strong>
             <em>{getFilterSubtitle(filter)}</em>
             <small>
               {refreshing
@@ -1680,50 +1623,7 @@ function BubblesWorldCup() {
             </div>
           ) : null}
 
-          {!loading && viewMode === "list" && chronologicalGames.length ? (
-            <div className="radar-list-view">
-              <div className="radar-list-head">
-                <span>{mode === "worldcup" ? "Data/Hora BR" : "Hora BR"}</span>
-                <span>Jogo</span>
-                <span>Palpite</span>
-                <span>Chance</span>
-                <span>IA</span>
-              </div>
-
-              {chronologicalGames.map((game) => {
-                const hitState = getAiHitState(game);
-
-                return (
-                  <button
-                    className={selectedGame?.id === game.id ? "radar-list-row is-active" : "radar-list-row"}
-                    key={game.id}
-                    onClick={() => openGameModal(game.id)}
-                    type="button"
-                  >
-                    <span className={game.isLive ? "list-time is-live" : "list-time"}>
-                      {formatBoardTime(game, mode)}
-                      <small>{formatScoreLine(game)}</small>
-                    </span>
-                    <strong>
-                      {game.game}
-                      <small>{game.league}</small>
-                    </strong>
-                    <span className="prediction-summary">
-                      <b>{getPrimaryBetText(game.displayPickLabel || game.pickLabel, game)}</b>
-                    </span>
-                    <em>{formatChance(game.displayProbability || game.probability)}</em>
-                    <span className={`list-ai-hit is-${hitState.state}`}>
-                      <AiHitLogo state={hitState.state} compact />
-                      {hitState.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-
           {!loading &&
-            viewMode === "radar" &&
             radarGames.map((game) => {
               const hitState = getAiHitState(game);
 
@@ -1768,7 +1668,7 @@ function BubblesWorldCup() {
               );
             })}
 
-          {!loading && viewMode === "radar" && hoveredGame ? (
+          {!loading && hoveredGame ? (
             <aside className="bubble-tooltip" aria-live="polite">
               <span>{getGameStatusLabel(hoveredGame)}</span>
               <strong>{hoveredGame.game}</strong>
@@ -1782,7 +1682,7 @@ function BubblesWorldCup() {
             </aside>
           ) : null}
 
-          {!loading && viewMode === "radar" && filteredGames.length > radarGames.length ? (
+          {!loading && filteredGames.length > radarGames.length ? (
             <div className="radar-actions">
               <button
                 className="load-more-button"
@@ -2013,7 +1913,7 @@ function BubblesWorldCup() {
           >
             <header className="today-games-header">
               <div>
-                <span>Lista completa</span>
+                <span>Todos jogos de hoje</span>
                 <h2>Todos jogos de hoje</h2>
                 <p>
                   Horarios no {BRASILIA_TIMEZONE_LABEL}.
@@ -2025,7 +1925,7 @@ function BubblesWorldCup() {
                 className="modal-close-button"
                 onClick={() => setIsTodayListOpen(false)}
                 type="button"
-                aria-label="Fechar lista"
+                aria-label="Fechar todos jogos de hoje"
               >
                 x
               </button>
