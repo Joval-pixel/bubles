@@ -169,10 +169,16 @@ const translateBetText = (value) => {
   }
 
   return text
-    .replace(/Nao combina ambas marcam com mais de 2\.5 gols/gi, "Nao: ambas marcam + mais de 2,5 gols")
-    .replace(/Nao: ambas marcam \+ mais de 2\.5 gols/gi, "Nao: ambas marcam + mais de 2,5 gols")
-    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Ambas marcam + mais de 2,5 gols")
-    .replace(/Ambas marcam \+ mais de 2\.5 gols/gi, "Ambas marcam + mais de 2,5 gols")
+    .replace(
+      /Nao combina ambas marcam com mais de 2\.5 gols/gi,
+      "NAO deve acontecer: os dois times marcam e +2,5 gols"
+    )
+    .replace(
+      /Nao: ambas marcam \+ mais de 2[,.]5 gols/gi,
+      "NAO deve acontecer: os dois times marcam e +2,5 gols"
+    )
+    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Os dois times marcam e sai +2,5 gols")
+    .replace(/Ambas marcam \+ mais de 2[,.]5 gols/gi, "Os dois times marcam e sai +2,5 gols")
     .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
     .replace(/\bMatch Winner\b/gi, "Resultado final")
     .replace(/\bWinner\b/gi, "Vencedor")
@@ -189,6 +195,36 @@ const translateBetText = (value) => {
     .replace(/\bGoals\b/gi, "Gols")
     .replace(/\bOdd\b/gi, "Impar")
     .replace(/\bEven\b/gi, "Par");
+};
+
+const getBetHelpText = (value) => {
+  const text = translateBetText(value).toLowerCase();
+
+  if (text.includes("nao deve acontecer") && text.includes("dois times marcam") && text.includes("+2,5")) {
+    return "Leitura simples: a IA acha que uma parte nao bate. Ou um time nao marca, ou o jogo fica com 2 gols ou menos.";
+  }
+
+  if (text.includes("dois times marcam") && text.includes("+2,5")) {
+    return "Para bater, os dois times precisam marcar e o jogo precisa ter 3 gols ou mais.";
+  }
+
+  if (text.includes("ambas marcam") || text.includes("dois times marcam")) {
+    return "Para bater, mandante e visitante precisam fazer pelo menos 1 gol cada.";
+  }
+
+  if (text.includes("dupla chance")) {
+    return "Para bater, voce tem dois resultados a favor: vitoria de um lado ou empate.";
+  }
+
+  if (text.includes("mais de")) {
+    return "Para bater, o jogo precisa passar da linha de gols indicada.";
+  }
+
+  if (text.includes("menos de")) {
+    return "Para bater, o jogo precisa terminar abaixo da linha de gols indicada.";
+  }
+
+  return "";
 };
 
 const getBeforeColon = (value, fallback = "--") => {
@@ -1661,7 +1697,11 @@ function BubblesWorldCup() {
               <article>
                 <span>Palpite principal</span>
                 <strong>{translateBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)}</strong>
-                <small>{aiInsights.headline || getAiSummary(selectedGame)}</small>
+                <small>
+                  {getBetHelpText(selectedGame.displayPickLabel || selectedGame.pickLabel) ||
+                    aiInsights.headline ||
+                    getAiSummary(selectedGame)}
+                </small>
               </article>
               <article>
                 <span>Chance IA</span>
@@ -1904,7 +1944,7 @@ function BubblesWorldCup() {
                         <td>{game.awayTeam}</td>
                         <td>
                           <strong>{translateBetText(rowGame.displayPickLabel || rowGame.pickLabel)}</strong>
-                          <small>{game.aiInsights?.action || "Verificar"}</small>
+                          <small>{getBetHelpText(rowGame.displayPickLabel || rowGame.pickLabel) || game.aiInsights?.action || "Verificar"}</small>
                         </td>
                         <td
                           className={
