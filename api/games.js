@@ -358,6 +358,8 @@ const getFixtureScore = (fixture) => {
 
 const buildFallbackBetMarkets = (fixture, mainMarket) => {
   const fixtureId = fixture?.fixture?.id || `${fixture?.teams?.home?.name}-${fixture?.teams?.away?.name}`;
+  const homeName = fixture?.teams?.home?.name || "Mandante";
+  const awayName = fixture?.teams?.away?.name || "Visitante";
   const score = getFixtureScore(fixture);
   const statusShort = fixture?.fixture?.status?.short || "NS";
   const isLive = LIVE_STATUSES.has(statusShort);
@@ -372,7 +374,14 @@ const buildFallbackBetMarkets = (fixture, mainMarket) => {
   const bttsYes = clamp(0.44 + (bttsSeed - 0.5) * 0.2 + (score.bothScored ? 0.34 : score.total ? 0.06 : 0), 0.28, 0.78);
   const favoriteAndBtts = clamp((favoriteChance * bttsYes) + 0.08 + (comboSeed - 0.5) * 0.08, 0.18, 0.62);
   const bttsAndOver25 = clamp((bttsYes * over25) + 0.12 + (comboSeed - 0.5) * 0.08, 0.2, 0.66);
-  const favoriteLabel = mainMarket?.pickLabel || "Favorito";
+  const favoriteLabel =
+    mainMarket?.pickLabel && mainMarket.pickLabel !== "Favorito"
+      ? mainMarket.pickLabel
+      : mainMarket?.pickCode === "2"
+        ? awayName
+        : mainMarket?.pickCode === "X"
+          ? "Empate"
+          : homeName;
 
   return [
     buildBetMarket({
@@ -428,13 +437,13 @@ const buildFallbackBetMarkets = (fixture, mainMarket) => {
       options: [
         createOption({
           code: "WIN-BTTS-S",
-          label: `${favoriteLabel} e ambas marcam`,
+          label: `${favoriteLabel} vence e ambas marcam`,
           probability: favoriteAndBtts,
           source: "estimate",
         }),
         createOption({
           code: "WIN-BTTS-N",
-          label: `${favoriteLabel} e ambas nao marcam`,
+          label: `${favoriteLabel} vence e ambas nao marcam`,
           probability: clamp(favoriteChance - favoriteAndBtts + 0.08, 0.16, 0.58),
           source: "estimate",
         }),
@@ -447,13 +456,13 @@ const buildFallbackBetMarkets = (fixture, mainMarket) => {
       options: [
         createOption({
           code: "BTTS-O2.5-S",
-          label: "Ambas marcam e mais de 2.5 gols",
+          label: "Ambas marcam + mais de 2.5 gols",
           probability: bttsAndOver25,
           source: "estimate",
         }),
         createOption({
           code: "BTTS-O2.5-N",
-          label: "Nao combina ambas marcam com mais de 2.5 gols",
+          label: "Nao: ambas marcam + mais de 2.5 gols",
           probability: clamp(1 - bttsAndOver25, 0.22, 0.74),
           source: "estimate",
         }),
@@ -654,6 +663,11 @@ const translatePickLabel = (label) => {
   }
 
   return text
+    .replace(/Nao combina ambas marcam com mais de 2\.5 gols/gi, "Nao: ambas marcam + mais de 2,5 gols")
+    .replace(/Nao: ambas marcam \+ mais de 2\.5 gols/gi, "Nao: ambas marcam + mais de 2,5 gols")
+    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Ambas marcam + mais de 2,5 gols")
+    .replace(/Ambas marcam \+ mais de 2\.5 gols/gi, "Ambas marcam + mais de 2,5 gols")
+    .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
     .replace(/\bOver\b/gi, "Mais de")
     .replace(/\bUnder\b/gi, "Menos de")
     .replace(/\bYes\b/gi, "Sim")
@@ -816,7 +830,7 @@ const getChecklist = (market) => {
 const getAvoidList = (market) => {
   const items = [
     "Evite se a odd cair muito abaixo da odd mostrada.",
-    "Evite se houver noticia, escalação ou cartao que mude o jogo.",
+    "Evite se houver noticia, escalacao ou expulsao que mude o jogo.",
   ];
 
   if ((market?.probability || 0) < 0.54) {
