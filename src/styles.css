@@ -1073,6 +1073,43 @@ button {
   font-weight: 900;
 }
 
+.prediction-summary {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.prediction-summary b {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prediction-summary small,
+.ai-accuracy-line {
+  color: #9cffb6 !important;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.ai-accuracy-line {
+  display: flex !important;
+  align-items: center;
+  gap: 0.42rem;
+  margin-top: 0.24rem !important;
+}
+
+.ai-accuracy-line span {
+  display: inline !important;
+}
+
+.ai-error-rate {
+  color: #ff8585 !important;
+}
+
 .list-ai-hit {
   display: inline-flex;
   align-items: center;
@@ -1474,7 +1511,7 @@ button {
 
 .today-games-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 0.78rem;
 }
@@ -1492,6 +1529,34 @@ button {
   margin-top: 0.26rem;
   font-family: Sora, Inter, sans-serif;
   font-size: 1.35rem;
+}
+
+.today-games-stats small {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.22;
+}
+
+.today-games-stats .ai-stat-card.is-hit {
+  border-color: rgba(37, 243, 95, 0.28);
+  background: linear-gradient(145deg, rgba(37, 243, 95, 0.12), rgba(14, 14, 14, 0.78));
+}
+
+.today-games-stats .ai-stat-card.is-hit strong {
+  color: #7dff99;
+}
+
+.today-games-stats .ai-stat-card.is-miss {
+  border-color: rgba(255, 85, 85, 0.28);
+  background: linear-gradient(145deg, rgba(255, 85, 85, 0.11), rgba(14, 14, 14, 0.78));
+}
+
+.today-games-stats .ai-stat-card.is-miss span,
+.today-games-stats .ai-stat-card.is-miss strong {
+  color: #ff8585;
 }
 
 .today-games-table-wrap {
@@ -1784,9 +1849,12 @@ button {
 
   .modal-summary-grid,
   .modal-verification-grid,
-  .modal-markets-grid,
-  .today-games-stats {
+  .modal-markets-grid {
     grid-template-columns: 1fr;
+  }
+
+  .today-games-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .widgets-leagues,
@@ -2014,5 +2082,9 @@ button {
 
   .today-games-table-wrap {
     max-height: 66vh;
+  }
+
+  .today-games-stats {
+    grid-template-columns: 1fr;
   }
 }
