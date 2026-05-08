@@ -20,6 +20,11 @@ const OPTIONS_PER_MARKET_LIMIT = Math.max(
   Math.min(30, Number.parseInt(process.env.OPTIONS_PER_MARKET_LIMIT || "16", 10) || 16)
 );
 const API_TIMEZONE = process.env.API_FOOTBALL_TIMEZONE || "America/Sao_Paulo";
+const BUILTIN_FIXTURE_DATE_OVERRIDES = {
+  // API-Football is currently returning this fixture one day early.
+  // Keep this small and use FIXTURE_DATE_OVERRIDES in Vercel for future corrections.
+  1465114: "2026-05-09T12:00:00-03:00",
+};
 
 const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"]);
 const FINISHED_STATUSES = new Set(["FT", "AET", "PEN"]);
@@ -102,6 +107,83 @@ const getBrazilDate = () => {
 
   return `${year}-${month}-${day}`;
 };
+
+const parseFixtureDateOverrides = () => {
+  const raw = String(process.env.FIXTURE_DATE_OVERRIDES || "").trim();
+
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch (_error) {
+    // Also support a simple Vercel value like:
+    // 123=2026-05-09T12:00:00-03:00;456=2026-05-10T15:30:00-03:00
+  }
+
+  return raw.split(/[;\n]+/).reduce((overrides, item) => {
+    const [id, ...dateParts] = item.split("=");
+    const value = dateParts.join("=").trim();
+
+    if (id?.trim() && value) {
+      overrides[id.trim()] = value;
+    }
+
+    return overrides;
+  }, {});
+};
+
+const FIXTURE_DATE_OVERRIDES = {
+  ...BUILTIN_FIXTURE_DATE_OVERRIDES,
+  ...parseFixtureDateOverrides(),
+};
+
+const getDateKeyInTimezone = (value) => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: API_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : "";
+};
+
+const getFixtureCommenceTime = (fixture) => {
+  const fixtureId = fixture?.fixture?.id;
+  const override = FIXTURE_DATE_OVERRIDES[String(fixtureId)];
+
+  if (override) {
+    return override;
+  }
+
+  if (fixture?.fixture?.date) {
+    return fixture.fixture.date;
+  }
+
+  if (fixture?.fixture?.timestamp) {
+    return new Date(fixture.fixture.timestamp * 1000).toISOString();
+  }
+
+  return null;
+};
+
+const isFixtureOnRequestedDate = (fixture, requestedDate) =>
+  getDateKeyInTimezone(getFixtureCommenceTime(fixture)) === requestedDate;
 
 const safeJson = async (response) => {
   try {
@@ -1038,6 +1120,7 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
   const statusShort = fixture?.fixture?.status?.short || "NS";
   const isLive = LIVE_STATUSES.has(statusShort);
   const isFinished = FINISHED_STATUSES.has(statusShort);
+  const commenceTime = getFixtureCommenceTime(fixture);
   const market = oddsAnalysis?.market || buildFallbackMarket(fixture);
   const rawBetMarkets = oddsAnalysis?.betMarkets ?? [];
   const resultMarket = {
@@ -1105,7 +1188,7 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
     bubbleValue,
     scoreLine: getScoreLine(fixture),
     updatedAt: new Date().toISOString(),
-    commenceTime: fixture?.fixture?.date || null,
+    commenceTime,
     statusShort,
     source: mode === "today" ? "API-Football Hoje" : "API-Football",
     confidence: market.confidence,
@@ -1197,7 +1280,15 @@ const fetchTodayGames = async () => {
     fetchLiveFixtures(),
     fetchTodayOdds(date),
   ]);
-  const fixtures = mergeFixturesById(liveFixtures, todayFixtures);
+  const fixtures = mergeFixturesById(liveFixtures, todayFixtures).filter((fixture) => {
+    const statusShort = fixture?.fixture?.status?.short || "NS";
+
+    if (LIVE_STATUSES.has(statusShort)) {
+      return true;
+    }
+
+    return isFixtureOnRequestedDate(fixture, date);
+  });
   const games = fixtures
     .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), "today"))
     .filter((game) => game?.id);
