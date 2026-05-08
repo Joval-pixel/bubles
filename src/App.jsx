@@ -228,14 +228,14 @@ const translateBetText = (value) => {
   return text
     .replace(
       /Nao combina ambas marcam com mais de 2\.5 gols/gi,
-      "Nao apostar: ambos marcam + mais de 2,5 gols"
+      "Evitar jogo aberto"
     )
     .replace(
       /Nao: ambas marcam \+ mais de 2[,.]5 gols/gi,
-      "Nao apostar: ambos marcam + mais de 2,5 gols"
+      "Evitar jogo aberto"
     )
-    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Ambos marcam + mais de 2,5 gols")
-    .replace(/Ambas marcam \+ mais de 2[,.]5 gols/gi, "Ambos marcam + mais de 2,5 gols")
+    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
+    .replace(/Ambas marcam \+ mais de 2[,.]5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
     .replace(/\bMatch Winner\b/gi, "Resultado final")
     .replace(/\bWinner\b/gi, "Vencedor")
@@ -254,18 +254,45 @@ const translateBetText = (value) => {
     .replace(/\bEven\b/gi, "Par");
 };
 
-const getBetHelpText = (value) => {
-  const text = translateBetText(value).toLowerCase();
+const getBetSearchText = (value) => `${value || ""} ${translateBetText(value)}`.toLowerCase();
 
-  if (
-    (text.includes("nao apostar") || text.includes("evitar") || text.includes("nao deve acontecer")) &&
-    (text.includes("ambos marcam") || text.includes("dois times marcam")) &&
-    text.includes("+2,5")
-  ) {
-    return "A IA nao recomenda essa aposta. Ela so vence se os dois times fizerem gol e o jogo tiver 3 gols ou mais.";
+const hasOpenGameCombo = (value) => {
+  const text = getBetSearchText(value);
+
+  return (
+    (text.includes("ambas marcam") ||
+      text.includes("ambos marcam") ||
+      text.includes("dois times marcam")) &&
+    (text.includes("2.5") || text.includes("2,5") || text.includes("+2"))
+  );
+};
+
+const isAvoidOpenGameCombo = (value) => {
+  const text = getBetSearchText(value);
+
+  return hasOpenGameCombo(value) && (text.includes("nao") || text.includes("evitar"));
+};
+
+const getPrimaryBetText = (value) => {
+  if (isAvoidOpenGameCombo(value)) {
+    return "Evitar jogo aberto";
   }
 
-  if ((text.includes("ambos marcam") || text.includes("dois times marcam")) && text.includes("+2,5")) {
+  if (hasOpenGameCombo(value)) {
+    return "Jogo aberto com gols dos dois times";
+  }
+
+  return translateBetText(value);
+};
+
+const getBetHelpText = (value) => {
+  const text = getBetSearchText(value);
+
+  if (isAvoidOpenGameCombo(value)) {
+    return "A IA nao recomenda apostar em jogo aberto. Essa aposta so vence se os dois times fizerem gol e sair 3 gols ou mais.";
+  }
+
+  if (hasOpenGameCombo(value)) {
     return "Para bater, os dois times precisam marcar e o jogo precisa ter 3 gols ou mais.";
   }
 
@@ -1488,7 +1515,7 @@ function BubblesWorldCup() {
                 >
                   <strong>{game.game}</strong>
                   <span>
-                    {getGameStatusLabel(game)} | {translateBetText(game.displayPickLabel || game.pickLabel)} |{" "}
+                    {getGameStatusLabel(game)} | {getPrimaryBetText(game.displayPickLabel || game.pickLabel)} |{" "}
                     {formatChance(game.displayProbability || game.probability)}
                   </span>
                 </button>
@@ -1576,7 +1603,7 @@ function BubblesWorldCup() {
           <h1>{topGames[0]?.game || "Radar de palpites"}</h1>
           <p>
             {topGames[0]
-              ? `Palpite em destaque: ${translateBetText(
+              ? `Palpite em destaque: ${getPrimaryBetText(
                   topGames[0].displayPickLabel || topGames[0].pickLabel
                 )}. Clique no jogo para ver a leitura completa.`
               : "Assim que os jogos carregarem, os melhores palpites aparecem primeiro."}
@@ -1661,7 +1688,7 @@ function BubblesWorldCup() {
                       <small>{game.league}</small>
                     </strong>
                     <span className="prediction-summary">
-                      <b>{translateBetText(game.displayPickLabel || game.pickLabel)}</b>
+                      <b>{getPrimaryBetText(game.displayPickLabel || game.pickLabel)}</b>
                     </span>
                     <em>{formatChance(game.displayProbability || game.probability)}</em>
                     <span className={`list-ai-hit is-${hitState.state}`}>
@@ -1724,7 +1751,7 @@ function BubblesWorldCup() {
             <aside className="bubble-tooltip" aria-live="polite">
               <span>{getGameStatusLabel(hoveredGame)}</span>
               <strong>{hoveredGame.game}</strong>
-              <p>{translateBetText(hoveredGame.displayPickLabel || hoveredGame.pickLabel)}</p>
+              <p>{getPrimaryBetText(hoveredGame.displayPickLabel || hoveredGame.pickLabel)}</p>
               <div>
                 <small>{formatChance(hoveredGame.displayProbability || hoveredGame.probability)} chance</small>
                 <small>Odd {formatOdd(hoveredGame.displayOdd || hoveredGame.oddHome)}</small>
@@ -1768,7 +1795,7 @@ function BubblesWorldCup() {
                 </div>
                 <h2>{selectedGame.game}</h2>
                 <p>
-                  {translateBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)} |{" "}
+                  {getPrimaryBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)} |{" "}
                   {formatChance(selectedGame.displayProbability || selectedGame.probability)} |{" "}
                   Odd {formatOdd(selectedGame.displayOdd || selectedGame.oddHome)} |{" "}
                   {formatScoreLine(selectedGame)} |{" "}
@@ -1795,7 +1822,7 @@ function BubblesWorldCup() {
               </article>
               <article>
                 <span>Palpite principal</span>
-                <strong>{translateBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)}</strong>
+                <strong>{getPrimaryBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)}</strong>
                 <small>
                   {getBetHelpText(selectedGame.displayPickLabel || selectedGame.pickLabel) ||
                     aiInsights.headline ||
@@ -2057,7 +2084,7 @@ function BubblesWorldCup() {
                         <td className="score-cell">{formatScoreLine(game)}</td>
                         <td>{game.awayTeam}</td>
                         <td>
-                          <strong>{translateBetText(rowGame.displayPickLabel || rowGame.pickLabel)}</strong>
+                          <strong>{getPrimaryBetText(rowGame.displayPickLabel || rowGame.pickLabel)}</strong>
                           <small>{getBetHelpText(rowGame.displayPickLabel || rowGame.pickLabel) || game.aiInsights?.action || "Verificar"}</small>
                         </td>
                         <td
