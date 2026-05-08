@@ -151,6 +151,17 @@ const formatKickoff = (value) =>
       })
     : "--";
 
+const formatKickoffShort = (value) =>
+  value
+    ? new Date(value).toLocaleString("pt-BR", {
+        timeZone: BRASILIA_TIMEZONE,
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).replace(",", "")
+    : "--";
+
 const formatKickoffTime = (value) =>
   value
     ? new Date(value).toLocaleTimeString("pt-BR", {
@@ -193,10 +204,18 @@ const formatScoreContext = (game) => {
   }
 
   if (game?.isFinished) {
-    return "Resultado final";
+    return `Resultado final | ${formatKickoff(game?.commenceTime)}`;
   }
 
   return `Comeca em ${formatKickoff(game?.commenceTime)}`;
+};
+
+const formatBoardTime = (game, mode) => {
+  if (game?.isLive) {
+    return formatClock(game);
+  }
+
+  return mode === "worldcup" ? formatKickoffShort(game?.commenceTime) : formatKickoffTime(game?.commenceTime);
 };
 
 const translateBetText = (value) => {
@@ -1616,7 +1635,7 @@ function BubblesWorldCup() {
           {!loading && viewMode === "list" && chronologicalGames.length ? (
             <div className="radar-list-view">
               <div className="radar-list-head">
-                <span>Hora BR</span>
+                <span>{mode === "worldcup" ? "Data/Hora BR" : "Hora BR"}</span>
                 <span>Jogo</span>
                 <span>Palpite</span>
                 <span>Chance</span>
@@ -1634,7 +1653,7 @@ function BubblesWorldCup() {
                     type="button"
                   >
                     <span className={game.isLive ? "list-time is-live" : "list-time"}>
-                      {game.isLive ? formatClock(game) : formatKickoffTime(game.commenceTime)}
+                      {formatBoardTime(game, mode)}
                       <small>{formatScoreLine(game)}</small>
                     </span>
                     <strong>
@@ -1686,6 +1705,9 @@ function BubblesWorldCup() {
                   {hitState.state === "hit" ? <AiHitLogo state="hit" compact /> : null}
                   <span className="bubble-primary">{getBubbleMainLabel(game)}</span>
                   <strong>{formatChance(game.displayProbability || game.probability)}</strong>
+                  {mode === "worldcup" && !game.isLive ? (
+                    <span className="bubble-schedule">{formatKickoffShort(game.commenceTime)}</span>
+                  ) : null}
                   {hasScoreLine(game) || game.isLive ? (
                     <span className={hasLiveMinute(game) ? "bubble-score-stack is-live" : "bubble-score-stack"}>
                       <span className="bubble-score">{formatScoreLine(game)}</span>
@@ -1706,6 +1728,7 @@ function BubblesWorldCup() {
               <div>
                 <small>{formatChance(hoveredGame.displayProbability || hoveredGame.probability)} chance</small>
                 <small>Odd {formatOdd(hoveredGame.displayOdd || hoveredGame.oddHome)}</small>
+                {mode === "worldcup" ? <small>{formatKickoff(hoveredGame.commenceTime)}</small> : null}
                 <small>{formatScoreLine(hoveredGame)}</small>
               </div>
             </aside>
@@ -1748,7 +1771,10 @@ function BubblesWorldCup() {
                   {translateBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)} |{" "}
                   {formatChance(selectedGame.displayProbability || selectedGame.probability)} |{" "}
                   Odd {formatOdd(selectedGame.displayOdd || selectedGame.oddHome)} |{" "}
-                  {formatScoreLine(selectedGame)} | {formatClock(selectedGame)}
+                  {formatScoreLine(selectedGame)} |{" "}
+                  {mode === "worldcup" && !selectedGame.isLive
+                    ? formatKickoff(selectedGame.commenceTime)
+                    : formatClock(selectedGame)}
                 </p>
               </div>
 
@@ -1759,8 +1785,12 @@ function BubblesWorldCup() {
 
             <div className="modal-summary-grid">
               <article>
-                <span>Placar online</span>
-                <strong>{formatScoreLine(selectedGame)}</strong>
+                <span>{mode === "worldcup" && !selectedGame.isLive ? "Data e horario" : "Placar online"}</span>
+                <strong>
+                  {mode === "worldcup" && !selectedGame.isLive
+                    ? formatKickoff(selectedGame.commenceTime)
+                    : formatScoreLine(selectedGame)}
+                </strong>
                 <small>{formatScoreContext(selectedGame)}</small>
               </article>
               <article>
