@@ -71,6 +71,21 @@ function AiHitLogo({ state = "pending", compact = false }) {
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const formatChance = (value) => `${Math.round((value || 0) * 100)}%`;
+const getPredictionChance = (game) =>
+  clamp(Number(game?.displayProbability ?? game?.probability ?? 0), 0, 1);
+
+function AiAccuracyLine({ game }) {
+  const hitChance = getPredictionChance(game);
+  const errorChance = clamp(1 - hitChance, 0, 1);
+
+  return (
+    <small className="ai-accuracy-line">
+      <span>Acerto {formatChance(hitChance)}</span>
+      <span className="ai-error-rate">Erro {formatChance(errorChance)}</span>
+    </small>
+  );
+}
+
 const formatOdd = (value) =>
   value && Number.isFinite(value) && value > 0 ? value.toFixed(2).replace(".", ",") : "--";
 const formatClock = (game) => {
@@ -1306,6 +1321,33 @@ function BubblesWorldCup() {
   const liveCount = games.filter((game) => game.isLive).length;
   const preCount = games.filter((game) => !game.isLive && !game.isFinished).length;
   const finishedCount = games.filter((game) => game.isFinished).length;
+  const todayAiStats = useMemo(() => {
+    const stats = todayListGames.reduce(
+      (summary, game) => {
+        const rowGame = withDisplayMarket(game, "best") || game;
+        const hitState = getAiHitState(rowGame);
+
+        if (hitState.state === "hit") {
+          summary.hits += 1;
+          summary.checked += 1;
+        } else if (hitState.state === "miss") {
+          summary.misses += 1;
+          summary.checked += 1;
+        } else {
+          summary.pending += 1;
+        }
+
+        return summary;
+      },
+      { checked: 0, hits: 0, misses: 0, pending: 0 }
+    );
+
+    return {
+      ...stats,
+      hitRate: stats.checked ? stats.hits / stats.checked : 0,
+      missRate: stats.checked ? stats.misses / stats.checked : 0,
+    };
+  }, [todayListGames]);
   const topGames = [...filteredGames]
     .sort(
       (left, right) =>
@@ -1577,7 +1619,10 @@ function BubblesWorldCup() {
                       {game.game}
                       <small>{game.league}</small>
                     </strong>
-                    <span>{translateBetText(game.displayPickLabel || game.pickLabel)}</span>
+                    <span className="prediction-summary">
+                      <b>{translateBetText(game.displayPickLabel || game.pickLabel)}</b>
+                      <AiAccuracyLine game={game} />
+                    </span>
                     <em>{formatChance(game.displayProbability || game.probability)}</em>
                     <span className={`list-ai-hit is-${hitState.state}`}>
                       <AiHitLogo state={hitState.state} compact />
@@ -1901,6 +1946,21 @@ function BubblesWorldCup() {
                 <span>Encerrados</span>
                 <strong>{finishedCount}</strong>
               </article>
+              <article className="ai-stat-card is-hit">
+                <span>IA acertou</span>
+                <strong>{formatChance(todayAiStats.hitRate)}</strong>
+                <small>{todayAiStats.hits} de {todayAiStats.checked} conferidos</small>
+              </article>
+              <article className="ai-stat-card is-miss">
+                <span>IA errou</span>
+                <strong>{formatChance(todayAiStats.missRate)}</strong>
+                <small>{todayAiStats.misses} de {todayAiStats.checked} conferidos</small>
+              </article>
+              <article className="ai-stat-card">
+                <span>Em validacao</span>
+                <strong>{todayAiStats.pending}</strong>
+                <small>Ao vivo ou aguardando resultado</small>
+              </article>
             </div>
 
             <div className="today-games-table-wrap">
@@ -1944,6 +2004,7 @@ function BubblesWorldCup() {
                         <td>{game.awayTeam}</td>
                         <td>
                           <strong>{translateBetText(rowGame.displayPickLabel || rowGame.pickLabel)}</strong>
+                          <AiAccuracyLine game={rowGame} />
                           <small>{getBetHelpText(rowGame.displayPickLabel || rowGame.pickLabel) || game.aiInsights?.action || "Verificar"}</small>
                         </td>
                         <td
