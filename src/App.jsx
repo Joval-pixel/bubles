@@ -29,7 +29,7 @@ const SPONSORS = [
 ];
 
 const RADAR_INITIAL_LIMIT = 12;
-const VALID_FILTERS = new Set(["best", "live", "goals", "corners", "btts"]);
+const VALID_FILTERS = new Set(["best", "live", "goals", "btts"]);
 const VALID_MODES = new Set(["today", "worldcup"]);
 const VALID_VIEWS = new Set(["radar", "list"]);
 const BRASILIA_TIMEZONE = "America/Sao_Paulo";
@@ -169,6 +169,11 @@ const translateBetText = (value) => {
   }
 
   return text
+    .replace(/Nao combina ambas marcam com mais de 2\.5 gols/gi, "Nao: ambas marcam + mais de 2,5 gols")
+    .replace(/Nao: ambas marcam \+ mais de 2\.5 gols/gi, "Nao: ambas marcam + mais de 2,5 gols")
+    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Ambas marcam + mais de 2,5 gols")
+    .replace(/Ambas marcam \+ mais de 2\.5 gols/gi, "Ambas marcam + mais de 2,5 gols")
+    .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
     .replace(/\bMatch Winner\b/gi, "Resultado final")
     .replace(/\bWinner\b/gi, "Vencedor")
     .replace(/\bDouble Chance\b/gi, "Dupla chance")
@@ -181,8 +186,6 @@ const translateBetText = (value) => {
     .replace(/\bDraw\b/gi, "Empate")
     .replace(/\bHome\b/gi, "Mandante")
     .replace(/\bAway\b/gi, "Visitante")
-    .replace(/\bCorners\b/gi, "Escanteios")
-    .replace(/\bCards\b/gi, "Cartoes")
     .replace(/\bGoals\b/gi, "Gols")
     .replace(/\bOdd\b/gi, "Impar")
     .replace(/\bEven\b/gi, "Par");
@@ -624,19 +627,6 @@ const getDisplayMarket = (game, activeFilter) => {
       : null;
   }
 
-  if (activeFilter === "corners") {
-    const market = findMarketByCategory(game, "Escanteios");
-    return market?.leader
-      ? {
-          category: "Escanteios",
-          name: market.name,
-          label: market.leader.label,
-          probability: market.leader.probability,
-          odd: market.leader.odd,
-        }
-      : null;
-  }
-
   if (activeFilter === "btts") {
     const market = findBttsMarket(game);
     return market?.leader
@@ -699,10 +689,6 @@ const getFilterTitle = (activeFilter, mode) => {
     return "Palpites de gols";
   }
 
-  if (activeFilter === "corners") {
-    return "Palpites de escanteios";
-  }
-
   if (activeFilter === "btts") {
     return "Ambas marcam";
   }
@@ -725,10 +711,6 @@ const getFilterSubtitle = (activeFilter) => {
 
   if (activeFilter === "goals") {
     return "Mercados de gols mais faceis de conferir.";
-  }
-
-  if (activeFilter === "corners") {
-    return "Mercados de escanteios para acompanhar.";
   }
 
   if (activeFilter === "btts") {
@@ -1325,13 +1307,6 @@ function BubblesWorldCup() {
             Gols
           </button>
           <button
-            className={filter === "corners" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setFilter("corners")}
-            type="button"
-          >
-            Escanteios
-          </button>
-          <button
             className={filter === "btts" ? "chip-button is-active" : "chip-button"}
             onClick={() => setFilter("btts")}
             type="button"
@@ -1396,7 +1371,7 @@ function BubblesWorldCup() {
         <article className="simple-guide-card">
           <span>Como usar</span>
           <strong>Escolha uma bolha</strong>
-          <small>Clique para ver palpite principal, gols, escanteios e risco da IA.</small>
+          <small>Clique para ver vencedor, dupla chance, gols e ambas marcam.</small>
         </article>
 
         <article className="simple-guide-card">
@@ -1620,9 +1595,10 @@ function BubblesWorldCup() {
             <section className="modal-ai-card primary-reading">
               <span>Leitura facil</span>
               <ul>
+                <li>{aiInsights.result || "Resultado: sem dados suficientes neste momento."}</li>
                 <li>{aiInsights.goals || "Gols: sem dados suficientes neste momento."}</li>
-                <li>{aiInsights.corners || "Escanteios: sem dados suficientes neste momento."}</li>
-                <li>{aiInsights.cards || "Cartoes: sem dados suficientes neste momento."}</li>
+                <li>{aiInsights.btts || "Ambas marcam: sem dados suficientes neste momento."}</li>
+                <li>{aiInsights.combo || "Combinada: sem dados suficientes neste momento."}</li>
                 <li>{aiInsights.warning || "Use como apoio para analise. Nao existe aposta garantida."}</li>
               </ul>
             </section>
