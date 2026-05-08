@@ -745,10 +745,10 @@ const translatePickLabel = (label) => {
   }
 
   return text
-    .replace(/Nao combina ambas marcam com mais de 2\.5 gols/gi, "Nao apostar: ambos marcam + mais de 2,5 gols")
-    .replace(/Nao: ambas marcam \+ mais de 2\.5 gols/gi, "Nao apostar: ambos marcam + mais de 2,5 gols")
-    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Ambas marcam + mais de 2,5 gols")
-    .replace(/Ambas marcam \+ mais de 2\.5 gols/gi, "Ambas marcam + mais de 2,5 gols")
+    .replace(/Nao combina ambas marcam com mais de 2\.5 gols/gi, "Evitar jogo aberto")
+    .replace(/Nao: ambas marcam \+ mais de 2\.5 gols/gi, "Evitar jogo aberto")
+    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
+    .replace(/Ambas marcam \+ mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
     .replace(/\bOver\b/gi, "Mais de")
     .replace(/\bUnder\b/gi, "Menos de")
