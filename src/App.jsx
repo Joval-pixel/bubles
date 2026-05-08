@@ -111,6 +111,18 @@ const formatClock = (game) => {
   return "PRE";
 };
 
+const hasLiveMinute = (game) => Boolean(game?.isLive || Number(game?.minute) > 0);
+
+const formatLiveMinute = (game) => {
+  const minute = Math.round(Number(game?.minute) || 0);
+
+  if (minute > 0) {
+    return `${minute}' ao vivo`;
+  }
+
+  return game?.isLive ? "Ao vivo" : "";
+};
+
 const hasScoreLine = (game) => {
   const score = String(game?.scoreLine || "").trim();
   return Boolean(score && score !== "Pre-jogo");
@@ -1680,9 +1692,11 @@ function BubblesWorldCup() {
                   <span className="bubble-primary">{getBubbleMainLabel(game)}</span>
                   <strong>{formatChance(game.displayProbability || game.probability)}</strong>
                   {hasScoreLine(game) || game.isLive ? (
-                    <span className={game.isLive ? "bubble-score-stack is-live" : "bubble-score-stack"}>
+                    <span className={hasLiveMinute(game) ? "bubble-score-stack is-live" : "bubble-score-stack"}>
                       <span className="bubble-score">{formatScoreLine(game)}</span>
-                      {game.isLive ? <span className="bubble-minute">{formatClock(game)} online</span> : null}
+                      {hasLiveMinute(game) ? (
+                        <span className="bubble-minute">{formatLiveMinute(game)}</span>
+                      ) : null}
                     </span>
                   ) : null}
                 </button>
