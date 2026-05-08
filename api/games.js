@@ -332,6 +332,26 @@ const isAllowedPredictionMarket = (betName) => {
   );
 };
 
+const isNegativeOpenGameCombo = (marketName, label) => {
+  const text = normalizeText(`${marketName || ""} ${label || ""}`);
+  const hasBothTeams =
+    text.includes("both teams") ||
+    text.includes("btts") ||
+    text.includes("ambas marcam") ||
+    text.includes("ambos marcam");
+  const hasOver25 =
+    text.includes("over 2.5") ||
+    text.includes("mais de 2.5") ||
+    text.includes("mais de 2,5") ||
+    text.includes("+ mais de 2.5") ||
+    text.includes("+ mais de 2,5") ||
+    text.includes("+2.5") ||
+    text.includes("+2,5");
+  const isNegative = /(^|\s|:|-)(no|nao|not)(\s|:|-|$)/.test(text);
+
+  return hasBothTeams && hasOver25 && isNegative;
+};
+
 const createOption = ({ key, code, label, probability, odd, bookmaker, source }) => ({
   key,
   code,
@@ -550,13 +570,16 @@ const buildFallbackBetMarkets = (fixture, mainMarket) => {
         }),
       ],
     }),
-  ];
+  ].filter((market) => !isNegativeOpenGameCombo(market?.name, market?.leader?.label));
 };
 
 const mergeMissingBetMarkets = (fixture, mainMarket, officialMarkets) => {
   const fallbackMarkets = buildFallbackBetMarkets(fixture, mainMarket);
-  const byName = new Set(officialMarkets.map((market) => normalizeText(`${market.category}-${market.name}`)));
-  const categoryCounts = officialMarkets.reduce((counts, market) => {
+  const cleanOfficialMarkets = officialMarkets.filter(
+    (market) => !isNegativeOpenGameCombo(market?.name, market?.leader?.label)
+  );
+  const byName = new Set(cleanOfficialMarkets.map((market) => normalizeText(`${market.category}-${market.name}`)));
+  const categoryCounts = cleanOfficialMarkets.reduce((counts, market) => {
     counts[market.category] = (counts[market.category] || 0) + 1;
     return counts;
   }, {});
@@ -570,7 +593,7 @@ const mergeMissingBetMarkets = (fixture, mainMarket, officialMarkets) => {
     return (categoryCounts[market.category] || 0) < 2;
   });
 
-  return [...officialMarkets, ...neededFallbacks]
+  return [...cleanOfficialMarkets, ...neededFallbacks]
     .sort((left, right) => {
       const rankDiff = getCategoryRank(left.category) - getCategoryRank(right.category);
 
@@ -745,8 +768,8 @@ const translatePickLabel = (label) => {
   }
 
   return text
-    .replace(/Nao combina ambas marcam com mais de 2\.5 gols/gi, "Evitar jogo aberto")
-    .replace(/Nao: ambas marcam \+ mais de 2\.5 gols/gi, "Evitar jogo aberto")
+    .replace(/Nao combina ambas marcam com mais de 2\.5 gols/gi, "Ambas marcam - Nao")
+    .replace(/Nao: ambas marcam \+ mais de 2\.5 gols/gi, "Ambas marcam - Nao")
     .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/Ambas marcam \+ mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
