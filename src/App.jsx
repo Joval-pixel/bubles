@@ -228,11 +228,11 @@ const translateBetText = (value) => {
   return text
     .replace(
       /Nao combina ambas marcam com mais de 2\.5 gols/gi,
-      "Evitar: ambos marcam + mais de 2,5 gols"
+      "Nao apostar: ambos marcam + mais de 2,5 gols"
     )
     .replace(
       /Nao: ambas marcam \+ mais de 2[,.]5 gols/gi,
-      "Evitar: ambos marcam + mais de 2,5 gols"
+      "Nao apostar: ambos marcam + mais de 2,5 gols"
     )
     .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Ambos marcam + mais de 2,5 gols")
     .replace(/Ambas marcam \+ mais de 2[,.]5 gols/gi, "Ambos marcam + mais de 2,5 gols")
@@ -258,11 +258,11 @@ const getBetHelpText = (value) => {
   const text = translateBetText(value).toLowerCase();
 
   if (
-    (text.includes("evitar") || text.includes("nao deve acontecer")) &&
+    (text.includes("nao apostar") || text.includes("evitar") || text.includes("nao deve acontecer")) &&
     (text.includes("ambos marcam") || text.includes("dois times marcam")) &&
     text.includes("+2,5")
   ) {
-    return "Leitura simples: a IA nao recomenda essa combinada. Para bater, os dois times teriam que marcar e o jogo ter 3 gols ou mais.";
+    return "A IA nao recomenda essa aposta. Ela so vence se os dois times fizerem gol e o jogo tiver 3 gols ou mais.";
   }
 
   if ((text.includes("ambos marcam") || text.includes("dois times marcam")) && text.includes("+2,5")) {
