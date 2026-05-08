@@ -3,6 +3,30 @@
     {
       "source": "/widgets",
       "destination": "/index.html"
+    },
+    {
+      "source": "/palpites-de-hoje",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/jogos-ao-vivo",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lista-jogos-hoje",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/palpites-gols",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/ambas-marcam",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/copa-2026",
+      "destination": "/index.html"
     }
   ]
 }
