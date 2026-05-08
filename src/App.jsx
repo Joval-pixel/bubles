@@ -1596,18 +1596,6 @@ function BubblesWorldCup() {
       <section className="radar-stage">
         <main className="bubble-board" ref={boardRef}>
           <div className="board-grid" />
-          <div className="board-status">
-            <span>{getFilterTitle(filter, mode)}</span>
-            <strong>{`${radarGames.length} de ${filteredGames.length} jogos`}</strong>
-            <em>{getFilterSubtitle(filter)}</em>
-            <small>
-              {refreshing
-                ? "Atualizando..."
-                : updatedAt
-                  ? `Atualizado as ${formatBrasiliaUpdateTime(updatedAt)} (${BRASILIA_TIMEZONE_LABEL})`
-                  : debug}
-            </small>
-          </div>
 
           {loading ? (
             <div className="empty-state">
