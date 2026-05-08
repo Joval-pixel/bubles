@@ -228,11 +228,11 @@ const translateBetText = (value) => {
   return text
     .replace(
       /Nao combina ambas marcam com mais de 2\.5 gols/gi,
-      "Evitar jogo aberto"
+      "Ambas marcam - Nao"
     )
     .replace(
       /Nao: ambas marcam \+ mais de 2[,.]5 gols/gi,
-      "Evitar jogo aberto"
+      "Ambas marcam - Nao"
     )
     .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/Ambas marcam \+ mais de 2[,.]5 gols/gi, "Jogo aberto com gols dos dois times")
@@ -295,7 +295,7 @@ const getTeamResultText = (value, game) => {
 
 const getPrimaryBetText = (value, game) => {
   if (isAvoidOpenGameCombo(value)) {
-    return "Evitar jogo aberto";
+    return "Ambas marcam - Nao";
   }
 
   if (hasOpenGameCombo(value)) {
@@ -309,7 +309,7 @@ const getBetHelpText = (value) => {
   const text = getBetSearchText(value);
 
   if (isAvoidOpenGameCombo(value)) {
-    return "A IA nao recomenda apostar em jogo aberto. Essa aposta so vence se os dois times fizerem gol e sair 3 gols ou mais.";
+    return "Leitura simples: a IA espera que pelo menos um time fique sem marcar.";
   }
 
   if (hasOpenGameCombo(value)) {
