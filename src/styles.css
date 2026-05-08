@@ -359,7 +359,7 @@ button {
 
 .simple-guide {
   display: grid;
-  grid-template-columns: minmax(320px, 1.2fr) minmax(220px, 0.45fr) minmax(220px, 0.45fr);
+  grid-template-columns: minmax(320px, 1.2fr) repeat(4, minmax(150px, 0.42fr));
   gap: 10px;
   margin-top: 10px;
 }
@@ -435,6 +435,39 @@ button {
   background: rgba(37, 243, 95, 0.1);
   color: #d8ffe2;
   font-weight: 900;
+}
+
+.home-ai-stat-card.is-hit {
+  border-color: rgba(37, 243, 95, 0.34);
+  background:
+    linear-gradient(145deg, rgba(37, 243, 95, 0.14), rgba(14, 14, 14, 0.86)),
+    var(--panel);
+}
+
+.home-ai-stat-card.is-hit strong {
+  color: #78ff96;
+}
+
+.home-ai-stat-card.is-miss {
+  border-color: rgba(255, 85, 85, 0.34);
+  background:
+    linear-gradient(145deg, rgba(255, 85, 85, 0.13), rgba(14, 14, 14, 0.86)),
+    var(--panel);
+}
+
+.home-ai-stat-card.is-miss span,
+.home-ai-stat-card.is-miss strong {
+  color: #ff8585;
+}
+
+.home-ai-stat-card strong {
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.home-ai-stat-card small {
+  display: block;
+  font-weight: 850;
 }
 
 .sponsor-strip,
@@ -1984,11 +2017,16 @@ button {
 
   .simple-guide {
     gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .simple-guide-main,
   .simple-guide-card {
     min-height: auto;
+  }
+
+  .simple-guide-main {
+    grid-column: 1 / -1;
   }
 
   .simple-guide-main h1 {
@@ -2001,6 +2039,11 @@ button {
 
   .simple-guide-card {
     display: none;
+  }
+
+  .simple-guide-card.home-ai-stat-card {
+    display: block;
+    padding: 0.72rem;
   }
 
   .radar-stage {
