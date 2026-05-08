@@ -273,7 +273,27 @@ const isAvoidOpenGameCombo = (value) => {
   return hasOpenGameCombo(value) && (text.includes("nao") || text.includes("evitar"));
 };
 
-const getPrimaryBetText = (value) => {
+const getTeamResultText = (value, game) => {
+  const text = translateBetText(value);
+  const normalized = text.toLowerCase();
+  const code = String(game?.pickCode || "").toUpperCase();
+
+  if (!game || !["favorito", "mandante", "visitante", "home", "away"].includes(normalized)) {
+    return text;
+  }
+
+  if (normalized === "visitante" || normalized === "away" || code === "2") {
+    return `${game.awayTeam} vence`;
+  }
+
+  if (code === "X") {
+    return "Empate";
+  }
+
+  return `${game.homeTeam} vence`;
+};
+
+const getPrimaryBetText = (value, game) => {
   if (isAvoidOpenGameCombo(value)) {
     return "Evitar jogo aberto";
   }
@@ -282,7 +302,7 @@ const getPrimaryBetText = (value) => {
     return "Jogo aberto com gols dos dois times";
   }
 
-  return translateBetText(value);
+  return getTeamResultText(value, game);
 };
 
 const getBetHelpText = (value) => {
@@ -1515,7 +1535,7 @@ function BubblesWorldCup() {
                 >
                   <strong>{game.game}</strong>
                   <span>
-                    {getGameStatusLabel(game)} | {getPrimaryBetText(game.displayPickLabel || game.pickLabel)} |{" "}
+                    {getGameStatusLabel(game)} | {getPrimaryBetText(game.displayPickLabel || game.pickLabel, game)} |{" "}
                     {formatChance(game.displayProbability || game.probability)}
                   </span>
                 </button>
@@ -1604,7 +1624,8 @@ function BubblesWorldCup() {
           <p>
             {topGames[0]
               ? `Palpite em destaque: ${getPrimaryBetText(
-                  topGames[0].displayPickLabel || topGames[0].pickLabel
+                  topGames[0].displayPickLabel || topGames[0].pickLabel,
+                  topGames[0]
                 )}. Clique no jogo para ver a leitura completa.`
               : "Assim que os jogos carregarem, os melhores palpites aparecem primeiro."}
           </p>
@@ -1688,7 +1709,7 @@ function BubblesWorldCup() {
                       <small>{game.league}</small>
                     </strong>
                     <span className="prediction-summary">
-                      <b>{getPrimaryBetText(game.displayPickLabel || game.pickLabel)}</b>
+                      <b>{getPrimaryBetText(game.displayPickLabel || game.pickLabel, game)}</b>
                     </span>
                     <em>{formatChance(game.displayProbability || game.probability)}</em>
                     <span className={`list-ai-hit is-${hitState.state}`}>
@@ -1751,7 +1772,7 @@ function BubblesWorldCup() {
             <aside className="bubble-tooltip" aria-live="polite">
               <span>{getGameStatusLabel(hoveredGame)}</span>
               <strong>{hoveredGame.game}</strong>
-              <p>{getPrimaryBetText(hoveredGame.displayPickLabel || hoveredGame.pickLabel)}</p>
+              <p>{getPrimaryBetText(hoveredGame.displayPickLabel || hoveredGame.pickLabel, hoveredGame)}</p>
               <div>
                 <small>{formatChance(hoveredGame.displayProbability || hoveredGame.probability)} chance</small>
                 <small>Odd {formatOdd(hoveredGame.displayOdd || hoveredGame.oddHome)}</small>
@@ -1795,7 +1816,7 @@ function BubblesWorldCup() {
                 </div>
                 <h2>{selectedGame.game}</h2>
                 <p>
-                  {getPrimaryBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)} |{" "}
+                  {getPrimaryBetText(selectedGame.displayPickLabel || selectedGame.pickLabel, selectedGame)} |{" "}
                   {formatChance(selectedGame.displayProbability || selectedGame.probability)} |{" "}
                   Odd {formatOdd(selectedGame.displayOdd || selectedGame.oddHome)} |{" "}
                   {formatScoreLine(selectedGame)} |{" "}
@@ -1822,7 +1843,7 @@ function BubblesWorldCup() {
               </article>
               <article>
                 <span>Palpite principal</span>
-                <strong>{getPrimaryBetText(selectedGame.displayPickLabel || selectedGame.pickLabel)}</strong>
+                <strong>{getPrimaryBetText(selectedGame.displayPickLabel || selectedGame.pickLabel, selectedGame)}</strong>
                 <small>
                   {getBetHelpText(selectedGame.displayPickLabel || selectedGame.pickLabel) ||
                     aiInsights.headline ||
@@ -2084,7 +2105,7 @@ function BubblesWorldCup() {
                         <td className="score-cell">{formatScoreLine(game)}</td>
                         <td>{game.awayTeam}</td>
                         <td>
-                          <strong>{getPrimaryBetText(rowGame.displayPickLabel || rowGame.pickLabel)}</strong>
+                          <strong>{getPrimaryBetText(rowGame.displayPickLabel || rowGame.pickLabel, rowGame)}</strong>
                           <small>{getBetHelpText(rowGame.displayPickLabel || rowGame.pickLabel) || game.aiInsights?.action || "Verificar"}</small>
                         </td>
                         <td
