@@ -1593,6 +1593,30 @@ button {
   white-space: nowrap;
 }
 
+.today-games-table .table-ai-hit {
+  display: inline-grid;
+  justify-items: center;
+  gap: 0.26rem;
+  min-width: 72px;
+  text-align: center;
+  white-space: normal;
+}
+
+.today-games-table .table-ai-hit .ai-hit-logo {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  margin: 0 auto;
+  line-height: 1;
+  text-align: center;
+}
+
+.today-games-table .table-ai-hit .ai-hit-logo.is-compact {
+  width: 1.52rem;
+  height: 1.52rem;
+  font-size: 0.86rem;
+}
+
 .table-ai-hit.is-pending {
   color: #fff1a6;
 }
