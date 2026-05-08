@@ -1391,7 +1391,6 @@ function BubblesWorldCup() {
   const aiAvoidIf = Array.isArray(aiInsights.avoidIf) ? aiInsights.avoidIf : [];
   const aiBestMarkets = Array.isArray(aiInsights.bestMarkets) ? aiInsights.bestMarkets : [];
   const selectedHitState = selectedGame ? getAiHitState(selectedGame) : null;
-  const topHitState = topGames[0] ? getAiHitState(topGames[0]) : null;
   const boardGamesCount = viewMode === "list" ? chronologicalGames.length : filteredGames.length;
 
   useEffect(() => {
@@ -1554,17 +1553,13 @@ function BubblesWorldCup() {
         <article className="simple-guide-main">
           <div className="guide-kicker">
             <span>{getFilterTitle(filter, mode)}</span>
-            <span className={topHitState ? `ai-hit-badge is-${topHitState.state}` : "ai-hit-badge is-pending"}>
-              <AiHitLogo state={topHitState?.state || "pending"} compact />
-              Acertos IA
-            </span>
           </div>
           <h1>{topGames[0]?.game || "Radar de palpites"}</h1>
           <p>
             {topGames[0]
-              ? `${translateBetText(topGames[0].displayPickLabel || topGames[0].pickLabel)} com ${formatChance(
-                  topGames[0].displayProbability || topGames[0].probability
-                )} de chance.`
+              ? `Palpite em destaque: ${translateBetText(
+                  topGames[0].displayPickLabel || topGames[0].pickLabel
+                )}. Clique no jogo para ver a leitura completa.`
               : "Assim que os jogos carregarem, os melhores palpites aparecem primeiro."}
           </p>
         </article>
