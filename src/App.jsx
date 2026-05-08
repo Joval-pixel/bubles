@@ -173,14 +173,14 @@ const translateBetText = (value) => {
   return text
     .replace(
       /Nao combina ambas marcam com mais de 2\.5 gols/gi,
-      "NAO deve acontecer: os dois times marcam e +2,5 gols"
+      "Evitar: ambos marcam + mais de 2,5 gols"
     )
     .replace(
       /Nao: ambas marcam \+ mais de 2[,.]5 gols/gi,
-      "NAO deve acontecer: os dois times marcam e +2,5 gols"
+      "Evitar: ambos marcam + mais de 2,5 gols"
     )
-    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Os dois times marcam e sai +2,5 gols")
-    .replace(/Ambas marcam \+ mais de 2[,.]5 gols/gi, "Os dois times marcam e sai +2,5 gols")
+    .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Ambos marcam + mais de 2,5 gols")
+    .replace(/Ambas marcam \+ mais de 2[,.]5 gols/gi, "Ambos marcam + mais de 2,5 gols")
     .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
     .replace(/\bMatch Winner\b/gi, "Resultado final")
     .replace(/\bWinner\b/gi, "Vencedor")
@@ -202,11 +202,15 @@ const translateBetText = (value) => {
 const getBetHelpText = (value) => {
   const text = translateBetText(value).toLowerCase();
 
-  if (text.includes("nao deve acontecer") && text.includes("dois times marcam") && text.includes("+2,5")) {
-    return "Leitura simples: a IA acha que uma parte nao bate. Ou um time nao marca, ou o jogo fica com 2 gols ou menos.";
+  if (
+    (text.includes("evitar") || text.includes("nao deve acontecer")) &&
+    (text.includes("ambos marcam") || text.includes("dois times marcam")) &&
+    text.includes("+2,5")
+  ) {
+    return "Leitura simples: a IA nao recomenda essa combinada. Para bater, os dois times teriam que marcar e o jogo ter 3 gols ou mais.";
   }
 
-  if (text.includes("dois times marcam") && text.includes("+2,5")) {
+  if ((text.includes("ambos marcam") || text.includes("dois times marcam")) && text.includes("+2,5")) {
     return "Para bater, os dois times precisam marcar e o jogo precisa ter 3 gols ou mais.";
   }
 
