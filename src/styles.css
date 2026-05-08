@@ -1087,29 +1087,6 @@ button {
   white-space: nowrap;
 }
 
-.prediction-summary small,
-.ai-accuracy-line {
-  color: #9cffb6 !important;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.01em;
-}
-
-.ai-accuracy-line {
-  display: flex !important;
-  align-items: center;
-  gap: 0.42rem;
-  margin-top: 0.24rem !important;
-}
-
-.ai-accuracy-line span {
-  display: inline !important;
-}
-
-.ai-error-rate {
-  color: #ff8585 !important;
-}
-
 .list-ai-hit {
   display: inline-flex;
   align-items: center;
