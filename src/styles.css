@@ -882,6 +882,8 @@ button {
   font-weight: 900;
   letter-spacing: 0.01em;
   line-height: 1;
+  overflow: visible;
+  white-space: normal;
   text-shadow:
     0 1px 0 rgba(0, 0, 0, 0.55),
     0 0 10px rgba(255, 224, 77, 0.72);
@@ -900,15 +902,18 @@ button {
 }
 
 .bubble .bubble-minute {
+  display: block;
   max-width: 100%;
-  color: #9cffb6;
-  font-size: clamp(0.28rem, 0.42vw, 0.52rem);
+  overflow: visible;
+  color: #ffe04d;
+  font-size: clamp(0.32rem, 0.48vw, 0.58rem);
   font-weight: 950;
   letter-spacing: 0.02em;
   line-height: 0.95;
+  white-space: nowrap;
   text-shadow:
     0 1px 0 rgba(0, 0, 0, 0.75),
-    0 0 10px rgba(37, 243, 95, 0.62);
+    0 0 12px rgba(255, 224, 77, 0.72);
 }
 
 .bubble .bubble-team {
