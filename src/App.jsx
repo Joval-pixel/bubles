@@ -1584,6 +1584,22 @@ function BubblesWorldCup() {
           <small>Clique para ver vencedor, dupla chance, gols e ambas marcam.</small>
         </article>
 
+        {mode === "today" ? (
+          <>
+            <article className="simple-guide-card home-ai-stat-card is-hit">
+              <span>IA acertou</span>
+              <strong>{formatChance(todayAiStats.hitRate)}</strong>
+              <small>{todayAiStats.hits} de {todayAiStats.checked} conferidos</small>
+            </article>
+
+            <article className="simple-guide-card home-ai-stat-card is-miss">
+              <span>IA errou</span>
+              <strong>{formatChance(todayAiStats.missRate)}</strong>
+              <small>{todayAiStats.misses} de {todayAiStats.checked} conferidos</small>
+            </article>
+          </>
+        ) : null}
+
         <article className="simple-guide-card">
           <span>Todos jogos de hoje</span>
           <strong>{mode === "today" ? `${games.length} jogos` : "Copa 2026"}</strong>
