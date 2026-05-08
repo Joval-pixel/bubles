@@ -1889,7 +1889,7 @@ button {
   }
 
   .bubble-board {
-    min-height: max(660px, calc(100dvh - 210px));
+    min-height: max(860px, calc(100dvh - 210px));
     border-radius: 10px;
   }
 
