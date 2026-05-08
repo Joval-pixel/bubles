@@ -34,6 +34,15 @@ const VALID_MODES = new Set(["today", "worldcup"]);
 const VALID_VIEWS = new Set(["radar", "list"]);
 const BRASILIA_TIMEZONE = "America/Sao_Paulo";
 const BRASILIA_TIMEZONE_LABEL = "Horario de Brasilia";
+const ROUTE_DEFAULTS = {
+  "/": { mode: "today", filter: "best", view: "radar" },
+  "/palpites-de-hoje": { mode: "today", filter: "best", view: "radar" },
+  "/jogos-ao-vivo": { mode: "today", filter: "live", view: "radar" },
+  "/lista-jogos-hoje": { mode: "today", filter: "best", view: "list" },
+  "/palpites-gols": { mode: "today", filter: "goals", view: "radar" },
+  "/ambas-marcam": { mode: "today", filter: "btts", view: "radar" },
+  "/copa-2026": { mode: "worldcup", filter: "best", view: "radar" },
+};
 
 const getInitialSearchParam = (name, fallback) => {
   if (typeof window === "undefined") {
@@ -41,6 +50,21 @@ const getInitialSearchParam = (name, fallback) => {
   }
 
   return new URLSearchParams(window.location.search).get(name) || fallback;
+};
+
+const getInitialRouteValue = (name, fallback) => {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  const queryValue = new URLSearchParams(window.location.search).get(name);
+
+  if (queryValue) {
+    return queryValue;
+  }
+
+  const pathname = window.location.pathname.replace(/\/$/, "") || "/";
+  return ROUTE_DEFAULTS[pathname]?.[name] || fallback;
 };
 
 function BublesLogo() {
@@ -998,15 +1022,15 @@ function BubblesWorldCup() {
   const [message, setMessage] = useState("");
   const [debug, setDebug] = useState("");
   const [mode, setMode] = useState(() => {
-    const initialMode = getInitialSearchParam("mode", "today");
+    const initialMode = getInitialRouteValue("mode", "today");
     return VALID_MODES.has(initialMode) ? initialMode : "today";
   });
   const [filter, setFilter] = useState(() => {
-    const initialFilter = getInitialSearchParam("filter", "best");
+    const initialFilter = getInitialRouteValue("filter", "best");
     return VALID_FILTERS.has(initialFilter) ? initialFilter : "best";
   });
   const [viewMode, setViewMode] = useState(() => {
-    const initialView = getInitialSearchParam("view", "radar");
+    const initialView = getInitialRouteValue("view", "radar");
     return VALID_VIEWS.has(initialView) ? initialView : "radar";
   });
   const [radarLimit, setRadarLimit] = useState(RADAR_INITIAL_LIMIT);
@@ -1656,8 +1680,9 @@ function BubblesWorldCup() {
                   <span className="bubble-primary">{getBubbleMainLabel(game)}</span>
                   <strong>{formatChance(game.displayProbability || game.probability)}</strong>
                   {hasScoreLine(game) || game.isLive ? (
-                    <span className={game.isLive ? "bubble-score is-live" : "bubble-score"}>
-                      {formatScoreLine(game)}
+                    <span className={game.isLive ? "bubble-score-stack is-live" : "bubble-score-stack"}>
+                      <span className="bubble-score">{formatScoreLine(game)}</span>
+                      {game.isLive ? <span className="bubble-minute">{formatClock(game)} online</span> : null}
                     </span>
                   ) : null}
                 </button>
