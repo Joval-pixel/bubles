@@ -763,6 +763,34 @@ const translatePickLabel = (label) => {
     .replace(/\bEven\b/gi, "Par");
 };
 
+const resolveFixturePickLabel = (label, pickCode, homeName, awayName) => {
+  const text = String(label || "").trim();
+  const normalized = normalizeText(text);
+  const code = String(pickCode || "").toUpperCase();
+
+  if (!text || normalized === "favorito" || normalized === "home" || normalized === "mandante") {
+    if (code === "2") {
+      return awayName;
+    }
+
+    if (code === "X") {
+      return "Empate";
+    }
+
+    return homeName;
+  }
+
+  if (normalized === "away" || normalized === "visitante") {
+    return awayName;
+  }
+
+  if (normalized === "draw" || normalized === "empate") {
+    return "Empate";
+  }
+
+  return text;
+};
+
 const getConfidenceLevel = (market) => {
   const probability = market?.probability || 0;
   const gap = market?.leaderGap || 0;
@@ -1121,7 +1149,15 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
   const isLive = LIVE_STATUSES.has(statusShort);
   const isFinished = FINISHED_STATUSES.has(statusShort);
   const commenceTime = getFixtureCommenceTime(fixture);
-  const market = oddsAnalysis?.market || buildFallbackMarket(fixture);
+  const baseMarket = oddsAnalysis?.market || buildFallbackMarket(fixture);
+  const market = {
+    ...baseMarket,
+    pickLabel: resolveFixturePickLabel(baseMarket.pickLabel, baseMarket.pickCode, homeName, awayName),
+    marketOptions: (baseMarket.marketOptions || []).map((option) => ({
+      ...option,
+      label: resolveFixturePickLabel(option.label, option.code, homeName, awayName),
+    })),
+  };
   const rawBetMarkets = oddsAnalysis?.betMarkets ?? [];
   const resultMarket = {
     id: "main-result",
