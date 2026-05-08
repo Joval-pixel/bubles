@@ -391,60 +391,85 @@ const getMobileVelocity = (index, axis) => {
   return limitMobileVelocity(direction * (base + spread));
 };
 
+const getGridMetrics = (total = 0, bounds = {}) => {
+  const width = Math.max(bounds.width || 0, 320);
+  const height = Math.max(bounds.height || 0, 560);
+  const mobile = isMobileBounds(bounds);
+
+  if (!mobile && total < 24) {
+    return null;
+  }
+
+  const columns = mobile ? (width <= 380 ? 3 : 4) : width >= 1500 ? 7 : width >= 1200 ? 6 : width >= 920 ? 5 : 4;
+  const rows = Math.max(1, Math.ceil(total / columns));
+  const topOffset = mobile ? 108 : 92;
+  const minSlotHeight = mobile ? 88 : 112;
+  const layoutHeight = Math.max(height, topOffset + rows * minSlotHeight + EDGE_PADDING * 2);
+  const slotWidth = (width - EDGE_PADDING * 2) / columns;
+  const usableHeight = Math.max(rows * minSlotHeight, layoutHeight - topOffset - EDGE_PADDING * 2);
+  const slotHeight = usableHeight / rows;
+  const maxSize = Math.max(mobile ? 42 : 56, Math.min(slotWidth, slotHeight) - (mobile ? 20 : 28));
+
+  return {
+    columns,
+    layoutHeight,
+    maxSize,
+    mobile,
+    rows,
+    slotHeight,
+    slotWidth,
+    topOffset,
+    width,
+  };
+};
+
 const getDisplaySize = (probability, scale, total = 0, bounds = {}) => {
   const crowdFactor = getCrowdFactor(total);
   const boardWidth = bounds.width || 1280;
   const boardFactor = boardWidth <= 420 ? 0.62 : boardWidth <= 760 ? 0.72 : boardWidth <= 1024 ? 0.86 : 1;
   const base = (48 + clamp(probability || 0.33, 0.05, 0.9) * 170) * crowdFactor * boardFactor;
+  const metrics = getGridMetrics(total, bounds);
+  const gridMaxSize = metrics?.maxSize || Number.POSITIVE_INFINITY;
 
   if (scale === "large") {
-    return clamp(base * 1.1, boardWidth <= MOBILE_BOARD_WIDTH ? 46 : 58, boardWidth <= MOBILE_BOARD_WIDTH ? 74 : 238);
+    return clamp(
+      base * 1.1,
+      boardWidth <= MOBILE_BOARD_WIDTH ? 46 : 58,
+      Math.min(boardWidth <= MOBILE_BOARD_WIDTH ? 74 : 238, gridMaxSize)
+    );
   }
 
   if (scale === "small") {
-    return clamp(base * 0.78, boardWidth <= MOBILE_BOARD_WIDTH ? 38 : 42, boardWidth <= MOBILE_BOARD_WIDTH ? 68 : 150);
+    return clamp(
+      base * 0.78,
+      boardWidth <= MOBILE_BOARD_WIDTH ? 38 : 42,
+      Math.min(boardWidth <= MOBILE_BOARD_WIDTH ? 68 : 150, gridMaxSize)
+    );
   }
 
-  return clamp(base * 0.92, boardWidth <= MOBILE_BOARD_WIDTH ? 42 : 50, boardWidth <= MOBILE_BOARD_WIDTH ? 72 : 198);
+  return clamp(
+    base * 0.92,
+    boardWidth <= MOBILE_BOARD_WIDTH ? 42 : 50,
+    Math.min(boardWidth <= MOBILE_BOARD_WIDTH ? 72 : 198, gridMaxSize)
+  );
 };
 
 const getInitialPosition = (index, total, bounds, size) => {
   const width = Math.max(bounds.width || 0, 320);
   const height = Math.max(bounds.height || 0, 560);
+  const metrics = getGridMetrics(total, bounds);
 
-  if (isMobileBounds(bounds)) {
-    const columns = width <= 380 ? 3 : 4;
-    const topOffset = 108;
-    const slotWidth = (width - EDGE_PADDING * 2) / columns;
-    const slotHeight = Math.max(76, size + 12);
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    const x = EDGE_PADDING + column * slotWidth + Math.max(0, (slotWidth - size) / 2);
-    const y = topOffset + row * slotHeight;
-
-    return {
-      x: clamp(x, EDGE_PADDING, width - size - EDGE_PADDING),
-      y: clamp(y, EDGE_PADDING, height - size - EDGE_PADDING),
-    };
-  }
-
-  if (total >= 24) {
-    const columns = width >= 1500 ? 7 : width >= 1200 ? 6 : width >= 920 ? 5 : 4;
-    const topOffset = 92;
-    const usableHeight = Math.max(360, height - topOffset - EDGE_PADDING * 2);
-    const rows = Math.ceil(total / columns);
-    const slotWidth = (width - EDGE_PADDING * 2) / columns;
-    const slotHeight = Math.max(92, usableHeight / rows);
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    const jitterX = ((index % 3) - 1) * Math.min(18, slotWidth * 0.08);
-    const jitterY = (((index + 1) % 3) - 1) * Math.min(16, slotHeight * 0.1);
-    const x = EDGE_PADDING + column * slotWidth + Math.max(0, (slotWidth - size) / 2) + jitterX;
-    const y = topOffset + row * slotHeight + Math.max(0, (slotHeight - size) / 2) + jitterY;
+  if (metrics) {
+    const column = index % metrics.columns;
+    const row = Math.floor(index / metrics.columns);
+    const jitterX = metrics.mobile ? 0 : ((index % 3) - 1) * Math.min(10, metrics.slotWidth * 0.04);
+    const jitterY = metrics.mobile ? 0 : (((index + 1) % 3) - 1) * Math.min(8, metrics.slotHeight * 0.05);
+    const x = EDGE_PADDING + column * metrics.slotWidth + Math.max(0, (metrics.slotWidth - size) / 2) + jitterX;
+    const y = metrics.topOffset + row * metrics.slotHeight + Math.max(0, (metrics.slotHeight - size) / 2) + jitterY;
 
     return {
       x: clamp(x, EDGE_PADDING, width - size - EDGE_PADDING),
-      y: clamp(y, EDGE_PADDING, height - size - EDGE_PADDING),
+      y: clamp(y, EDGE_PADDING, metrics.layoutHeight - size - EDGE_PADDING),
     };
   }
 
@@ -464,10 +489,15 @@ const getInitialPosition = (index, total, bounds, size) => {
 const createBubble = (game, existing, bounds, index, total, scale) => {
   const size = getDisplaySize(game.bubbleValue ?? game.probability, scale, total, bounds);
   const mobile = isMobileBounds(bounds);
-  const position = mobile ? getInitialPosition(index, total, bounds, size) : existing ?? getInitialPosition(index, total, bounds, size);
+  const anchoredLayout = Boolean(getGridMetrics(total, bounds));
+  const initialPosition = getInitialPosition(index, total, bounds, size);
+  const position = anchoredLayout || mobile ? initialPosition : existing ?? initialPosition;
 
   return {
     ...game,
+    anchorX: initialPosition.x,
+    anchorY: initialPosition.y,
+    anchoredLayout,
     size,
     radius: size / 2,
     tier: getTier(game.bubbleValue ?? game.probability),
@@ -550,6 +580,32 @@ const resolveBubbleCollisions = (items, bounds, mobile = false) => {
   return next;
 };
 
+const constrainBubbleToAnchor = (bubble, bounds, mobile = false) => {
+  if (!bubble.anchoredLayout || !Number.isFinite(bubble.anchorX) || !Number.isFinite(bubble.anchorY)) {
+    return bubble;
+  }
+
+  const width = Math.max(bounds.width || 0, 320);
+  const height = Math.max(bounds.height || 0, bubble.anchorY + bubble.size + EDGE_PADDING);
+  const drift = mobile ? 4 : Math.max(6, Math.min(12, bubble.size * 0.08));
+  const minX = clamp(bubble.anchorX - drift, EDGE_PADDING, width - bubble.size - EDGE_PADDING);
+  const maxX = clamp(bubble.anchorX + drift, EDGE_PADDING, width - bubble.size - EDGE_PADDING);
+  const minY = clamp(bubble.anchorY - drift, EDGE_PADDING, height - bubble.size - EDGE_PADDING);
+  const maxY = clamp(bubble.anchorY + drift, EDGE_PADDING, height - bubble.size - EDGE_PADDING);
+
+  if (bubble.x <= minX || bubble.x >= maxX) {
+    bubble.vx = (mobile ? limitMobileVelocity : limitVelocity)(bubble.vx * -0.6);
+    bubble.x = clamp(bubble.x, Math.min(minX, maxX), Math.max(minX, maxX));
+  }
+
+  if (bubble.y <= minY || bubble.y >= maxY) {
+    bubble.vy = (mobile ? limitMobileVelocity : limitVelocity)(bubble.vy * -0.6);
+    bubble.y = clamp(bubble.y, Math.min(minY, maxY), Math.max(minY, maxY));
+  }
+
+  return bubble;
+};
+
 const moveBubbles = (items, bounds, step = 1) => {
   const width = Math.max(bounds.width || 0, 320);
   const height = Math.max(bounds.height || 0, 560);
@@ -576,10 +632,10 @@ const moveBubbles = (items, bounds, step = 1) => {
         next.y = clamp(next.y, EDGE_PADDING, height - next.size - EDGE_PADDING);
       }
 
-      return next;
+      return constrainBubbleToAnchor(next, bounds, true);
     });
 
-    return resolveBubbleCollisions(next, bounds, true);
+    return next.some((item) => item.anchoredLayout) ? next : resolveBubbleCollisions(next, bounds, true);
   }
 
   const safeStep = clamp(step, 0, FRAME_STEP_LIMIT);
@@ -600,10 +656,10 @@ const moveBubbles = (items, bounds, step = 1) => {
       bubble.y = clamp(bubble.y, EDGE_PADDING, height - bubble.size - EDGE_PADDING);
     }
 
-    return bubble;
+    return constrainBubbleToAnchor(bubble, bounds);
   });
 
-  return resolveBubbleCollisions(next, bounds);
+  return next.some((item) => item.anchoredLayout) ? next : resolveBubbleCollisions(next, bounds);
 };
 
 const getAiSummary = (game) => {
@@ -1259,6 +1315,9 @@ function BubblesWorldCup() {
 
           return {
             ...game,
+            anchorX: position.x,
+            anchorY: position.y,
+            anchoredLayout: true,
             size,
             radius: size / 2,
             x: position.x,
