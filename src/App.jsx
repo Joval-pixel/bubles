@@ -236,6 +236,12 @@ const translateBetText = (value) => {
     .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/Ambas marcam \+ mais de 2[,.]5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
+    .replace(/\bHome Team Score a Goal\b/gi, "Mandante marca gol")
+    .replace(/\bAway Team Score a Goal\b/gi, "Visitante marca gol")
+    .replace(/\bMandante Team Score a Goal\b/gi, "Mandante marca gol")
+    .replace(/\bVisitante Team Score a Goal\b/gi, "Visitante marca gol")
+    .replace(/\bTeam Score a Goal\b/gi, "Time marca gol")
+    .replace(/\bTeam To Score\b/gi, "Time marca gol")
     .replace(/\bMatch Winner\b/gi, "Resultado final")
     .replace(/\bWinner\b/gi, "Vencedor")
     .replace(/\bDouble Chance\b/gi, "Dupla chance")
@@ -252,6 +258,13 @@ const translateBetText = (value) => {
     .replace(/\bOdd\b/gi, "Impar")
     .replace(/\bEven\b/gi, "Par");
 };
+
+const normalizeBetText = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 
 const getBetSearchText = (value) => `${value || ""} ${translateBetText(value)}`.toLowerCase();
 
@@ -275,7 +288,18 @@ const isAvoidOpenGameCombo = (value) => {
 const getTeamResultText = (value, game) => {
   const text = translateBetText(value);
   const normalized = text.toLowerCase();
+  const plainText = normalizeBetText(text);
+  const homeName = normalizeBetText(game?.homeTeam);
+  const awayName = normalizeBetText(game?.awayTeam);
   const code = String(game?.pickCode || "").toUpperCase();
+
+  if (game && homeName && plainText === homeName) {
+    return `${game.homeTeam} vence`;
+  }
+
+  if (game && awayName && plainText === awayName) {
+    return `${game.awayTeam} vence`;
+  }
 
   if (!game || !["favorito", "mandante", "visitante", "home", "away"].includes(normalized)) {
     return text;
