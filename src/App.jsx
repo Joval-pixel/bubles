@@ -1167,6 +1167,9 @@ function BubblesWorldCup() {
   const [hoveredId, setHoveredId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTodayListOpen, setIsTodayListOpen] = useState(false);
+  const [todayListQuery, setTodayListQuery] = useState("");
+  const [todaySelectedIds, setTodaySelectedIds] = useState(() => new Set());
+  const [showOnlyTodaySelected, setShowOnlyTodaySelected] = useState(false);
 
   const openGameModal = (id) => {
     setSelectedId(id);
@@ -1184,6 +1187,30 @@ function BubblesWorldCup() {
     }
 
     setIsTodayListOpen(true);
+  };
+
+  const closeTodayList = () => {
+    setIsTodayListOpen(false);
+    setShowOnlyTodaySelected(false);
+  };
+
+  const toggleTodayGameSelection = (id) => {
+    setTodaySelectedIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  };
+
+  const clearTodaySelection = () => {
+    setTodaySelectedIds(new Set());
+    setShowOnlyTodaySelected(false);
   };
 
   useEffect(() => {
@@ -1426,9 +1453,40 @@ function BubblesWorldCup() {
       (left, right) =>
         getKickoffStamp(left) - getKickoffStamp(right) ||
         Number(right.isLive) - Number(left.isLive) ||
-        (right.probability || 0) - (left.probability || 0)
+      (right.probability || 0) - (left.probability || 0)
     );
   }, [games, mode]);
+  const todaySelectedCount = todaySelectedIds.size;
+  const todayVisibleGames = useMemo(() => {
+    const searchText = normalizeBetText(todayListQuery);
+
+    return todayListGames.filter((game) => {
+      if (showOnlyTodaySelected && !todaySelectedIds.has(game.id)) {
+        return false;
+      }
+
+      if (!searchText) {
+        return true;
+      }
+
+      const rowGame = withDisplayMarket(game, "best") || game;
+      const searchable = normalizeBetText(
+        [
+          game.game,
+          game.homeTeam,
+          game.awayTeam,
+          game.league,
+          game.country,
+          game.round,
+          game.venue,
+          game.city,
+          getPrimaryBetText(rowGame.displayPickLabel || rowGame.pickLabel, rowGame),
+        ].join(" ")
+      );
+
+      return searchable.includes(searchText);
+    });
+  }, [showOnlyTodaySelected, todayListGames, todayListQuery, todaySelectedIds]);
 
   const liveCount = games.filter((game) => game.isLive).length;
   const preCount = games.filter((game) => !game.isLive && !game.isFinished).length;
@@ -1974,7 +2032,7 @@ function BubblesWorldCup() {
       {isTodayListOpen ? (
         <div
           className="today-games-backdrop"
-          onClick={() => setIsTodayListOpen(false)}
+          onClick={closeTodayList}
           role="presentation"
         >
           <section
@@ -1996,7 +2054,7 @@ function BubblesWorldCup() {
 
               <button
                 className="modal-close-button"
-                onClick={() => setIsTodayListOpen(false)}
+                onClick={closeTodayList}
                 type="button"
                 aria-label="Fechar todos jogos de hoje"
               >
@@ -2038,10 +2096,45 @@ function BubblesWorldCup() {
               </article>
             </div>
 
+            <div className="today-games-tools">
+              <label className="today-games-search">
+                <span>Buscar jogo, campeonato ou time</span>
+                <input
+                  onChange={(event) => setTodayListQuery(event.target.value)}
+                  placeholder="Ex: Flamengo, Brasil, Premier League"
+                  type="search"
+                  value={todayListQuery}
+                />
+              </label>
+
+              <div className="today-selection-actions">
+                <span>{todaySelectedCount} selecionados</span>
+                <button
+                  className={showOnlyTodaySelected ? "is-active" : ""}
+                  disabled={!todaySelectedCount}
+                  onClick={() => setShowOnlyTodaySelected((value) => !value)}
+                  type="button"
+                >
+                  {showOnlyTodaySelected ? "Mostrar todos" : "Ver selecionados"}
+                </button>
+                <button
+                  disabled={!todaySelectedCount && !todayListQuery}
+                  onClick={() => {
+                    clearTodaySelection();
+                    setTodayListQuery("");
+                  }}
+                  type="button"
+                >
+                  Limpar
+                </button>
+              </div>
+            </div>
+
             <div className="today-games-table-wrap">
               <table className="today-games-table">
                 <thead>
                   <tr>
+                    <th>Marcar</th>
                     <th>Hora BR</th>
                     <th>Campeonato</th>
                     <th>Mandante</th>
@@ -2054,19 +2147,33 @@ function BubblesWorldCup() {
                   </tr>
                 </thead>
                 <tbody>
-                  {todayListGames.map((game) => {
+                  {todayVisibleGames.map((game) => {
                     const rowGame = withDisplayMarket(game, "best") || game;
                     const hitState = getAiHitState(rowGame);
+                    const isSelected = todaySelectedIds.has(game.id);
 
                     return (
                       <tr
-                        className={game.isLive ? "is-live-row" : ""}
+                        className={[
+                          game.isLive ? "is-live-row" : "",
+                          isSelected ? "is-selected-row" : "",
+                        ].filter(Boolean).join(" ")}
                         key={game.id}
                         onClick={() => {
                           openGameModal(game.id);
-                          setIsTodayListOpen(false);
+                          closeTodayList();
                         }}
                       >
+                        <td className="select-cell">
+                          <label className="game-select-check" onClick={(event) => event.stopPropagation()}>
+                            <input
+                              checked={isSelected}
+                              onChange={() => toggleTodayGameSelection(game.id)}
+                              type="checkbox"
+                            />
+                            <span>{isSelected ? "Selecionado" : "Marcar"}</span>
+                          </label>
+                        </td>
                         <td>
                           <strong>{game.isLive ? formatClock(game) : formatKickoffTime(game.commenceTime)}</strong>
                         </td>
@@ -2103,10 +2210,14 @@ function BubblesWorldCup() {
                 </tbody>
               </table>
 
-              {!loading && !todayListGames.length ? (
+              {!loading && !todayVisibleGames.length ? (
                 <div className="today-games-empty">
-                  <strong>Nenhum jogo de hoje retornado.</strong>
-                  <span>{debug || message || "Tente atualizar novamente em alguns minutos."}</span>
+                  <strong>Nenhum jogo encontrado.</strong>
+                  <span>
+                    {todayListQuery || showOnlyTodaySelected
+                      ? "Tente limpar a busca ou mostrar todos os jogos."
+                      : debug || message || "Tente atualizar novamente em alguns minutos."}
+                  </span>
                 </div>
               ) : null}
 
