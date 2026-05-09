@@ -10,6 +10,8 @@ const WIDGET_SPORTS = [
   { key: "handball", label: "Handball" },
 ];
 
+const CONTACT_EMAIL = "jogos@joval.com.br";
+
 const SPONSORS = [
   {
     label: "Patrocinador master",
@@ -1070,6 +1072,10 @@ function WidgetsPage() {
           ))}
         </nav>
 
+        <a className="chip-link contact-chip" href={`mailto:${CONTACT_EMAIL}?subject=Contato%20Bubles%20Palpites`}>
+          Contato
+        </a>
+
         <a className="chip-link" href="/">
           Voltar ao radar
         </a>
@@ -1669,6 +1675,9 @@ function BubblesWorldCup() {
         </nav>
 
         <nav className="cup-controls compact" aria-label="Atalhos">
+          <a className="chip-link contact-chip" href={`mailto:${CONTACT_EMAIL}?subject=Contato%20Bubles%20Palpites`}>
+            Contato
+          </a>
           <a className="chip-link" href="/widgets">
             Widgets
           </a>
@@ -2240,6 +2249,13 @@ function BubblesWorldCup() {
             <small>{sponsor.note}</small>
           </article>
         ))}
+        <article className="sponsor-slot contact-slot">
+          <span>Contato</span>
+          <strong>Fale com a equipe</strong>
+          <a href={`mailto:${CONTACT_EMAIL}?subject=Contato%20Bubles%20Palpites`}>
+            {CONTACT_EMAIL}
+          </a>
+        </article>
       </section>
     </div>
   );
