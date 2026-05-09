@@ -292,7 +292,38 @@ const getTeamResultText = (value, game) => {
   return `${game.homeTeam} vence`;
 };
 
+const getReadableMarketName = (game) =>
+  translateBetText(
+    game?.displayMarketName ||
+      game?.marketName ||
+      game?.displayMarketCategory ||
+      ""
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+
 const getPrimaryBetText = (value, game) => {
+  const text = translateBetText(value);
+  const normalized = text.toLowerCase();
+  const marketName = getReadableMarketName(game);
+  const marketSearch = `${marketName} ${game?.displayMarketCategory || ""}`.toLowerCase();
+
+  if (normalized === "sim" || normalized === "nao" || normalized === "não") {
+    const answer = normalized.startsWith("n") ? "Nao" : "Sim";
+
+    if (
+      marketSearch.includes("ambas marcam") ||
+      marketSearch.includes("both teams") ||
+      marketSearch.includes("btts")
+    ) {
+      return `Ambas marcam - ${answer}`;
+    }
+
+    if (marketName && !["principal", "melhor palpite"].includes(marketName.toLowerCase())) {
+      return `${marketName} - ${answer}`;
+    }
+  }
+
   if (isAvoidOpenGameCombo(value)) {
     return "Ambas marcam - Nao";
   }
