@@ -1565,17 +1565,31 @@ function BubblesWorldCup() {
       <section className="simple-guide" aria-label="Resumo dos palpites">
         <article className="simple-guide-main">
           <div className="guide-kicker">
-            <span>{getFilterTitle(filter, mode)}</span>
+            <span>Top 5 palpites de hoje</span>
           </div>
-          <h1>{topGames[0]?.game || "Radar de palpites"}</h1>
-          <p>
-            {topGames[0]
-              ? `Palpite em destaque: ${getPrimaryBetText(
-                  topGames[0].displayPickLabel || topGames[0].pickLabel,
-                  topGames[0]
-                )}. Clique no jogo para ver a leitura completa.`
-              : "Assim que os jogos carregarem, os melhores palpites aparecem primeiro."}
-          </p>
+
+          {topGames.length ? (
+            <div className="top-picks-list">
+              {topGames.map((game, index) => (
+                <button
+                  className="top-pick-item"
+                  key={game.id}
+                  onClick={() => openGameModal(game.id)}
+                  type="button"
+                >
+                  <span>{index + 1}</span>
+                  <strong>{game.game}</strong>
+                  <small>{getPrimaryBetText(game.displayPickLabel || game.pickLabel, game)}</small>
+                  <em>{formatChance(game.displayProbability || game.probability)}</em>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              <h1>Radar de palpites</h1>
+              <p>Assim que os jogos carregarem, os melhores palpites aparecem primeiro.</p>
+            </>
+          )}
         </article>
 
         <article className="simple-guide-card">
