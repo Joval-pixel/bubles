@@ -468,13 +468,10 @@ button {
 }
 
 .top-pick-item small {
-  overflow: hidden;
   color: #d9ffe3;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   font-weight: 850;
-  line-height: 1.08;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.12;
 }
 
 .top-pick-item em {
