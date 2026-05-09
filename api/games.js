@@ -773,6 +773,12 @@ const translatePickLabel = (label) => {
     .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/Ambas marcam \+ mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
+    .replace(/\bHome Team Score a Goal\b/gi, "Mandante marca gol")
+    .replace(/\bAway Team Score a Goal\b/gi, "Visitante marca gol")
+    .replace(/\bMandante Team Score a Goal\b/gi, "Mandante marca gol")
+    .replace(/\bVisitante Team Score a Goal\b/gi, "Visitante marca gol")
+    .replace(/\bTeam Score a Goal\b/gi, "Time marca gol")
+    .replace(/\bTeam To Score\b/gi, "Time marca gol")
     .replace(/\bOver\b/gi, "Mais de")
     .replace(/\bUnder\b/gi, "Menos de")
     .replace(/\bYes\b/gi, "Sim")
@@ -994,8 +1000,25 @@ const getBestMarkets = (betMarkets) =>
       )} de chance.`,
     }));
 
+const getHeadlinePickText = (market, translatedPick) => {
+  const code = String(market?.pickCode || "").toUpperCase();
+  const pick = translatedPick || "mercado principal";
+  const normalized = normalizeText(pick);
+
+  if (code === "X" || normalized === "empate") {
+    return "Empate";
+  }
+
+  if ((code === "1" || code === "2") && !normalized.includes("vence")) {
+    return `${pick} vence`;
+  }
+
+  return pick;
+};
+
 const createAiInsights = (market, betMarkets) => {
   const mainPick = translatePickLabel(market?.pickLabel || "mercado principal");
+  const headlinePick = getHeadlinePickText(market, mainPick);
   const resultPick = betMarkets.find((item) => item.category === "Resultado")?.leader;
   const goalsPick = betMarkets.find((item) => item.category === "Gols")?.leader;
   const bttsPick = betMarkets.find((item) => {
@@ -1005,7 +1028,7 @@ const createAiInsights = (market, betMarkets) => {
   const comboPick = betMarkets.find((item) => item.category === "Resultado + Gols")?.leader;
 
   return {
-    headline: `Melhor palpite: ${mainPick}`,
+    headline: `Melhor palpite: ${headlinePick}`,
     main: `Chance estimada: ${formatInsightPercent(market?.probability)} | Odd atual: ${formatInsightOdd(
       market?.odd
     )}.`,
