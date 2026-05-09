@@ -542,7 +542,7 @@ button {
 }
 
 .sponsor-strip {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .sponsor-slot,
@@ -590,6 +590,30 @@ button {
   display: block;
   margin-top: 0.28rem;
   color: var(--muted);
+}
+
+.contact-chip,
+.contact-slot {
+  border-color: rgba(255, 224, 77, 0.72);
+}
+
+.contact-slot {
+  background:
+    linear-gradient(145deg, rgba(255, 224, 77, 0.1), rgba(14, 14, 14, 0.82)),
+    var(--panel);
+}
+
+.contact-slot a {
+  display: inline-block;
+  margin-top: 0.3rem;
+  color: var(--yellow);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.contact-slot a:hover,
+.contact-slot a:focus-visible {
+  text-decoration: underline;
 }
 
 .cup-info {
