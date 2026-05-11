@@ -1401,6 +1401,9 @@ button {
 .modal-markets > span,
 .modal-top-games > span,
 .modal-best-markets > span,
+.team-details-heading span,
+.team-details-panel header span,
+.team-stats-grid span,
 .ai-market-mini span,
 .modal-summary-grid span {
   display: block;
@@ -1501,6 +1504,188 @@ button {
 .modal-top-games {
   margin-top: 10px;
   padding: 0.82rem;
+}
+
+.team-details-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 0.82rem;
+  border: 1px solid rgba(37, 243, 95, 0.2);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(37, 243, 95, 0.12), transparent 34%),
+    rgba(12, 12, 12, 0.62);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+}
+
+.team-details-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.team-details-heading strong {
+  display: block;
+  margin-top: 0.22rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.12rem;
+}
+
+.team-details-heading small {
+  max-width: 420px;
+  color: var(--muted);
+  font-weight: 800;
+  text-align: right;
+}
+
+.team-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.team-details-panel {
+  display: grid;
+  gap: 0.72rem;
+  padding: 0.82rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(10, 10, 10, 0.58);
+}
+
+.team-details-panel header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.team-details-panel header strong {
+  display: block;
+  margin-top: 0.18rem;
+  font-size: 1rem;
+  line-height: 1.12;
+}
+
+.team-details-panel header em {
+  flex: 0 0 auto;
+  max-width: 48%;
+  color: var(--yellow);
+  font-size: 0.74rem;
+  font-style: normal;
+  font-weight: 900;
+  text-align: right;
+}
+
+.team-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.team-stats-grid div {
+  min-height: 58px;
+  padding: 0.56rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.team-stats-grid span {
+  font-size: 0.58rem;
+}
+
+.team-stats-grid strong {
+  display: block;
+  margin-top: 0.24rem;
+  color: var(--text);
+  font-family: Sora, Inter, sans-serif;
+  font-size: 0.94rem;
+  line-height: 1.05;
+}
+
+.last-results-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 26px;
+}
+
+.last-results-strip small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.last-result-dot {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 950;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.12);
+}
+
+.last-result-dot.is-win {
+  background: linear-gradient(135deg, #7dffa1, #00b933);
+  box-shadow: 0 0 14px rgba(37, 243, 95, 0.48);
+}
+
+.last-result-dot.is-draw {
+  background: linear-gradient(135deg, #ffe777, #a07800);
+}
+
+.last-result-dot.is-loss {
+  background: linear-gradient(135deg, #ff8d8d, #c90000);
+}
+
+.last-result-dot.is-pending {
+  background: linear-gradient(135deg, #a8b0bd, #545b66);
+}
+
+.last-results-list {
+  display: grid;
+  gap: 5px;
+  max-height: 184px;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.last-result-row {
+  display: grid;
+  grid-template-columns: 42px 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.48rem;
+  padding: 0.42rem 0.48rem;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.last-result-row span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.last-result-row strong {
+  color: var(--yellow);
+  font-family: Sora, Inter, sans-serif;
+  font-size: 0.78rem;
+  text-shadow: 0 0 10px rgba(255, 224, 77, 0.24);
+}
+
+.last-result-row small {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .modal-verification-grid {
@@ -2095,6 +2280,7 @@ button {
 
   .modal-summary-grid,
   .modal-verification-grid,
+  .team-details-grid,
   .modal-markets-grid {
     grid-template-columns: 1fr;
   }
@@ -2397,6 +2583,26 @@ button {
   .today-games-tools {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .team-details-heading,
+  .team-details-panel header {
+    display: grid;
+    gap: 0.48rem;
+  }
+
+  .team-details-heading small,
+  .team-details-panel header em {
+    max-width: none;
+    text-align: left;
+  }
+
+  .team-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .last-result-row {
+    grid-template-columns: 40px 42px minmax(0, 1fr);
   }
 
   .today-selection-actions {
