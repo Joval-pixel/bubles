@@ -240,11 +240,52 @@ const formatStandingLabel = (standing) => {
 const getStatValue = (value) =>
   value === null || value === undefined || value === "" ? "--" : value;
 
+const getRecentFormProfile = (team) => {
+  const source = team?.recentForm || team?.recentSummary || {};
+  const played = Number(source.played || 0);
+  const wins = Number(source.wins || 0);
+  const draws = Number(source.draws || 0);
+  const losses = Number(source.losses || 0);
+  const goalsFor = Number(source.goalsFor || 0);
+  const goalsAgainst = Number(source.goalsAgainst || 0);
+  const points = Number(source.points ?? wins * 3 + draws);
+  const pointsPerGame = Number(source.pointsPerGame ?? (played ? points / played : 0));
+  const goalsDiff = Number(source.goalsDiff ?? goalsFor - goalsAgainst);
+  const unbeaten = Number(source.unbeaten ?? wins + draws);
+  const isStrong = Boolean(
+    source.isStrong ||
+      (played >= 5 &&
+        losses <= 2 &&
+        goalsDiff >= 0 &&
+        (wins >= 5 || pointsPerGame >= 1.8 || unbeaten >= 8))
+  );
+  const isWeak = Boolean(source.isWeak || (played >= 5 && wins <= 2 && (losses >= 5 || pointsPerGame <= 0.9)));
+
+  return {
+    played,
+    wins,
+    draws,
+    losses,
+    goalsFor,
+    goalsAgainst,
+    points,
+    pointsPerGame,
+    goalsDiff,
+    unbeaten,
+    isStrong,
+    isWeak,
+  };
+};
+
+const formatRecentFormRecord = (profile) =>
+  `${profile.wins}V ${profile.draws}E ${profile.losses}D`;
+
 function TeamDetailsPanel({ fallbackName, loading, team }) {
   const name = team?.name || fallbackName || "Time";
   const standing = team?.standing;
   const summary = team?.summary || {};
   const last10 = Array.isArray(team?.last10) ? team.last10 : [];
+  const recentForm = getRecentFormProfile(team);
 
   return (
     <article className="team-details-panel">
@@ -288,6 +329,20 @@ function TeamDetailsPanel({ fallbackName, loading, team }) {
           <small>{loading ? "Buscando ultimos jogos..." : "Ultimos jogos indisponiveis"}</small>
         )}
       </div>
+
+      {recentForm.played ? (
+        <div className={`team-form-note ${recentForm.isStrong ? "is-strong" : recentForm.isWeak ? "is-weak" : ""}`}>
+          <span>Ultimos 10 jogos</span>
+          <strong>{formatRecentFormRecord(recentForm)}</strong>
+          <small>
+            {recentForm.isStrong
+              ? "Boa fase: evitar apostar contra sem motivo forte."
+              : recentForm.isWeak
+                ? "Fase fraca: exige cuidado antes de confiar."
+                : "Fase equilibrada nos jogos recentes."}
+          </small>
+        </div>
+      ) : null}
 
       {last10.length ? (
         <div className="last-results-list">
@@ -483,6 +538,113 @@ const getBetHelpText = (value) => {
   }
 
   return "";
+};
+
+const isTeamNeutralMarket = (game, readablePick) => {
+  const text = normalizeBetText(
+    `${readablePick || ""} ${game?.displayPickLabel || ""} ${game?.pickLabel || ""} ${getReadableMarketName(game)}`
+  );
+
+  return (
+    text.includes("ambas") ||
+    text.includes("dois times") ||
+    text.includes("gols") ||
+    text.includes("mais de") ||
+    text.includes("menos de") ||
+    text.includes("jogo aberto") ||
+    text.includes("gol contra") ||
+    text.includes("escanteio") ||
+    text.includes("cartao")
+  );
+};
+
+const getPredictionSupportSide = (game) => {
+  if (!game) {
+    return null;
+  }
+
+  const readablePick = getPrimaryBetText(game.displayPickLabel || game.pickLabel, game);
+
+  if (isTeamNeutralMarket(game, readablePick)) {
+    return null;
+  }
+
+  const text = normalizeBetText(`${readablePick} ${game.displayPickLabel || ""} ${game.pickLabel || ""}`);
+  const homeName = normalizeBetText(game.homeTeam);
+  const awayName = normalizeBetText(game.awayTeam);
+  const code = String(game.pickCode || "").toUpperCase();
+  const supportsHome = Boolean(
+    (homeName && text.includes(homeName)) ||
+      text.includes("mandante") ||
+      text.includes("casa") ||
+      code === "1" ||
+      code === "1X"
+  );
+  const supportsAway = Boolean(
+    (awayName && text.includes(awayName)) ||
+      text.includes("visitante") ||
+      text.includes("fora") ||
+      code === "2" ||
+      code === "X2"
+  );
+
+  if (supportsHome && !supportsAway) {
+    return "home";
+  }
+
+  if (supportsAway && !supportsHome) {
+    return "away";
+  }
+
+  return null;
+};
+
+const getFormGuardrail = (game, details) => {
+  if (!game || !details?.teams) {
+    return null;
+  }
+
+  const supportedSide = getPredictionSupportSide(game);
+
+  if (!supportedSide) {
+    return null;
+  }
+
+  const opponentSide = supportedSide === "home" ? "away" : "home";
+  const supportedTeam = details.teams[supportedSide];
+  const opponentTeam = details.teams[opponentSide];
+  const supported = getRecentFormProfile(supportedTeam);
+  const opponent = getRecentFormProfile(opponentTeam);
+
+  if (opponent.isStrong) {
+    return {
+      tone: "warning",
+      title: "Cuidado: nao apostar contra time em boa fase",
+      text: `${opponentTeam?.name || "O adversario"} vem bem nos ultimos 10 jogos (${formatRecentFormRecord(
+        opponent
+      )}). Esse palpite vai contra esse momento; reduza a forca da entrada ou procure outro mercado.`,
+    };
+  }
+
+  if (supported.isStrong) {
+    return {
+      tone: "positive",
+      title: "Forma recente ajuda o palpite",
+      text: `${supportedTeam?.name || "O time indicado"} vem forte nos ultimos 10 jogos (${formatRecentFormRecord(
+        supported
+      )}). Isso reforca a leitura, mas ainda nao garante resultado.`,
+    };
+  }
+
+  if (supported.played || opponent.played) {
+    return {
+      tone: "neutral",
+      title: "Forma recente equilibrada",
+      text: "Nos ultimos 10 jogos, nenhum dos lados mostra vantagem forte o bastante para bloquear o palpite.",
+    };
+  }
+
+  return null;
 };
 
 const getBeforeColon = (value, fallback = "--") => {
@@ -1712,6 +1874,7 @@ function BubblesWorldCup() {
   const aiAvoidIf = Array.isArray(aiInsights.avoidIf) ? aiInsights.avoidIf : [];
   const aiBestMarkets = Array.isArray(aiInsights.bestMarkets) ? aiInsights.bestMarkets : [];
   const selectedHitState = selectedGame ? getAiHitState(selectedGame) : null;
+  const formGuardrail = selectedGame ? getFormGuardrail(selectedGame, gameDetails) : null;
   const boardGamesCount = filteredGames.length;
 
   useEffect(() => {
@@ -2096,6 +2259,20 @@ function BubblesWorldCup() {
                 />
               </div>
             </section>
+
+            {gameDetailsLoading || formGuardrail ? (
+              <section className={`form-guardrail is-${formGuardrail?.tone || "loading"}`}>
+                <span>Regra dos ultimos 10 jogos</span>
+                <strong>
+                  {gameDetailsLoading ? "Analisando a fase recente dos times..." : formGuardrail.title}
+                </strong>
+                <p>
+                  {gameDetailsLoading
+                    ? "A IA esta conferindo os ultimos 10 jogos antes de validar se vale apostar contra algum time."
+                    : formGuardrail.text}
+                </p>
+              </section>
+            ) : null}
 
             <section className="modal-ai-card primary-reading">
               <span>Leitura facil</span>
