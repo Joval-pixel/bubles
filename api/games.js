@@ -20,6 +20,10 @@ const OPTIONS_PER_MARKET_LIMIT = Math.max(
   Math.min(30, Number.parseInt(process.env.OPTIONS_PER_MARKET_LIMIT || "16", 10) || 16)
 );
 const API_TIMEZONE = process.env.API_FOOTBALL_TIMEZONE || "America/Sao_Paulo";
+const TARGET_BOOKMAKERS = String(process.env.TARGET_BOOKMAKERS || "Bet365,Betano")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
 const BUILTIN_FIXTURE_DATE_OVERRIDES = {
   // API-Football is currently returning this fixture one day early.
   // Keep this small and use FIXTURE_DATE_OVERRIDES in Vercel for future corrections.
@@ -49,6 +53,32 @@ const normalizeText = (value) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+
+const normalizeBookmakerKey = (value) => normalizeText(value).replace(/[^a-z0-9]/g, "");
+
+const TARGET_BOOKMAKER_KEYS = TARGET_BOOKMAKERS.map(normalizeBookmakerKey).filter(Boolean);
+
+const isTargetBookmaker = (name) => {
+  const key = normalizeBookmakerKey(name);
+
+  if (!key) {
+    return false;
+  }
+
+  return TARGET_BOOKMAKER_KEYS.some((target) => key.includes(target) || target.includes(key));
+};
+
+const getTargetBookmakerNames = (entry) => {
+  const names = new Set();
+
+  for (const bookmaker of entry?.bookmakers ?? []) {
+    if (isTargetBookmaker(bookmaker?.name)) {
+      names.add(bookmaker?.name || "Casa parceira");
+    }
+  }
+
+  return [...names];
+};
 
 const toNumber = (value) => {
   if (value === null || value === undefined || value === "" || value === "null") {
@@ -641,6 +671,10 @@ const buildBetMarketsFromBookmakers = (entry) => {
   const markets = new Map();
 
   for (const bookmaker of entry?.bookmakers ?? []) {
+    if (!isTargetBookmaker(bookmaker?.name)) {
+      continue;
+    }
+
     for (const bet of bookmaker?.bets ?? []) {
       if (!isAllowedPredictionMarket(bet?.name)) {
         continue;
@@ -1082,6 +1116,10 @@ const buildMarketFromBookmakers = (entry) => {
   };
 
   for (const bookmaker of entry?.bookmakers ?? []) {
+    if (!isTargetBookmaker(bookmaker?.name)) {
+      continue;
+    }
+
     const bet = getMatchWinnerBet(bookmaker);
 
     if (!bet || !Array.isArray(bet.values)) {
@@ -1147,6 +1185,12 @@ const buildOddsMap = (oddsEntries) => {
 
   for (const entry of oddsEntries ?? []) {
     const fixtureId = entry?.fixture?.id;
+    const bookmakerNames = getTargetBookmakerNames(entry);
+
+    if (!bookmakerNames.length) {
+      continue;
+    }
+
     const market = buildMarketFromBookmakers(entry);
     const betMarkets = buildBetMarketsFromBookmakers(entry);
 
@@ -1154,6 +1198,7 @@ const buildOddsMap = (oddsEntries) => {
       map.set(fixtureId, {
         market,
         betMarkets,
+        bookmakerNames,
       });
     }
   }
@@ -1273,6 +1318,8 @@ const buildGame = (fixture, oddsAnalysis, mode = "worldcup") => {
     pickCode: market.pickCode,
     pickLabel: market.pickLabel,
     hasOdds: Boolean(oddsAnalysis?.market || rawBetMarkets.length),
+    allowedBookmakers: oddsAnalysis?.bookmakerNames ?? [],
+    hasTargetBookmaker: Boolean(oddsAnalysis?.bookmakerNames?.length),
     isPositiveEv: market.ev > 0,
     isLive,
     isFinished,
@@ -1360,7 +1407,7 @@ const fetchWorldCupGames = async () => {
     fixtures
       .slice(0, WORLD_CUP_LIMIT)
       .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), "worldcup"))
-      .filter((game) => game?.id)
+      .filter((game) => game?.id && game.hasTargetBookmaker)
   );
 };
 
@@ -1382,7 +1429,7 @@ const fetchTodayGames = async () => {
   });
   const games = fixtures
     .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), "today"))
-    .filter((game) => game?.id);
+    .filter((game) => game?.id && game.hasTargetBookmaker);
   const liveGames = games.filter((game) => game.isLive);
   const otherGames = sortGames(games.filter((game) => !game.isLive));
 
@@ -1415,12 +1462,13 @@ export async function GET(request) {
       const { date, games } = await fetchTodayGames();
       const oddsCount = games.filter((game) => game.hasOdds).length;
       const liveCount = games.filter((game) => game.isLive).length;
+      const bookmakerLabel = TARGET_BOOKMAKERS.join(" ou ");
 
       if (!games.length) {
         return makeJsonResponse(
           makeEmptyPayload(
-            "Sem jogos de hoje",
-            `Nenhuma fixture retornada para date=${date}`,
+            "Sem jogos disponiveis nas casas filtradas",
+            `Nenhum jogo de hoje com odds oficiais de ${bookmakerLabel} para date=${date}`,
             {
               id: "today",
               season: new Date().getFullYear(),
@@ -1437,7 +1485,7 @@ export async function GET(request) {
         games,
         updatedAt: new Date().toISOString(),
         message: liveCount ? "Jogos ao vivo de hoje no radar" : "Jogos de hoje carregados",
-        debug: `${games.length} jogos de hoje carregados. ${oddsCount} com odds oficiais; os demais usam estimativa visual.`,
+        debug: `${games.length} jogos de hoje carregados com odds oficiais de ${bookmakerLabel}.`,
         tournament: {
           id: "today",
           season: new Date().getFullYear(),
@@ -1450,12 +1498,13 @@ export async function GET(request) {
     const games = await fetchWorldCupGames();
     const oddsCount = games.filter((game) => game.hasOdds).length;
     const liveCount = games.filter((game) => game.isLive).length;
+    const bookmakerLabel = TARGET_BOOKMAKERS.join(" ou ");
 
     if (!games.length) {
       return makeJsonResponse(
         makeEmptyPayload(
-          "Sem jogos da Copa 2026",
-          `Nenhuma fixture retornada para league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`
+          "Sem jogos da Copa nas casas filtradas",
+          `Nenhum jogo da Copa 2026 com odds oficiais de ${bookmakerLabel}`
         )
       );
     }
@@ -1466,7 +1515,7 @@ export async function GET(request) {
       message: liveCount
         ? "Jogos ao vivo da Copa 2026 no radar"
         : "Calendario da Copa 2026 carregado",
-      debug: `${games.length} jogos da Copa 2026 carregados. ${oddsCount} com odds oficiais; os demais usam estimativa visual ate odds/previsoes ficarem disponiveis.`,
+      debug: `${games.length} jogos da Copa 2026 carregados com odds oficiais de ${bookmakerLabel}.`,
       tournament: {
         id: WORLD_CUP_LEAGUE_ID,
         season: WORLD_CUP_SEASON,
