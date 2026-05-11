@@ -1829,6 +1829,11 @@ function BubblesWorldCup() {
         </nav>
       </header>
 
+      <div className="age-warning" role="note">
+        <strong>18+</strong>
+        <span>Somente permitido para maiores de 18 anos.</span>
+      </div>
+
       <section className="simple-guide" aria-label="Resumo dos palpites">
         <article className="simple-guide-main">
           <div className="guide-kicker">
