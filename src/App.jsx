@@ -219,6 +219,90 @@ const formatBoardTime = (game, mode) => {
   return mode === "worldcup" ? formatKickoffShort(game?.commenceTime) : formatKickoffTime(game?.commenceTime);
 };
 
+const formatRecentDate = (value) =>
+  value
+    ? new Date(value).toLocaleDateString("pt-BR", {
+        timeZone: BRASILIA_TIMEZONE,
+        day: "2-digit",
+        month: "2-digit",
+      })
+    : "--";
+
+const formatStandingLabel = (standing) => {
+  if (!standing?.rank) {
+    return "Classificacao indisponivel";
+  }
+
+  return `${standing.rank}o lugar${standing.group ? ` | ${standing.group}` : ""}`;
+};
+
+const getStatValue = (value) =>
+  value === null || value === undefined || value === "" ? "--" : value;
+
+function TeamDetailsPanel({ fallbackName, loading, team }) {
+  const name = team?.name || fallbackName || "Time";
+  const standing = team?.standing;
+  const summary = team?.summary || {};
+  const last10 = Array.isArray(team?.last10) ? team.last10 : [];
+
+  return (
+    <article className="team-details-panel">
+      <header>
+        <div>
+          <span>Time</span>
+          <strong>{name}</strong>
+        </div>
+        <em>{loading ? "Carregando..." : formatStandingLabel(standing)}</em>
+      </header>
+
+      <div className="team-stats-grid">
+        <div>
+          <span>Gols marcados</span>
+          <strong>{getStatValue(summary.goalsFor)}</strong>
+        </div>
+        <div>
+          <span>Gols sofridos</span>
+          <strong>{getStatValue(summary.goalsAgainst)}</strong>
+        </div>
+        <div>
+          <span>Pontos</span>
+          <strong>{getStatValue(standing?.points)}</strong>
+        </div>
+        <div>
+          <span>Campanha</span>
+          <strong>
+            {getStatValue(summary.wins)}V {getStatValue(summary.draws)}E {getStatValue(summary.losses)}D
+          </strong>
+        </div>
+      </div>
+
+      <div className="last-results-strip" aria-label={`Ultimos resultados de ${name}`}>
+        {last10.length ? (
+          last10.map((match) => (
+            <span className={`last-result-dot is-${match.resultKey}`} key={match.id || `${match.date}-${match.opponent}`}>
+              {match.result}
+            </span>
+          ))
+        ) : (
+          <small>{loading ? "Buscando ultimos jogos..." : "Ultimos jogos indisponiveis"}</small>
+        )}
+      </div>
+
+      {last10.length ? (
+        <div className="last-results-list">
+          {last10.slice(0, 10).map((match) => (
+            <div className="last-result-row" key={match.id || `${match.date}-${match.opponent}`}>
+              <span>{formatRecentDate(match.date)}</span>
+              <strong>{match.score}</strong>
+              <small>{match.isHome ? "Casa" : "Fora"} x {match.opponent}</small>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 const translateBetText = (value) => {
   const text = String(value || "").trim();
 
@@ -1176,6 +1260,9 @@ function BubblesWorldCup() {
   const [todayListQuery, setTodayListQuery] = useState("");
   const [todaySelectedIds, setTodaySelectedIds] = useState(() => new Set());
   const [showOnlyTodaySelected, setShowOnlyTodaySelected] = useState(false);
+  const [gameDetails, setGameDetails] = useState(null);
+  const [gameDetailsLoading, setGameDetailsLoading] = useState(false);
+  const [gameDetailsError, setGameDetailsError] = useState("");
 
   const openGameModal = (id) => {
     setSelectedId(id);
@@ -1445,6 +1532,81 @@ function BubblesWorldCup() {
     filteredGames[0] ??
     games[0] ??
     null;
+
+  useEffect(() => {
+    if (!isModalOpen || !selectedGame?.homeTeamId || !selectedGame?.awayTeamId) {
+      setGameDetails(null);
+      setGameDetailsLoading(false);
+      setGameDetailsError("");
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+    const params = new URLSearchParams({
+      home: String(selectedGame.homeTeamId),
+      away: String(selectedGame.awayTeamId),
+    });
+
+    if (selectedGame.leagueId) {
+      params.set("league", String(selectedGame.leagueId));
+    }
+
+    if (selectedGame.season) {
+      params.set("season", String(selectedGame.season));
+    }
+
+    setGameDetailsLoading(true);
+    setGameDetailsError("");
+    setGameDetails(null);
+
+    fetch(`/api/game-details?${params.toString()}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.message || "Falha ao carregar dados dos times");
+        }
+
+        return payload;
+      })
+      .then((payload) => {
+        if (!active) {
+          return;
+        }
+
+        setGameDetails(payload);
+        setGameDetailsError(payload?.message?.includes("carregados") ? "" : payload?.message || "");
+      })
+      .catch((error) => {
+        if (!active || error?.name === "AbortError") {
+          return;
+        }
+
+        setGameDetailsError(error?.message || "Nao foi possivel carregar dados dos times");
+      })
+      .finally(() => {
+        if (active) {
+          setGameDetailsLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [
+    isModalOpen,
+    selectedGame?.awayTeamId,
+    selectedGame?.homeTeamId,
+    selectedGame?.id,
+    selectedGame?.leagueId,
+    selectedGame?.season,
+  ]);
+
   const hoveredGame =
     radarGames.find((game) => game.id === hoveredId) ??
     filteredGames.find((game) => game.id === hoveredId) ??
@@ -1649,20 +1811,6 @@ function BubblesWorldCup() {
             Todos jogos de hoje {mode === "today" ? games.length : ""}
           </button>
           <button
-            className={filter === "goals" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setFilter("goals")}
-            type="button"
-          >
-            Gols
-          </button>
-          <button
-            className={filter === "btts" ? "chip-button is-active" : "chip-button"}
-            onClick={() => setFilter("btts")}
-            type="button"
-          >
-            Ambas marcam
-          </button>
-          <button
             className={mode === "worldcup" ? "chip-button is-active" : "chip-button"}
             onClick={() => {
               setMode("worldcup");
@@ -1677,9 +1825,6 @@ function BubblesWorldCup() {
         <nav className="cup-controls compact" aria-label="Atalhos">
           <a className="chip-link contact-chip" href={`mailto:${CONTACT_EMAIL}?subject=Contato%20Bubles%20Palpites`}>
             Contato
-          </a>
-          <a className="chip-link" href="/widgets">
-            Widgets
           </a>
         </nav>
       </header>
@@ -1914,6 +2059,33 @@ function BubblesWorldCup() {
                 <small>{selectedGame.hasOdds ? "Odds oficiais" : "Estimativa visual"}</small>
               </article>
             </div>
+
+            <section className="team-details-card">
+              <div className="team-details-heading">
+                <div>
+                  <span>Dados dos times</span>
+                  <strong>Classificacao, gols e ultimos 10 jogos</strong>
+                </div>
+                <small>
+                  {gameDetailsLoading
+                    ? "Carregando dados da API-Football..."
+                    : gameDetailsError || "Use os dados recentes como apoio para conferir o palpite."}
+                </small>
+              </div>
+
+              <div className="team-details-grid">
+                <TeamDetailsPanel
+                  fallbackName={selectedGame.homeTeam}
+                  loading={gameDetailsLoading}
+                  team={gameDetails?.teams?.home}
+                />
+                <TeamDetailsPanel
+                  fallbackName={selectedGame.awayTeam}
+                  loading={gameDetailsLoading}
+                  team={gameDetails?.teams?.away}
+                />
+              </div>
+            </section>
 
             <section className="modal-ai-card primary-reading">
               <span>Leitura facil</span>
