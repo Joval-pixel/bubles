@@ -36,6 +36,7 @@ const BLOCKED_MARKET_TERMS = [
   "asian",
   "offside",
   "penalty",
+  "own goal",
   "throw",
   "substitution",
 ];
@@ -779,6 +780,7 @@ const translatePickLabel = (label) => {
     .replace(/\bVisitante Team Score a Goal\b/gi, "Visitante marca gol")
     .replace(/\bTeam Score a Goal\b/gi, "Time marca gol")
     .replace(/\bTeam To Score\b/gi, "Time marca gol")
+    .replace(/\bOwn Goal\b/gi, "Gol contra")
     .replace(/\bOver\b/gi, "Mais de")
     .replace(/\bUnder\b/gi, "Menos de")
     .replace(/\bYes\b/gi, "Sim")
@@ -896,7 +898,7 @@ const getActionText = (market) => {
     return "Verificar com cautela";
   }
 
-  return "So observar";
+  return "Apenas acompanhar";
 };
 
 const getRiskText = (market) => {
