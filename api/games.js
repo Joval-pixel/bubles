@@ -956,6 +956,7 @@ const getChecklist = (market) => {
   const items = [
     "Compare a odd atual com a odd mostrada no radar.",
     "Confirme se o placar, minuto e status do jogo nao mudaram.",
+    "Confira os ultimos 10 jogos antes de apostar contra um time em boa fase.",
     "Veja se a chance ainda faz sentido antes de entrar.",
   ];
 
