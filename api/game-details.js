@@ -182,9 +182,45 @@ const summarizeLastMatches = (matches) =>
     { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0 }
   );
 
+const buildRecentForm = (summary) => {
+  const played = Number(summary?.played || 0);
+  const wins = Number(summary?.wins || 0);
+  const draws = Number(summary?.draws || 0);
+  const losses = Number(summary?.losses || 0);
+  const goalsFor = Number(summary?.goalsFor || 0);
+  const goalsAgainst = Number(summary?.goalsAgainst || 0);
+  const points = wins * 3 + draws;
+  const pointsPerGame = played ? points / played : 0;
+  const goalsDiff = goalsFor - goalsAgainst;
+  const unbeaten = wins + draws;
+  const isStrong =
+    played >= 5 &&
+    losses <= 2 &&
+    goalsDiff >= 0 &&
+    (wins >= 5 || pointsPerGame >= 1.8 || unbeaten >= 8);
+  const isWeak = played >= 5 && wins <= 2 && (losses >= 5 || pointsPerGame <= 0.9);
+
+  return {
+    played,
+    wins,
+    draws,
+    losses,
+    goalsFor,
+    goalsAgainst,
+    goalsDiff,
+    points,
+    pointsPerGame: Number(pointsPerGame.toFixed(2)),
+    unbeaten,
+    level: isStrong ? "strong" : isWeak ? "weak" : "neutral",
+    isStrong,
+    isWeak,
+  };
+};
+
 const makeTeamDetails = (teamId, teamName, standing, fixtures) => {
   const last10 = fixtures.slice(0, 10).map((fixture) => normalizeLastFixture(fixture, teamId));
   const recentSummary = summarizeLastMatches(last10);
+  const recentForm = buildRecentForm(recentSummary);
   const fixtureName =
     fixtures.find((fixture) => Number(fixture?.teams?.home?.id) === Number(teamId))?.teams?.home?.name ||
     fixtures.find((fixture) => Number(fixture?.teams?.away?.id) === Number(teamId))?.teams?.away?.name ||
@@ -195,6 +231,8 @@ const makeTeamDetails = (teamId, teamName, standing, fixtures) => {
     name: teamName || fixtureName,
     standing,
     last10,
+    recentSummary,
+    recentForm,
     summary: {
       played: standing?.played || recentSummary.played,
       wins: standing?.wins || recentSummary.wins,
