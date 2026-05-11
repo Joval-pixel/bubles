@@ -1710,6 +1710,47 @@ button {
   font-weight: 800;
 }
 
+.team-form-note {
+  display: grid;
+  gap: 0.12rem;
+  padding: 0.54rem 0.62rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.team-form-note span {
+  color: #9cffb6;
+  font-size: 0.58rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.team-form-note strong {
+  color: var(--text);
+  font-family: Sora, Inter, sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.05;
+}
+
+.team-form-note small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.team-form-note.is-strong {
+  border-color: rgba(37, 243, 95, 0.36);
+  background: rgba(37, 243, 95, 0.08);
+}
+
+.team-form-note.is-weak {
+  border-color: rgba(255, 82, 82, 0.34);
+  background: rgba(255, 82, 82, 0.08);
+}
+
 .last-result-dot {
   display: inline-grid;
   width: 24px;
@@ -1802,6 +1843,54 @@ button {
   background:
     linear-gradient(135deg, rgba(37, 243, 95, 0.08), rgba(14, 14, 14, 0.68)),
     rgba(14, 14, 14, 0.68);
+}
+
+.form-guardrail {
+  margin-top: 10px;
+  padding: 0.86rem;
+  border: 1px solid rgba(255, 224, 77, 0.34);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 224, 77, 0.1), rgba(14, 14, 14, 0.72)),
+    rgba(14, 14, 14, 0.7);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+.form-guardrail > span {
+  color: #9cffb6;
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.form-guardrail strong {
+  display: block;
+  margin-top: 0.26rem;
+  color: var(--text);
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.08;
+}
+
+.form-guardrail p {
+  margin: 0.42rem 0 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 800;
+  line-height: 1.38;
+}
+
+.form-guardrail.is-positive {
+  border-color: rgba(37, 243, 95, 0.38);
+  background:
+    linear-gradient(135deg, rgba(37, 243, 95, 0.12), rgba(14, 14, 14, 0.72)),
+    rgba(14, 14, 14, 0.7);
+}
+
+.form-guardrail.is-neutral,
+.form-guardrail.is-loading {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(14, 14, 14, 0.68);
 }
 
 .modal-accordion-stack {
