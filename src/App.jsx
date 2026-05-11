@@ -11,6 +11,7 @@ const WIDGET_SPORTS = [
 ];
 
 const CONTACT_EMAIL = "jogos@joval.com.br";
+const AGE_GATE_STORAGE_KEY = "bubles-age-confirmed-v1";
 
 const SPONSORS = [
   {
@@ -1829,11 +1830,6 @@ function BubblesWorldCup() {
         </nav>
       </header>
 
-      <div className="age-warning" role="note">
-        <strong>18+</strong>
-        <span>Somente permitido para maiores de 18 anos.</span>
-      </div>
-
       <section className="simple-guide" aria-label="Resumo dos palpites">
         <article className="simple-guide-main">
           <div className="guide-kicker">
@@ -2438,9 +2434,66 @@ function BubblesWorldCup() {
   );
 }
 
+function AgeGate() {
+  const [shouldShow, setShouldShow] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    setShouldShow(window.localStorage.getItem(AGE_GATE_STORAGE_KEY) !== "accepted");
+  }, []);
+
+  const acceptAge = () => {
+    window.localStorage.setItem(AGE_GATE_STORAGE_KEY, "accepted");
+    setShouldShow(false);
+  };
+
+  const leaveSite = () => {
+    window.location.href = "https://www.google.com";
+  };
+
+  if (!shouldShow) {
+    return null;
+  }
+
+  return (
+    <div className="age-gate-backdrop" role="presentation">
+      <section
+        className="age-gate-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="age-gate-title"
+      >
+        <span className="age-gate-pill">18+</span>
+        <h2 id="age-gate-title">Somente para maiores de 18 anos</h2>
+        <p>
+          Este site contem palpites e informacoes sobre apostas esportivas. Para continuar,
+          confirme que voce tem 18 anos ou mais.
+        </p>
+        <div className="age-gate-actions">
+          <button className="age-gate-primary" type="button" onClick={acceptAge}>
+            Tenho 18 anos ou mais
+          </button>
+          <button className="age-gate-secondary" type="button" onClick={leaveSite}>
+            Sair
+          </button>
+        </div>
+        <small>Jogue com responsabilidade. Palpites nao garantem resultado.</small>
+      </section>
+    </div>
+  );
+}
+
 export default function App() {
   const isWidgetsPage =
     typeof window !== "undefined" && window.location.pathname.startsWith("/widgets");
 
-  return isWidgetsPage ? <WidgetsPage /> : <BubblesWorldCup />;
+  return (
+    <>
+      {isWidgetsPage ? <WidgetsPage /> : <BubblesWorldCup />}
+      <AgeGate />
+    </>
+  );
 }
