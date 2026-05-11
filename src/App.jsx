@@ -2229,7 +2229,13 @@ function BubblesWorldCup() {
               <article>
                 <span>Odd atual</span>
                 <strong>{formatOdd(selectedGame.displayOdd || selectedGame.oddHome)}</strong>
-                <small>{selectedGame.hasOdds ? "Odds oficiais" : "Estimativa visual"}</small>
+                <small>
+                  {selectedGame.allowedBookmakers?.length
+                    ? `Disponivel em ${selectedGame.allowedBookmakers.join(" / ")}`
+                    : selectedGame.hasOdds
+                      ? "Odds oficiais"
+                      : "Estimativa visual"}
+                </small>
               </article>
             </div>
 
