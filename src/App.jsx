@@ -329,6 +329,7 @@ const translateBetText = (value) => {
     .replace(/\bVisitante Team Score a Goal\b/gi, "Visitante marca gol")
     .replace(/\bTeam Score a Goal\b/gi, "Time marca gol")
     .replace(/\bTeam To Score\b/gi, "Time marca gol")
+    .replace(/\bOwn Goal\b/gi, "Gol contra")
     .replace(/\bMatch Winner\b/gi, "Resultado final")
     .replace(/\bWinner\b/gi, "Vencedor")
     .replace(/\bDouble Chance\b/gi, "Dupla chance")
@@ -430,6 +431,10 @@ const getPrimaryBetText = (value, game) => {
       return `Ambas marcam - ${answer}`;
     }
 
+    if (marketSearch.includes("gol contra") || marketSearch.includes("own goal")) {
+      return answer === "Nao" ? "Sem gol contra" : "Gol contra no jogo";
+    }
+
     if (marketName && !["principal", "melhor palpite"].includes(marketName.toLowerCase())) {
       return `${marketName} - ${answer}`;
     }
@@ -459,6 +464,10 @@ const getBetHelpText = (value) => {
 
   if (text.includes("ambas marcam") || text.includes("dois times marcam")) {
     return "Para bater, mandante e visitante precisam fazer pelo menos 1 gol cada.";
+  }
+
+  if (text.includes("gol contra") || text.includes("own goal")) {
+    return "Mercado raro. Melhor usar apenas como observacao, nao como palpite principal.";
   }
 
   if (text.includes("dupla chance")) {
