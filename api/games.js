@@ -19,6 +19,10 @@ const OPTIONS_PER_MARKET_LIMIT = Math.max(
   4,
   Math.min(30, Number.parseInt(process.env.OPTIONS_PER_MARKET_LIMIT || "16", 10) || 16)
 );
+const MAX_ODDS_PAGES = Math.max(
+  1,
+  Math.min(30, Number.parseInt(process.env.MAX_ODDS_PAGES || "20", 10) || 20)
+);
 const API_TIMEZONE = process.env.API_FOOTBALL_TIMEZONE || "America/Sao_Paulo";
 const TARGET_BOOKMAKERS = String(process.env.TARGET_BOOKMAKERS || "Bet365,Betano")
   .split(",")
@@ -238,7 +242,7 @@ const humanizeApiError = (message) => {
   return text || "Falha inesperada na API-Football";
 };
 
-const fetchFromApi = async (path) => {
+const fetchPayloadFromApi = async (path) => {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
       "x-apisports-key": API_KEY,
@@ -257,7 +261,37 @@ const fetchFromApi = async (path) => {
     throw new Error(`API_FOOTBALL_${String(type).toUpperCase()}: ${message}`);
   }
 
+  return payload || {};
+};
+
+const fetchFromApi = async (path) => {
+  const payload = await fetchPayloadFromApi(path);
   return Array.isArray(payload?.response) ? payload.response : [];
+};
+
+const withPageParam = (path, page) => {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}page=${page}`;
+};
+
+const fetchPagedFromApi = async (path, maxPages = MAX_ODDS_PAGES) => {
+  const firstPayload = await fetchPayloadFromApi(path);
+  const firstResponse = Array.isArray(firstPayload?.response) ? firstPayload.response : [];
+  const totalPages = Math.max(1, Math.min(maxPages, Number(firstPayload?.paging?.total || 1)));
+
+  if (totalPages <= 1) {
+    return firstResponse;
+  }
+
+  const nextPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      fetchPayloadFromApi(withPageParam(path, index + 2)).then((payload) =>
+        Array.isArray(payload?.response) ? payload.response : []
+      )
+    )
+  );
+
+  return firstResponse.concat(...nextPages);
 };
 
 const stableSeed = (input) => {
@@ -1353,7 +1387,7 @@ const sortGames = (games) =>
 
 const fetchWorldCupOdds = async () => {
   try {
-    const oddsEntries = await fetchFromApi(
+    const oddsEntries = await fetchPagedFromApi(
       `/odds?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`
     );
     return buildOddsMap(oddsEntries);
@@ -1364,7 +1398,7 @@ const fetchWorldCupOdds = async () => {
 
 const fetchTodayOdds = async (date) => {
   try {
-    const oddsEntries = await fetchFromApi(
+    const oddsEntries = await fetchPagedFromApi(
       `/odds?date=${date}&timezone=${encodeURIComponent(API_TIMEZONE)}`
     );
     return buildOddsMap(oddsEntries);
