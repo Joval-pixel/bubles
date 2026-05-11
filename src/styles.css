@@ -230,6 +230,41 @@ button {
   color: #ffc1c1;
 }
 
+.age-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 10px 0 0;
+  padding: 0.5rem 0.72rem;
+  border: 1px solid rgba(255, 224, 77, 0.32);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(255, 224, 77, 0.13), rgba(255, 128, 0, 0.08)),
+    rgba(14, 14, 14, 0.82);
+  color: #fff3b8;
+  font-size: 0.82rem;
+  font-weight: 900;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+}
+
+.age-warning strong {
+  display: inline-grid;
+  min-width: 34px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 224, 77, 0.18);
+  color: var(--yellow);
+  font-family: Sora, Inter, sans-serif;
+  line-height: 1;
+}
+
+.age-warning span {
+  line-height: 1.2;
+}
+
 .search-shell {
   position: relative;
   flex: 1 0 260px;
