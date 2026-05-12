@@ -25,6 +25,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/jogo-responsavel",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/politica-lgpd",
+      "destination": "/index.html"
+    },
+    {
       "source": "/copa-2026",
       "destination": "/index.html"
     }
