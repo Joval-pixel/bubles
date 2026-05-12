@@ -1164,7 +1164,8 @@ const getGridMetrics = (total = 0, bounds = {}) => {
 };
 
 const getDisplaySize = (probability, scale, total = 0, bounds = {}) => {
-  const crowdFactor = getCrowdFactor(total);
+  const sizingTotal = clamp(total || RADAR_INITIAL_LIMIT, 1, RADAR_INITIAL_LIMIT);
+  const crowdFactor = getCrowdFactor(sizingTotal);
   const boardWidth = bounds.width || 1280;
   const boardFactor = boardWidth <= 420 ? 0.62 : boardWidth <= 760 ? 0.72 : boardWidth <= 1024 ? 0.86 : 1;
   const base = (48 + clamp(probability || 0.33, 0.05, 0.9) * 170) * crowdFactor * boardFactor;
