@@ -594,7 +594,7 @@ const buildFallbackBetMarkets = (fixture, mainMarket) => {
       category: "Gols",
       options: [
         createOption({ code: "BTTS-S", label: "Ambas marcam - Sim", probability: bttsYes, source: "estimate" }),
-        createOption({ code: "BTTS-N", label: "Ambas marcam - Nao", probability: 1 - bttsYes, source: "estimate" }),
+        createOption({ code: "BTTS-N", label: "Um dos times nao marca", probability: 1 - bttsYes, source: "estimate" }),
       ],
     }),
     buildBetMarket({
@@ -837,8 +837,9 @@ const translatePickLabel = (label) => {
   }
 
   return text
-    .replace(/Nao combina ambas marcam com mais de 2\.5 gols/gi, "Ambas marcam - Nao")
-    .replace(/Nao: ambas marcam \+ mais de 2\.5 gols/gi, "Ambas marcam - Nao")
+    .replace(/Nao combina ambas marcam com mais de 2\.5 gols/gi, "Um dos times nao marca")
+    .replace(/Nao: ambas marcam \+ mais de 2\.5 gols/gi, "Um dos times nao marca")
+    .replace(/Ambas marcam - Nao/gi, "Um dos times nao marca")
     .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/Ambas marcam \+ mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
