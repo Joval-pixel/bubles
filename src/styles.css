@@ -1824,6 +1824,9 @@ button {
 .team-details-panel header span,
 .team-stats-grid span,
 .ai-market-mini span,
+.advanced-analysis-head span,
+.advanced-analysis-grid article > span,
+.advanced-bottom-grid article > span,
 .modal-summary-grid span {
   display: block;
   color: #9cffb6;
@@ -1896,6 +1899,127 @@ button {
   margin-top: 0.38rem;
   color: var(--muted);
   line-height: 1.35;
+}
+
+.advanced-analysis-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 0.9rem;
+  border: 1px solid rgba(37, 243, 95, 0.24);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(37, 243, 95, 0.13), transparent 32%),
+    linear-gradient(145deg, rgba(16, 16, 16, 0.88), rgba(7, 7, 7, 0.74));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+}
+
+.advanced-analysis-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.advanced-analysis-head strong {
+  display: block;
+  margin-top: 0.24rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.22rem;
+  line-height: 1.06;
+}
+
+.confidence-pill {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0.45rem 0.72rem;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: 0.03em;
+}
+
+.confidence-pill.is-alta {
+  border: 1px solid rgba(37, 243, 95, 0.58);
+  background: rgba(37, 243, 95, 0.16);
+  box-shadow: 0 0 20px rgba(37, 243, 95, 0.2);
+}
+
+.confidence-pill.is-media {
+  border: 1px solid rgba(255, 224, 77, 0.58);
+  background: rgba(255, 224, 77, 0.14);
+  box-shadow: 0 0 18px rgba(255, 224, 77, 0.16);
+}
+
+.confidence-pill.is-arriscada {
+  border: 1px solid rgba(255, 82, 82, 0.56);
+  background: rgba(255, 82, 82, 0.15);
+  box-shadow: 0 0 18px rgba(255, 82, 82, 0.16);
+}
+
+.advanced-loading {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.advanced-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.advanced-analysis-grid article,
+.advanced-bottom-grid article {
+  min-height: 118px;
+  padding: 0.82rem;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 13px;
+  background: rgba(8, 8, 8, 0.58);
+}
+
+.advanced-analysis-grid strong,
+.advanced-bottom-grid strong {
+  display: block;
+  margin-top: 0.34rem;
+  color: var(--text);
+  font-family: Sora, Inter, sans-serif;
+  font-size: 0.98rem;
+  line-height: 1.13;
+}
+
+.advanced-analysis-grid small,
+.advanced-bottom-grid small,
+.advanced-bottom-grid p {
+  display: block;
+  margin: 0.38rem 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.36;
+}
+
+.advanced-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 10px;
+}
+
+.advanced-bottom-grid ol {
+  display: grid;
+  gap: 0.44rem;
+  margin: 0.62rem 0 0;
+  padding-left: 1.12rem;
+}
+
+.advanced-bottom-grid li::marker {
+  color: #9cffb6;
+  font-weight: 950;
 }
 
 .bookmaker-links {
@@ -3067,6 +3191,8 @@ button {
   .modal-summary-grid,
   .modal-verification-grid,
   .team-details-grid,
+  .advanced-analysis-grid,
+  .advanced-bottom-grid,
   .modal-markets-grid {
     grid-template-columns: 1fr;
   }
@@ -3470,6 +3596,30 @@ button {
 
   .last-result-row {
     grid-template-columns: 40px 42px minmax(0, 1fr);
+  }
+
+  .advanced-analysis-card {
+    padding: 0.72rem;
+    border-radius: 13px;
+  }
+
+  .advanced-analysis-head {
+    display: grid;
+  }
+
+  .confidence-pill {
+    justify-self: start;
+  }
+
+  .advanced-analysis-grid article,
+  .advanced-bottom-grid article {
+    min-height: auto;
+    padding: 0.68rem;
+  }
+
+  .advanced-analysis-grid strong,
+  .advanced-bottom-grid strong {
+    font-size: 0.92rem;
   }
 
   .today-selection-actions {
