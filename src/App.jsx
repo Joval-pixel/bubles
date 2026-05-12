@@ -659,12 +659,13 @@ const translateBetText = (value) => {
   return text
     .replace(
       /Nao combina ambas marcam com mais de 2\.5 gols/gi,
-      "Ambas marcam - Nao"
+      "Um dos times nao marca"
     )
     .replace(
       /Nao: ambas marcam \+ mais de 2[,.]5 gols/gi,
-      "Ambas marcam - Nao"
+      "Um dos times nao marca"
     )
+    .replace(/Ambas marcam - Nao/gi, "Um dos times nao marca")
     .replace(/Ambas marcam e mais de 2\.5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/Ambas marcam \+ mais de 2[,.]5 gols/gi, "Jogo aberto com gols dos dois times")
     .replace(/vence e ambas nao marcam/gi, "vence e ambas NAO marcam")
@@ -773,7 +774,7 @@ const getPrimaryBetText = (value, game) => {
       marketSearch.includes("both teams") ||
       marketSearch.includes("btts")
     ) {
-      return `Ambas marcam - ${answer}`;
+      return answer === "Nao" ? "Um dos times nao marca" : "Ambas marcam - Sim";
     }
 
     if (marketSearch.includes("gol contra") || marketSearch.includes("own goal")) {
@@ -786,7 +787,7 @@ const getPrimaryBetText = (value, game) => {
   }
 
   if (isAvoidOpenGameCombo(value)) {
-    return "Ambas marcam - Nao";
+    return "Um dos times nao marca";
   }
 
   if (hasOpenGameCombo(value)) {
@@ -800,11 +801,15 @@ const getBetHelpText = (value) => {
   const text = getBetSearchText(value);
 
   if (isAvoidOpenGameCombo(value)) {
-    return "Leitura simples: a IA espera que pelo menos um time fique sem marcar.";
+    return "Para bater, pelo menos um dos times precisa terminar sem gol.";
   }
 
   if (hasOpenGameCombo(value)) {
     return "Para bater, os dois times precisam marcar e o jogo precisa ter 3 gols ou mais.";
+  }
+
+  if (text.includes("um dos times nao marca")) {
+    return "Para bater, pelo menos um dos times precisa terminar sem gol.";
   }
 
   if (text.includes("ambas marcam") || text.includes("dois times marcam")) {
@@ -1444,11 +1449,64 @@ const findBttsMarket = (game) =>
     return market?.leader && (name.includes("ambas") || name.includes("both teams"));
   });
 
+const getMarketText = (market) =>
+  normalizeBetText(
+    `${market?.category || ""} ${market?.name || ""} ${market?.leader?.label || ""} ${translateBetText(
+      market?.name || ""
+    )} ${translateBetText(market?.leader?.label || "")}`
+  );
+
+const hasNegativeSignal = (text) => /\b(nao|no|evitar)\b/.test(text);
+
+const isBttsNoMarket = (market) => {
+  const text = getMarketText(market);
+
+  return (
+    (text.includes("ambas") ||
+      text.includes("both teams") ||
+      text.includes("btts") ||
+      text.includes("dois times")) &&
+    hasNegativeSignal(text)
+  );
+};
+
+const isNegativeOpenMarket = (market) => {
+  const text = getMarketText(market);
+
+  return (
+    (text.includes("ambas") ||
+      text.includes("both teams") ||
+      text.includes("btts") ||
+      text.includes("dois times")) &&
+    (text.includes("2.5") || text.includes("2,5") || text.includes("mais de 2")) &&
+    hasNegativeSignal(text)
+  );
+};
+
+const getPreferredMarketScore = (market) => {
+  const text = getMarketText(market);
+  const probability = market?.leader?.probability || 0;
+  const confidence = market?.confidence || 0;
+  let score = probability + confidence * 0.22;
+
+  if (market?.category === "Resultado") score += 0.16;
+  if (text.includes("dupla chance")) score += 0.14;
+  if (market?.category === "Gols" && (text.includes("mais de") || text.includes("over"))) score += 0.1;
+  if (market?.category === "Resultado + Gols" && !isNegativeOpenMarket(market)) score += 0.04;
+  if (isBttsNoMarket(market)) score -= 0.22;
+  if (isNegativeOpenMarket(market)) score -= 0.3;
+  if (text.includes("gol contra") || text.includes("own goal")) score -= 0.35;
+  if (text.includes("cartao") || text.includes("escanteio")) score -= 0.35;
+
+  return score;
+};
+
 const getBestMarket = (game) =>
   [...(game?.betMarkets || [])]
     .filter((market) => market?.leader)
     .sort(
       (left, right) =>
+        getPreferredMarketScore(right) - getPreferredMarketScore(left) ||
         (right.leader?.probability || 0) - (left.leader?.probability || 0) ||
         (right.confidence || 0) - (left.confidence || 0)
     )[0];
