@@ -835,6 +835,463 @@ const getBetHelpText = (value) => {
   return "";
 };
 
+const parseRecentScore = (score) => {
+  const match = String(score || "").match(/(\d+)\s*x\s*(\d+)/i);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    home: Number(match[1]),
+    away: Number(match[2]),
+  };
+};
+
+const getRecentMatches = (team, limit = 10) =>
+  (Array.isArray(team?.last10) ? team.last10 : [])
+    .filter((match) => match?.resultKey && match.resultKey !== "pending")
+    .slice(0, limit);
+
+const buildRecentStats = (team, limit = 10, venue = "all") => {
+  const matches = getRecentMatches(team, limit).filter((match) => {
+    if (venue === "home") {
+      return match.isHome;
+    }
+
+    if (venue === "away") {
+      return !match.isHome;
+    }
+
+    return true;
+  });
+
+  const stats = matches.reduce(
+    (summary, match) => {
+      const score = parseRecentScore(match.score);
+
+      if (!score) {
+        return summary;
+      }
+
+      const teamGoals = match.isHome ? score.home : score.away;
+      const opponentGoals = match.isHome ? score.away : score.home;
+      const totalGoals = teamGoals + opponentGoals;
+
+      summary.played += 1;
+      summary.goalsFor += teamGoals;
+      summary.goalsAgainst += opponentGoals;
+      summary.totalGoals += totalGoals;
+      summary.btts += teamGoals > 0 && opponentGoals > 0 ? 1 : 0;
+      summary.over15 += totalGoals > 1.5 ? 1 : 0;
+      summary.over25 += totalGoals > 2.5 ? 1 : 0;
+      summary.over35 += totalGoals > 3.5 ? 1 : 0;
+      summary.under25 += totalGoals < 2.5 ? 1 : 0;
+      summary.cleanSheets += opponentGoals === 0 ? 1 : 0;
+      summary.failedToScore += teamGoals === 0 ? 1 : 0;
+
+      if (match.resultKey === "win") {
+        summary.wins += 1;
+      } else if (match.resultKey === "loss") {
+        summary.losses += 1;
+      } else if (match.resultKey === "draw") {
+        summary.draws += 1;
+      }
+
+      return summary;
+    },
+    {
+      played: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      totalGoals: 0,
+      btts: 0,
+      over15: 0,
+      over25: 0,
+      over35: 0,
+      under25: 0,
+      cleanSheets: 0,
+      failedToScore: 0,
+    }
+  );
+
+  return {
+    ...stats,
+    avgFor: stats.played ? stats.goalsFor / stats.played : null,
+    avgAgainst: stats.played ? stats.goalsAgainst / stats.played : null,
+    avgTotalGoals: stats.played ? stats.totalGoals / stats.played : null,
+    points: stats.wins * 3 + stats.draws,
+    pointsRate: stats.played ? (stats.wins * 3 + stats.draws) / (stats.played * 3) : null,
+  };
+};
+
+const formatAdvancedAverage = (value) =>
+  Number.isFinite(value) ? value.toFixed(2).replace(".", ",") : "--";
+
+const formatAdvancedPercent = (value) =>
+  Number.isFinite(value) ? `${Math.round(value * 100)}%` : "Sem dados";
+
+const getTrendRate = (stats, key) => (stats?.played ? stats[key] / stats.played : null);
+
+const getRecentSequenceText = (team) => {
+  const matches = getRecentMatches(team, 10);
+
+  if (!matches.length) {
+    return "Sequencia indisponivel";
+  }
+
+  const first = matches[0].resultKey;
+  const count = matches.findIndex((match) => match.resultKey !== first);
+  const streak = count === -1 ? matches.length : count;
+
+  if (first === "win") {
+    return streak > 1 ? `${streak} vitorias seguidas` : "Vitoria no ultimo jogo";
+  }
+
+  if (first === "loss") {
+    return streak > 1 ? `${streak} derrotas seguidas` : "Derrota no ultimo jogo";
+  }
+
+  return streak > 1 ? `${streak} empates seguidos` : "Empate no ultimo jogo";
+};
+
+const getResultProbabilities = (game) => {
+  const options = Array.isArray(game?.marketOptions) ? game.marketOptions : [];
+  const homeName = normalizeBetText(game?.homeTeam);
+  const awayName = normalizeBetText(game?.awayTeam);
+  const probabilities = { home: null, draw: null, away: null };
+
+  options.forEach((option) => {
+    const code = String(option?.code || "").toUpperCase();
+    const label = normalizeBetText(option?.label);
+    const probability = Number(option?.probability);
+
+    if (!Number.isFinite(probability)) {
+      return;
+    }
+
+    if (code === "1" || (homeName && label === homeName)) {
+      probabilities.home = probability;
+    } else if (code === "X" || label === "empate" || label === "draw") {
+      probabilities.draw = probability;
+    } else if (code === "2" || (awayName && label === awayName)) {
+      probabilities.away = probability;
+    }
+  });
+
+  return probabilities;
+};
+
+const findMarketProbability = (game, predicate) => {
+  for (const market of game?.betMarkets || []) {
+    for (const option of market?.options || []) {
+      const text = normalizeBetText(`${market.category || ""} ${market.name || ""} ${option.label || ""}`);
+
+      if (predicate(text, market, option)) {
+        const probability = Number(option.probability);
+        return Number.isFinite(probability) ? probability : null;
+      }
+    }
+  }
+
+  return null;
+};
+
+const getBttsProbability = (game, homeStats, awayStats) => {
+  const marketProbability = findMarketProbability(game, (text) => {
+    const isBtts = text.includes("ambas") || text.includes("both teams") || text.includes("btts");
+    const isYes = text.includes("sim") || text.includes("yes");
+    return isBtts && isYes && !text.includes("nao") && !text.includes("no");
+  });
+
+  if (Number.isFinite(marketProbability)) {
+    return marketProbability;
+  }
+
+  const homeRate = getTrendRate(homeStats, "btts");
+  const awayRate = getTrendRate(awayStats, "btts");
+
+  return Number.isFinite(homeRate) && Number.isFinite(awayRate) ? (homeRate + awayRate) / 2 : null;
+};
+
+const getOver25Probability = (game, homeStats, awayStats) => {
+  const marketProbability = findMarketProbability(game, (text) => {
+    const isGoals = text.includes("gols") || text.includes("goals");
+    const isOver = text.includes("mais de") || text.includes("over");
+    return isGoals && isOver && (text.includes("2.5") || text.includes("2,5"));
+  });
+
+  if (Number.isFinite(marketProbability)) {
+    return marketProbability;
+  }
+
+  const homeRate = getTrendRate(homeStats, "over25");
+  const awayRate = getTrendRate(awayStats, "over25");
+
+  return Number.isFinite(homeRate) && Number.isFinite(awayRate) ? (homeRate + awayRate) / 2 : null;
+};
+
+const getUnder25Probability = (homeStats, awayStats, over25Probability) => {
+  if (Number.isFinite(over25Probability)) {
+    return clamp(1 - over25Probability, 0, 1);
+  }
+
+  const homeRate = getTrendRate(homeStats, "under25");
+  const awayRate = getTrendRate(awayStats, "under25");
+
+  return Number.isFinite(homeRate) && Number.isFinite(awayRate) ? (homeRate + awayRate) / 2 : null;
+};
+
+const getInterestingAdvancedMarkets = (game) => {
+  const insightMarkets = Array.isArray(game?.aiInsights?.bestMarkets) ? game.aiInsights.bestMarkets : [];
+  const directMarkets = (game?.betMarkets || [])
+    .filter((market) => market?.leader)
+    .map((market) => ({
+      category: market.category,
+      market: market.name,
+      pick: market.leader.label,
+      probability: market.leader.probability,
+      odd: market.leader.odd,
+      note: "",
+    }));
+
+  return [...insightMarkets, ...directMarkets]
+    .filter((market) => Number.isFinite(Number(market?.probability)))
+    .sort((left, right) => Number(right.probability) - Number(left.probability))
+    .slice(0, 3);
+};
+
+const getConfidenceClass = (confidence) => {
+  if (confidence >= 0.8) {
+    return "ALTA";
+  }
+
+  if (confidence >= 0.65) {
+    return "MEDIA";
+  }
+
+  return "ARRISCADA";
+};
+
+const getRiskLabel = (confidence) => {
+  if (confidence >= 0.8) {
+    return "Baixo";
+  }
+
+  if (confidence >= 0.65) {
+    return "Medio";
+  }
+
+  return "Alto";
+};
+
+const getProbableScore = (homeStats, awayStats) => {
+  const homeExpected = Number.isFinite(homeStats.avgFor) && Number.isFinite(awayStats.avgAgainst)
+    ? (homeStats.avgFor + awayStats.avgAgainst) / 2
+    : null;
+  const awayExpected = Number.isFinite(awayStats.avgFor) && Number.isFinite(homeStats.avgAgainst)
+    ? (awayStats.avgFor + homeStats.avgAgainst) / 2
+    : null;
+
+  if (!Number.isFinite(homeExpected) || !Number.isFinite(awayExpected)) {
+    return "--";
+  }
+
+  return `${clamp(Math.round(homeExpected), 0, 4)}x${clamp(Math.round(awayExpected), 0, 4)}`;
+};
+
+const getAdvancedMarketDisplayText = (market, game) => {
+  const pick = translateBetText(market?.pick);
+  const normalizedPick = normalizeBetText(pick);
+  const marketName = translateBetText(market?.market || market?.category || "");
+
+  if (["sim", "nao", "no", "yes"].includes(normalizedPick) && marketName) {
+    return `${marketName} - ${normalizedPick.startsWith("n") ? "Nao" : "Sim"}`;
+  }
+
+  return getPrimaryBetText(market?.pick, game);
+};
+
+const buildAdvancedAnalysis = (game, details) => {
+  const homeTeam = details?.teams?.home;
+  const awayTeam = details?.teams?.away;
+  const homeStats5 = buildRecentStats(homeTeam, 5);
+  const awayStats5 = buildRecentStats(awayTeam, 5);
+  const homeStats10 = buildRecentStats(homeTeam, 10);
+  const awayStats10 = buildRecentStats(awayTeam, 10);
+  const homeVenue = buildRecentStats(homeTeam, 10, "home");
+  const awayVenue = buildRecentStats(awayTeam, 10, "away");
+  const resultProbabilities = getResultProbabilities(game);
+  const confidence = clamp(Number(game?.displayProbability || game?.probability || 0), 0, 1);
+  const bttsProbability = getBttsProbability(game, homeStats10, awayStats10);
+  const over25Probability = getOver25Probability(game, homeStats10, awayStats10);
+  const under25Probability = getUnder25Probability(homeStats10, awayStats10, over25Probability);
+  const totalAverage = [homeStats10.avgTotalGoals, awayStats10.avgTotalGoals].filter(Number.isFinite);
+  const matchGoalsAverage = totalAverage.length
+    ? totalAverage.reduce((sum, value) => sum + value, 0) / totalAverage.length
+    : null;
+  const markets = getInterestingAdvancedMarkets(game);
+  const probableScore = getProbableScore(homeStats10, awayStats10);
+  const confidenceClass = getConfidenceClass(confidence);
+  const risk = getRiskLabel(confidence);
+  const homeName = game?.homeTeam || homeTeam?.name || "Mandante";
+  const awayName = game?.awayTeam || awayTeam?.name || "Visitante";
+
+  return {
+    awayName,
+    awayStats5,
+    awayStats10,
+    awayVenue,
+    bttsProbability,
+    confidence,
+    confidenceClass,
+    homeName,
+    homeStats5,
+    homeStats10,
+    homeVenue,
+    matchGoalsAverage,
+    markets,
+    over25Probability,
+    probableScore,
+    resultProbabilities,
+    risk,
+    under25Probability,
+  };
+};
+
+function AdvancedAnalysisPanel({ game, details, loading }) {
+  const analysis = buildAdvancedAnalysis(game, details);
+  const pickText = getPrimaryBetText(game?.displayPickLabel || game?.pickLabel, game);
+  const hasRecentData = analysis.homeStats10.played || analysis.awayStats10.played;
+
+  return (
+    <section className="advanced-analysis-card">
+      <div className="advanced-analysis-head">
+        <div>
+          <span>Analise estatistica avancada</span>
+          <strong>Leitura profissional da partida</strong>
+        </div>
+        <em className={`confidence-pill is-${analysis.confidenceClass.toLowerCase()}`}>
+          {formatChance(analysis.confidence)} {analysis.confidenceClass}
+        </em>
+      </div>
+
+      {loading ? (
+        <p className="advanced-loading">Carregando forma recente, casa/fora e ultimos confrontos...</p>
+      ) : null}
+
+      <div className="advanced-analysis-grid">
+        <article>
+          <span>🏆 JOGO</span>
+          <strong>{analysis.homeName} x {analysis.awayName}</strong>
+          <small>{pickText}</small>
+        </article>
+
+        <article>
+          <span>📊 MOMENTO DAS EQUIPES</span>
+          <strong>
+            {hasRecentData
+              ? `${analysis.homeName}: ${formatRecentFormRecord(analysis.homeStats10)} | ${analysis.awayName}: ${formatRecentFormRecord(analysis.awayStats10)}`
+              : "Aguardando historico recente"}
+          </strong>
+          <small>
+            {analysis.homeName}: {getRecentSequenceText(details?.teams?.home)}. {analysis.awayName}:{" "}
+            {getRecentSequenceText(details?.teams?.away)}.
+          </small>
+        </article>
+
+        <article>
+          <span>⚽ MEDIA DE GOLS</span>
+          <strong>Total previsto: {formatAdvancedAverage(analysis.matchGoalsAverage)}</strong>
+          <small>
+            {analysis.homeName}: {formatAdvancedAverage(analysis.homeStats10.avgFor)} feitos /{" "}
+            {formatAdvancedAverage(analysis.homeStats10.avgAgainst)} sofridos. {analysis.awayName}:{" "}
+            {formatAdvancedAverage(analysis.awayStats10.avgFor)} feitos /{" "}
+            {formatAdvancedAverage(analysis.awayStats10.avgAgainst)} sofridos.
+          </small>
+        </article>
+
+        <article>
+          <span>🏠 CASA E FORA</span>
+          <strong>
+            Casa: {formatAdvancedAverage(analysis.homeVenue.avgFor)} gols | Fora:{" "}
+            {formatAdvancedAverage(analysis.awayVenue.avgFor)} gols
+          </strong>
+          <small>
+            Mandante em casa: {analysis.homeVenue.played || 0} jogos. Visitante fora:{" "}
+            {analysis.awayVenue.played || 0} jogos.
+          </small>
+        </article>
+
+        <article>
+          <span>🔥 TENDENCIAS</span>
+          <strong>BTTS {formatAdvancedPercent(analysis.bttsProbability)} | Over 2.5 {formatAdvancedPercent(analysis.over25Probability)}</strong>
+          <small>
+            Under 2.5: {formatAdvancedPercent(analysis.under25Probability)}. Escanteios: sem dados reais na API atual.
+          </small>
+        </article>
+
+        <article>
+          <span>📈 PROBABILIDADES DA IA</span>
+          <strong>
+            {analysis.homeName}: {formatAdvancedPercent(analysis.resultProbabilities.home)} | Empate:{" "}
+            {formatAdvancedPercent(analysis.resultProbabilities.draw)}
+          </strong>
+          <small>
+            {analysis.awayName}: {formatAdvancedPercent(analysis.resultProbabilities.away)}.
+          </small>
+        </article>
+
+        <article>
+          <span>🚑 DESFALQUES IMPORTANTES</span>
+          <strong>Nao disponivel no plano atual</strong>
+          <small>Sem lesionados, suspensos ou escalações confirmadas pela API neste momento.</small>
+        </article>
+
+        <article>
+          <span>🎯 PLACAR MAIS PROVAVEL</span>
+          <strong>{analysis.probableScore}</strong>
+          <small>Estimativa baseada em gols marcados/sofridos nos ultimos jogos. Nao e garantia.</small>
+        </article>
+
+        <article>
+          <span>⚠️ RISCO</span>
+          <strong>{analysis.risk}</strong>
+          <small>
+            Confiança IA: {formatChance(analysis.confidence)}. Classificacao: {analysis.confidenceClass}.
+          </small>
+        </article>
+      </div>
+
+      <div className="advanced-bottom-grid">
+        <article>
+          <span>📌 MERCADOS MAIS INTERESSANTES</span>
+          <ol>
+            {(analysis.markets.length ? analysis.markets : [{ pick: pickText, probability: analysis.confidence, odd: game?.displayOdd || game?.oddHome }]).map((market, index) => (
+              <li key={`${market.pick}-${index}`}>
+                <strong>{getAdvancedMarketDisplayText(market, game)}</strong>
+                <small>{formatChance(market.probability)} | Odd {formatOdd(market.odd)}</small>
+              </li>
+            ))}
+          </ol>
+        </article>
+
+        <article>
+          <span>🧠 CONCLUSAO GOL365</span>
+          <p>
+            A melhor leitura estatistica e <strong>{pickText}</strong>. A IA combina momento recente,
+            gols, casa/fora e odds disponiveis para apontar valor provavel, sempre como apoio de analise
+            e nunca como promessa de lucro.
+          </p>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 const isTeamNeutralMarket = (game, readablePick) => {
   const text = normalizeBetText(
     `${readablePick || ""} ${game?.displayPickLabel || ""} ${game?.pickLabel || ""} ${getReadableMarketName(game)}`
@@ -3267,6 +3724,12 @@ function BubblesWorldCup() {
                 </p>
               </section>
             ) : null}
+
+            <AdvancedAnalysisPanel
+              details={gameDetails}
+              game={selectedGame}
+              loading={gameDetailsLoading}
+            />
 
             <section className="modal-ai-card primary-reading">
               <span>Leitura facil</span>
