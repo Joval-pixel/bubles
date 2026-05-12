@@ -417,6 +417,24 @@ const isNegativeOpenGameCombo = (marketName, label) => {
   return hasBothTeams && hasOver25 && isNegative;
 };
 
+const isLowLineUnderOption = (marketName, label) => {
+  const text = normalizeText(`${marketName || ""} ${label || ""}`);
+
+  return (
+    (text.includes("under") || text.includes("menos de")) &&
+    /(?:under|menos de)\s*0[,.]?5/.test(text)
+  );
+};
+
+const isRiskyUnderOption = (marketName, label) => {
+  const text = normalizeText(`${marketName || ""} ${label || ""}`);
+
+  return (
+    (text.includes("under") || text.includes("menos de")) &&
+    /(?:under|menos de)\s*1[,.]?5/.test(text)
+  );
+};
+
 const createOption = ({ key, code, label, probability, odd, bookmaker, source }) => ({
   key,
   code,
@@ -719,7 +737,12 @@ const buildBetMarketsFromBookmakers = (entry) => {
           label: String(value?.value ?? "").trim(),
           odd: toNumber(value?.odd),
         }))
-        .filter((value) => value.label && value.odd > 1);
+        .filter(
+          (value) =>
+            value.label &&
+            value.odd > 1 &&
+            !isLowLineUnderOption(bet?.name, value.label)
+        );
 
       if (values.length < 2) {
         continue;
@@ -862,6 +885,36 @@ const translatePickLabel = (label) => {
     .replace(/\bOdd\b/gi, "Impar")
     .replace(/\bEven\b/gi, "Par");
 };
+
+const getInsightMarketText = (market) =>
+  normalizeText(`${market?.category || ""} ${market?.name || ""} ${market?.leader?.label || ""}`);
+
+const isLowLineUnderMarket = (market) =>
+  isLowLineUnderOption(market?.name, market?.leader?.label);
+
+const isRiskyUnderMarket = (market) =>
+  isRiskyUnderOption(market?.name, market?.leader?.label);
+
+const getInsightMarketScore = (market) => {
+  const text = getInsightMarketText(market);
+  let score = (market?.leader?.probability || 0) + (market?.confidence || 0) * 0.2;
+
+  if (market?.category === "Resultado") score += 0.16;
+  if (text.includes("double chance") || text.includes("dupla chance")) score += 0.14;
+  if (market?.category === "Gols" && (text.includes("over") || text.includes("mais de"))) score += 0.1;
+  if (isLowLineUnderMarket(market)) score -= 1;
+  if (isRiskyUnderMarket(market)) score -= 0.18;
+  if (isNegativeOpenGameCombo(market?.name, market?.leader?.label)) score -= 0.3;
+
+  return score;
+};
+
+const sortInsightMarkets = (markets) =>
+  [...markets].sort(
+    (left, right) =>
+      getInsightMarketScore(right) - getInsightMarketScore(left) ||
+      (right.leader?.probability || 0) - (left.leader?.probability || 0)
+  );
 
 const resolveFixturePickLabel = (label, pickCode, homeName, awayName) => {
   const text = String(label || "").trim();
@@ -1056,8 +1109,9 @@ const getAvoidList = (market) => {
 };
 
 const getBestMarkets = (betMarkets) =>
-  betMarkets
-    .filter((market) => market?.leader)
+  sortInsightMarkets(
+    betMarkets.filter((market) => market?.leader && !isLowLineUnderMarket(market))
+  )
     .slice(0, 6)
     .map((market) => ({
       category: market.category,
@@ -1092,7 +1146,9 @@ const createAiInsights = (market, betMarkets) => {
   const mainPick = translatePickLabel(market?.pickLabel || "mercado principal");
   const headlinePick = getHeadlinePickText(market, mainPick);
   const resultPick = betMarkets.find((item) => item.category === "Resultado")?.leader;
-  const goalsPick = betMarkets.find((item) => item.category === "Gols")?.leader;
+  const goalsPick = sortInsightMarkets(
+    betMarkets.filter((item) => item.category === "Gols" && item?.leader && !isLowLineUnderMarket(item))
+  )[0]?.leader;
   const bttsPick = betMarkets.find((item) => {
     const text = normalizeText(`${item?.name || ""} ${item?.leader?.label || ""}`);
     return text.includes("ambas") || text.includes("both teams") || text.includes("btts");
