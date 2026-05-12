@@ -1431,18 +1431,32 @@ const mergeFixturesById = (...fixtureGroups) => {
   return [...map.values()];
 };
 
+const buildGamesWithBookmakerFallback = (fixtures, oddsMap, source) => {
+  const allGames = fixtures
+    .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), source))
+    .filter((game) => game?.id);
+  const partnerGames = allGames.filter((game) => game.hasTargetBookmaker);
+
+  return {
+    games: partnerGames.length ? partnerGames : allGames,
+    partnerCount: partnerGames.length,
+    totalCount: allGames.length,
+    usingFallback: !partnerGames.length && allGames.length > 0,
+  };
+};
+
 const fetchWorldCupGames = async () => {
   const [fixtures, oddsMap] = await Promise.all([
     fetchFromApi(`/fixtures?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`),
     fetchWorldCupOdds(),
   ]);
 
-  return sortGames(
-    fixtures
-      .slice(0, WORLD_CUP_LIMIT)
-      .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), "worldcup"))
-      .filter((game) => game?.id && game.hasTargetBookmaker)
-  );
+  const result = buildGamesWithBookmakerFallback(fixtures.slice(0, WORLD_CUP_LIMIT), oddsMap, "worldcup");
+
+  return {
+    ...result,
+    games: sortGames(result.games),
+  };
 };
 
 const fetchTodayGames = async () => {
@@ -1461,14 +1475,16 @@ const fetchTodayGames = async () => {
 
     return isFixtureOnRequestedDate(fixture, date);
   });
-  const games = fixtures
-    .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), "today"))
-    .filter((game) => game?.id && game.hasTargetBookmaker);
+  const result = buildGamesWithBookmakerFallback(fixtures, oddsMap, "today");
+  const games = result.games;
   const liveGames = games.filter((game) => game.isLive);
   const otherGames = sortGames(games.filter((game) => !game.isLive));
 
   return {
     date,
+    partnerCount: result.partnerCount,
+    totalCount: result.totalCount,
+    usingFallback: result.usingFallback,
     games: sortGames([...liveGames, ...otherGames]),
   };
 };
@@ -1493,7 +1509,7 @@ export async function GET(request) {
 
   try {
     if (mode === "today") {
-      const { date, games } = await fetchTodayGames();
+      const { date, games, usingFallback, partnerCount, totalCount } = await fetchTodayGames();
       const oddsCount = games.filter((game) => game.hasOdds).length;
       const liveCount = games.filter((game) => game.isLive).length;
       const bookmakerLabel = TARGET_BOOKMAKERS.join(" ou ");
@@ -1501,8 +1517,8 @@ export async function GET(request) {
       if (!games.length) {
         return makeJsonResponse(
           makeEmptyPayload(
-            "Sem jogos disponiveis nas casas filtradas",
-            `Nenhum jogo de hoje com odds oficiais de ${bookmakerLabel} para date=${date}`,
+            "Sem jogos de hoje retornados",
+            `Nenhum fixture retornado pela API-Football para date=${date}`,
             {
               id: "today",
               season: new Date().getFullYear(),
@@ -1518,8 +1534,14 @@ export async function GET(request) {
       return makeJsonResponse({
         games,
         updatedAt: new Date().toISOString(),
-        message: liveCount ? "Jogos ao vivo de hoje no radar" : "Jogos de hoje carregados",
-        debug: `${games.length} jogos de hoje carregados com odds oficiais de ${bookmakerLabel}.`,
+        message: usingFallback
+          ? "Jogos de hoje carregados sem filtro de casas"
+          : liveCount
+            ? "Jogos ao vivo de hoje no radar"
+            : "Jogos de hoje carregados",
+        debug: usingFallback
+          ? `${games.length} jogos de hoje carregados. A API-Football retornou ${partnerCount} de ${totalCount} jogos com odds oficiais de ${bookmakerLabel}; exibindo todos os jogos do dia para nao zerar o radar.`
+          : `${games.length} jogos de hoje carregados com odds oficiais de ${bookmakerLabel}.`,
         tournament: {
           id: "today",
           season: new Date().getFullYear(),
@@ -1529,7 +1551,7 @@ export async function GET(request) {
       }, 200, "s-maxage=45, stale-while-revalidate=90");
     }
 
-    const games = await fetchWorldCupGames();
+    const { games, usingFallback, partnerCount, totalCount } = await fetchWorldCupGames();
     const oddsCount = games.filter((game) => game.hasOdds).length;
     const liveCount = games.filter((game) => game.isLive).length;
     const bookmakerLabel = TARGET_BOOKMAKERS.join(" ou ");
@@ -1537,8 +1559,8 @@ export async function GET(request) {
     if (!games.length) {
       return makeJsonResponse(
         makeEmptyPayload(
-          "Sem jogos da Copa nas casas filtradas",
-          `Nenhum jogo da Copa 2026 com odds oficiais de ${bookmakerLabel}`
+          "Sem jogos da Copa retornados",
+          "Nenhum fixture da Copa 2026 retornado pela API-Football"
         )
       );
     }
@@ -1548,8 +1570,12 @@ export async function GET(request) {
       updatedAt: new Date().toISOString(),
       message: liveCount
         ? "Jogos ao vivo da Copa 2026 no radar"
-        : "Calendario da Copa 2026 carregado",
-      debug: `${games.length} jogos da Copa 2026 carregados com odds oficiais de ${bookmakerLabel}.`,
+        : usingFallback
+          ? "Calendario da Copa 2026 carregado sem filtro de casas"
+          : "Calendario da Copa 2026 carregado",
+      debug: usingFallback
+        ? `${games.length} jogos da Copa 2026 carregados. A API-Football retornou ${partnerCount} de ${totalCount} jogos com odds oficiais de ${bookmakerLabel}; exibindo a tabela para nao zerar o radar.`
+        : `${games.length} jogos da Copa 2026 carregados com odds oficiais de ${bookmakerLabel}.`,
       tournament: {
         id: WORLD_CUP_LEAGUE_ID,
         season: WORLD_CUP_SEASON,
