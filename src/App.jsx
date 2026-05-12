@@ -1483,6 +1483,26 @@ const isNegativeOpenMarket = (market) => {
   );
 };
 
+const isLowLineUnderMarket = (market) => {
+  const text = getMarketText(market);
+
+  return (
+    market?.category === "Gols" &&
+    (text.includes("menos de") || text.includes("under")) &&
+    /(?:menos de|under)\s*0[,.]?5/.test(text)
+  );
+};
+
+const isRiskyUnderMarket = (market) => {
+  const text = getMarketText(market);
+
+  return (
+    market?.category === "Gols" &&
+    (text.includes("menos de") || text.includes("under")) &&
+    /(?:menos de|under)\s*1[,.]?5/.test(text)
+  );
+};
+
 const getPreferredMarketScore = (market) => {
   const text = getMarketText(market);
   const probability = market?.leader?.probability || 0;
@@ -1495,25 +1515,39 @@ const getPreferredMarketScore = (market) => {
   if (market?.category === "Resultado + Gols" && !isNegativeOpenMarket(market)) score += 0.04;
   if (isBttsNoMarket(market)) score -= 0.22;
   if (isNegativeOpenMarket(market)) score -= 0.3;
+  if (isLowLineUnderMarket(market)) score -= 1;
+  if (isRiskyUnderMarket(market)) score -= 0.18;
   if (text.includes("gol contra") || text.includes("own goal")) score -= 0.35;
   if (text.includes("cartao") || text.includes("escanteio")) score -= 0.35;
 
   return score;
 };
 
+const sortMarketsByPreference = (markets) =>
+  [...markets].sort(
+    (left, right) =>
+      getPreferredMarketScore(right) - getPreferredMarketScore(left) ||
+      (right.leader?.probability || 0) - (left.leader?.probability || 0) ||
+      (right.confidence || 0) - (left.confidence || 0)
+  );
+
 const getBestMarket = (game) =>
-  [...(game?.betMarkets || [])]
-    .filter((market) => market?.leader)
-    .sort(
-      (left, right) =>
-        getPreferredMarketScore(right) - getPreferredMarketScore(left) ||
-        (right.leader?.probability || 0) - (left.leader?.probability || 0) ||
-        (right.confidence || 0) - (left.confidence || 0)
-    )[0];
+  sortMarketsByPreference(
+    (game?.betMarkets || []).filter((market) => market?.leader && !isLowLineUnderMarket(market))
+  )[0] ||
+  sortMarketsByPreference((game?.betMarkets || []).filter((market) => market?.leader))[0];
+
+const getGoalsMarket = (game) =>
+  sortMarketsByPreference(
+    (game?.betMarkets || []).filter(
+      (market) => market?.category === "Gols" && market?.leader && !isLowLineUnderMarket(market)
+    )
+  )[0] ||
+  findMarketByCategory(game, "Gols");
 
 const getDisplayMarket = (game, activeFilter) => {
   if (activeFilter === "goals") {
-    const market = findMarketByCategory(game, "Gols");
+    const market = getGoalsMarket(game);
     return market?.leader
       ? {
           category: "Gols",
