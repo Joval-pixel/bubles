@@ -43,6 +43,12 @@ const SPONSORS = [
 const RADAR_INITIAL_LIMIT = 30;
 const VALID_FILTERS = new Set(["best", "live", "goals", "btts"]);
 const VALID_MODES = new Set(["today", "worldcup"]);
+const WORLD_CUP_VIEW_TABS = [
+  { id: "games", label: "Jogos da Copa" },
+  { id: "teams", label: "48 selecoes" },
+  { id: "table", label: "Tabela" },
+  { id: "bracket", label: "Mata-mata" },
+];
 const BRASILIA_TIMEZONE = "America/Sao_Paulo";
 const BRASILIA_TIMEZONE_LABEL = "Horario de Brasilia";
 const ROUTE_DEFAULTS = {
@@ -1554,6 +1560,555 @@ const getFilterSubtitle = (activeFilter) => {
   return "Mapa completo do radar.";
 };
 
+const isWorldCupGroupRound = (round = "") =>
+  /(?:group|grupo)\s+[a-l]/i.test(String(round || ""));
+
+const getWorldCupGroupName = (round = "") => {
+  const match = String(round || "").match(/(?:group|grupo)\s+([a-l])/i);
+  return match ? `Grupo ${match[1].toUpperCase()}` : "Grupo a definir";
+};
+
+const getWorldCupRoundLabel = (round = "") => {
+  const text = String(round || "").trim();
+
+  if (!text) {
+    return "Fase a definir";
+  }
+
+  const roundMap = [
+    { match: /group\s+([a-l])/i, label: (found) => `Grupo ${found[1].toUpperCase()}` },
+    { match: /round of 32/i, label: () => "16 avos de final" },
+    { match: /round of 16/i, label: () => "Oitavas de final" },
+    { match: /quarter/i, label: () => "Quartas de final" },
+    { match: /semi/i, label: () => "Semifinal" },
+    { match: /third/i, label: () => "Disputa de 3o lugar" },
+    { match: /final/i, label: () => "Final" },
+  ];
+
+  for (const item of roundMap) {
+    const found = text.match(item.match);
+
+    if (found) {
+      return item.label(found);
+    }
+  }
+
+  return text;
+};
+
+const parseScorePair = (game) => {
+  const match = String(game?.scoreLine || "").match(/(\d+)\s*x\s*(\d+)/i);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    home: Number(match[1]),
+    away: Number(match[2]),
+  };
+};
+
+const getWorldCupTeamKey = (id, name) =>
+  id ? `id-${id}` : `name-${normalizeBetText(name || "time-a-definir")}`;
+
+const getTeamFixtureLabel = (game) => {
+  if (game?.isLive) {
+    return `Ao vivo, ${formatClock(game)}`;
+  }
+
+  if (game?.isFinished) {
+    return `Encerrado, ${formatScoreLine(game)}`;
+  }
+
+  return formatKickoff(game?.commenceTime);
+};
+
+const addWorldCupTeam = (map, team, game, side) => {
+  if (!team?.name || team.name === "A definir") {
+    return;
+  }
+
+  const key = getWorldCupTeamKey(team.id, team.name);
+  const current =
+    map.get(key) || {
+      id: team.id || key,
+      key,
+      name: team.name,
+      logo: team.logo || "",
+      group: isWorldCupGroupRound(game?.round) ? getWorldCupGroupName(game.round) : "Grupo a definir",
+      games: [],
+      nextGame: null,
+      liveGame: null,
+      finished: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      chanceSamples: [],
+    };
+
+  current.games.push(game);
+
+  if (isWorldCupGroupRound(game?.round)) {
+    current.group = getWorldCupGroupName(game.round);
+  }
+
+  if (game?.isLive) {
+    current.liveGame = game;
+  } else if (!game?.isFinished) {
+    const currentStamp = current.nextGame ? getKickoffStamp(current.nextGame) : Number.POSITIVE_INFINITY;
+    const nextStamp = getKickoffStamp(game);
+
+    if (nextStamp < currentStamp) {
+      current.nextGame = game;
+    }
+  }
+
+  const rowGame = withDisplayMarket(game, "best") || game;
+  current.chanceSamples.push(rowGame.displayProbability || rowGame.probability || 0);
+
+  const score = parseScorePair(game);
+
+  if (score && game?.isFinished) {
+    const goalsFor = side === "home" ? score.home : score.away;
+    const goalsAgainst = side === "home" ? score.away : score.home;
+    current.finished += 1;
+    current.goalsFor += goalsFor;
+    current.goalsAgainst += goalsAgainst;
+
+    if (goalsFor > goalsAgainst) {
+      current.wins += 1;
+    } else if (goalsFor < goalsAgainst) {
+      current.losses += 1;
+    } else {
+      current.draws += 1;
+    }
+  }
+
+  map.set(key, current);
+};
+
+const buildWorldCupTeams = (games) => {
+  const map = new Map();
+
+  games.forEach((game) => {
+    addWorldCupTeam(
+      map,
+      { id: game.homeTeamId, name: game.homeTeam, logo: game.homeLogo },
+      game,
+      "home"
+    );
+    addWorldCupTeam(
+      map,
+      { id: game.awayTeamId, name: game.awayTeam, logo: game.awayLogo },
+      game,
+      "away"
+    );
+  });
+
+  return Array.from(map.values())
+    .map((team) => {
+      const averageChance =
+        team.chanceSamples.length
+          ? team.chanceSamples.reduce((sum, value) => sum + value, 0) / team.chanceSamples.length
+          : 0;
+
+      return {
+        ...team,
+        strength: averageChance,
+        points: team.wins * 3 + team.draws,
+        goalDifference: team.goalsFor - team.goalsAgainst,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.strength - left.strength ||
+        left.group.localeCompare(right.group) ||
+        left.name.localeCompare(right.name)
+    )
+    .slice(0, 48);
+};
+
+const createWorldCupGroupRow = (team) => ({
+  key: getWorldCupTeamKey(team.id, team.name),
+  id: team.id || team.name,
+  name: team.name,
+  logo: team.logo || "",
+  played: 0,
+  wins: 0,
+  draws: 0,
+  losses: 0,
+  goalsFor: 0,
+  goalsAgainst: 0,
+  points: 0,
+});
+
+const addWorldCupGroupTeam = (group, team) => {
+  const key = getWorldCupTeamKey(team.id, team.name);
+
+  if (!group.rows.has(key)) {
+    group.rows.set(key, createWorldCupGroupRow(team));
+  }
+
+  return group.rows.get(key);
+};
+
+const buildWorldCupGroups = (games) => {
+  const groups = new Map();
+
+  games
+    .filter((game) => isWorldCupGroupRound(game.round))
+    .forEach((game) => {
+      const groupName = getWorldCupGroupName(game.round);
+      const group =
+        groups.get(groupName) || {
+          name: groupName,
+          rows: new Map(),
+          fixtures: [],
+        };
+      const home = addWorldCupGroupTeam(group, {
+        id: game.homeTeamId,
+        name: game.homeTeam,
+        logo: game.homeLogo,
+      });
+      const away = addWorldCupGroupTeam(group, {
+        id: game.awayTeamId,
+        name: game.awayTeam,
+        logo: game.awayLogo,
+      });
+      const score = parseScorePair(game);
+
+      group.fixtures.push(game);
+
+      if (score && game.isFinished) {
+        home.played += 1;
+        away.played += 1;
+        home.goalsFor += score.home;
+        home.goalsAgainst += score.away;
+        away.goalsFor += score.away;
+        away.goalsAgainst += score.home;
+
+        if (score.home > score.away) {
+          home.wins += 1;
+          away.losses += 1;
+          home.points += 3;
+        } else if (score.home < score.away) {
+          away.wins += 1;
+          home.losses += 1;
+          away.points += 3;
+        } else {
+          home.draws += 1;
+          away.draws += 1;
+          home.points += 1;
+          away.points += 1;
+        }
+      }
+
+      groups.set(groupName, group);
+    });
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      fixtures: group.fixtures.sort((left, right) => getKickoffStamp(left) - getKickoffStamp(right)),
+      rows: Array.from(group.rows.values()).sort((left, right) => {
+        const leftGoalDifference = left.goalsFor - left.goalsAgainst;
+        const rightGoalDifference = right.goalsFor - right.goalsAgainst;
+
+        return (
+          right.points - left.points ||
+          rightGoalDifference - leftGoalDifference ||
+          right.goalsFor - left.goalsFor ||
+          left.name.localeCompare(right.name)
+        );
+      }),
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+};
+
+const buildWorldCupStages = (games) => {
+  const groups = new Map();
+  const fallbackStages = ["16 avos de final", "Oitavas de final", "Quartas de final", "Semifinal", "Final"];
+
+  games
+    .filter((game) => !isWorldCupGroupRound(game.round))
+    .forEach((game) => {
+      const label = getWorldCupRoundLabel(game.round);
+      const list = groups.get(label) || [];
+      list.push(game);
+      groups.set(label, list);
+    });
+
+  if (!groups.size) {
+    return fallbackStages.map((name) => ({ name, games: [] }));
+  }
+
+  return Array.from(groups.entries()).map(([name, list]) => ({
+    name,
+    games: list.sort((left, right) => getKickoffStamp(left) - getKickoffStamp(right)),
+  }));
+};
+
+function WorldCupHub({
+  games,
+  groups,
+  loading,
+  onOpenGame,
+  onSelectTeam,
+  onViewChange,
+  selectedTeamId,
+  stages,
+  teams,
+  view,
+}) {
+  return (
+    <section className="worldcup-hub" aria-label="Central da Copa 2026">
+      <div className="worldcup-head">
+        <div>
+          <span>Central Copa 2026</span>
+          <strong>Calendario, selecoes, tabela e mata-mata</strong>
+          <small>Horarios sempre no {BRASILIA_TIMEZONE_LABEL}.</small>
+        </div>
+
+        <nav className="worldcup-tabs" aria-label="Abas da Copa 2026">
+          {WORLD_CUP_VIEW_TABS.map((item) => (
+            <button
+              className={view === item.id ? "chip-button is-active" : "chip-button"}
+              key={item.id}
+              onClick={() => onViewChange(item.id)}
+              type="button"
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {view === "games" ? (
+        <WorldCupCalendarPanel games={games} loading={loading} onOpenGame={onOpenGame} />
+      ) : null}
+      {view === "teams" ? (
+        <WorldCupTeamsPanel
+          onOpenGame={onOpenGame}
+          onSelectTeam={onSelectTeam}
+          selectedTeamId={selectedTeamId}
+          teams={teams}
+        />
+      ) : null}
+      {view === "table" ? <WorldCupTablePanel groups={groups} /> : null}
+      {view === "bracket" ? <WorldCupBracketPanel onOpenGame={onOpenGame} stages={stages} /> : null}
+    </section>
+  );
+}
+
+function WorldCupCalendarPanel({ games, loading, onOpenGame }) {
+  const orderedGames = [...games].sort((left, right) => getKickoffStamp(left) - getKickoffStamp(right));
+
+  return (
+    <div className="worldcup-panel">
+      <div className="worldcup-panel-header">
+        <div>
+          <span>Jogos da Copa</span>
+          <strong>{orderedGames.length} partidas no calendario</strong>
+        </div>
+        <small>Inclui data, horario, fase, estadio e palpite principal quando disponivel.</small>
+      </div>
+
+      <div className="worldcup-calendar-list">
+        {orderedGames.map((game) => (
+          <button
+            className="worldcup-calendar-row"
+            key={game.id}
+            onClick={() => onOpenGame(game.id)}
+            type="button"
+          >
+            <span>
+              <strong>{formatKickoff(game.commenceTime)}</strong>
+              <small>{getWorldCupRoundLabel(game.round)}</small>
+            </span>
+            <span>
+              <strong>{game.game}</strong>
+              <small>{[game.venue, game.city].filter(Boolean).join(" - ") || "Local a definir"}</small>
+            </span>
+            <span>
+              <strong>{getPrimaryBetText(game.displayPickLabel || game.pickLabel, game)}</strong>
+              <small>{formatChance(game.displayProbability || game.probability)} chance</small>
+            </span>
+            <span>
+              <strong>{formatScoreLine(game)}</strong>
+              <small>{getGameStatusLabel(game)}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {!loading && !orderedGames.length ? (
+        <div className="worldcup-empty">Ainda nao recebemos jogos da Copa pela API.</div>
+      ) : null}
+    </div>
+  );
+}
+
+function WorldCupTeamsPanel({ teams, selectedTeamId, onSelectTeam, onOpenGame }) {
+  const selectedTeam =
+    teams.find((team) => String(team.id) === String(selectedTeamId)) || teams[0] || null;
+
+  return (
+    <div className="worldcup-panel">
+      <div className="worldcup-panel-header">
+        <div>
+          <span>Bolhas das selecoes</span>
+          <strong>{teams.length} de 48 selecoes mapeadas</strong>
+        </div>
+        <small>A bolha maior indica maior leitura media da IA nos jogos ja carregados.</small>
+      </div>
+
+      <div className="worldcup-teams-layout">
+        <div className="worldcup-teams-grid">
+          {teams.map((team) => (
+            <button
+              className={
+                selectedTeam?.key === team.key
+                  ? "worldcup-team-bubble is-active"
+                  : "worldcup-team-bubble"
+              }
+              key={team.key}
+              onClick={() => onSelectTeam(team.id)}
+              style={{
+                "--team-scale": `${0.88 + Math.min(0.34, (team.strength || 0) * 0.34)}`,
+              }}
+              type="button"
+            >
+              {team.logo ? <img alt="" src={team.logo} /> : null}
+              <strong>{team.name}</strong>
+              <span>{formatChance(team.strength)}</span>
+              <small>{team.group}</small>
+            </button>
+          ))}
+        </div>
+
+        <aside className="worldcup-team-detail">
+          {selectedTeam ? (
+            <>
+              <span>Selecao selecionada</span>
+              <strong>{selectedTeam.name}</strong>
+              <small>{selectedTeam.group}</small>
+
+              <div className="worldcup-team-stats">
+                <article>
+                  <span>Jogos</span>
+                  <strong>{selectedTeam.games.length}</strong>
+                </article>
+                <article>
+                  <span>Gols</span>
+                  <strong>
+                    {selectedTeam.goalsFor} x {selectedTeam.goalsAgainst}
+                  </strong>
+                </article>
+                <article>
+                  <span>Forca IA</span>
+                  <strong>{formatChance(selectedTeam.strength)}</strong>
+                </article>
+              </div>
+
+              <div className="worldcup-team-fixtures">
+                {selectedTeam.games
+                  .slice()
+                  .sort((left, right) => getKickoffStamp(left) - getKickoffStamp(right))
+                  .map((game) => (
+                    <button key={game.id} onClick={() => onOpenGame(game.id)} type="button">
+                      <strong>{game.game}</strong>
+                      <small>{getTeamFixtureLabel(game)}</small>
+                    </button>
+                  ))}
+              </div>
+            </>
+          ) : (
+            <p>As selecoes aparecem aqui quando a API devolver o calendario completo.</p>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function WorldCupTablePanel({ groups }) {
+  return (
+    <div className="worldcup-panel">
+      <div className="worldcup-panel-header">
+        <div>
+          <span>Tabela da Copa</span>
+          <strong>Grupos e classificacao</strong>
+        </div>
+        <small>Quando os resultados chegarem, a tabela atualiza pontos, saldo e gols.</small>
+      </div>
+
+      <div className="worldcup-group-grid">
+        {groups.map((group) => (
+          <article className="worldcup-group-card" key={group.name}>
+            <h3>{group.name}</h3>
+            <div className="worldcup-standings-head">
+              <span>Time</span>
+              <span>J</span>
+              <span>SG</span>
+              <span>GP</span>
+              <span>Pts</span>
+            </div>
+            {group.rows.map((row) => (
+              <div className="worldcup-standings-row" key={row.key}>
+                <span>
+                  {row.logo ? <img alt="" src={row.logo} /> : null}
+                  {row.name}
+                </span>
+                <strong>{row.played}</strong>
+                <strong>{row.goalsFor - row.goalsAgainst}</strong>
+                <strong>{row.goalsFor}</strong>
+                <strong>{row.points}</strong>
+              </div>
+            ))}
+          </article>
+        ))}
+      </div>
+
+      {!groups.length ? <div className="worldcup-empty">Grupos ainda nao definidos pela API.</div> : null}
+    </div>
+  );
+}
+
+function WorldCupBracketPanel({ stages, onOpenGame }) {
+  return (
+    <div className="worldcup-panel">
+      <div className="worldcup-panel-header">
+        <div>
+          <span>Mata-mata</span>
+          <strong>Caminho ate a final</strong>
+        </div>
+        <small>As chaves aparecem automaticamente quando a API publicar as fases eliminatorias.</small>
+      </div>
+
+      <div className="worldcup-bracket-grid">
+        {stages.map((stage) => (
+          <article className="worldcup-stage-card" key={stage.name}>
+            <h3>{stage.name}</h3>
+            {stage.games.length ? (
+              stage.games.map((game) => (
+                <button key={game.id} onClick={() => onOpenGame(game.id)} type="button">
+                  <strong>{game.game}</strong>
+                  <small>{formatKickoff(game.commenceTime)}</small>
+                </button>
+              ))
+            ) : (
+              <p>Aguardando classificados.</p>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function WidgetsPage() {
   const [sport, setSport] = useState("football");
   const [widgetsReady, setWidgetsReady] = useState(false);
@@ -1722,6 +2277,11 @@ function BubblesWorldCup() {
   const [gameDetails, setGameDetails] = useState(null);
   const [gameDetailsLoading, setGameDetailsLoading] = useState(false);
   const [gameDetailsError, setGameDetailsError] = useState("");
+  const [worldCupView, setWorldCupView] = useState(() => {
+    const initialView = getInitialSearchParam("cup", "games");
+    return WORLD_CUP_VIEW_TABS.some((item) => item.id === initialView) ? initialView : "games";
+  });
+  const [selectedWorldCupTeamId, setSelectedWorldCupTeamId] = useState("");
 
   const openGameModal = (id) => {
     setSelectedId(id);
@@ -1860,6 +2420,11 @@ function BubblesWorldCup() {
   useEffect(() => {
     setSelectedId(null);
     setIsModalOpen(false);
+
+    if (mode !== "worldcup") {
+      setWorldCupView("games");
+      setSelectedWorldCupTeamId("");
+    }
   }, [mode]);
 
   useEffect(() => {
@@ -1871,8 +2436,15 @@ function BubblesWorldCup() {
     url.searchParams.set("mode", mode);
     url.searchParams.set("filter", filter);
     url.searchParams.set("view", "radar");
+
+    if (mode === "worldcup") {
+      url.searchParams.set("cup", worldCupView);
+    } else {
+      url.searchParams.delete("cup");
+    }
+
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [filter, mode]);
+  }, [filter, mode, worldCupView]);
 
   useEffect(() => {
     setRadarLimit(RADAR_INITIAL_LIMIT);
@@ -2145,6 +2717,9 @@ function BubblesWorldCup() {
       missRate: stats.checked ? stats.misses / stats.checked : 0,
     };
   }, [todayListGames]);
+  const worldCupTeams = useMemo(() => buildWorldCupTeams(games), [games]);
+  const worldCupGroups = useMemo(() => buildWorldCupGroups(games), [games]);
+  const worldCupStages = useMemo(() => buildWorldCupStages(games), [games]);
   const topGames = [...filteredGames]
     .sort(
       (left, right) =>
@@ -2167,6 +2742,14 @@ function BubblesWorldCup() {
   useEffect(() => {
     if (!radarGames.length) {
       return;
+    }
+
+    if (boardRef.current) {
+      const rect = boardRef.current.getBoundingClientRect();
+      boundsRef.current = {
+        width: rect.width,
+        height: rect.height,
+      };
     }
 
     const visibleIds = radarGames.map((game) => game.id);
@@ -2203,7 +2786,7 @@ function BubblesWorldCup() {
         0
       )
     );
-  }, [filter, query, radarGames.length, radarLimit, updatedAt]);
+  }, [filter, query, radarGames.length, radarLimit, updatedAt, worldCupView]);
 
   return (
     <div className="cup-shell">
@@ -2275,6 +2858,7 @@ function BubblesWorldCup() {
             onClick={() => {
               setMode("worldcup");
               setFilter("best");
+              setWorldCupView("games");
             }}
             type="button"
           >
@@ -2342,14 +2926,33 @@ function BubblesWorldCup() {
         ) : null}
 
         <article className="simple-guide-card">
-          <span>Todos jogos de hoje</span>
-          <strong>{mode === "today" ? `${games.length} jogos` : "Copa 2026"}</strong>
-          <button type="button" onClick={openTodayList}>
-            Ver todos os jogos
+          <span>{mode === "worldcup" ? "Calendario da Copa" : "Todos jogos de hoje"}</span>
+          <strong>{mode === "today" ? `${games.length} jogos` : `${games.length} jogos`}</strong>
+          <button
+            type="button"
+            onClick={mode === "worldcup" ? () => setWorldCupView("games") : openTodayList}
+          >
+            {mode === "worldcup" ? "Ver calendario" : "Ver todos os jogos"}
           </button>
         </article>
       </section>
 
+      {mode === "worldcup" ? (
+        <WorldCupHub
+          games={games}
+          groups={worldCupGroups}
+          loading={loading}
+          onOpenGame={openGameModal}
+          onSelectTeam={setSelectedWorldCupTeamId}
+          onViewChange={setWorldCupView}
+          selectedTeamId={selectedWorldCupTeamId}
+          stages={worldCupStages}
+          teams={worldCupTeams}
+          view={worldCupView}
+        />
+      ) : null}
+
+      {mode !== "worldcup" || worldCupView === "games" ? (
       <section className="radar-stage">
         <main className="bubble-board" ref={boardRef}>
           <div className="board-grid" />
@@ -2440,6 +3043,7 @@ function BubblesWorldCup() {
           ) : null}
         </main>
       </section>
+      ) : null}
 
       {isModalOpen && selectedGame ? (
         <div className="prediction-modal-backdrop" onClick={closeGameModal} role="presentation">
