@@ -624,6 +624,334 @@ button {
   font-weight: 850;
 }
 
+.worldcup-hub {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.worldcup-head,
+.worldcup-panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgba(19, 19, 19, 0.96), rgba(36, 36, 36, 0.92)),
+    var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.worldcup-head {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 0.9rem 1rem;
+}
+
+.worldcup-head span,
+.worldcup-panel-header span,
+.worldcup-team-detail > span,
+.worldcup-team-stats span {
+  display: block;
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.worldcup-head strong,
+.worldcup-panel-header strong,
+.worldcup-team-detail > strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.2rem;
+}
+
+.worldcup-head small,
+.worldcup-panel-header small,
+.worldcup-team-detail > small {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--muted);
+}
+
+.worldcup-tabs {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.worldcup-panel {
+  padding: 0.95rem;
+}
+
+.worldcup-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 0.85rem;
+}
+
+.worldcup-calendar-list {
+  display: grid;
+  gap: 8px;
+  max-height: 460px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.worldcup-calendar-row {
+  display: grid;
+  grid-template-columns: 170px minmax(260px, 1fr) 230px 130px;
+  gap: 10px;
+  align-items: center;
+  padding: 0.78rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(12, 12, 12, 0.7);
+  color: var(--text);
+  text-align: left;
+}
+
+.worldcup-calendar-row:hover,
+.worldcup-calendar-row:focus-visible {
+  border-color: rgba(37, 243, 95, 0.52);
+  outline: none;
+}
+
+.worldcup-calendar-row span,
+.worldcup-stage-card button span,
+.worldcup-team-fixtures button span {
+  min-width: 0;
+}
+
+.worldcup-calendar-row strong,
+.worldcup-calendar-row small {
+  display: block;
+}
+
+.worldcup-calendar-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worldcup-calendar-row small {
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.worldcup-teams-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.34fr);
+  gap: 10px;
+}
+
+.worldcup-teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 10px;
+}
+
+.worldcup-team-bubble {
+  display: grid;
+  place-items: center;
+  min-height: 144px;
+  padding: 0.7rem;
+  border: 2px solid rgba(37, 243, 95, 0.46);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.6), transparent 10%),
+    radial-gradient(circle at center, rgba(37, 243, 95, 0.28), rgba(5, 28, 12, 0.95) 68%);
+  color: var(--text);
+  text-align: center;
+  box-shadow:
+    0 0 calc(18px * var(--team-scale, 1)) rgba(37, 243, 95, 0.65),
+    inset 0 -16px 24px rgba(0, 0, 0, 0.45);
+  transform: scale(var(--team-scale, 1));
+  transform-origin: center;
+}
+
+.worldcup-team-bubble.is-active,
+.worldcup-team-bubble:hover,
+.worldcup-team-bubble:focus-visible {
+  border-color: var(--yellow);
+  outline: none;
+  box-shadow:
+    0 0 calc(22px * var(--team-scale, 1)) rgba(255, 224, 77, 0.6),
+    inset 0 -16px 24px rgba(0, 0, 0, 0.45);
+}
+
+.worldcup-team-bubble img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.worldcup-team-bubble strong {
+  display: -webkit-box;
+  overflow: hidden;
+  max-width: 88%;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  line-height: 1.05;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.worldcup-team-bubble span {
+  color: white;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.28rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.worldcup-team-bubble small {
+  color: #ffe04d;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.worldcup-team-detail {
+  align-self: start;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(12, 12, 12, 0.78);
+}
+
+.worldcup-team-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 0.85rem;
+}
+
+.worldcup-team-stats article {
+  padding: 0.6rem;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.worldcup-team-stats strong {
+  display: block;
+  margin-top: 0.22rem;
+}
+
+.worldcup-team-fixtures {
+  display: grid;
+  gap: 8px;
+  margin-top: 0.85rem;
+  max-height: 310px;
+  overflow: auto;
+}
+
+.worldcup-team-fixtures button,
+.worldcup-stage-card button {
+  padding: 0.58rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
+  text-align: left;
+}
+
+.worldcup-team-fixtures button:hover,
+.worldcup-stage-card button:hover {
+  border-color: rgba(37, 243, 95, 0.5);
+}
+
+.worldcup-team-fixtures strong,
+.worldcup-team-fixtures small,
+.worldcup-stage-card strong,
+.worldcup-stage-card small {
+  display: block;
+}
+
+.worldcup-team-fixtures small,
+.worldcup-stage-card small,
+.worldcup-stage-card p {
+  color: var(--muted);
+}
+
+.worldcup-group-grid,
+.worldcup-bracket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.worldcup-group-card,
+.worldcup-stage-card {
+  padding: 0.86rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(12, 12, 12, 0.76);
+}
+
+.worldcup-group-card h3,
+.worldcup-stage-card h3 {
+  margin: 0 0 0.7rem;
+  font-family: Sora, Inter, sans-serif;
+}
+
+.worldcup-standings-head,
+.worldcup-standings-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) repeat(4, 42px);
+  gap: 6px;
+  align-items: center;
+  padding: 0.38rem 0;
+}
+
+.worldcup-standings-head {
+  color: #9cffb6;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.worldcup-standings-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.worldcup-standings-row span {
+  display: flex;
+  gap: 0.42rem;
+  align-items: center;
+  min-width: 0;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.worldcup-standings-row img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.worldcup-stage-card {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.worldcup-empty {
+  display: grid;
+  min-height: 120px;
+  place-items: center;
+  color: var(--muted);
+  font-weight: 850;
+  text-align: center;
+}
+
 .sponsor-strip,
 .cup-info,
 .market-bar {
@@ -2918,6 +3246,70 @@ button {
   .simple-guide-card.home-ai-stat-card {
     display: block;
     padding: 0.72rem;
+  }
+
+  .worldcup-head {
+    grid-template-columns: 1fr;
+    padding: 0.78rem;
+  }
+
+  .worldcup-tabs {
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  .worldcup-panel {
+    padding: 0.72rem;
+  }
+
+  .worldcup-panel-header {
+    display: grid;
+    gap: 0.35rem;
+    align-items: start;
+  }
+
+  .worldcup-calendar-list {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .worldcup-calendar-row {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+    padding: 0.72rem;
+  }
+
+  .worldcup-teams-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .worldcup-teams-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .worldcup-team-bubble {
+    min-height: 132px;
+    transform: none;
+  }
+
+  .worldcup-team-detail {
+    position: static;
+  }
+
+  .worldcup-team-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .worldcup-group-grid,
+  .worldcup-bracket-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .worldcup-standings-head,
+  .worldcup-standings-row {
+    grid-template-columns: minmax(110px, 1fr) repeat(4, 34px);
+    font-size: 0.72rem;
   }
 
   .radar-stage {
