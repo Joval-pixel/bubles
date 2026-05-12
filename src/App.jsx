@@ -11,7 +11,16 @@ const WIDGET_SPORTS = [
 ];
 
 const CONTACT_EMAIL = "jogos@joval.com.br";
+const BOOKMAKER_URL_TEMPLATES = {
+  bet365: import.meta.env.VITE_BET365_URL || "https://www.bet365.com/",
+  betano: import.meta.env.VITE_BETANO_URL || "https://www.betano.bet.br/",
+};
+const BOOKMAKER_LABELS = {
+  bet365: "Bet365",
+  betano: "Betano",
+};
 const AGE_GATE_STORAGE_KEY = "bubles-age-confirmed-v1";
+const COOKIE_CONSENT_STORAGE_KEY = "bubles-cookie-consent-v1";
 
 const SPONSORS = [
   {
@@ -46,6 +55,11 @@ const ROUTE_DEFAULTS = {
   "/copa-2026": { mode: "worldcup", filter: "best", view: "radar" },
 };
 
+const LEGAL_ROUTES = {
+  "/jogo-responsavel": "responsible",
+  "/politica-lgpd": "privacy",
+};
+
 const getInitialSearchParam = (name, fallback) => {
   if (typeof window === "undefined") {
     return fallback;
@@ -67,6 +81,62 @@ const getInitialRouteValue = (name, fallback) => {
 
   const pathname = window.location.pathname.replace(/\/$/, "") || "/";
   return ROUTE_DEFAULTS[pathname]?.[name] || fallback;
+};
+
+const normalizeBookmakerText = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const getBookmakerKey = (name) => {
+  const normalized = normalizeBookmakerText(name);
+
+  if (normalized.includes("bet365")) {
+    return "bet365";
+  }
+
+  if (normalized.includes("betano")) {
+    return "betano";
+  }
+
+  return "";
+};
+
+const replaceAllTemplateTokens = (template, replacements) =>
+  Object.entries(replacements).reduce(
+    (result, [token, replacement]) => result.split(token).join(replacement),
+    template,
+  );
+
+const buildBookmakerUrl = (template, game) => {
+  if (!template) {
+    return "";
+  }
+
+  const gameName = game?.game || [game?.homeTeam, game?.awayTeam].filter(Boolean).join(" x ");
+  const query = [game?.homeTeam, game?.awayTeam].filter(Boolean).join(" ");
+  const replacements = {
+    "{game}": encodeURIComponent(gameName),
+    "{home}": encodeURIComponent(game?.homeTeam || ""),
+    "{away}": encodeURIComponent(game?.awayTeam || ""),
+    "{query}": encodeURIComponent(query || gameName),
+  };
+
+  return replaceAllTemplateTokens(template, replacements);
+};
+
+const getGameBookmakerLinks = (game) => {
+  const keys = new Set((game?.allowedBookmakers || []).map(getBookmakerKey).filter(Boolean));
+
+  return Array.from(keys)
+    .map((key) => ({
+      key,
+      label: BOOKMAKER_LABELS[key],
+      href: buildBookmakerUrl(BOOKMAKER_URL_TEMPLATES[key], game),
+    }))
+    .filter((bookmaker) => bookmaker.label && bookmaker.href);
 };
 
 function BublesLogo() {
@@ -92,6 +162,220 @@ function AiHitLogo({ state = "pending", compact = false }) {
     >
       {symbol}
     </span>
+  );
+}
+
+function BookmakerLinks({ game, compact = false }) {
+  const links = getGameBookmakerLinks(game);
+
+  if (!links.length) {
+    return <span className="bookmaker-links-empty">Sem casa parceira</span>;
+  }
+
+  return (
+    <div className={compact ? "bookmaker-links is-compact" : "bookmaker-links"}>
+      {links.map((bookmaker) => (
+        <a
+          aria-label={`Abrir ${bookmaker.label} para ${game?.game || "este jogo"}`}
+          href={bookmaker.href}
+          key={bookmaker.key}
+          onClick={(event) => event.stopPropagation()}
+          rel="noopener noreferrer sponsored nofollow"
+          target="_blank"
+        >
+          {bookmaker.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="site-footer" aria-label="Informacoes legais">
+      <div className="footer-main">
+        <div>
+          <a className="footer-brand" href="/">
+            <BublesLogo />
+            <strong>Palpites</strong>
+          </a>
+          <p>
+            Conteudo informativo para maiores de 18 anos. O Bubles Palpites nao promete
+            lucro, nao vende resultado garantido e nao substitui sua propria analise.
+          </p>
+        </div>
+
+        <nav className="footer-links" aria-label="Links institucionais">
+          <a href="/jogo-responsavel">Jogo Responsavel</a>
+          <a href="/politica-lgpd">Politica LGPD</a>
+          <a href={`mailto:${CONTACT_EMAIL}?subject=Contato%20Bubles%20Palpites`}>
+            Contato
+          </a>
+        </nav>
+      </div>
+
+      <div className="footer-bottom">
+        <span>18+ | Aposte com responsabilidade.</span>
+        <span>Use as informacoes apenas como apoio. Resultados esportivos sao imprevisiveis.</span>
+      </div>
+    </footer>
+  );
+}
+
+function CookieConsent() {
+  const [shouldShow, setShouldShow] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    setShouldShow(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY) !== "accepted");
+  }, []);
+
+  const acceptCookies = () => {
+    window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, "accepted");
+    setShouldShow(false);
+  };
+
+  if (!shouldShow) {
+    return null;
+  }
+
+  return (
+    <section className="cookie-banner" role="dialog" aria-live="polite" aria-label="Aviso de cookies">
+      <div>
+        <strong>Cookies e privacidade</strong>
+        <p>
+          Usamos cookies essenciais e metricas de acesso para melhorar o site. Nao usamos
+          cookies para prometer ganhos ou resultados. Veja a nossa{" "}
+          <a href="/politica-lgpd">Politica LGPD</a>.
+        </p>
+      </div>
+      <button type="button" onClick={acceptCookies}>
+        Entendi
+      </button>
+    </section>
+  );
+}
+
+function LegalPage({ type }) {
+  const isPrivacy = type === "privacy";
+
+  return (
+    <div className="legal-page">
+      <header className="cup-toolbar legal-toolbar">
+        <a className="cup-brand" href="/">
+          <BublesLogo />
+          <strong className="brand-context">PALPITES</strong>
+        </a>
+        <nav className="cup-controls compact" aria-label="Atalhos legais">
+          <a className="chip-link" href="/">
+            Voltar ao radar
+          </a>
+          <a className="chip-link contact-chip" href={`mailto:${CONTACT_EMAIL}?subject=Contato%20Bubles%20Palpites`}>
+            Contato
+          </a>
+        </nav>
+      </header>
+
+      <main className="legal-content">
+        <section className="legal-hero">
+          <span>{isPrivacy ? "Privacidade e dados" : "Uso consciente"}</span>
+          <h1>{isPrivacy ? "Politica LGPD" : "Jogo Responsavel"}</h1>
+          <p>
+            {isPrivacy
+              ? "Explicamos de forma simples como tratamos dados, cookies e contato dos usuarios."
+              : "Palpites esportivos devem ser usados apenas como informacao. Nao existe aposta garantida."}
+          </p>
+        </section>
+
+        {isPrivacy ? (
+          <section className="legal-grid">
+            <article className="legal-card">
+              <h2>Quais dados podemos coletar</h2>
+              <p>
+                Podemos registrar dados tecnicos de navegacao, como paginas acessadas,
+                dispositivo, navegador, horario aproximado e metricas agregadas de uso.
+              </p>
+            </article>
+            <article className="legal-card">
+              <h2>Para que usamos</h2>
+              <p>
+                Usamos esses dados para medir acessos, melhorar desempenho, corrigir erros,
+                proteger o site e entender quais areas sao mais utilizadas.
+              </p>
+            </article>
+            <article className="legal-card">
+              <h2>Cookies</h2>
+              <p>
+                O site pode usar cookies essenciais, aceite de cookies, confirmacao de idade
+                e ferramentas de analytics. Voce pode apagar cookies no seu navegador.
+              </p>
+            </article>
+            <article className="legal-card">
+              <h2>Seus direitos</h2>
+              <p>
+                Voce pode pedir acesso, correcao ou exclusao de dados pessoais eventualmente
+                tratados pelo site. Para isso, envie email para {CONTACT_EMAIL}.
+              </p>
+            </article>
+            <article className="legal-card is-wide">
+              <h2>Contato LGPD</h2>
+              <p>
+                Para solicitacoes de privacidade, duvidas sobre dados ou remocao de informacoes,
+                fale com a equipe pelo email{" "}
+                <a href={`mailto:${CONTACT_EMAIL}?subject=LGPD%20Bubles%20Palpites`}>
+                  {CONTACT_EMAIL}
+                </a>.
+              </p>
+            </article>
+          </section>
+        ) : (
+          <section className="legal-grid">
+            <article className="legal-card">
+              <h2>Maioridade</h2>
+              <p>
+                O conteudo e destinado somente a pessoas com 18 anos ou mais. Se voce nao tem
+                idade legal para apostar, nao utilize o site.
+              </p>
+            </article>
+            <article className="legal-card">
+              <h2>Sem promessa de lucro</h2>
+              <p>
+                As informacoes sao estimativas, leituras de odds e dados esportivos. Nao
+                prometemos lucro, renda, retorno financeiro ou acerto garantido.
+              </p>
+            </article>
+            <article className="legal-card">
+              <h2>Controle de risco</h2>
+              <p>
+                Aposte apenas valores que nao afetem sua vida financeira. Defina limites,
+                faca pausas e nunca tente recuperar perdas aumentando o risco.
+              </p>
+            </article>
+            <article className="legal-card">
+              <h2>Quando parar</h2>
+              <p>
+                Se apostar deixar de ser entretenimento, causar ansiedade, dividas ou conflitos,
+                procure ajuda e interrompa o uso de sites de apostas.
+              </p>
+            </article>
+            <article className="legal-card is-wide">
+              <h2>Mensagem principal</h2>
+              <ul className="legal-list">
+                <li>Palpite nao e certeza.</li>
+                <li>Odd muda o tempo todo.</li>
+                <li>Resultado esportivo e imprevisivel.</li>
+                <li>Use o site como apoio, nunca como garantia.</li>
+              </ul>
+            </article>
+          </section>
+        )}
+      </main>
+
+      <SiteFooter />
+    </div>
   );
 }
 
@@ -1399,6 +1683,8 @@ function WidgetsPage() {
           </section>
         </aside>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }
@@ -2237,6 +2523,11 @@ function BubblesWorldCup() {
                       : "Estimativa visual"}
                 </small>
               </article>
+              <article className="bookmaker-summary-card">
+                <span>Casas</span>
+                <strong>Abrir jogo</strong>
+                <BookmakerLinks game={selectedGame} />
+              </article>
             </div>
 
             <section className="team-details-card">
@@ -2517,6 +2808,7 @@ function BubblesWorldCup() {
                     <th>Palpite IA</th>
                     <th>Chance</th>
                     <th>Selo IA</th>
+                    <th>Casas</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -2577,6 +2869,9 @@ function BubblesWorldCup() {
                             {hitState.label}
                           </span>
                         </td>
+                        <td>
+                          <BookmakerLinks game={game} compact />
+                        </td>
                         <td>{getGameStatusLabel(game)}</td>
                       </tr>
                     );
@@ -2622,6 +2917,8 @@ function BubblesWorldCup() {
           </a>
         </article>
       </section>
+
+      <SiteFooter />
     </div>
   );
 }
@@ -2679,13 +2976,18 @@ function AgeGate() {
 }
 
 export default function App() {
-  const isWidgetsPage =
-    typeof window !== "undefined" && window.location.pathname.startsWith("/widgets");
+  const pathname =
+    typeof window !== "undefined"
+      ? window.location.pathname.replace(/\/$/, "") || "/"
+      : "/";
+  const isWidgetsPage = pathname.startsWith("/widgets");
+  const legalType = LEGAL_ROUTES[pathname];
 
   return (
     <>
-      {isWidgetsPage ? <WidgetsPage /> : <BubblesWorldCup />}
-      <AgeGate />
+      {legalType ? <LegalPage type={legalType} /> : isWidgetsPage ? <WidgetsPage /> : <BubblesWorldCup />}
+      {!legalType ? <AgeGate /> : null}
+      <CookieConsent />
     </>
   );
 }
