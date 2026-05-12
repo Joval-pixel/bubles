@@ -1115,6 +1115,109 @@ const getAdvancedMarketDisplayText = (market, game) => {
   return getPrimaryBetText(market?.pick, game);
 };
 
+const getStrongestResultSide = (probabilities) => {
+  const entries = [
+    ["home", probabilities.home],
+    ["draw", probabilities.draw],
+    ["away", probabilities.away],
+  ].filter((entry) => Number.isFinite(entry[1]));
+
+  if (!entries.length) {
+    return { side: null, probability: null, gap: null };
+  }
+
+  const sorted = entries.sort((left, right) => right[1] - left[1]);
+
+  return {
+    side: sorted[0][0],
+    probability: sorted[0][1],
+    gap: sorted.length > 1 ? sorted[0][1] - sorted[1][1] : null,
+  };
+};
+
+const getConservativeConfidence = (baseConfidence, homeStats, awayStats, resultProbabilities) => {
+  const resultLeader = getStrongestResultSide(resultProbabilities);
+  const formGap = Number.isFinite(homeStats.pointsRate) && Number.isFinite(awayStats.pointsRate)
+    ? Math.abs(homeStats.pointsRate - awayStats.pointsRate)
+    : null;
+  const hasEnoughRecentData = homeStats.played >= 5 && awayStats.played >= 5;
+  const isBalancedByOdds = Number.isFinite(resultLeader.gap) && resultLeader.gap < 0.12;
+  const isBalancedByForm = Number.isFinite(formGap) && formGap < 0.1;
+  let adjusted = clamp(baseConfidence || 0, 0, 1);
+
+  if (!hasEnoughRecentData) {
+    adjusted = Math.min(adjusted, 0.64);
+  }
+
+  if (isBalancedByOdds || isBalancedByForm) {
+    adjusted = Math.min(adjusted, 0.74);
+  }
+
+  if (adjusted >= 0.8 && (!hasEnoughRecentData || isBalancedByOdds || isBalancedByForm)) {
+    adjusted = 0.79;
+  }
+
+  return {
+    confidence: adjusted,
+    hasEnoughRecentData,
+    isBalanced: Boolean(isBalancedByOdds || isBalancedByForm),
+  };
+};
+
+const getSideName = (side, game) => {
+  if (side === "home") {
+    return game?.homeTeam || "Mandante";
+  }
+
+  if (side === "away") {
+    return game?.awayTeam || "Visitante";
+  }
+
+  if (side === "draw") {
+    return "Empate";
+  }
+
+  return "Sem favorito claro";
+};
+
+const getValueText = (game) => {
+  const ev = Number(game?.ev);
+  const edge = Number(game?.marketEdge);
+
+  if (Number.isFinite(ev) && ev > 0.08) {
+    return "Possivel valor estatistico, mas confirme liquidez e odd atual.";
+  }
+
+  if (Number.isFinite(edge) && edge > 0.18) {
+    return "Odd acima da leitura justa estimada. Exige conferencia antes da entrada.";
+  }
+
+  if (Number.isFinite(ev) && ev < -0.05) {
+    return "Odd nao parece oferecer valor claro neste momento.";
+  }
+
+  return "Sem movimento historico de odds disponivel; leitura baseada na odd atual.";
+};
+
+const getZebraDetectorText = (game, analysis) => {
+  const leader = getStrongestResultSide(analysis.resultProbabilities);
+  const favoriteName = getSideName(leader.side, game);
+  const favoriteStats = leader.side === "home" ? analysis.homeStats10 : leader.side === "away" ? analysis.awayStats10 : null;
+  const underdogStats = leader.side === "home" ? analysis.awayStats10 : leader.side === "away" ? analysis.homeStats10 : null;
+  const favoriteWeak = favoriteStats?.played >= 5 && favoriteStats.wins <= 2;
+  const underdogStrong = underdogStats?.played >= 5 && underdogStats.losses <= 2 && underdogStats.pointsRate >= 0.55;
+
+  if (!leader.side || leader.side === "draw") {
+    return "Jogo sem favorito claro. Tratar como partida imprevisivel.";
+  }
+
+  if (favoriteWeak || underdogStrong || analysis.isBalanced) {
+    return `${favoriteName} tem risco oculto. Evite confiar so no favoritismo.`;
+  }
+
+  return `${favoriteName} aparece mais consistente, sem alerta forte de zebra pelos dados atuais.`;
+};
+
 const buildAdvancedAnalysis = (game, details) => {
   const homeTeam = details?.teams?.home;
   const awayTeam = details?.teams?.away;
@@ -1125,7 +1228,7 @@ const buildAdvancedAnalysis = (game, details) => {
   const homeVenue = buildRecentStats(homeTeam, 10, "home");
   const awayVenue = buildRecentStats(awayTeam, 10, "away");
   const resultProbabilities = getResultProbabilities(game);
-  const confidence = clamp(Number(game?.displayProbability || game?.probability || 0), 0, 1);
+  const rawConfidence = clamp(Number(game?.displayProbability || game?.probability || 0), 0, 1);
   const bttsProbability = getBttsProbability(game, homeStats10, awayStats10);
   const over25Probability = getOver25Probability(game, homeStats10, awayStats10);
   const under25Probability = getUnder25Probability(homeStats10, awayStats10, over25Probability);
@@ -1135,10 +1238,18 @@ const buildAdvancedAnalysis = (game, details) => {
     : null;
   const markets = getInterestingAdvancedMarkets(game);
   const probableScore = getProbableScore(homeStats10, awayStats10);
+  const confidenceProfile = getConservativeConfidence(rawConfidence, homeStats10, awayStats10, resultProbabilities);
+  const confidence = confidenceProfile.confidence;
   const confidenceClass = getConfidenceClass(confidence);
   const risk = getRiskLabel(confidence);
   const homeName = game?.homeTeam || homeTeam?.name || "Mandante";
   const awayName = game?.awayTeam || awayTeam?.name || "Visitante";
+  const partialAnalysis = {
+    homeStats10,
+    awayStats10,
+    resultProbabilities,
+    isBalanced: confidenceProfile.isBalanced,
+  };
 
   return {
     awayName,
@@ -1148,6 +1259,7 @@ const buildAdvancedAnalysis = (game, details) => {
     bttsProbability,
     confidence,
     confidenceClass,
+    hasEnoughRecentData: confidenceProfile.hasEnoughRecentData,
     homeName,
     homeStats5,
     homeStats10,
@@ -1156,9 +1268,13 @@ const buildAdvancedAnalysis = (game, details) => {
     markets,
     over25Probability,
     probableScore,
+    rawConfidence,
     resultProbabilities,
     risk,
+    valueText: getValueText(game),
     under25Probability,
+    zebraText: getZebraDetectorText(game, partialAnalysis),
+    isBalanced: confidenceProfile.isBalanced,
   };
 };
 
@@ -1285,6 +1401,195 @@ function AdvancedAnalysisPanel({ game, details, loading }) {
             A melhor leitura estatistica e <strong>{pickText}</strong>. A IA combina momento recente,
             gols, casa/fora e odds disponiveis para apontar valor provavel, sempre como apoio de analise
             e nunca como promessa de lucro.
+          </p>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function PremiumAdvancedAnalysisPanel({ game, details, loading }) {
+  const analysis = buildAdvancedAnalysis(game, details);
+  const pickText = getPrimaryBetText(game?.displayPickLabel || game?.pickLabel, game);
+  const hasRecentData = analysis.homeStats10.played || analysis.awayStats10.played;
+  const marketFallback = [
+    {
+      pick: pickText,
+      probability: analysis.confidence,
+      odd: game?.displayOdd || game?.oddHome,
+    },
+  ];
+
+  return (
+    <section className="advanced-analysis-card">
+      <div className="advanced-analysis-head">
+        <div>
+          <span>Analise estatistica avancada</span>
+          <strong>Leitura profissional com risco controlado</strong>
+        </div>
+        <em className={`confidence-pill is-${analysis.confidenceClass.toLowerCase()}`}>
+          {formatChance(analysis.confidence)} {analysis.confidenceClass}
+        </em>
+      </div>
+
+      {loading ? (
+        <p className="advanced-loading">Carregando forma recente, casa/fora e ultimos confrontos...</p>
+      ) : null}
+
+      <div className="advanced-analysis-grid">
+        <article>
+          <span>{"\u{1F3C6} JOGO"}</span>
+          <strong>{analysis.homeName} x {analysis.awayName}</strong>
+          <small>{pickText}</small>
+        </article>
+
+        <article>
+          <span>{"\u{1F4CA} MOMENTO DAS EQUIPES"}</span>
+          <strong>
+            {hasRecentData
+              ? `${analysis.homeName}: ${formatRecentFormRecord(analysis.homeStats10)} | ${analysis.awayName}: ${formatRecentFormRecord(analysis.awayStats10)}`
+              : "Aguardando historico recente"}
+          </strong>
+          <small>
+            {analysis.homeName}: {getRecentSequenceText(details?.teams?.home)}. {analysis.awayName}:{" "}
+            {getRecentSequenceText(details?.teams?.away)}.
+          </small>
+        </article>
+
+        <article>
+          <span>{"\u26BD MEDIA DE GOLS"}</span>
+          <strong>Total previsto: {formatAdvancedAverage(analysis.matchGoalsAverage)}</strong>
+          <small>
+            {analysis.homeName}: {formatAdvancedAverage(analysis.homeStats10.avgFor)} feitos /{" "}
+            {formatAdvancedAverage(analysis.homeStats10.avgAgainst)} sofridos. {analysis.awayName}:{" "}
+            {formatAdvancedAverage(analysis.awayStats10.avgFor)} feitos /{" "}
+            {formatAdvancedAverage(analysis.awayStats10.avgAgainst)} sofridos.
+          </small>
+        </article>
+
+        <article>
+          <span>{"\u{1F3E0} CASA E FORA"}</span>
+          <strong>
+            Casa: {formatAdvancedAverage(analysis.homeVenue.avgFor)} gols | Fora:{" "}
+            {formatAdvancedAverage(analysis.awayVenue.avgFor)} gols
+          </strong>
+          <small>
+            Mandante em casa: {analysis.homeVenue.played || 0} jogos. Visitante fora:{" "}
+            {analysis.awayVenue.played || 0} jogos.
+          </small>
+        </article>
+
+        <article>
+          <span>{"\u{1F525} TENDENCIAS"}</span>
+          <strong>
+            BTTS {formatAdvancedPercent(analysis.bttsProbability)} | Over 2.5{" "}
+            {formatAdvancedPercent(analysis.over25Probability)}
+          </strong>
+          <small>
+            Under 2.5: {formatAdvancedPercent(analysis.under25Probability)}. Escanteios: sem dados reais na API atual.
+          </small>
+        </article>
+
+        <article>
+          <span>{"\u{1F4C8} PROBABILIDADES"}</span>
+          <strong>
+            {analysis.homeName}: {formatAdvancedPercent(analysis.resultProbabilities.home)} | Empate:{" "}
+            {formatAdvancedPercent(analysis.resultProbabilities.draw)}
+          </strong>
+          <small>{analysis.awayName}: {formatAdvancedPercent(analysis.resultProbabilities.away)}.</small>
+        </article>
+
+        <article>
+          <span>{"\u{1F6A8} ATAQUE E DEFESA"}</span>
+          <strong>
+            Clean sheets: {analysis.homeName} {analysis.homeStats10.cleanSheets}/{analysis.homeStats10.played || 0} |{" "}
+            {analysis.awayName} {analysis.awayStats10.cleanSheets}/{analysis.awayStats10.played || 0}
+          </strong>
+          <small>
+            xG, xGA, finalizacoes e chances criadas: nao disponiveis na API atual. A leitura usa gols, fase e odds.
+          </small>
+        </article>
+
+        <article>
+          <span>{"\u{1F9E9} ESTILO TATICO"}</span>
+          <strong>{analysis.isBalanced ? "Encaixe equilibrado" : "Leitura com lado mais forte"}</strong>
+          <small>
+            Posse, pressao alta, contra-ataque e linha defensiva exigem dados taticos externos. Sem esses dados, a IA reduz a confianca.
+          </small>
+        </article>
+
+        <article>
+          <span>{"\u{1F9E0} PSICOLOGICO E FISICO"}</span>
+          <strong>{analysis.hasEnoughRecentData ? "Forma recente considerada" : "Dados recentes limitados"}</strong>
+          <small>
+            Crise interna, troca de tecnico, viagens, altitude e descanso nao estao confirmados pela API atual.
+          </small>
+        </article>
+
+        <article>
+          <span>{"\u{1F327} CLIMA E GRAMADO"}</span>
+          <strong>Nao disponivel no plano atual</strong>
+          <small>Chuva, temperatura e estado do gramado devem ser conferidos antes de entradas em gols ou escanteios.</small>
+        </article>
+
+        <article>
+          <span>{"\u{1F691} DESFALQUES IMPORTANTES"}</span>
+          <strong>Nao disponivel no plano atual</strong>
+          <small>Sem lesionados, suspensos ou escalacoes confirmadas pela API neste momento.</small>
+        </article>
+
+        <article>
+          <span>{"\u{1F4B0} ODDS E VALOR"}</span>
+          <strong>{analysis.valueText}</strong>
+          <small>Odds infladas e favoritismo exagerado precisam ser conferidos perto do inicio da partida.</small>
+        </article>
+
+        <article>
+          <span>{"\u{1F40E} DETECTOR DE ZEBRAS"}</span>
+          <strong>{analysis.zebraText}</strong>
+          <small>Favoritos vulneraveis perdem forca quando fase recente e odds nao sustentam a leitura.</small>
+        </article>
+
+        <article>
+          <span>{"\u{1F3AF} PLACAR MAIS PROVAVEL"}</span>
+          <strong>{analysis.probableScore}</strong>
+          <small>Estimativa baseada em gols marcados/sofridos nos ultimos jogos. Nao e garantia.</small>
+        </article>
+
+        <article>
+          <span>{"\u26A0\uFE0F RISCO"}</span>
+          <strong>{analysis.risk}</strong>
+          <small>
+            Confianca IA: {formatChance(analysis.confidence)}. Base bruta: {formatChance(analysis.rawConfidence)}. Classificacao: {analysis.confidenceClass}.
+          </small>
+        </article>
+
+        <article>
+          <span>{"\u{1F501} APRENDIZADO DA IA"}</span>
+          <strong>Resultado alimenta o selo V/X</strong>
+          <small>Depois do jogo, a previsao e comparada com o placar real para identificar padroes de acerto e erro.</small>
+        </article>
+      </div>
+
+      <div className="advanced-bottom-grid">
+        <article>
+          <span>{"\u{1F4CC} MERCADOS MAIS INTERESSANTES"}</span>
+          <ol>
+            {(analysis.markets.length ? analysis.markets : marketFallback).map((market, index) => (
+              <li key={`${market.pick}-${index}`}>
+                <strong>{getAdvancedMarketDisplayText(market, game)}</strong>
+                <small>{formatChance(market.probability)} | Odd {formatOdd(market.odd)}</small>
+              </li>
+            ))}
+          </ol>
+        </article>
+
+        <article>
+          <span>{"\u{1F9E0} CONCLUSAO GOL365"}</span>
+          <p>
+            A melhor leitura estatistica e <strong>{pickText}</strong>. A IA prioriza tendencia recente,
+            consistencia, casa/fora e odds disponiveis. Se o jogo estiver equilibrado ou sem dados suficientes,
+            a confianca e reduzida automaticamente. Use como apoio de analise, nunca como certeza de resultado.
           </p>
         </article>
       </div>
@@ -3725,7 +4030,7 @@ function BubblesWorldCup() {
               </section>
             ) : null}
 
-            <AdvancedAnalysisPanel
+            <PremiumAdvancedAnalysisPanel
               details={gameDetails}
               game={selectedGame}
               loading={gameDetailsLoading}
