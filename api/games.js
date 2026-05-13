@@ -35,6 +35,14 @@ const MAX_ODDS_PAGES = Math.max(
   1,
   Math.min(30, Number.parseInt(process.env.MAX_ODDS_PAGES || "20", 10) || 20)
 );
+const ODDS_PAGE_DELAY_MS = Math.max(
+  0,
+  Math.min(500, Number.parseInt(process.env.ODDS_PAGE_DELAY_MS || "35", 10) || 35)
+);
+const ODDS_PAGE_BATCH_SIZE = Math.max(
+  1,
+  Math.min(6, Number.parseInt(process.env.ODDS_PAGE_BATCH_SIZE || "4", 10) || 4)
+);
 const API_TIMEZONE = process.env.API_FOOTBALL_TIMEZONE || "America/Sao_Paulo";
 const TARGET_BOOKMAKERS = String(process.env.TARGET_BOOKMAKERS || "Bet365,Betano")
   .split(",")
@@ -282,6 +290,17 @@ const fetchFromApi = async (path) => {
   return Array.isArray(payload?.response) ? payload.response : [];
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const fetchOptionalArrayFromApi = async (path) => {
+  try {
+    const payload = await fetchPayloadFromApi(path);
+    return Array.isArray(payload?.response) ? payload.response : [];
+  } catch (_error) {
+    return [];
+  }
+};
+
 const withPageParam = (path, page) => {
   const separator = path.includes("?") ? "&" : "?";
   return `${path}${separator}page=${page}`;
@@ -296,13 +315,25 @@ const fetchPagedFromApi = async (path, maxPages = MAX_ODDS_PAGES) => {
     return firstResponse;
   }
 
-  const nextPages = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      fetchPayloadFromApi(withPageParam(path, index + 2)).then((payload) =>
-        Array.isArray(payload?.response) ? payload.response : []
-      )
-    )
-  );
+  const nextPages = [];
+
+  // API-Football can rate-limit when many odds pages are requested at once.
+  // Fetch in small batches and keep successful pages instead of losing all odds.
+  for (let page = 2; page <= totalPages; page += ODDS_PAGE_BATCH_SIZE) {
+    if (ODDS_PAGE_DELAY_MS) {
+      await sleep(ODDS_PAGE_DELAY_MS);
+    }
+
+    const batch = Array.from(
+      { length: Math.min(ODDS_PAGE_BATCH_SIZE, totalPages - page + 1) },
+      (_, index) => page + index
+    );
+    const batchPages = await Promise.all(
+      batch.map((pageNumber) => fetchOptionalArrayFromApi(withPageParam(path, pageNumber)))
+    );
+
+    nextPages.push(...batchPages);
+  }
 
   return firstResponse.concat(...nextPages);
 };
