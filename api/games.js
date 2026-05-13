@@ -40,6 +40,8 @@ const TARGET_BOOKMAKERS = String(process.env.TARGET_BOOKMAKERS || "Bet365,Betano
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
+const STRICT_TARGET_BOOKMAKERS =
+  String(process.env.STRICT_TARGET_BOOKMAKERS || "true").toLowerCase() !== "false";
 const BUILTIN_FIXTURE_DATE_OVERRIDES = {
   // API-Football is currently returning this fixture one day early.
   // Keep this small and use FIXTURE_DATE_OVERRIDES in Vercel for future corrections.
@@ -1861,12 +1863,17 @@ const buildGamesWithBookmakerFallback = (fixtures, oddsMap, source) => {
     .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), source))
     .filter((game) => game?.id);
   const partnerGames = allGames.filter((game) => game.hasTargetBookmaker);
+  const games = STRICT_TARGET_BOOKMAKERS
+    ? partnerGames
+    : partnerGames.length
+      ? partnerGames
+      : allGames;
 
   return {
-    games: partnerGames.length ? partnerGames : allGames,
+    games,
     partnerCount: partnerGames.length,
     totalCount: allGames.length,
-    usingFallback: !partnerGames.length && allGames.length > 0,
+    usingFallback: !STRICT_TARGET_BOOKMAKERS && !partnerGames.length && allGames.length > 0,
   };
 };
 
@@ -1940,10 +1947,16 @@ export async function GET(request) {
       const bookmakerLabel = TARGET_BOOKMAKERS.join(" ou ");
 
       if (!games.length) {
+        const hasGamesWithoutTargetBookmakers = totalCount > 0 && partnerCount === 0;
+
         return makeJsonResponse(
           makeEmptyPayload(
-            "Sem jogos de hoje retornados",
-            `Nenhum fixture retornado pela API-Football para date=${date}`,
+            hasGamesWithoutTargetBookmakers
+              ? `Sem jogos de hoje com odds oficiais de ${bookmakerLabel}`
+              : "Sem jogos de hoje retornados",
+            hasGamesWithoutTargetBookmakers
+              ? `A API-Football retornou ${totalCount} jogos para date=${date}, mas 0 com odds oficiais de ${bookmakerLabel}. O filtro de casas esta ativo.`
+              : `Nenhum fixture retornado pela API-Football para date=${date}`,
             {
               id: "today",
               season: new Date().getFullYear(),
@@ -1984,10 +1997,16 @@ export async function GET(request) {
     const bookmakerLabel = TARGET_BOOKMAKERS.join(" ou ");
 
     if (!games.length) {
+      const hasGamesWithoutTargetBookmakers = totalCount > 0 && partnerCount === 0;
+
       return makeJsonResponse(
         makeEmptyPayload(
-          "Sem jogos da Copa retornados",
-          "Nenhum fixture da Copa 2026 retornado pela API-Football"
+          hasGamesWithoutTargetBookmakers
+            ? `Sem jogos da Copa com odds oficiais de ${bookmakerLabel}`
+            : "Sem jogos da Copa retornados",
+          hasGamesWithoutTargetBookmakers
+            ? `A API-Football retornou ${totalCount} jogos da Copa 2026, mas 0 com odds oficiais de ${bookmakerLabel}. O filtro de casas esta ativo.`
+            : "Nenhum fixture da Copa 2026 retornado pela API-Football"
         )
       );
     }
