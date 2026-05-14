@@ -1977,22 +1977,30 @@ const mergeFixturesById = (...fixtureGroups) => {
   return [...map.values()];
 };
 
-const buildGamesWithBookmakerFallback = (fixtures, oddsMap, source) => {
+const buildGamesWithBookmakerFallback = (fixtures, oddsMap, source, options = {}) => {
   const allGames = fixtures
     .map((fixture) => buildGame(fixture, oddsMap.get(fixture?.fixture?.id), source))
     .filter((game) => game?.id);
   const partnerGames = allGames.filter((game) => game.hasTargetBookmaker);
-  const games = STRICT_TARGET_BOOKMAKERS
+  const partnerGameIds = new Set(partnerGames.map((game) => game.id));
+  const liveFallbackGames = options.includeAllLive
+    ? allGames.filter((game) => game.isLive && !partnerGameIds.has(game.id))
+    : [];
+  const selectedGames = STRICT_TARGET_BOOKMAKERS
     ? partnerGames
     : partnerGames.length
       ? partnerGames
       : allGames;
+  const games = [...new Map([...selectedGames, ...liveFallbackGames].map((game) => [game.id, game])).values()];
 
   return {
     games,
     partnerCount: partnerGames.length,
     totalCount: allGames.length,
-    usingFallback: !STRICT_TARGET_BOOKMAKERS && !partnerGames.length && allGames.length > 0,
+    liveFallbackCount: liveFallbackGames.length,
+    usingFallback:
+      liveFallbackGames.length > 0 ||
+      (!STRICT_TARGET_BOOKMAKERS && !partnerGames.length && allGames.length > 0),
   };
 };
 
@@ -2026,7 +2034,9 @@ const fetchTodayGames = async () => {
 
     return isFixtureOnRequestedDate(fixture, date);
   });
-  const result = buildGamesWithBookmakerFallback(fixtures, oddsMap, "today");
+  const result = buildGamesWithBookmakerFallback(fixtures, oddsMap, "today", {
+    includeAllLive: true,
+  });
   const games = result.games;
   const liveGames = games.filter((game) => game.isLive);
   const otherGames = sortGames(games.filter((game) => !game.isLive));
@@ -2035,6 +2045,7 @@ const fetchTodayGames = async () => {
     date,
     partnerCount: result.partnerCount,
     totalCount: result.totalCount,
+    liveFallbackCount: result.liveFallbackCount,
     usingFallback: result.usingFallback,
     games: applyMarketVarietyToGames(sortGames([...liveGames, ...otherGames])),
   };
@@ -2060,7 +2071,7 @@ export async function GET(request) {
 
   try {
     if (mode === "today") {
-      const { date, games, usingFallback, partnerCount, totalCount } = await fetchTodayGames();
+      const { date, games, usingFallback, partnerCount, totalCount, liveFallbackCount } = await fetchTodayGames();
       const oddsCount = games.filter((game) => game.hasOdds).length;
       const liveCount = games.filter((game) => game.isLive).length;
       const bookmakerLabel = TARGET_BOOKMAKERS.join(" ou ");
@@ -2093,13 +2104,17 @@ export async function GET(request) {
       return makeJsonResponse({
         games: responseGames,
         updatedAt: new Date().toISOString(),
-        message: usingFallback
-          ? "Jogos de hoje carregados sem filtro de casas"
+        message: liveFallbackCount
+          ? "Jogos ao vivo carregados no radar"
+          : usingFallback
+            ? "Jogos de hoje carregados sem filtro de casas"
           : liveCount
             ? "Jogos ao vivo de hoje no radar"
             : "Jogos de hoje carregados",
-        debug: usingFallback
-          ? `${games.length} jogos de hoje carregados. A API-Football retornou ${partnerCount} de ${totalCount} jogos com odds oficiais de ${bookmakerLabel}; exibindo todos os jogos do dia para nao zerar o radar.`
+        debug: liveFallbackCount
+          ? `${games.length} jogos de hoje carregados. Incluindo ${liveFallbackCount} jogos ao vivo sem odds oficiais de ${bookmakerLabel}; jogos pre-jogo continuam priorizando casas parceiras.`
+          : usingFallback
+            ? `${games.length} jogos de hoje carregados. A API-Football retornou ${partnerCount} de ${totalCount} jogos com odds oficiais de ${bookmakerLabel}; exibindo todos os jogos do dia para nao zerar o radar.`
           : `${games.length} jogos de hoje carregados com odds oficiais de ${bookmakerLabel}.`,
         tournament: {
           id: "today",
