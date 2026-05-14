@@ -40,8 +40,8 @@ const SPONSORS = [
   },
 ];
 
-const RADAR_INITIAL_LIMIT = 50;
-const AI_STATS_MIN_SAMPLE = 10;
+const RADAR_INITIAL_LIMIT = 30;
+const AI_STATS_MIN_SAMPLE = 1;
 const AI_STATS_MIN_CONFIDENCE = 0.6;
 const VALID_FILTERS = new Set(["best", "live", "goals", "btts"]);
 const VALID_MODES = new Set(["today", "worldcup"]);
@@ -3947,7 +3947,9 @@ function BubblesWorldCup() {
               <span>IA acertou</span>
               <strong>{todayAiStats.isReliable ? formatChance(todayAiStats.hitRate) : "Em teste"}</strong>
               <small>
-                {todayAiStats.checked} de {AI_STATS_MIN_SAMPLE} conferidos para liberar %
+                {todayAiStats.isReliable
+                  ? `${todayAiStats.hits} de ${todayAiStats.checked} conferidos`
+                  : `${todayAiStats.checked} de ${AI_STATS_MIN_SAMPLE} conferidos para liberar %`}
               </small>
             </article>
 
@@ -4392,9 +4394,13 @@ function BubblesWorldCup() {
                 <strong>{finishedCount}</strong>
               </article>
               <article className="ai-stat-card is-hit">
-                <span>IA acertou</span>
-                <strong>{todayAiStats.isReliable ? formatChance(todayAiStats.hitRate) : "Em teste"}</strong>
-                <small>{todayAiStats.checked} de {AI_STATS_MIN_SAMPLE} conferidos para liberar %</small>
+              <span>IA acertou</span>
+              <strong>{todayAiStats.isReliable ? formatChance(todayAiStats.hitRate) : "Em teste"}</strong>
+                <small>
+                  {todayAiStats.isReliable
+                    ? `${todayAiStats.hits} de ${todayAiStats.checked} conferidos`
+                    : `${todayAiStats.checked} de ${AI_STATS_MIN_SAMPLE} conferidos para liberar %`}
+                </small>
               </article>
               <article className="ai-stat-card is-miss">
                 <span>IA errou</span>
