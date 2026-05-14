@@ -66,6 +66,27 @@ const BLOCKED_MARKET_TERMS = [
   "offside",
   "penalty",
   "own goal",
+  "clean sheet",
+  "score a goal",
+  "team to score",
+  "first goal",
+  "last goal",
+  "correct score",
+  "exact score",
+  "winning margin",
+  "odd/even",
+  "1st half",
+  "2nd half",
+  "first half",
+  "second half",
+  "half time",
+  "halftime",
+  "half-time",
+  "1st period",
+  "2nd period",
+  "period",
+  "quarter",
+  "minute",
   "throw",
   "substitution",
 ];
@@ -438,21 +459,79 @@ const isAllowedPredictionMarket = (betName) => {
     return false;
   }
 
+  const isMatchWinner =
+    name.includes("match winner") ||
+    name === "winner" ||
+    name === "1x2";
+  const isDoubleChance = name.includes("double chance");
+  const isDrawNoBet = name.includes("draw no bet") || name.includes("empate anula");
+  const isBtts =
+    (name.includes("both teams to score") ||
+      name.includes("both teams score") ||
+      name.includes("btts") ||
+      name.includes("ambas marcam")) &&
+    !name.includes("over") &&
+    !name.includes("under") &&
+    !name.includes("mais de") &&
+    !name.includes("menos de");
+  const isFullGameGoals =
+    name.includes("goals over/under") ||
+    name.includes("total goals") ||
+    name === "over/under" ||
+    name.includes("over/under");
+
+  return isMatchWinner || isDoubleChance || isDrawNoBet || isBtts || isFullGameGoals;
+};
+
+const isAllowedPredictionOption = (marketName, label) => {
+  const name = normalizeText(marketName);
+  const text = normalizeText(`${marketName || ""} ${label || ""}`);
+
+  if (!text || BLOCKED_MARKET_TERMS.some((term) => text.includes(term))) {
+    return false;
+  }
+
+  if (isLowLineUnderOption(marketName, label) || isRiskyUnderOption(marketName, label)) {
+    return false;
+  }
+
+  const isGoalsMarket =
+    name.includes("goals over/under") ||
+    name.includes("total goals") ||
+    name === "over/under" ||
+    name.includes("over/under");
+
+  if (isGoalsMarket) {
+    return /(?:over|under|mais de|menos de)\s*(?:1[,.]5|2[,.]5|3[,.]5)/.test(text);
+  }
+
+  const isBttsMarket =
+    name.includes("both teams to score") ||
+    name.includes("both teams score") ||
+    name.includes("btts") ||
+    name.includes("ambas marcam");
+
+  if (isBttsMarket) {
+    return /(^|\s|:|-)(yes|no|sim|nao)(\s|:|-|$)/.test(text);
+  }
+
+  if (name.includes("double chance")) {
+    const hasDrawSide = text.includes("draw") || text.includes("empate") || text.includes("1x") || text.includes("x2");
+    const isNoDrawSide =
+      text.includes("home/away") ||
+      text.includes("mandante/visitante") ||
+      text.includes("12") ||
+      text.includes("1/2");
+
+    return hasDrawSide && !isNoDrawSide;
+  }
+
   return (
     name.includes("match winner") ||
     name === "winner" ||
     name === "1x2" ||
-    name.includes("double chance") ||
     name.includes("draw no bet") ||
-    name.includes("empate anula") ||
-    name.includes("both teams") ||
-    name.includes("btts") ||
-    name.includes("corner") ||
-    name.includes("escanteio") ||
-    name.includes("goal") ||
-    name.includes("over") ||
-    name.includes("under") ||
-    name.includes("result")
+    name.includes("empate anula")
   );
 };
 
@@ -611,13 +690,10 @@ const buildFallbackBetMarkets = (fixture, mainMarket) => {
   const favoriteChance = mainMarket?.probability || 0.45;
   const goalSeed = stableSeed(`${fixtureId}-goals`);
   const bttsSeed = stableSeed(`${fixtureId}-btts`);
-  const comboSeed = stableSeed(`${fixtureId}-combo`);
   const paceBoost = isLive ? clamp((score.total * 0.08) + (minute < 35 && score.total ? 0.04 : 0), 0, 0.22) : 0;
   const over25 = clamp(0.46 + (goalSeed - 0.5) * 0.22 + paceBoost, 0.31, 0.76);
   const over15 = clamp(over25 + 0.18, 0.5, 0.86);
   const bttsYes = clamp(0.44 + (bttsSeed - 0.5) * 0.2 + (score.bothScored ? 0.34 : score.total ? 0.06 : 0), 0.28, 0.78);
-  const favoriteAndBtts = clamp((favoriteChance * bttsYes) + 0.08 + (comboSeed - 0.5) * 0.08, 0.18, 0.62);
-  const bttsAndOver25 = clamp((bttsYes * over25) + 0.12 + (comboSeed - 0.5) * 0.08, 0.2, 0.66);
   const favoriteLabel =
     mainMarket?.pickLabel && mainMarket.pickLabel !== "Favorito"
       ? mainMarket.pickLabel
@@ -672,44 +748,6 @@ const buildFallbackBetMarkets = (fixture, mainMarket) => {
       options: [
         createOption({ code: "BTTS-S", label: "Ambas marcam - Sim", probability: bttsYes, source: "estimate" }),
         createOption({ code: "BTTS-N", label: "Um dos times nao marca", probability: 1 - bttsYes, source: "estimate" }),
-      ],
-    }),
-    buildBetMarket({
-      id: "modelo-vencedor-ambas",
-      name: "Vencedor do jogo e ambas marcam",
-      category: "Resultado + Gols",
-      options: [
-        createOption({
-          code: "WIN-BTTS-S",
-          label: `${favoriteLabel} vence e ambas marcam`,
-          probability: favoriteAndBtts,
-          source: "estimate",
-        }),
-        createOption({
-          code: "WIN-BTTS-N",
-          label: `${favoriteLabel} vence e ambas nao marcam`,
-          probability: clamp(favoriteChance - favoriteAndBtts + 0.08, 0.16, 0.58),
-          source: "estimate",
-        }),
-      ],
-    }),
-    buildBetMarket({
-      id: "modelo-ambas-over-25",
-      name: "Ambas marcam e mais de 2.5 gols",
-      category: "Resultado + Gols",
-      options: [
-        createOption({
-          code: "BTTS-O2.5-S",
-          label: "Ambas marcam + mais de 2.5 gols",
-          probability: bttsAndOver25,
-          source: "estimate",
-        }),
-        createOption({
-          code: "BTTS-O2.5-N",
-          label: "Nao: ambas marcam + mais de 2.5 gols",
-          probability: clamp(1 - bttsAndOver25, 0.22, 0.74),
-          source: "estimate",
-        }),
       ],
     }),
   ].filter((market) => !isNegativeOpenGameCombo(market?.name, market?.leader?.label));
@@ -800,7 +838,7 @@ const buildBetMarketsFromBookmakers = (entry) => {
           (value) =>
             value.label &&
             value.odd > 1 &&
-            !isLowLineUnderOption(bet?.name, value.label)
+            isAllowedPredictionOption(bet?.name, value.label)
         );
 
       if (values.length < 2) {
@@ -1026,6 +1064,47 @@ const isDefensiveOrRepetitiveMarket = (market) => {
   );
 };
 
+const PRIMARY_MARKET_FAMILIES = new Set([
+  "Vitoria simples",
+  "Dupla chance",
+  "Empate anula",
+  "Over gols",
+  "Under gols",
+  "Ambas marcam",
+]);
+
+const isPartialOrUnsupportedMarket = (market) => {
+  const text = getInsightMarketText(market);
+
+  return (
+    BLOCKED_MARKET_TERMS.some((term) => text.includes(term)) ||
+    text.includes("resultado + gols") ||
+    text.includes("combinada") ||
+    text.includes("corner") ||
+    text.includes("escanteio") ||
+    text.includes("cartao") ||
+    text.includes("card")
+  );
+};
+
+const isPrimaryPredictionMarket = (market) => {
+  if (!market?.leader || isLowLineUnderMarket(market) || isPartialOrUnsupportedMarket(market)) {
+    return false;
+  }
+
+  const family = getMarketFamily(market);
+
+  if (!PRIMARY_MARKET_FAMILIES.has(family)) {
+    return false;
+  }
+
+  if (isDefensiveOrRepetitiveMarket(market) && (market?.leader?.probability || 0) < 0.72) {
+    return false;
+  }
+
+  return true;
+};
+
 const getRecentFamilyPenalty = (family, recentFamilies = []) => {
   if (!family || !recentFamilies.length) {
     return 0;
@@ -1051,18 +1130,21 @@ const getInsightMarketScore = (market, recentFamilies = []) => {
   const family = getMarketFamily(market);
   let score = (market?.leader?.probability || 0) + (market?.confidence || 0) * 0.2;
 
+  if (!isPrimaryPredictionMarket(market)) score -= 2;
   if (family === "Vitoria simples") score += 0.12;
   if (family === "Dupla chance") score += 0.16;
   if (family === "Empate anula") score += 0.14;
   if (family === "Over gols") score += 0.13;
   if (family === "Ambas marcam") score += 0.09;
-  if (family === "Escanteios") score += 0.06;
-  if (family === "Combinada") score += 0.02;
-  if (family === "Under gols") score -= 0.08;
-  if (isDefensiveOrRepetitiveMarket(market)) score -= 0.24;
-  if ((market?.leader?.probability || 0) < 0.54) score -= 0.12;
+  if (family === "Under gols") score -= 0.18;
+  if (isDefensiveOrRepetitiveMarket(market)) score -= 0.34;
+  if (!market?.bookmakersCount) score -= 0.1;
+  if ((market?.leader?.probability || 0) < 0.58) score -= 0.18;
   if ((market?.leader?.odd || 0) > 0 && (market?.leader?.odd || 0) < 1.15) score -= 0.1;
   if (isLowLineUnderMarket(market)) score -= 1;
+  if (text.includes("first half") || text.includes("second half") || text.includes("1st half") || text.includes("2nd half")) {
+    score -= 2;
+  }
   score -= getRecentFamilyPenalty(family, recentFamilies);
 
   return score;
@@ -1267,11 +1349,12 @@ const getAvoidList = (market) => {
   return items;
 };
 
-const getBestMarkets = (betMarkets, recentFamilies = []) =>
-  sortInsightMarkets(
-    betMarkets.filter((market) => market?.leader && !isLowLineUnderMarket(market)),
-    recentFamilies
-  )
+const getBestMarkets = (betMarkets, recentFamilies = []) => {
+  const primaryMarkets = betMarkets.filter(isPrimaryPredictionMarket);
+  const fallbackMarkets = betMarkets.filter((market) => market?.leader && !isLowLineUnderMarket(market));
+  const candidates = primaryMarkets.length ? primaryMarkets : fallbackMarkets;
+
+  return sortInsightMarkets(candidates, recentFamilies)
     .slice(0, 3)
     .map((market) => ({
       category: market.category,
@@ -1286,6 +1369,7 @@ const getBestMarkets = (betMarkets, recentFamilies = []) =>
         market.leader.probability
       )} de chance.`,
     }));
+};
 
 const getHeadlinePickText = (market, translatedPick) => {
   const code = String(market?.pickCode || "").toUpperCase();
@@ -1406,8 +1490,12 @@ const applyMarketVarietyToGames = (games) => {
   const recentFamilies = [];
 
   return games.map((game) => {
+    const primaryMarkets = (game.betMarkets || []).filter(isPrimaryPredictionMarket);
+    const fallbackMarkets = (game.betMarkets || []).filter(
+      (market) => market?.leader && !isLowLineUnderMarket(market)
+    );
     const rankedMarkets = sortInsightMarkets(
-      (game.betMarkets || []).filter((market) => market?.leader && !isLowLineUnderMarket(market)),
+      primaryMarkets.length ? primaryMarkets : fallbackMarkets,
       recentFamilies
     );
     const selectedMarket = rankedMarkets[0];
