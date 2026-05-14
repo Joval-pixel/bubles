@@ -3561,8 +3561,8 @@ function BubblesWorldCup() {
   }, [filter, games, query]);
 
   const radarGames = useMemo(
-    () => filteredGames.slice(0, radarLimit),
-    [filteredGames, radarLimit]
+    () => (filter === "live" ? filteredGames : filteredGames.slice(0, radarLimit)),
+    [filter, filteredGames, radarLimit]
   );
 
   const searchSuggestions = useMemo(() => {
