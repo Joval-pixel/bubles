@@ -10,7 +10,7 @@ const WIDGET_SPORTS = [
   { key: "handball", label: "Handball" },
 ];
 
-const CONTACT_EMAIL = "jogos@joval.com.br";
+const CONTACT_EMAIL = "bublesgol365@gmail.com";
 const BOOKMAKER_URL_TEMPLATES = {
   bet365: import.meta.env.VITE_BET365_URL || "https://www.bet365.com/",
   betano: import.meta.env.VITE_BETANO_URL || "https://www.betano.bet.br/",
