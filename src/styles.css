@@ -24,6 +24,12 @@ body,
   min-height: 100%;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   overflow-x: hidden;
@@ -3692,5 +3698,105 @@ button {
 
   .legal-hero h1 {
     font-size: clamp(2rem, 12vw, 3rem);
+  }
+}
+
+@media (max-width: 1180px) {
+  .cup-toolbar {
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .chip-button,
+  .chip-link {
+    min-height: 34px;
+    padding: 0.46rem 0.62rem;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .cup-shell,
+  .widgets-page {
+    padding: 5px;
+  }
+
+  .cup-toolbar,
+  .widgets-toolbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    top: 5px;
+    gap: 5px;
+    padding: 6px;
+    border-radius: 10px;
+  }
+
+  .cup-brand {
+    gap: 0.32rem;
+  }
+
+  .bubles-wordmark {
+    font-size: 1.28rem;
+  }
+
+  .brand-logo {
+    height: 30px;
+    max-width: 116px;
+  }
+
+  .brand-context {
+    min-height: 20px;
+    padding: 0.12rem 0.34rem;
+    font-size: 0.58rem;
+  }
+
+  .search-shell {
+    grid-column: 1 / -1;
+    order: 3;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .cup-search {
+    height: 32px;
+    padding: 0 0.62rem;
+    font-size: 0.78rem;
+    border-radius: 9px;
+  }
+
+  .mode-controls {
+    grid-column: 1 / -1;
+    order: 4;
+    gap: 5px;
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .cup-controls.compact {
+    grid-column: auto;
+    order: 2;
+    width: auto;
+    max-width: none;
+  }
+
+  .chip-button,
+  .chip-link {
+    min-height: 30px;
+    padding: 0.36rem 0.48rem;
+    border-radius: 9px;
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  .simple-guide {
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .radar-stage {
+    margin-top: 6px;
+  }
+
+  .bubble-board {
+    border-radius: 9px;
   }
 }
