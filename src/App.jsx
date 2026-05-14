@@ -765,30 +765,66 @@ const getReadableMarketName = (game) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const isGenericMarketName = (value) => {
+  const normalized = normalizeBetText(value);
+
+  return !normalized || normalized === "principal" || normalized === "melhor palpite";
+};
+
+const getContextMarketNameForAnswer = (game, answer) => {
+  const normalizedAnswer = normalizeBetText(answer);
+  const candidates = [
+    {
+      category: game?.displayMarketCategory,
+      name: game?.displayMarketName,
+      label: game?.displayPickLabel,
+    },
+    ...(Array.isArray(game?.betMarkets) ? game.betMarkets : []).map((market) => ({
+      category: market?.category,
+      name: market?.name,
+      label: market?.leader?.label,
+    })),
+  ];
+
+  const match = candidates.find((market) => {
+    const label = normalizeBetText(translateBetText(market?.label));
+    const name = translateBetText(market?.name || market?.category || "");
+
+    return label === normalizedAnswer && !isGenericMarketName(name);
+  });
+
+  return match ? translateBetText(match.name || match.category || "") : "";
+};
+
 const getPrimaryBetText = (value, game) => {
   const text = translateBetText(value);
   const normalized = text.toLowerCase();
   const marketName = getReadableMarketName(game);
-  const marketSearch = `${marketName} ${game?.displayMarketCategory || ""}`.toLowerCase();
 
   if (normalized === "sim" || normalized === "nao" || normalized === "não") {
     const answer = normalized.startsWith("n") ? "Nao" : "Sim";
+    const contextMarketName = isGenericMarketName(marketName)
+      ? getContextMarketNameForAnswer(game, answer)
+      : marketName;
+    const contextSearch = `${contextMarketName} ${game?.displayMarketCategory || ""}`.toLowerCase();
 
     if (
-      marketSearch.includes("ambas marcam") ||
-      marketSearch.includes("both teams") ||
-      marketSearch.includes("btts")
+      contextSearch.includes("ambas marcam") ||
+      contextSearch.includes("both teams") ||
+      contextSearch.includes("btts")
     ) {
       return answer === "Nao" ? "Um dos times nao marca" : "Ambas marcam - Sim";
     }
 
-    if (marketSearch.includes("gol contra") || marketSearch.includes("own goal")) {
+    if (contextSearch.includes("gol contra") || contextSearch.includes("own goal")) {
       return answer === "Nao" ? "Sem gol contra" : "Gol contra no jogo";
     }
 
-    if (marketName && !["principal", "melhor palpite"].includes(marketName.toLowerCase())) {
-      return `${marketName} - ${answer}`;
+    if (contextMarketName && !isGenericMarketName(contextMarketName)) {
+      return `${contextMarketName}: ${answer}`;
     }
+
+    return answer === "Sim" ? "Sim no mercado selecionado" : "Nao no mercado selecionado";
   }
 
   if (isAvoidOpenGameCombo(value)) {
@@ -802,8 +838,9 @@ const getPrimaryBetText = (value, game) => {
   return getTeamResultText(value, game);
 };
 
-const getBetHelpText = (value) => {
-  const text = getBetSearchText(value);
+const getBetHelpText = (value, game) => {
+  const primaryText = game ? getPrimaryBetText(value, game) : "";
+  const text = `${getBetSearchText(value)} ${getBetSearchText(primaryText)} ${getReadableMarketName(game)}`.toLowerCase();
 
   if (isAvoidOpenGameCombo(value)) {
     return "Para bater, pelo menos um dos times precisa terminar sem gol.";
@@ -2482,11 +2519,11 @@ const getDisplayMarket = (game, activeFilter, recentFamilies = []) => {
   }
 
   return {
-    category: "Principal",
-    name: "Melhor palpite",
-    label: game?.pickLabel || "Palpite principal",
-    probability: game?.probability || 0,
-    odd: game?.oddHome || 0,
+    category: game?.displayMarketCategory || game?.marketCategory || "Principal",
+    name: game?.displayMarketName || game?.marketName || "Melhor palpite",
+    label: game?.displayPickLabel || game?.pickLabel || "Palpite principal",
+    probability: game?.displayProbability || game?.probability || 0,
+    odd: game?.displayOdd || game?.oddHome || 0,
   };
 };
 
@@ -4132,7 +4169,7 @@ function BubblesWorldCup() {
                 <span>Palpite principal</span>
                 <strong>{getPrimaryBetText(selectedGame.displayPickLabel || selectedGame.pickLabel, selectedGame)}</strong>
                 <small>
-                  {getBetHelpText(selectedGame.displayPickLabel || selectedGame.pickLabel) ||
+                  {getBetHelpText(selectedGame.displayPickLabel || selectedGame.pickLabel, selectedGame) ||
                     aiInsights.headline ||
                     getAiSummary(selectedGame)}
                 </small>
@@ -4505,7 +4542,7 @@ function BubblesWorldCup() {
                         <td>{game.awayTeam}</td>
                         <td>
                           <strong>{getPrimaryBetText(rowGame.displayPickLabel || rowGame.pickLabel, rowGame)}</strong>
-                          <small>{getBetHelpText(rowGame.displayPickLabel || rowGame.pickLabel) || game.aiInsights?.action || "Verificar"}</small>
+                          <small>{getBetHelpText(rowGame.displayPickLabel || rowGame.pickLabel, rowGame) || rowGame.aiInsights?.action || "Verificar"}</small>
                         </td>
                         <td
                           className={
