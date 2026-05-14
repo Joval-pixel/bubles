@@ -1948,8 +1948,8 @@ const getMobileVelocity = (index, axis) => {
 
 const getGridMetrics = (total = 0, bounds = {}) => {
   const width = Math.max(bounds.width || 0, 320);
-  const height = Math.max(bounds.height || 0, 560);
-  const mobile = isMobileBounds(bounds);
+  const mobile = isMobileBounds({ width });
+  const height = Math.max(bounds.height || 0, mobile ? 420 : 560);
 
   if (!mobile && total < 24) {
     return null;
@@ -1957,8 +1957,8 @@ const getGridMetrics = (total = 0, bounds = {}) => {
 
   const columns = mobile ? (width <= 380 ? 3 : 4) : width >= 1500 ? 7 : width >= 1200 ? 6 : width >= 920 ? 5 : 4;
   const rows = Math.max(1, Math.ceil(total / columns));
-  const topOffset = mobile ? 108 : 92;
-  const minSlotHeight = mobile ? 88 : 112;
+  const topOffset = mobile ? 34 : 50;
+  const minSlotHeight = mobile ? 82 : 106;
   const layoutHeight = Math.max(height, topOffset + rows * minSlotHeight + EDGE_PADDING * 2);
   const slotWidth = (width - EDGE_PADDING * 2) / columns;
   const usableHeight = Math.max(rows * minSlotHeight, layoutHeight - topOffset - EDGE_PADDING * 2);
@@ -3295,6 +3295,7 @@ function BubblesWorldCup() {
   const animationRef = useRef(0);
   const lastFrameRef = useRef(0);
   const boundsRef = useRef({ width: 0, height: 0 });
+  const [boardBounds, setBoardBounds] = useState({ width: 0, height: 0 });
   const [games, setGames] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -3377,10 +3378,17 @@ function BubblesWorldCup() {
       }
 
       const rect = boardRef.current.getBoundingClientRect();
-      boundsRef.current = {
+      const nextBounds = {
         width: rect.width,
         height: rect.height,
       };
+
+      boundsRef.current = nextBounds;
+      setBoardBounds((current) =>
+        Math.abs(current.width - nextBounds.width) < 1 && Math.abs(current.height - nextBounds.height) < 1
+          ? current
+          : nextBounds
+      );
     };
 
     syncBounds();
@@ -3807,6 +3815,20 @@ function BubblesWorldCup() {
   const selectedHitState = selectedGame ? getAiHitState(selectedGame) : null;
   const formGuardrail = selectedGame ? getFormGuardrail(selectedGame, gameDetails) : null;
   const boardGamesCount = filteredGames.length;
+  const boardLayoutHeight = useMemo(() => {
+    if (!radarGames.length) {
+      return null;
+    }
+
+    const fallbackWidth = typeof window === "undefined" ? 1280 : Math.max(window.innerWidth - 20, 320);
+    const width = boardBounds.width || fallbackWidth;
+    const mobile = width <= MOBILE_BOARD_WIDTH;
+    const viewportHeight = typeof window === "undefined" ? 760 : window.innerHeight;
+    const baseHeight = Math.max(viewportHeight - (mobile ? 220 : 260), mobile ? 420 : 560);
+    const metrics = getGridMetrics(radarGames.length, { width, height: baseHeight });
+
+    return metrics?.layoutHeight ? Math.ceil(metrics.layoutHeight) : null;
+  }, [boardBounds.width, radarGames.length]);
 
   useEffect(() => {
     if (!radarGames.length) {
@@ -3855,7 +3877,7 @@ function BubblesWorldCup() {
         0
       )
     );
-  }, [filter, query, radarGames.length, radarLimit, updatedAt, worldCupView]);
+  }, [boardLayoutHeight, filter, query, radarGames.length, radarLimit, updatedAt, worldCupView]);
 
   return (
     <div className="cup-shell">
@@ -4029,7 +4051,11 @@ function BubblesWorldCup() {
 
       {mode !== "worldcup" || worldCupView === "games" ? (
       <section className="radar-stage">
-        <main className="bubble-board" ref={boardRef}>
+        <main
+          className="bubble-board"
+          ref={boardRef}
+          style={boardLayoutHeight ? { minHeight: `${boardLayoutHeight}px` } : undefined}
+        >
           <div className="board-grid" />
 
           {loading ? (
