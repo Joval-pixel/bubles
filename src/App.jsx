@@ -3410,7 +3410,9 @@ function BubblesWorldCup() {
       }
 
       try {
-        const response = await fetch(`/api/games?mode=${mode}`, { cache: "no-store" });
+        const endpoint =
+          mode === "worldcup" ? `/api/games-runtime?mode=${mode}` : `/api/games?mode=${mode}`;
+        const response = await fetch(endpoint, { cache: "no-store" });
         const payload = await response.json();
         const items = Array.isArray(payload?.games) ? payload.games : [];
 
