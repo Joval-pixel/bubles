@@ -3548,8 +3548,12 @@ function WorldCupGamesPanel({ games, groups, loading, onOpenGame, scheduleDays }
           data-team-statistics="true"
           data-player-statistics="true"
           data-game-tab="statistics"
+          data-standings="true"
+          data-target-standings="#worldcup-widget-standings .worldcup-widget-slot"
+          data-target-game="#worldcup-widget-game .worldcup-widget-slot"
           data-target-player="modal"
           data-target-team="modal"
+          data-tab="results"
           data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
           data-season={WORLD_CUP_WIDGET_SEASON}
         />
