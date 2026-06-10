@@ -831,6 +831,15 @@ button {
   min-height: inherit;
 }
 
+.worldcup-widget-support {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .worldcup-widget-list,
 .worldcup-widget-mini-groups {
   display: grid;

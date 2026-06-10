@@ -3590,6 +3590,21 @@ function WorldCupGamesPanel({ games, groups, loading, onOpenGame, scheduleDays }
         </div>
       ) : (
         <>
+          <div className="worldcup-widget-support" aria-hidden="true">
+            <api-sports-widget
+              key="worldcup-support-games"
+              data-type="games"
+              data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
+              data-season={WORLD_CUP_WIDGET_SEASON}
+            />
+            <api-sports-widget
+              key="worldcup-support-standings"
+              data-type="standings"
+              data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
+              data-season={WORLD_CUP_WIDGET_SEASON}
+            />
+          </div>
+
           <div className="worldcup-widget-grid">
             <section className="worldcup-widget-card worldcup-widget-card-league">
               <div className="worldcup-widget-card-head">
