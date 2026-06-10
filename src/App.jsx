@@ -9,10 +9,6 @@ const WIDGET_SPORTS = [
   { key: "volleyball", label: "Volleyball" },
   { key: "handball", label: "Handball" },
 ];
-const WORLD_CUP_WIDGET_LEAGUE_ID = "1";
-const WORLD_CUP_WIDGET_SEASON = "2026";
-const WORLD_CUP_WIDGET_THEME = "grey";
-const WORLD_CUP_WIDGET_LANG = "en";
 
 const CONTACT_EMAIL = "bublesgol365@gmail.com";
 const BOOKMAKER_URL_TEMPLATES = {
@@ -3477,9 +3473,6 @@ function WorldCupHub({
 }
 
 function WorldCupGamesPanel({ games, groups, loading, onOpenGame, scheduleDays }) {
-  const widgetKey = import.meta.env.VITE_API_FOOTBALL_WIDGET_KEY || "";
-  const widgetsReady = useApiSportsWidgetsReady();
-  const [worldCupWidgetsBooted, setWorldCupWidgetsBooted] = useState(false);
   const defaultGame = useMemo(() => {
     const sortedGames = [...games].sort((left, right) => getKickoffStamp(left) - getKickoffStamp(right));
     return sortedGames.find((game) => !game.isFinished) || sortedGames[0] || null;
@@ -3490,7 +3483,6 @@ function WorldCupGamesPanel({ games, groups, loading, onOpenGame, scheduleDays }
   );
   const defaultGameId = defaultGame?.id ? String(defaultGame.id) : "";
   const [selectedWidgetGameId, setSelectedWidgetGameId] = useState(defaultGameId);
-  const canRenderWidgets = Boolean(widgetKey && widgetsReady);
 
   useEffect(() => {
     setSelectedWidgetGameId((current) => {
@@ -3502,25 +3494,14 @@ function WorldCupGamesPanel({ games, groups, loading, onOpenGame, scheduleDays }
     });
   }, [defaultGameId, games]);
 
-  useEffect(() => {
-    setWorldCupWidgetsBooted(false);
-
-    if (!canRenderWidgets) {
-      return undefined;
-    }
-
-    const timer = window.setTimeout(() => setWorldCupWidgetsBooted(true), 80);
-    return () => window.clearTimeout(timer);
-  }, [canRenderWidgets, defaultGameId]);
-
-  if (!widgetKey) {
-    return <WorldCupCalendarPanel games={games} loading={loading} onOpenGame={onOpenGame} scheduleDays={scheduleDays} />;
-  }
-
   const selectedWidgetGame =
     games.find((game) => String(game.id) === String(selectedWidgetGameId)) || defaultGame || null;
-  const widgetGameId = selectedWidgetGame?.id ? String(selectedWidgetGame.id) : "";
   const widgetScheduleGames = sortedGames.slice(0, 24);
+  const widgetScheduleDays = scheduleDays.slice(0, 5);
+
+  if (!selectedWidgetGame && !loading) {
+    return <WorldCupCalendarPanel games={games} loading={loading} onOpenGame={onOpenGame} scheduleDays={scheduleDays} />;
+  }
 
   return (
     <div className="worldcup-panel worldcup-widget-panel">
@@ -3529,37 +3510,10 @@ function WorldCupGamesPanel({ games, groups, loading, onOpenGame, scheduleDays }
           <span>Central inspirada na API-SPORTS</span>
           <strong>Copa 2026 em 3 blocos conectados</strong>
         </div>
-        <small>Agenda e classificacao no layout oficial, com o Game widget real no painel central.</small>
+        <small>Agenda, painel da partida e classificacao no mesmo fluxo visual do guia oficial.</small>
       </div>
 
-      {canRenderWidgets ? (
-        <api-sports-widget
-          key={`worldcup-config-${widgetGameId || "default"}`}
-          data-type="config"
-          data-key={widgetKey}
-          data-sport="football"
-          data-lang={WORLD_CUP_WIDGET_LANG}
-          data-theme={WORLD_CUP_WIDGET_THEME}
-          data-show-errors="true"
-          data-show-logos="true"
-          data-refresh="30"
-          data-player-injuries="true"
-          data-team-squad="true"
-          data-team-statistics="true"
-          data-player-statistics="true"
-          data-game-tab="statistics"
-          data-standings="true"
-          data-target-standings="#worldcup-widget-standings .worldcup-widget-slot"
-          data-target-game="#worldcup-widget-game .worldcup-widget-slot"
-          data-target-player="modal"
-          data-target-team="modal"
-          data-tab="results"
-          data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
-          data-season={WORLD_CUP_WIDGET_SEASON}
-        />
-      ) : null}
-
-      {!canRenderWidgets || !worldCupWidgetsBooted ? (
+      {loading ? (
         <div className="worldcup-widget-grid worldcup-widget-grid-loading">
           <article className="worldcup-widget-card">
             <div className="worldcup-widget-card-head">
@@ -3589,34 +3543,41 @@ function WorldCupGamesPanel({ games, groups, loading, onOpenGame, scheduleDays }
           </article>
         </div>
       ) : (
-        <>
-          <div className="worldcup-widget-support" aria-hidden="true">
-            <api-sports-widget
-              key="worldcup-support-games"
-              data-type="games"
-              data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
-              data-season={WORLD_CUP_WIDGET_SEASON}
-            />
-            <api-sports-widget
-              key="worldcup-support-standings"
-              data-type="standings"
-              data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
-              data-season={WORLD_CUP_WIDGET_SEASON}
-            />
-          </div>
+        <div className="worldcup-widget-grid">
+          <section className="worldcup-widget-card worldcup-widget-card-league">
+            <div className="worldcup-widget-card-head">
+              <span>Agenda da Copa</span>
+              <strong>Tabela e agenda da competicao</strong>
+              <small>Clique em uma partida para atualizar o painel central e abrir a analise completa.</small>
+            </div>
+            <div className="worldcup-widget-slot worldcup-widget-list">
+              {widgetScheduleGames.map((game) => (
+                <button
+                  className={
+                    String(game.id) === String(selectedWidgetGameId)
+                      ? "worldcup-widget-game-row is-active"
+                      : "worldcup-widget-game-row"
+                  }
+                  key={game.id}
+                  onClick={() => setSelectedWidgetGameId(String(game.id))}
+                  type="button"
+                >
+                  <span className="worldcup-widget-game-row-time">
+                    <strong>{formatKickoffTime(game.commenceTime)}</strong>
+                    <small>{getWorldCupRoundLabel(game.round)}</small>
+                  </span>
+                  <span className="worldcup-widget-game-row-body">
+                    <strong>{game.game}</strong>
+                    <small>{game.venue || game.city || "Local a definir"}</small>
+                  </span>
+                </button>
+              ))}
 
-          <div className="worldcup-widget-grid">
-            <section className="worldcup-widget-card worldcup-widget-card-league">
-              <div className="worldcup-widget-card-head">
-                <span>Agenda da Copa</span>
-                <strong>Tabela e agenda da competicao</strong>
-                <small>Clique em uma partida para atualizar o painel oficial ao centro.</small>
-              </div>
-              <div className="worldcup-widget-slot worldcup-widget-list">
-                {widgetScheduleGames.map((game) => (
+              {!widgetScheduleGames.length && widgetScheduleDays.length ? (
+                widgetScheduleDays.flatMap((day) => day.games).map((game) => (
                   <button
                     className={
-                      String(game.id) === String(widgetGameId)
+                      String(game.id) === String(selectedWidgetGameId)
                         ? "worldcup-widget-game-row is-active"
                         : "worldcup-widget-game-row"
                     }
@@ -3633,64 +3594,105 @@ function WorldCupGamesPanel({ games, groups, loading, onOpenGame, scheduleDays }
                       <small>{game.venue || game.city || "Local a definir"}</small>
                     </span>
                   </button>
-                ))}
-              </div>
-            </section>
+                ))
+              ) : null}
+            </div>
+          </section>
 
-            <section className="worldcup-widget-card worldcup-widget-card-game" id="worldcup-widget-game">
-              <div className="worldcup-widget-card-head">
-                <span>Game widget</span>
-                <strong>{selectedWidgetGame ? selectedWidgetGame.game : "Detalhes da partida"}</strong>
-                <small>
-                  {selectedWidgetGame
-                    ? `${getWorldCupRoundLabel(selectedWidgetGame.round)} | ${formatKickoff(selectedWidgetGame.commenceTime)}`
-                    : "Clique em um jogo da coluna ao lado para abrir o painel oficial."}
-                </small>
-              </div>
-              <div className="worldcup-widget-slot">
-                {widgetGameId ? (
-                  <api-sports-widget
-                    key={`worldcup-game-widget-${widgetGameId}`}
-                    data-type="game"
-                    data-game-id={widgetGameId}
-                  />
-                ) : (
-                  <div className="worldcup-widget-empty">
-                    Ainda nao encontramos um jogo inicial para abrir no widget oficial.
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <aside className="worldcup-widget-card worldcup-widget-card-standings" id="worldcup-widget-standings">
-              <div className="worldcup-widget-card-head">
-                <span>Classificacao da Copa</span>
-                <strong>Resumo dos 12 grupos</strong>
-                <small>Leitura rapida de pontos, saldo e posicao atual de cada grupo.</small>
-              </div>
-              <div className="worldcup-widget-slot worldcup-widget-mini-groups">
-                {groups.length ? (
-                  groups.map((group) => (
-                    <article className="worldcup-widget-mini-group" key={group.name}>
-                      <h4>{group.name}</h4>
-                      {group.rows.map((row) => (
-                        <div className="worldcup-widget-mini-row" key={row.key}>
-                          <span>
-                            <TeamLogo name={row.name} preferFlag src={row.logo} />
-                            {row.name}
-                          </span>
-                          <strong>{row.points} pts</strong>
-                        </div>
-                      ))}
+          <section className="worldcup-widget-card worldcup-widget-card-game">
+            <div className="worldcup-widget-card-head">
+              <span>Painel da partida</span>
+              <strong>{selectedWidgetGame ? selectedWidgetGame.game : "Detalhes da partida"}</strong>
+              <small>
+                {selectedWidgetGame
+                  ? `${getWorldCupRoundLabel(selectedWidgetGame.round)} | ${formatKickoff(selectedWidgetGame.commenceTime)}`
+                  : "Selecione um jogo da coluna ao lado."}
+              </small>
+            </div>
+            <div className="worldcup-widget-slot worldcup-widget-match">
+              {selectedWidgetGame ? (
+                <div className="worldcup-widget-match-shell">
+                  <div className="worldcup-widget-match-scoreboard">
+                    <article className="worldcup-widget-team-card">
+                      <TeamLogo className="worldcup-widget-team-logo" name={selectedWidgetGame.homeTeam} preferFlag src={selectedWidgetGame.homeLogo} />
+                      <strong>{selectedWidgetGame.homeTeam}</strong>
+                      <small>Mandante</small>
                     </article>
-                  ))
-                ) : (
-                  <div className="worldcup-widget-empty">A classificacao oficial da Copa entra aqui assim que os grupos estiverem carregados.</div>
-                )}
-              </div>
-            </aside>
-          </div>
-        </>
+
+                    <div className="worldcup-widget-match-core">
+                      <span>{getGameStatusLabel(selectedWidgetGame)}</span>
+                      <strong>{formatScoreLine(selectedWidgetGame)}</strong>
+                      <small>{selectedWidgetGame.isLive ? formatClock(selectedWidgetGame) : formatKickoff(selectedWidgetGame.commenceTime)}</small>
+                    </div>
+
+                    <article className="worldcup-widget-team-card">
+                      <TeamLogo className="worldcup-widget-team-logo" name={selectedWidgetGame.awayTeam} preferFlag src={selectedWidgetGame.awayLogo} />
+                      <strong>{selectedWidgetGame.awayTeam}</strong>
+                      <small>Visitante</small>
+                    </article>
+                  </div>
+
+                  <div className="worldcup-widget-match-facts">
+                    <article>
+                      <span>Palpite IA</span>
+                      <strong>{getPrimaryBetText(selectedWidgetGame.displayPickLabel || selectedWidgetGame.pickLabel, selectedWidgetGame)}</strong>
+                    </article>
+                    <article>
+                      <span>Chance</span>
+                      <strong>{formatChance(selectedWidgetGame.displayProbability || selectedWidgetGame.probability)}</strong>
+                    </article>
+                    <article>
+                      <span>Odd</span>
+                      <strong>{formatOdd(selectedWidgetGame.displayOdd || selectedWidgetGame.oddHome)}</strong>
+                    </article>
+                  </div>
+
+                  <div className="worldcup-widget-match-meta">
+                    <strong>{[selectedWidgetGame.venue, selectedWidgetGame.city].filter(Boolean).join(" - ") || "Local a definir"}</strong>
+                    <small>{getWorldCupRoundLabel(selectedWidgetGame.round)}</small>
+                  </div>
+
+                  <div className="worldcup-widget-match-actions">
+                    <BookmakerLinks game={selectedWidgetGame} compact />
+                    <button className="chip-button is-active" onClick={() => onOpenGame(selectedWidgetGame.id)} type="button">
+                      Abrir analise completa
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="worldcup-widget-empty">Escolha um jogo para abrir o painel da partida.</div>
+              )}
+            </div>
+          </section>
+
+          <aside className="worldcup-widget-card worldcup-widget-card-standings">
+            <div className="worldcup-widget-card-head">
+              <span>Classificacao da Copa</span>
+              <strong>Resumo dos 12 grupos</strong>
+              <small>Leitura rapida de pontos, saldo e posicao atual de cada grupo.</small>
+            </div>
+            <div className="worldcup-widget-slot worldcup-widget-mini-groups">
+              {groups.length ? (
+                groups.map((group) => (
+                  <article className="worldcup-widget-mini-group" key={group.name}>
+                    <h4>{group.name}</h4>
+                    {group.rows.map((row) => (
+                      <div className="worldcup-widget-mini-row" key={row.key}>
+                        <span>
+                          <TeamLogo name={row.name} preferFlag src={row.logo} />
+                          {row.name}
+                        </span>
+                        <strong>{row.points} pts</strong>
+                      </div>
+                    ))}
+                  </article>
+                ))
+              ) : (
+                <div className="worldcup-widget-empty">A classificacao oficial da Copa entra aqui assim que os grupos estiverem carregados.</div>
+              )}
+            </div>
+          </aside>
+        </div>
       )}
     </div>
   );

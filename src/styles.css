@@ -831,15 +831,6 @@ button {
   min-height: inherit;
 }
 
-.worldcup-widget-support {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .worldcup-widget-list,
 .worldcup-widget-mini-groups {
   display: grid;
@@ -937,6 +928,128 @@ button {
 .worldcup-widget-mini-row strong {
   color: #9cffb6;
   font-size: 0.78rem;
+}
+
+.worldcup-widget-match {
+  display: grid;
+  padding: 1rem;
+}
+
+.worldcup-widget-match-shell {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.worldcup-widget-match-scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.worldcup-widget-team-card {
+  display: grid;
+  justify-items: center;
+  gap: 0.26rem;
+  padding: 0.9rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(15, 15, 15, 0.86);
+  text-align: center;
+}
+
+.worldcup-widget-team-card strong {
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.worldcup-widget-team-card small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.worldcup-widget-team-logo {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.worldcup-widget-match-core {
+  display: grid;
+  justify-items: center;
+  gap: 0.28rem;
+  padding: 0.95rem 1.1rem;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top, rgba(37, 243, 95, 0.2), transparent 52%),
+    rgba(10, 24, 14, 0.9);
+  text-align: center;
+}
+
+.worldcup-widget-match-core span {
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.worldcup-widget-match-core strong {
+  font-family: Sora, Inter, sans-serif;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.worldcup-widget-match-core small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.worldcup-widget-match-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.worldcup-widget-match-facts article,
+.worldcup-widget-match-meta {
+  padding: 0.82rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(15, 15, 15, 0.86);
+}
+
+.worldcup-widget-match-facts span {
+  display: block;
+  color: #9cffb6;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.worldcup-widget-match-facts strong,
+.worldcup-widget-match-meta strong {
+  display: block;
+  margin-top: 0.24rem;
+  font-family: Sora, Inter, sans-serif;
+}
+
+.worldcup-widget-match-meta small {
+  display: block;
+  margin-top: 0.22rem;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.worldcup-widget-match-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .worldcup-widget-empty {
@@ -3719,6 +3832,15 @@ body .modal-widget-content {
   .worldcup-widget-game-row {
     grid-template-columns: 1fr;
     gap: 0.4rem;
+  }
+
+  .worldcup-widget-match-scoreboard,
+  .worldcup-widget-match-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .worldcup-widget-match-actions {
+    align-items: stretch;
   }
 
   .worldcup-calendar-list {
