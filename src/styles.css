@@ -831,6 +831,105 @@ button {
   min-height: inherit;
 }
 
+.worldcup-widget-list,
+.worldcup-widget-mini-groups {
+  display: grid;
+  gap: 8px;
+  padding: 0.85rem;
+  max-height: 78vh;
+  overflow: auto;
+}
+
+.worldcup-widget-game-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 0.72rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(15, 15, 15, 0.86);
+  color: var(--text);
+  text-align: left;
+}
+
+.worldcup-widget-game-row.is-active,
+.worldcup-widget-game-row:hover,
+.worldcup-widget-game-row:focus-visible {
+  border-color: rgba(37, 243, 95, 0.52);
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(37, 243, 95, 0.14) inset;
+}
+
+.worldcup-widget-game-row-time strong,
+.worldcup-widget-game-row-body strong {
+  display: block;
+}
+
+.worldcup-widget-game-row-time small,
+.worldcup-widget-game-row-body small {
+  display: block;
+  margin-top: 0.16rem;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.worldcup-widget-game-row-body {
+  min-width: 0;
+}
+
+.worldcup-widget-game-row-body strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worldcup-widget-mini-group {
+  padding: 0.78rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(15, 15, 15, 0.86);
+}
+
+.worldcup-widget-mini-group h4 {
+  margin: 0 0 0.62rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 0.96rem;
+}
+
+.worldcup-widget-mini-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 0.34rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.worldcup-widget-mini-row:first-of-type {
+  border-top: 0;
+}
+
+.worldcup-widget-mini-row span {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.worldcup-widget-mini-row img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.worldcup-widget-mini-row strong {
+  color: #9cffb6;
+  font-size: 0.78rem;
+}
+
 .worldcup-widget-empty {
   display: grid;
   min-height: 280px;
@@ -3606,6 +3705,11 @@ body .modal-widget-content {
   .worldcup-widget-card-league .worldcup-widget-slot,
   .worldcup-widget-card-standings .worldcup-widget-slot {
     min-height: 360px;
+  }
+
+  .worldcup-widget-game-row {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
   }
 
   .worldcup-calendar-list {
