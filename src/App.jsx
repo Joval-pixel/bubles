@@ -51,8 +51,70 @@ const WORLD_CUP_VIEW_TABS = [
   { id: "table", label: "Classificacao" },
   { id: "bracket", label: "Mata-mata" },
 ];
+const WORLD_CUP_TEAM_FLAG_CODES = {
+  algeria: "dz",
+  argentina: "ar",
+  australia: "au",
+  austria: "at",
+  belgium: "be",
+  "bosnia and herzegovina": "ba",
+  brazil: "br",
+  canada: "ca",
+  "cape verde": "cv",
+  "cape verde islands": "cv",
+  colombia: "co",
+  "congo dr": "cd",
+  "democratic republic of congo": "cd",
+  "dr congo": "cd",
+  croatia: "hr",
+  curacao: "cw",
+  "cote divoire": "ci",
+  "czech republic": "cz",
+  czechia: "cz",
+  ecuador: "ec",
+  egypt: "eg",
+  england: "gb-eng",
+  france: "fr",
+  germany: "de",
+  ghana: "gh",
+  haiti: "ht",
+  iran: "ir",
+  iraq: "iq",
+  "ivory coast": "ci",
+  japan: "jp",
+  jordan: "jo",
+  mexico: "mx",
+  morocco: "ma",
+  netherlands: "nl",
+  "new zealand": "nz",
+  norway: "no",
+  panama: "pa",
+  paraguay: "py",
+  portugal: "pt",
+  qatar: "qa",
+  "saudi arabia": "sa",
+  scotland: "gb-sct",
+  senegal: "sn",
+  "south africa": "za",
+  "republic of korea": "kr",
+  "korea republic": "kr",
+  "south korea": "kr",
+  spain: "es",
+  sweden: "se",
+  switzerland: "ch",
+  tunisia: "tn",
+  turkey: "tr",
+  turkiye: "tr",
+  uruguay: "uy",
+  usa: "us",
+  "united states": "us",
+  "united states of america": "us",
+  uzbekistan: "uz",
+};
 const BRASILIA_TIMEZONE = "America/Sao_Paulo";
 const BRASILIA_TIMEZONE_LABEL = "Horario de Brasilia";
+const FLAG_CDN_BASE_URL = "https://flagcdn.com";
+const TRANSPARENT_IMAGE_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=";
 const ROUTE_DEFAULTS = {
   "/": { mode: "today", filter: "best", view: "radar" },
   "/palpites-de-hoje": { mode: "today", filter: "best", view: "radar" },
@@ -170,6 +232,28 @@ function AiHitLogo({ state = "pending", compact = false }) {
     >
       {symbol}
     </span>
+  );
+}
+
+function TeamLogo({ className = "", name, preferFlag = false, src }) {
+  const primarySrc = getPreferredTeamLogo(name, src, { preferFlag });
+
+  if (!primarySrc) {
+    return null;
+  }
+
+  return (
+    <img
+      alt=""
+      aria-hidden="true"
+      className={className}
+      data-fallback-src={getFallbackTeamLogo(name, src, { preferFlag })}
+      decoding="async"
+      loading="lazy"
+      onError={handleTeamLogoError}
+      referrerPolicy="no-referrer"
+      src={primarySrc}
+    />
   );
 }
 
@@ -704,6 +788,62 @@ const normalizeBetText = (value) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+
+const normalizeWorldCupTeamName = (value) =>
+  normalizeBetText(value)
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getWorldCupFlagCode = (name) => {
+  const normalized = normalizeWorldCupTeamName(name);
+
+  if (!normalized) {
+    return "";
+  }
+
+  return WORLD_CUP_TEAM_FLAG_CODES[normalized] || "";
+};
+
+const getWorldCupFlagUrl = (name) => {
+  const code = getWorldCupFlagCode(name);
+  return code ? `${FLAG_CDN_BASE_URL}/w80/${code}.png` : "";
+};
+
+const getPreferredTeamLogo = (name, source, { preferFlag = false } = {}) => {
+  const flagUrl = getWorldCupFlagUrl(name);
+
+  if (preferFlag && flagUrl) {
+    return flagUrl;
+  }
+
+  return source || flagUrl || "";
+};
+
+const getFallbackTeamLogo = (name, source, { preferFlag = false } = {}) => {
+  const flagUrl = getWorldCupFlagUrl(name);
+
+  if (preferFlag) {
+    return source && source !== flagUrl ? source : "";
+  }
+
+  return flagUrl && flagUrl !== source ? flagUrl : "";
+};
+
+const handleTeamLogoError = (event) => {
+  const image = event.currentTarget;
+  const fallbackSrc = image.dataset.fallbackSrc || "";
+
+  if (fallbackSrc && image.src !== fallbackSrc) {
+    image.dataset.fallbackSrc = "";
+    image.src = fallbackSrc;
+    return;
+  }
+
+  image.onerror = null;
+  image.src = TRANSPARENT_IMAGE_DATA_URI;
+};
 
 const getBetSearchText = (value) => `${value || ""} ${translateBetText(value)}`.toLowerCase();
 
@@ -3278,7 +3418,7 @@ function WorldCupTeamsPanel({ teams, selectedTeamId, onSelectTeam, onOpenGame })
               }}
               type="button"
             >
-              {team.logo ? <img alt="" src={team.logo} /> : null}
+              <TeamLogo name={team.name} preferFlag src={team.logo} />
               <strong>{team.name}</strong>
               <span>{formatChance(team.strength)}</span>
               <small>{team.group}</small>
@@ -3360,7 +3500,7 @@ function WorldCupTablePanel({ groups }) {
             {group.rows.map((row) => (
               <div className="worldcup-standings-row" key={row.key}>
                 <span>
-                  {row.logo ? <img alt="" src={row.logo} /> : null}
+                  <TeamLogo name={row.name} preferFlag src={row.logo} />
                   {row.name}
                 </span>
                 <strong>{row.played}</strong>
@@ -4379,15 +4519,12 @@ function BubblesWorldCup() {
                   type="button"
                 >
                   {hitState.state === "hit" ? <AiHitLogo state="hit" compact /> : null}
-                  {bubbleInfo.logo ? (
-                    <img
-                      alt=""
-                      aria-hidden="true"
-                      className="bubble-logo"
-                      loading="lazy"
-                      src={bubbleInfo.logo}
-                    />
-                  ) : null}
+                  <TeamLogo
+                    className="bubble-logo"
+                    name={bubbleInfo.primary}
+                    preferFlag={mode === "worldcup"}
+                    src={bubbleInfo.logo}
+                  />
                   <span className="bubble-primary">{bubbleInfo.primary}</span>
                   <strong>{formatChance(game.displayProbability || game.probability)}</strong>
                   <span className="bubble-tag">{bubbleInfo.tag}</span>
