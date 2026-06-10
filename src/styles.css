@@ -690,6 +690,58 @@ button {
   overflow-x: auto;
 }
 
+.worldcup-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.worldcup-shortcut {
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background:
+    linear-gradient(160deg, rgba(15, 15, 15, 0.95), rgba(29, 29, 29, 0.92)),
+    var(--panel);
+  color: var(--text);
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.worldcup-shortcut.is-active,
+.worldcup-shortcut:hover,
+.worldcup-shortcut:focus-visible {
+  border-color: rgba(37, 243, 95, 0.56);
+  outline: none;
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.26),
+    0 0 0 1px rgba(37, 243, 95, 0.18) inset;
+}
+
+.worldcup-shortcut span,
+.worldcup-schedule-day-head small {
+  display: block;
+  color: #9cffb6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.worldcup-shortcut strong,
+.worldcup-schedule-day-head strong {
+  display: block;
+  margin-top: 0.22rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.18rem;
+}
+
+.worldcup-shortcut small {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--muted);
+}
+
 .worldcup-panel {
   padding: 0.95rem;
 }
@@ -702,12 +754,26 @@ button {
   margin-bottom: 0.85rem;
 }
 
+.worldcup-schedule-days {
+  display: grid;
+  gap: 14px;
+}
+
+.worldcup-schedule-day {
+  display: grid;
+  gap: 8px;
+}
+
+.worldcup-schedule-day-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .worldcup-calendar-list {
   display: grid;
   gap: 8px;
-  max-height: 460px;
-  overflow: auto;
-  padding-right: 4px;
 }
 
 .worldcup-calendar-row {
@@ -901,6 +967,10 @@ button {
   background: rgba(12, 12, 12, 0.76);
 }
 
+.worldcup-group-card {
+  overflow-x: auto;
+}
+
 .worldcup-group-card h3,
 .worldcup-stage-card h3 {
   margin: 0 0 0.7rem;
@@ -910,7 +980,7 @@ button {
 .worldcup-standings-head,
 .worldcup-standings-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) repeat(4, 42px);
+  grid-template-columns: minmax(132px, 1fr) repeat(8, 38px);
   gap: 6px;
   align-items: center;
   padding: 0.38rem 0;
@@ -3412,6 +3482,10 @@ button {
     padding-bottom: 2px;
   }
 
+  .worldcup-shortcuts {
+    grid-template-columns: 1fr;
+  }
+
   .worldcup-panel {
     padding: 0.72rem;
   }
@@ -3462,7 +3536,7 @@ button {
 
   .worldcup-standings-head,
   .worldcup-standings-row {
-    grid-template-columns: minmax(110px, 1fr) repeat(4, 34px);
+    grid-template-columns: minmax(110px, 1fr) repeat(8, 30px);
     font-size: 0.72rem;
   }
 

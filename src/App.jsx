@@ -46,9 +46,9 @@ const AI_STATS_MIN_CONFIDENCE = 0.6;
 const VALID_FILTERS = new Set(["best", "live", "goals", "btts"]);
 const VALID_MODES = new Set(["today", "worldcup"]);
 const WORLD_CUP_VIEW_TABS = [
-  { id: "games", label: "Jogos da Copa" },
+  { id: "games", label: "Tabela de jogos" },
   { id: "teams", label: "48 selecoes" },
-  { id: "table", label: "Tabela" },
+  { id: "table", label: "Classificacao" },
   { id: "bracket", label: "Mata-mata" },
 ];
 const BRASILIA_TIMEZONE = "America/Sao_Paulo";
@@ -3064,25 +3064,75 @@ const buildWorldCupStages = (games) => {
   }));
 };
 
+const formatWorldCupDateLabel = (value) =>
+  value
+    ? new Date(value).toLocaleDateString("pt-BR", {
+        timeZone: BRASILIA_TIMEZONE,
+        weekday: "long",
+        day: "2-digit",
+        month: "2-digit",
+      })
+    : "Data a definir";
+
+const getWorldCupDateKey = (value) =>
+  value
+    ? new Intl.DateTimeFormat("en-CA", {
+        timeZone: BRASILIA_TIMEZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(value))
+    : "";
+
+const buildWorldCupScheduleDays = (games) => {
+  const buckets = new Map();
+
+  [...games]
+    .sort((left, right) => getKickoffStamp(left) - getKickoffStamp(right))
+    .forEach((game) => {
+      const key = getWorldCupDateKey(game.commenceTime) || "date-pending";
+      const current =
+        buckets.get(key) || {
+          key,
+          label: formatWorldCupDateLabel(game.commenceTime),
+          games: [],
+        };
+      current.games.push(game);
+      buckets.set(key, current);
+    });
+
+  return Array.from(buckets.values());
+};
+
 function WorldCupHub({
   games,
   groups,
   loading,
   onOpenGame,
+  onRefresh,
   onSelectTeam,
   onViewChange,
+  refreshing,
   selectedTeamId,
+  scheduleDays,
   stages,
   teams,
+  updatedAt,
   view,
 }) {
+  const nextGame = [...games]
+    .filter((game) => !game.isFinished)
+    .sort((left, right) => getKickoffStamp(left) - getKickoffStamp(right))[0];
+
   return (
     <section className="worldcup-hub" aria-label="Central da Copa 2026">
       <div className="worldcup-head">
         <div>
           <span>Central Copa 2026</span>
-          <strong>Calendario, selecoes, tabela e mata-mata</strong>
-          <small>Horarios sempre no {BRASILIA_TIMEZONE_LABEL}.</small>
+          <strong>Classificacao e tabela de jogos ao vivo</strong>
+          <small>
+            Horarios no {BRASILIA_TIMEZONE_LABEL}. Ultima atualizacao: {formatBrasiliaUpdateTime(updatedAt)}.
+          </small>
         </div>
 
         <nav className="worldcup-tabs" aria-label="Abas da Copa 2026">
@@ -3096,11 +3146,36 @@ function WorldCupHub({
               {item.label}
             </button>
           ))}
+          <button className="chip-button" onClick={onRefresh} type="button">
+            {refreshing ? "Atualizando..." : "Atualizar agora"}
+          </button>
         </nav>
       </div>
 
+      <div className="worldcup-shortcuts">
+        <button
+          className={view === "games" ? "worldcup-shortcut is-active" : "worldcup-shortcut"}
+          onClick={() => onViewChange("games")}
+          type="button"
+        >
+          <span>Tabela de jogos</span>
+          <strong>{games.length} partidas</strong>
+          <small>{nextGame ? `Proximo jogo: ${formatKickoff(nextGame.commenceTime)}` : "Agenda online da Copa"}</small>
+        </button>
+
+        <button
+          className={view === "table" ? "worldcup-shortcut is-active" : "worldcup-shortcut"}
+          onClick={() => onViewChange("table")}
+          type="button"
+        >
+          <span>Classificacao</span>
+          <strong>{groups.length || 12} grupos</strong>
+          <small>Tabela atualizada com pontos, saldo, gols e jogos.</small>
+        </button>
+      </div>
+
       {view === "games" ? (
-        <WorldCupCalendarPanel games={games} loading={loading} onOpenGame={onOpenGame} />
+        <WorldCupCalendarPanel games={games} loading={loading} onOpenGame={onOpenGame} scheduleDays={scheduleDays} />
       ) : null}
       {view === "teams" ? (
         <WorldCupTeamsPanel
@@ -3116,48 +3191,57 @@ function WorldCupHub({
   );
 }
 
-function WorldCupCalendarPanel({ games, loading, onOpenGame }) {
-  const orderedGames = [...games].sort((left, right) => getKickoffStamp(left) - getKickoffStamp(right));
-
+function WorldCupCalendarPanel({ games, loading, onOpenGame, scheduleDays }) {
   return (
     <div className="worldcup-panel">
       <div className="worldcup-panel-header">
         <div>
-          <span>Jogos da Copa</span>
-          <strong>{orderedGames.length} partidas no calendario</strong>
+          <span>Tabela de jogos</span>
+          <strong>{games.length} partidas no calendario</strong>
         </div>
-        <small>Inclui data, horario, fase, estadio e palpite principal quando disponivel.</small>
+        <small>Agenda em tempo real, por dia, no estilo de acompanhamento da GE.</small>
       </div>
 
-      <div className="worldcup-calendar-list">
-        {orderedGames.map((game) => (
-          <button
-            className="worldcup-calendar-row"
-            key={game.id}
-            onClick={() => onOpenGame(game.id)}
-            type="button"
-          >
-            <span>
-              <strong>{formatKickoff(game.commenceTime)}</strong>
-              <small>{getWorldCupRoundLabel(game.round)}</small>
-            </span>
-            <span>
-              <strong>{game.game}</strong>
-              <small>{[game.venue, game.city].filter(Boolean).join(" - ") || "Local a definir"}</small>
-            </span>
-            <span>
-              <strong>{getPrimaryBetText(game.displayPickLabel || game.pickLabel, game)}</strong>
-              <small>{formatChance(game.displayProbability || game.probability)} chance</small>
-            </span>
-            <span>
-              <strong>{formatScoreLine(game)}</strong>
-              <small>{getGameStatusLabel(game)}</small>
-            </span>
-          </button>
+      <div className="worldcup-schedule-days">
+        {scheduleDays.map((day) => (
+          <section className="worldcup-schedule-day" key={day.key}>
+            <header className="worldcup-schedule-day-head">
+              <strong>{day.label}</strong>
+              <small>{day.games.length} jogos</small>
+            </header>
+
+            <div className="worldcup-calendar-list">
+              {day.games.map((game) => (
+                <button
+                  className="worldcup-calendar-row"
+                  key={game.id}
+                  onClick={() => onOpenGame(game.id)}
+                  type="button"
+                >
+                  <span>
+                    <strong>{formatKickoffTime(game.commenceTime)}</strong>
+                    <small>{getWorldCupRoundLabel(game.round)}</small>
+                  </span>
+                  <span>
+                    <strong>{game.game}</strong>
+                    <small>{[game.venue, game.city].filter(Boolean).join(" - ") || "Local a definir"}</small>
+                  </span>
+                  <span>
+                    <strong>{getPrimaryBetText(game.displayPickLabel || game.pickLabel, game)}</strong>
+                    <small>{formatChance(game.displayProbability || game.probability)} chance</small>
+                  </span>
+                  <span>
+                    <strong>{formatScoreLine(game)}</strong>
+                    <small>{getGameStatusLabel(game)}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
 
-      {!loading && !orderedGames.length ? (
+      {!loading && !games.length ? (
         <div className="worldcup-empty">Ainda nao recebemos jogos da Copa pela API.</div>
       ) : null}
     </div>
@@ -3252,10 +3336,10 @@ function WorldCupTablePanel({ groups }) {
     <div className="worldcup-panel">
       <div className="worldcup-panel-header">
         <div>
-          <span>Tabela da Copa</span>
-          <strong>Grupos e classificacao</strong>
+          <span>Classificacao</span>
+          <strong>Grupos e classificacao online</strong>
         </div>
-        <small>Quando os resultados chegarem, a tabela atualiza pontos, saldo e gols.</small>
+        <small>Modelo completo com jogos, vitorias, empates, derrotas, gols, saldo e pontos.</small>
       </div>
 
       <div className="worldcup-group-grid">
@@ -3265,9 +3349,13 @@ function WorldCupTablePanel({ groups }) {
             <div className="worldcup-standings-head">
               <span>Time</span>
               <span>J</span>
-              <span>SG</span>
+              <span>V</span>
+              <span>E</span>
+              <span>D</span>
               <span>GP</span>
-              <span>Pts</span>
+              <span>GC</span>
+              <span>SG</span>
+              <span>P</span>
             </div>
             {group.rows.map((row) => (
               <div className="worldcup-standings-row" key={row.key}>
@@ -3276,8 +3364,12 @@ function WorldCupTablePanel({ groups }) {
                   {row.name}
                 </span>
                 <strong>{row.played}</strong>
-                <strong>{row.goalsFor - row.goalsAgainst}</strong>
+                <strong>{row.wins}</strong>
+                <strong>{row.draws}</strong>
+                <strong>{row.losses}</strong>
                 <strong>{row.goalsFor}</strong>
+                <strong>{row.goalsAgainst}</strong>
+                <strong>{row.goalsFor - row.goalsAgainst}</strong>
                 <strong>{row.points}</strong>
               </div>
             ))}
@@ -3491,6 +3583,7 @@ function BubblesWorldCup() {
   const [gameDetails, setGameDetails] = useState(null);
   const [gameDetailsLoading, setGameDetailsLoading] = useState(false);
   const [gameDetailsError, setGameDetailsError] = useState("");
+  const [worldCupRefreshTick, setWorldCupRefreshTick] = useState(0);
   const [worldCupView, setWorldCupView] = useState(() => {
     const initialView = getInitialSearchParam("cup", "games");
     return WORLD_CUP_VIEW_TABS.some((item) => item.id === initialView) ? initialView : "games";
@@ -3638,7 +3731,7 @@ function BubblesWorldCup() {
       mounted = false;
       window.clearInterval(timer);
     };
-  }, [mode]);
+  }, [mode, worldCupRefreshTick]);
 
   useEffect(() => {
     setSelectedId(null);
@@ -3966,6 +4059,7 @@ function BubblesWorldCup() {
   }, [todayListGames]);
   const worldCupTeams = useMemo(() => buildWorldCupTeams(games), [games]);
   const worldCupGroups = useMemo(() => buildWorldCupGroups(games), [games]);
+  const worldCupScheduleDays = useMemo(() => buildWorldCupScheduleDays(games), [games]);
   const worldCupStages = useMemo(() => buildWorldCupStages(games), [games]);
   const topGames = [...filteredGames]
     .sort(
@@ -4137,7 +4231,7 @@ function BubblesWorldCup() {
       <section className="simple-guide" aria-label="Resumo dos palpites">
         <article className="simple-guide-main">
           <div className="guide-kicker">
-            <span>Top 5 palpites de hoje</span>
+            <span>{mode === "worldcup" ? "Central da Copa 2026" : "Top 5 palpites de hoje"}</span>
           </div>
 
           {topGames.length ? (
@@ -4199,9 +4293,19 @@ function BubblesWorldCup() {
             type="button"
             onClick={mode === "worldcup" ? () => setWorldCupView("games") : openTodayList}
           >
-            {mode === "worldcup" ? "Ver calendario" : "Ver todos os jogos"}
+            {mode === "worldcup" ? "Ver tabela de jogos" : "Ver todos os jogos"}
           </button>
         </article>
+
+        {mode === "worldcup" ? (
+          <article className="simple-guide-card">
+            <span>Classificacao</span>
+            <strong>{worldCupGroups.length || 12} grupos</strong>
+            <button type="button" onClick={() => setWorldCupView("table")}>
+              Ver classificacao
+            </button>
+          </article>
+        ) : null}
       </section>
 
       {mode === "worldcup" ? (
@@ -4210,11 +4314,15 @@ function BubblesWorldCup() {
           groups={worldCupGroups}
           loading={loading}
           onOpenGame={openGameModal}
+          onRefresh={() => setWorldCupRefreshTick((current) => current + 1)}
           onSelectTeam={setSelectedWorldCupTeamId}
           onViewChange={setWorldCupView}
+          refreshing={refreshing}
+          scheduleDays={worldCupScheduleDays}
           selectedTeamId={selectedWorldCupTeamId}
           stages={worldCupStages}
           teams={worldCupTeams}
+          updatedAt={updatedAt}
           view={worldCupView}
         />
       ) : null}
