@@ -2913,12 +2913,13 @@ const getFilterSubtitle = (activeFilter) => {
   return "Mapa completo do radar.";
 };
 
-const isWorldCupGroupRound = (round = "") =>
-  /(?:group|grupo)\s+[a-l]/i.test(String(round || ""));
+const isWorldCupGroupRound = (round = "") => /(?:group|grupo)/i.test(String(round || ""));
+
+const isWorldCupGroupGame = (game) => game?.stage === "groups" || isWorldCupGroupRound(game?.round);
 
 const getWorldCupGroupName = (round = "") => {
   const match = String(round || "").match(/(?:group|grupo)\s+([a-l])/i);
-  return match ? `Grupo ${match[1].toUpperCase()}` : "Grupo a definir";
+  return match ? `Grupo ${match[1].toUpperCase()}` : "";
 };
 
 const getWorldCupRoundLabel = (round = "") => {
@@ -2930,6 +2931,7 @@ const getWorldCupRoundLabel = (round = "") => {
 
   const roundMap = [
     { match: /group\s+([a-l])/i, label: (found) => `Grupo ${found[1].toUpperCase()}` },
+    { match: /group\s+stage/i, label: () => "Fase de grupos" },
     { match: /round of 32/i, label: () => "16 avos de final" },
     { match: /round of 16/i, label: () => "Oitavas de final" },
     { match: /quarter/i, label: () => "Quartas de final" },
@@ -2977,7 +2979,94 @@ const getTeamFixtureLabel = (game) => {
   return formatKickoff(game?.commenceTime);
 };
 
-const addWorldCupTeam = (map, team, game, side) => {
+const buildWorldCupGroupLookup = (games) => {
+  const adjacency = new Map();
+  const groupGames = games.filter(isWorldCupGroupGame);
+
+  const ensureNode = (teamKey) => {
+    if (!adjacency.has(teamKey)) {
+      adjacency.set(teamKey, new Set());
+    }
+  };
+
+  groupGames.forEach((game) => {
+    if (!game?.homeTeam || !game?.awayTeam || game.homeTeam === "A definir" || game.awayTeam === "A definir") {
+      return;
+    }
+
+    const homeKey = getWorldCupTeamKey(game.homeTeamId, game.homeTeam);
+    const awayKey = getWorldCupTeamKey(game.awayTeamId, game.awayTeam);
+    ensureNode(homeKey);
+    ensureNode(awayKey);
+    adjacency.get(homeKey).add(awayKey);
+    adjacency.get(awayKey).add(homeKey);
+  });
+
+  const components = [];
+  const visited = new Set();
+
+  adjacency.forEach((_, seedKey) => {
+    if (visited.has(seedKey)) {
+      return;
+    }
+
+    const queue = [seedKey];
+    const keys = [];
+    visited.add(seedKey);
+
+    while (queue.length) {
+      const currentKey = queue.shift();
+      keys.push(currentKey);
+
+      adjacency.get(currentKey)?.forEach((nextKey) => {
+        if (visited.has(nextKey)) {
+          return;
+        }
+
+        visited.add(nextKey);
+        queue.push(nextKey);
+      });
+    }
+
+    const relatedGames = groupGames.filter((game) => {
+      const homeKey = getWorldCupTeamKey(game.homeTeamId, game.homeTeam);
+      const awayKey = getWorldCupTeamKey(game.awayTeamId, game.awayTeam);
+      return keys.includes(homeKey) || keys.includes(awayKey);
+    });
+
+    components.push({
+      keys,
+      sortStamp: relatedGames.length
+        ? Math.min(...relatedGames.map((game) => getKickoffStamp(game)))
+        : Number.POSITIVE_INFINITY,
+      sortName: keys
+        .map((key) => {
+          const match = groupGames.find(
+            (game) =>
+              getWorldCupTeamKey(game.homeTeamId, game.homeTeam) === key ||
+              getWorldCupTeamKey(game.awayTeamId, game.awayTeam) === key,
+          );
+          return match?.homeTeam && getWorldCupTeamKey(match.homeTeamId, match.homeTeam) === key
+            ? match.homeTeam
+            : match?.awayTeam || key;
+        })
+        .sort((left, right) => left.localeCompare(right))[0] || seedKey,
+    });
+  });
+
+  const lookup = new Map();
+
+  components
+    .sort((left, right) => left.sortStamp - right.sortStamp || left.sortName.localeCompare(right.sortName))
+    .forEach((component, index) => {
+      const label = `Grupo ${index + 1}`;
+      component.keys.forEach((key) => lookup.set(key, label));
+    });
+
+  return lookup;
+};
+
+const addWorldCupTeam = (map, team, game, side, groupLookup) => {
   if (!team?.name || team.name === "A definir") {
     return;
   }
@@ -2989,7 +3078,7 @@ const addWorldCupTeam = (map, team, game, side) => {
       key,
       name: team.name,
       logo: team.logo || "",
-      group: isWorldCupGroupRound(game?.round) ? getWorldCupGroupName(game.round) : "Grupo a definir",
+      group: groupLookup.get(key) || getWorldCupGroupName(game?.round) || "Grupo a definir",
       games: [],
       nextGame: null,
       liveGame: null,
@@ -3004,8 +3093,10 @@ const addWorldCupTeam = (map, team, game, side) => {
 
   current.games.push(game);
 
-  if (isWorldCupGroupRound(game?.round)) {
-    current.group = getWorldCupGroupName(game.round);
+  if (groupLookup.get(key)) {
+    current.group = groupLookup.get(key);
+  } else if (isWorldCupGroupRound(game?.round)) {
+    current.group = getWorldCupGroupName(game.round) || current.group;
   }
 
   if (game?.isLive) {
@@ -3043,7 +3134,7 @@ const addWorldCupTeam = (map, team, game, side) => {
   map.set(key, current);
 };
 
-const buildWorldCupTeams = (games) => {
+const buildWorldCupTeams = (games, groupLookup) => {
   const map = new Map();
 
   games.forEach((game) => {
@@ -3051,13 +3142,15 @@ const buildWorldCupTeams = (games) => {
       map,
       { id: game.homeTeamId, name: game.homeTeam, logo: game.homeLogo },
       game,
-      "home"
+      "home",
+      groupLookup,
     );
     addWorldCupTeam(
       map,
       { id: game.awayTeamId, name: game.awayTeam, logo: game.awayLogo },
       game,
-      "away"
+      "away",
+      groupLookup,
     );
   });
 
@@ -3108,13 +3201,16 @@ const addWorldCupGroupTeam = (group, team) => {
   return group.rows.get(key);
 };
 
-const buildWorldCupGroups = (games) => {
+const buildWorldCupGroups = (games, groupLookup) => {
   const groups = new Map();
 
   games
-    .filter((game) => isWorldCupGroupRound(game.round))
+    .filter(isWorldCupGroupGame)
     .forEach((game) => {
-      const groupName = getWorldCupGroupName(game.round);
+      const homeKey = getWorldCupTeamKey(game.homeTeamId, game.homeTeam);
+      const awayKey = getWorldCupTeamKey(game.awayTeamId, game.awayTeam);
+      const groupName =
+        groupLookup.get(homeKey) || groupLookup.get(awayKey) || getWorldCupGroupName(game.round) || "Grupo a definir";
       const group =
         groups.get(groupName) || {
           name: groupName,
@@ -4197,8 +4293,9 @@ function BubblesWorldCup() {
       isReliable: stats.checked >= AI_STATS_MIN_SAMPLE,
     };
   }, [todayListGames]);
-  const worldCupTeams = useMemo(() => buildWorldCupTeams(games), [games]);
-  const worldCupGroups = useMemo(() => buildWorldCupGroups(games), [games]);
+  const worldCupGroupLookup = useMemo(() => buildWorldCupGroupLookup(games), [games]);
+  const worldCupTeams = useMemo(() => buildWorldCupTeams(games, worldCupGroupLookup), [games, worldCupGroupLookup]);
+  const worldCupGroups = useMemo(() => buildWorldCupGroups(games, worldCupGroupLookup), [games, worldCupGroupLookup]);
   const worldCupScheduleDays = useMemo(() => buildWorldCupScheduleDays(games), [games]);
   const worldCupStages = useMemo(() => buildWorldCupStages(games), [games]);
   const topGames = [...filteredGames]
