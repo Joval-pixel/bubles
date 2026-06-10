@@ -1698,6 +1698,161 @@ const getPredictionSupportSide = (game) => {
   return null;
 };
 
+const TEAM_DECORATOR_PATTERN =
+  /\b(fc|cf|sc|ac|afc|club|bk|fk|if|cd|de|ii|iii|iv|u17|u18|u19|u20|u21|women|woman|ladies)\b/gi;
+
+const getCompactTeamName = (value, fallback = "Jogo") => {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return fallback;
+  }
+
+  const cleaned = raw.replace(TEAM_DECORATOR_PATTERN, "").replace(/\s+/g, " ").trim() || raw;
+  const words = cleaned.split(" ").filter(Boolean);
+
+  if (cleaned.length <= 16) {
+    return cleaned;
+  }
+
+  if (words.length === 1) {
+    return cleaned.slice(0, 16);
+  }
+
+  const priorityWords = words.filter((word) => word.length > 2);
+  const picked = (priorityWords.length ? priorityWords : words).slice(0, 2);
+  const compact = picked.join(" ");
+
+  if (compact.length <= 16) {
+    return compact;
+  }
+
+  const first = picked[0] || words[0] || cleaned;
+  const second = picked[1] || words[1] || "";
+
+  if (!second) {
+    return first.slice(0, 16);
+  }
+
+  return `${first} ${second.slice(0, Math.max(3, 15 - first.length))}`.trim();
+};
+
+const getBubbleMarketTag = (game) => {
+  const code = String(game?.pickCode || "").toUpperCase().trim();
+  const readablePick = getPrimaryBetText(game?.displayPickLabel || game?.pickLabel, game);
+  const marketName = getReadableMarketName(game);
+  const text = normalizeBetText(
+    `${marketName} ${readablePick} ${game?.displayPickLabel || ""} ${game?.pickLabel || ""}`
+  );
+
+  if (["1", "2", "X", "1X", "X2", "12"].includes(code)) {
+    return code;
+  }
+
+  if (text.includes("dupla chance")) {
+    if (text.includes("mandante") || text.includes("casa")) {
+      return "1X";
+    }
+
+    if (text.includes("visitante") || text.includes("fora")) {
+      return "X2";
+    }
+
+    return "DC";
+  }
+
+  if (text.includes("ambas") || text.includes("btts") || text.includes("both teams")) {
+    return text.includes("nao") || text.includes("nÃ£o") || text.includes("no") ? "BTTS N" : "BTTS";
+  }
+
+  if (text.includes("mais de") || text.includes("over")) {
+    return formatGoalLineCode("O", getLineValue(text));
+  }
+
+  if (text.includes("menos de") || text.includes("under")) {
+    return formatGoalLineCode("U", getLineValue(text));
+  }
+
+  if (text.includes("empate") || text.includes("draw")) {
+    return "X";
+  }
+
+  if (text.includes("visitante") || text.includes("fora")) {
+    return "2";
+  }
+
+  if (text.includes("mandante") || text.includes("casa")) {
+    return "1";
+  }
+
+  return "BEST";
+};
+
+const getBubbleVisualInfo = (game) => {
+  const supportedSide = getPredictionSupportSide(game);
+  const marketTag = getBubbleMarketTag(game);
+  const readablePick = getPrimaryBetText(game?.displayPickLabel || game?.pickLabel, game);
+  const matchup = `${getCompactTeamName(game?.homeTeam)} x ${getCompactTeamName(game?.awayTeam)}`;
+
+  if (supportedSide === "home") {
+    return {
+      primary: getCompactTeamName(game?.homeTeam, "Mandante"),
+      secondary: matchup,
+      tag: marketTag,
+      logo: game?.homeLogo || "",
+      title: readablePick,
+    };
+  }
+
+  if (supportedSide === "away") {
+    return {
+      primary: getCompactTeamName(game?.awayTeam, "Visitante"),
+      secondary: matchup,
+      tag: marketTag,
+      logo: game?.awayLogo || "",
+      title: readablePick,
+    };
+  }
+
+  if (marketTag === "X") {
+    return {
+      primary: "EMPATE",
+      secondary: matchup,
+      tag: "X",
+      logo: "",
+      title: readablePick,
+    };
+  }
+
+  if (marketTag.startsWith("BTTS")) {
+    return {
+      primary: "BTTS",
+      secondary: matchup,
+      tag: marketTag.endsWith("N") ? "NAO" : "SIM",
+      logo: "",
+      title: readablePick,
+    };
+  }
+
+  if (marketTag.startsWith("O") || marketTag.startsWith("U")) {
+    return {
+      primary: marketTag,
+      secondary: matchup,
+      tag: "GOLS",
+      logo: "",
+      title: readablePick,
+    };
+  }
+
+  return {
+    primary: getCompactTeamName(game?.homeTeam, "Jogo"),
+    secondary: matchup,
+    tag: marketTag,
+    logo: game?.homeLogo || "",
+    title: readablePick,
+  };
+};
+
 const getFormGuardrail = (game, details) => {
   if (!game || !details?.teams) {
     return null;
@@ -1794,6 +1949,15 @@ const getLineValue = (text) => {
   return match ? Number(match[1]) : null;
 };
 
+const formatGoalLineCode = (prefix, value) => {
+  if (!Number.isFinite(value)) {
+    return prefix;
+  }
+
+  const text = Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+  return `${prefix}${text}`;
+};
+
 const getAiHitState = (game) => {
   const score = parseScore(game);
 
@@ -1881,8 +2045,12 @@ const getAiHitState = (game) => {
 };
 
 const getTier = (probability) => {
-  if (probability >= 0.45) {
+  if (probability >= 0.72) {
     return "high";
+  }
+
+  if (probability >= 0.58) {
+    return "medium";
   }
 
   return "low";
@@ -1897,7 +2065,7 @@ const FRAME_STEP_LIMIT = 0.12;
 const VELOCITY_LIMIT = 0.0022;
 const BOUNCE_DAMPING = 0.74;
 const COLLISION_DAMPING = 0.28;
-const DEFAULT_BUBBLE_SCALE = "small";
+const DEFAULT_BUBBLE_SCALE = "default";
 const MOBILE_BOARD_WIDTH = 520;
 const MOBILE_VELOCITY_LIMIT = 0.012;
 
@@ -1951,7 +2119,7 @@ const getGridMetrics = (total = 0, bounds = {}) => {
   const mobile = isMobileBounds({ width });
   const height = Math.max(bounds.height || 0, mobile ? 420 : 560);
 
-  if (!mobile && total < 24) {
+  if (!mobile) {
     return null;
   }
 
@@ -4077,6 +4245,7 @@ function BubblesWorldCup() {
           {!loading &&
             radarGames.map((game) => {
               const hitState = getAiHitState(game);
+              const bubbleInfo = getBubbleVisualInfo(game);
 
               return (
                 <button
@@ -4098,12 +4267,23 @@ function BubblesWorldCup() {
                     height: `${game.size}px`,
                     transform: `translate(${game.x}px, ${game.y}px)`,
                   }}
-                  title={game.game}
+                  title={`${game.game} | ${bubbleInfo.title}`}
                   type="button"
                 >
                   {hitState.state === "hit" ? <AiHitLogo state="hit" compact /> : null}
-                  <span className="bubble-primary">{getBubbleMainLabel(game)}</span>
+                  {bubbleInfo.logo ? (
+                    <img
+                      alt=""
+                      aria-hidden="true"
+                      className="bubble-logo"
+                      loading="lazy"
+                      src={bubbleInfo.logo}
+                    />
+                  ) : null}
+                  <span className="bubble-primary">{bubbleInfo.primary}</span>
                   <strong>{formatChance(game.displayProbability || game.probability)}</strong>
+                  <span className="bubble-tag">{bubbleInfo.tag}</span>
+                  {game.size >= 104 ? <span className="bubble-meta">{bubbleInfo.secondary}</span> : null}
                   {mode === "worldcup" && !game.isLive ? (
                     <span className="bubble-schedule">{formatKickoffShort(game.commenceTime)}</span>
                   ) : null}
