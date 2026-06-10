@@ -3473,12 +3473,24 @@ function WorldCupHub({
 function WorldCupGamesPanel({ games, loading, onOpenGame, scheduleDays }) {
   const widgetKey = import.meta.env.VITE_API_FOOTBALL_WIDGET_KEY || "";
   const widgetsReady = useApiSportsWidgetsReady();
+  const [worldCupWidgetsBooted, setWorldCupWidgetsBooted] = useState(false);
   const defaultGame = useMemo(() => {
     const sortedGames = [...games].sort((left, right) => getKickoffStamp(left) - getKickoffStamp(right));
     return sortedGames.find((game) => !game.isFinished) || sortedGames[0] || null;
   }, [games]);
   const defaultGameId = defaultGame?.id ? String(defaultGame.id) : "";
   const canRenderWidgets = Boolean(widgetKey && widgetsReady);
+
+  useEffect(() => {
+    setWorldCupWidgetsBooted(false);
+
+    if (!canRenderWidgets) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setWorldCupWidgetsBooted(true), 80);
+    return () => window.clearTimeout(timer);
+  }, [canRenderWidgets, defaultGameId]);
 
   if (!widgetKey) {
     return <WorldCupCalendarPanel games={games} loading={loading} onOpenGame={onOpenGame} scheduleDays={scheduleDays} />;
@@ -3494,7 +3506,34 @@ function WorldCupGamesPanel({ games, loading, onOpenGame, scheduleDays }) {
         <small>League, Game e Standings conectados como no guia oficial da Copa 2026.</small>
       </div>
 
-      {!canRenderWidgets ? (
+      {canRenderWidgets ? (
+        <api-sports-widget
+          key={`worldcup-config-${defaultGameId || "default"}`}
+          data-type="config"
+          data-key={widgetKey}
+          data-sport="football"
+          data-lang={WORLD_CUP_WIDGET_LANG}
+          data-theme={WORLD_CUP_WIDGET_THEME}
+          data-show-errors="true"
+          data-show-logos="true"
+          data-refresh="30"
+          data-player-injuries="true"
+          data-team-squad="true"
+          data-team-statistics="true"
+          data-player-statistics="true"
+          data-game-tab="statistics"
+          data-standings="true"
+          data-target-standings="#worldcup-widget-standings .worldcup-widget-slot"
+          data-target-game="#worldcup-widget-game .worldcup-widget-slot"
+          data-target-player="modal"
+          data-target-team="modal"
+          data-tab="results"
+          data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
+          data-season={WORLD_CUP_WIDGET_SEASON}
+        />
+      ) : null}
+
+      {!canRenderWidgets || !worldCupWidgetsBooted ? (
         <div className="worldcup-widget-grid worldcup-widget-grid-loading">
           <article className="worldcup-widget-card">
             <div className="worldcup-widget-card-head">
@@ -3525,31 +3564,6 @@ function WorldCupGamesPanel({ games, loading, onOpenGame, scheduleDays }) {
         </div>
       ) : (
         <>
-          <api-sports-widget
-            key={`worldcup-config-${defaultGameId || "default"}`}
-            data-type="config"
-            data-key={widgetKey}
-            data-sport="football"
-            data-lang={WORLD_CUP_WIDGET_LANG}
-            data-theme={WORLD_CUP_WIDGET_THEME}
-            data-show-errors="true"
-            data-show-logos="true"
-            data-refresh="30"
-            data-player-injuries="true"
-            data-team-squad="true"
-            data-team-statistics="true"
-            data-player-statistics="true"
-            data-game-tab="statistics"
-            data-standings="true"
-            data-target-standings="#worldcup-widget-standings .worldcup-widget-slot"
-            data-target-game="#worldcup-widget-game .worldcup-widget-slot"
-            data-target-player="modal"
-            data-target-team="modal"
-            data-tab="results"
-            data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
-            data-season={WORLD_CUP_WIDGET_SEASON}
-          />
-
           <div className="worldcup-widget-grid">
             <section className="worldcup-widget-card worldcup-widget-card-league">
               <div className="worldcup-widget-card-head">
