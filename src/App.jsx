@@ -3498,7 +3498,7 @@ function WorldCupGamesPanel({ games, loading, onOpenGame, scheduleDays }) {
         <div className="worldcup-widget-grid worldcup-widget-grid-loading">
           <article className="worldcup-widget-card">
             <div className="worldcup-widget-card-head">
-              <span>League widget</span>
+              <span>Agenda widget</span>
               <strong>Carregando agenda</strong>
               <small>Preparando a lista oficial de jogos.</small>
             </div>
@@ -3553,12 +3553,17 @@ function WorldCupGamesPanel({ games, loading, onOpenGame, scheduleDays }) {
           <div className="worldcup-widget-grid">
             <section className="worldcup-widget-card worldcup-widget-card-league">
               <div className="worldcup-widget-card-head">
-                <span>League widget</span>
+                <span>Agenda widget</span>
                 <strong>Tabela e agenda da competicao</strong>
                 <small>Lista oficial da Copa com jogos, status e selecao de partida.</small>
               </div>
               <div className="worldcup-widget-slot">
-                <api-sports-widget key="worldcup-league-widget" data-type="league" />
+                <api-sports-widget
+                  key="worldcup-league-widget"
+                  data-type="games"
+                  data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
+                  data-season={WORLD_CUP_WIDGET_SEASON}
+                />
               </div>
             </section>
 
@@ -3594,7 +3599,12 @@ function WorldCupGamesPanel({ games, loading, onOpenGame, scheduleDays }) {
                 <small>Bloco oficial de grupos, pontos, saldo e classificacao.</small>
               </div>
               <div className="worldcup-widget-slot">
-                <api-sports-widget key="worldcup-standings-widget" data-type="standings" />
+                <api-sports-widget
+                  key="worldcup-standings-widget"
+                  data-type="standings"
+                  data-league={WORLD_CUP_WIDGET_LEAGUE_ID}
+                  data-season={WORLD_CUP_WIDGET_SEASON}
+                />
               </div>
             </aside>
           </div>
