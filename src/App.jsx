@@ -4310,8 +4310,9 @@ function BubblesWorldCup() {
             0
           );
         });
+        const firstRadarGameId = items.find((item) => !item.isFinished)?.id ?? items[0]?.id ?? null;
         setSelectedId((current) =>
-          items.some((item) => item.id === current) ? current : items[0]?.id ?? null
+          items.some((item) => item.id === current) ? current : firstRadarGameId
         );
       } catch (_error) {
         if (!mounted) {
@@ -4477,9 +4478,14 @@ function BubblesWorldCup() {
     return items;
   }, [filter, games, query]);
 
+  const radarSourceGames = useMemo(
+    () => filteredGames.filter((game) => !game.isFinished),
+    [filteredGames]
+  );
+
   const radarGames = useMemo(
-    () => (filter === "live" ? filteredGames : filteredGames.slice(0, radarLimit)),
-    [filter, filteredGames, radarLimit]
+    () => (filter === "live" ? radarSourceGames : radarSourceGames.slice(0, radarLimit)),
+    [filter, radarLimit, radarSourceGames]
   );
 
   const searchSuggestions = useMemo(() => {
@@ -4502,6 +4508,7 @@ function BubblesWorldCup() {
   const selectedGame =
     filteredGames.find((game) => game.id === selectedId) ??
     games.find((game) => game.id === selectedId) ??
+    radarGames[0] ??
     filteredGames[0] ??
     games[0] ??
     null;
@@ -4582,6 +4589,7 @@ function BubblesWorldCup() {
 
   const hoveredGame =
     radarGames.find((game) => game.id === hoveredId) ??
+    radarSourceGames.find((game) => game.id === hoveredId) ??
     filteredGames.find((game) => game.id === hoveredId) ??
     null;
 
@@ -4688,7 +4696,7 @@ function BubblesWorldCup() {
   const aiBestMarkets = Array.isArray(aiInsights.bestMarkets) ? aiInsights.bestMarkets : [];
   const selectedHitState = selectedGame ? getAiHitState(selectedGame) : null;
   const formGuardrail = selectedGame ? getFormGuardrail(selectedGame, gameDetails) : null;
-  const boardGamesCount = filteredGames.length;
+  const boardGamesCount = radarSourceGames.length;
   const boardLayoutHeight = useMemo(() => {
     if (!radarGames.length) {
       return null;
@@ -5035,14 +5043,14 @@ function BubblesWorldCup() {
             </aside>
           ) : null}
 
-          {!loading && filteredGames.length > radarGames.length ? (
+          {!loading && radarSourceGames.length > radarGames.length ? (
             <div className="radar-actions">
               <button
                 className="load-more-button"
                 onClick={() => setRadarLimit((current) => current + RADAR_INITIAL_LIMIT)}
                 type="button"
               >
-                Carregar mais {Math.min(RADAR_INITIAL_LIMIT, filteredGames.length - radarGames.length)}
+                Carregar mais {Math.min(RADAR_INITIAL_LIMIT, radarSourceGames.length - radarGames.length)}
               </button>
             </div>
           ) : null}
