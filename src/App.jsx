@@ -278,6 +278,7 @@ function TeamLogo({ className = "", name, preferFlag = false, src }) {
   const primarySrc = useMemo(() => getPreferredTeamLogo(name, src, { preferFlag }), [name, preferFlag, src]);
   const fallbackSrc = useMemo(() => getFallbackTeamLogo(name, src, { preferFlag }), [name, preferFlag, src]);
   const fallbackLabel = useMemo(() => getTeamLogoFallbackLabel(name), [name]);
+  const shouldRenderBadge = useMemo(() => Boolean(src || getWorldCupFlagUrl(name)), [name, src]);
   const [currentSrc, setCurrentSrc] = useState(primarySrc);
 
   useEffect(() => {
@@ -294,6 +295,10 @@ function TeamLogo({ className = "", name, preferFlag = false, src }) {
   };
 
   if (!currentSrc) {
+    if (!shouldRenderBadge) {
+      return null;
+    }
+
     return (
       <span
         aria-hidden="true"
