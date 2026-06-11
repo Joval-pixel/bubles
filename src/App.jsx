@@ -114,7 +114,46 @@ const WORLD_CUP_TEAM_FLAG_CODES = {
 const BRASILIA_TIMEZONE = "America/Sao_Paulo";
 const BRASILIA_TIMEZONE_LABEL = "Horario de Brasilia";
 const FLAG_CDN_BASE_URL = "https://flagcdn.com";
-const TRANSPARENT_IMAGE_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=";
+const TEAM_LOGO_PROXY_PATH = "/api/team-logo";
+const TEAM_LOGO_PROXY_HOSTS = new Set(["media.api-sports.io"]);
+const TEAM_LOGO_FALLBACK_STOPWORDS = new Set([
+  "ac",
+  "afc",
+  "association",
+  "athletic",
+  "atletico",
+  "bk",
+  "cd",
+  "cf",
+  "club",
+  "clube",
+  "de",
+  "del",
+  "desportivo",
+  "do",
+  "du",
+  "ec",
+  "fc",
+  "fk",
+  "football",
+  "if",
+  "ii",
+  "iii",
+  "iv",
+  "nk",
+  "of",
+  "sc",
+  "soccer",
+  "sport",
+  "sporting",
+  "the",
+  "u17",
+  "u18",
+  "u19",
+  "u20",
+  "u21",
+  "u23",
+]);
 const ROUTE_DEFAULTS = {
   "/": { mode: "today", filter: "best", view: "radar" },
   "/palpites-de-hoje": { mode: "today", filter: "best", view: "radar" },
@@ -236,10 +275,34 @@ function AiHitLogo({ state = "pending", compact = false }) {
 }
 
 function TeamLogo({ className = "", name, preferFlag = false, src }) {
-  const primarySrc = getPreferredTeamLogo(name, src, { preferFlag });
+  const primarySrc = useMemo(() => getPreferredTeamLogo(name, src, { preferFlag }), [name, preferFlag, src]);
+  const fallbackSrc = useMemo(() => getFallbackTeamLogo(name, src, { preferFlag }), [name, preferFlag, src]);
+  const fallbackLabel = useMemo(() => getTeamLogoFallbackLabel(name), [name]);
+  const [currentSrc, setCurrentSrc] = useState(primarySrc);
 
-  if (!primarySrc) {
-    return null;
+  useEffect(() => {
+    setCurrentSrc(primarySrc);
+  }, [primarySrc]);
+
+  const handleError = () => {
+    if (fallbackSrc && currentSrc !== fallbackSrc) {
+      setCurrentSrc(fallbackSrc);
+      return;
+    }
+
+    setCurrentSrc("");
+  };
+
+  if (!currentSrc) {
+    return (
+      <span
+        aria-hidden="true"
+        className={[className, "team-logo-fallback"].filter(Boolean).join(" ")}
+        title={name || "Time"}
+      >
+        {fallbackLabel}
+      </span>
+    );
   }
 
   return (
@@ -247,12 +310,11 @@ function TeamLogo({ className = "", name, preferFlag = false, src }) {
       alt=""
       aria-hidden="true"
       className={className}
-      data-fallback-src={getFallbackTeamLogo(name, src, { preferFlag })}
       decoding="async"
       loading="lazy"
-      onError={handleTeamLogoError}
+      onError={handleError}
       referrerPolicy="no-referrer"
-      src={primarySrc}
+      src={currentSrc}
     />
   );
 }
@@ -850,38 +912,73 @@ const getWorldCupFlagUrl = (name) => {
   return code ? `${FLAG_CDN_BASE_URL}/w80/${code}.png` : "";
 };
 
+const maybeProxyTeamLogo = (source) => {
+  if (!source || /^data:/i.test(source)) {
+    return source || "";
+  }
+
+  try {
+    const parsedUrl = new URL(source, "https://bubles.local");
+
+    if (!/^https?:$/i.test(parsedUrl.protocol) || !TEAM_LOGO_PROXY_HOSTS.has(parsedUrl.hostname)) {
+      return source;
+    }
+
+    const proxyUrl = new URL(TEAM_LOGO_PROXY_PATH, "https://bubles.local");
+    proxyUrl.searchParams.set("src", parsedUrl.toString());
+    return `${TEAM_LOGO_PROXY_PATH}?${proxyUrl.searchParams.toString()}`;
+  } catch (_error) {
+    return source;
+  }
+};
+
 const getPreferredTeamLogo = (name, source, { preferFlag = false } = {}) => {
   const flagUrl = getWorldCupFlagUrl(name);
+  const proxiedSource = maybeProxyTeamLogo(source);
 
   if (preferFlag && flagUrl) {
     return flagUrl;
   }
 
-  return source || flagUrl || "";
+  return proxiedSource || flagUrl || "";
 };
 
 const getFallbackTeamLogo = (name, source, { preferFlag = false } = {}) => {
   const flagUrl = getWorldCupFlagUrl(name);
+  const proxiedSource = maybeProxyTeamLogo(source);
 
   if (preferFlag) {
-    return source && source !== flagUrl ? source : "";
+    return proxiedSource && proxiedSource !== flagUrl ? proxiedSource : "";
   }
 
-  return flagUrl && flagUrl !== source ? flagUrl : "";
+  return flagUrl && flagUrl !== proxiedSource ? flagUrl : "";
 };
 
-const handleTeamLogoError = (event) => {
-  const image = event.currentTarget;
-  const fallbackSrc = image.dataset.fallbackSrc || "";
+const getTeamLogoFallbackLabel = (name) => {
+  const normalized = String(name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9 ]/g, " ")
+    .trim();
 
-  if (fallbackSrc && image.src !== fallbackSrc) {
-    image.dataset.fallbackSrc = "";
-    image.src = fallbackSrc;
-    return;
+  const rawTokens = normalized.split(/\s+/).filter(Boolean);
+  const filteredTokens = rawTokens.filter((token) => !TEAM_LOGO_FALLBACK_STOPWORDS.has(token.toLowerCase()));
+  const tokens = filteredTokens.length ? filteredTokens : rawTokens;
+
+  if (!tokens.length) {
+    return "FC";
   }
 
-  image.onerror = null;
-  image.src = TRANSPARENT_IMAGE_DATA_URI;
+  if (tokens.length === 1) {
+    const compactToken = tokens[0].replace(/\d+/g, "");
+    return (compactToken.slice(0, 2) || tokens[0].slice(0, 2)).toUpperCase();
+  }
+
+  return tokens
+    .slice(0, 2)
+    .map((token) => token.charAt(0))
+    .join("")
+    .toUpperCase();
 };
 
 const getBetSearchText = (value) => `${value || ""} ${translateBetText(value)}`.toLowerCase();
