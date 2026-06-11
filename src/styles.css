@@ -1728,13 +1728,7 @@ body .modal-widget-content {
 
 .bubble {
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.12rem;
-  padding: clamp(0.3rem, 0.55vw, 0.62rem);
-  overflow: hidden;
+  overflow: visible;
   border: 2px solid rgba(255, 255, 255, 0.24);
   border-radius: 50%;
   color: white;
@@ -1744,12 +1738,25 @@ body .modal-widget-content {
   will-change: transform;
 }
 
-.bubble.is-compact {
+.bubble .bubble-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  padding: clamp(0.3rem, 0.55vw, 0.62rem);
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.bubble.is-compact .bubble-content {
   gap: 0.08rem;
   padding: clamp(0.22rem, 0.4vw, 0.44rem);
 }
 
-.bubble.is-tight {
+.bubble.is-tight .bubble-content {
   gap: 0.04rem;
   padding: clamp(0.16rem, 0.3vw, 0.28rem);
 }
@@ -2108,14 +2115,14 @@ body .modal-widget-content {
 
 .bubble .bubble-cup-badge {
   position: absolute;
-  top: 5%;
-  left: 3%;
-  z-index: 3;
+  top: -6%;
+  left: -9%;
+  z-index: 5;
   display: inline-grid;
   place-items: center;
-  min-width: 32%;
-  max-width: 56%;
-  padding: 0.14rem 0.42rem;
+  min-width: 38%;
+  max-width: 64%;
+  padding: 0.18rem 0.5rem;
   overflow: visible;
   border: 1px solid rgba(255, 252, 220, 0.86);
   border-radius: 12px;
@@ -2123,7 +2130,7 @@ body .modal-widget-content {
     linear-gradient(135deg, rgba(255, 244, 138, 0.98), rgba(255, 190, 38, 0.98) 52%, rgba(255, 109, 0, 0.98));
   color: #251400;
   font-family: Sora, Inter, sans-serif;
-  font-size: clamp(0.34rem, 0.5vw, 0.64rem);
+  font-size: clamp(0.38rem, 0.58vw, 0.72rem);
   font-weight: 1000;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -2139,19 +2146,21 @@ body .modal-widget-content {
 }
 
 .bubble.is-compact .bubble-cup-badge {
-  min-width: 28%;
-  max-width: 48%;
-  padding: 0.1rem 0.28rem;
-  font-size: clamp(0.28rem, 0.38vw, 0.5rem);
+  top: -5%;
+  left: -8%;
+  min-width: 34%;
+  max-width: 58%;
+  padding: 0.14rem 0.36rem;
+  font-size: clamp(0.32rem, 0.44vw, 0.58rem);
 }
 
 .bubble.is-tight .bubble-cup-badge {
-  top: 6%;
-  left: 4%;
-  min-width: 24%;
-  max-width: 40%;
-  padding: 0.08rem 0.2rem;
-  font-size: clamp(0.24rem, 0.32vw, 0.42rem);
+  top: -4%;
+  left: -7%;
+  min-width: 30%;
+  max-width: 52%;
+  padding: 0.1rem 0.26rem;
+  font-size: clamp(0.28rem, 0.36vw, 0.48rem);
 }
 
 @keyframes bubble-cup-badge-pulse {

@@ -5051,29 +5051,31 @@ function BubblesWorldCup() {
                   {bubbleDisplay.showWorldCupBadge ? (
                     <span className="bubble-cup-badge">{bubbleDisplay.worldCupBadgeLabel}</span>
                   ) : null}
-                  {bubbleDisplay.showLogo ? (
-                    <TeamLogo
-                      className="bubble-logo"
-                      name={bubbleInfo.primary}
-                      preferFlag={mode === "worldcup"}
-                      src={bubbleInfo.logo}
-                    />
-                  ) : null}
-                  <span className="bubble-primary">{bubbleInfo.primary}</span>
-                  <strong>{formatChance(game.displayProbability || game.probability)}</strong>
-                  {bubbleDisplay.showTag ? <span className="bubble-tag">{bubbleInfo.tag}</span> : null}
-                  {bubbleDisplay.showMeta ? <span className="bubble-meta">{bubbleInfo.secondary}</span> : null}
-                  {bubbleDisplay.showSchedule ? (
-                    <span className="bubble-schedule">{formatKickoffShort(game.commenceTime)}</span>
-                  ) : null}
-                  {bubbleDisplay.showScore ? (
-                    <span className={hasLiveMinute(game) ? "bubble-score-stack is-live" : "bubble-score-stack"}>
-                      <span className="bubble-score">{formatScoreLine(game)}</span>
-                      {bubbleDisplay.showMinute ? (
-                        <span className="bubble-minute">{bubbleDisplay.minuteLabel}</span>
-                      ) : null}
-                    </span>
-                  ) : null}
+                  <span className="bubble-content">
+                    {bubbleDisplay.showLogo ? (
+                      <TeamLogo
+                        className="bubble-logo"
+                        name={bubbleInfo.primary}
+                        preferFlag={mode === "worldcup"}
+                        src={bubbleInfo.logo}
+                      />
+                    ) : null}
+                    <span className="bubble-primary">{bubbleInfo.primary}</span>
+                    <strong>{formatChance(game.displayProbability || game.probability)}</strong>
+                    {bubbleDisplay.showTag ? <span className="bubble-tag">{bubbleInfo.tag}</span> : null}
+                    {bubbleDisplay.showMeta ? <span className="bubble-meta">{bubbleInfo.secondary}</span> : null}
+                    {bubbleDisplay.showSchedule ? (
+                      <span className="bubble-schedule">{formatKickoffShort(game.commenceTime)}</span>
+                    ) : null}
+                    {bubbleDisplay.showScore ? (
+                      <span className={hasLiveMinute(game) ? "bubble-score-stack is-live" : "bubble-score-stack"}>
+                        <span className="bubble-score">{formatScoreLine(game)}</span>
+                        {bubbleDisplay.showMinute ? (
+                          <span className="bubble-minute">{bubbleDisplay.minuteLabel}</span>
+                        ) : null}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
               );
             })}
