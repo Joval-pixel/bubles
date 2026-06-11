@@ -2134,6 +2134,39 @@ const getBubbleVisualInfo = (game) => {
   };
 };
 
+const formatBubbleMinute = (game, compact = false) => {
+  const minute = Math.round(Number(game?.minute) || 0);
+
+  if (minute > 0) {
+    return compact ? `${minute}'` : `${minute}' ao vivo`;
+  }
+
+  if (!game?.isLive) {
+    return "";
+  }
+
+  return compact ? "LIVE" : "Ao vivo";
+};
+
+const getBubbleDisplayConfig = (game, mode) => {
+  const size = Number(game?.size || 0);
+  const hasScore = hasScoreLine(game) || game?.isLive;
+  const hasMinute = hasLiveMinute(game);
+  const isTight = size < 90;
+  const isCompact = size >= 90 && size < 116;
+
+  return {
+    minuteLabel: formatBubbleMinute(game, size < 116),
+    showLogo: size >= (hasScore ? 76 : 64),
+    showMeta: size >= (hasScore ? 126 : 108),
+    showMinute: hasMinute && size >= 88,
+    showSchedule: mode === "worldcup" && !game?.isLive && size >= 104,
+    showScore: hasScore && size >= 74,
+    showTag: size >= 70 && (!hasScore || size >= 92),
+    sizeClass: isTight ? "is-tight" : isCompact ? "is-compact" : "is-roomy",
+  };
+};
+
 const getFormGuardrail = (game, details) => {
   if (!game || !details?.teams) {
     return null;
@@ -2341,14 +2374,14 @@ const EDGE_PADDING = 10;
 const COLLISION_GAP = 12;
 const COLLISION_PASSES = 14;
 const COLLISION_PUSH = 0.72;
-const DRIFT_INTERVAL_MS = 180;
-const FRAME_STEP_LIMIT = 0.12;
-const VELOCITY_LIMIT = 0.0022;
-const BOUNCE_DAMPING = 0.74;
-const COLLISION_DAMPING = 0.28;
+const DRIFT_INTERVAL_MS = 32;
+const FRAME_STEP_LIMIT = 2.4;
+const VELOCITY_LIMIT = 0.3;
+const BOUNCE_DAMPING = 0.92;
+const COLLISION_DAMPING = 0.9;
 const DEFAULT_BUBBLE_SCALE = "default";
 const MOBILE_BOARD_WIDTH = 520;
-const MOBILE_VELOCITY_LIMIT = 0.012;
+const MOBILE_VELOCITY_LIMIT = 0.065;
 
 const isMobileBounds = (bounds = {}) => (bounds.width || 0) > 0 && bounds.width <= MOBILE_BOARD_WIDTH;
 
@@ -2381,16 +2414,16 @@ const limitMobileVelocity = (value) => clamp(value, -MOBILE_VELOCITY_LIMIT, MOBI
 
 const getInitialVelocity = (index, axis) => {
   const direction = axis === "x" ? (index % 2 ? 1 : -1) : (index % 3 ? 1 : -1);
-  const base = axis === "x" ? 0.001 : 0.0008;
-  const spread = axis === "x" ? (index % 7) * 0.00016 : (index % 5) * 0.00014;
+  const base = axis === "x" ? 0.12 : 0.1;
+  const spread = axis === "x" ? (index % 7) * 0.012 : (index % 5) * 0.01;
 
   return limitVelocity(direction * (base + spread));
 };
 
 const getMobileVelocity = (index, axis) => {
   const direction = axis === "x" ? (index % 2 ? 1 : -1) : (index % 3 ? 1 : -1);
-  const base = axis === "x" ? 0.0045 : 0.0035;
-  const spread = axis === "x" ? (index % 5) * 0.0007 : (index % 4) * 0.00055;
+  const base = axis === "x" ? 0.024 : 0.018;
+  const spread = axis === "x" ? (index % 5) * 0.004 : (index % 4) * 0.0032;
 
   return limitMobileVelocity(direction * (base + spread));
 };
@@ -2530,7 +2563,7 @@ const resolveBubbleCollisions = (items, bounds, mobile = false) => {
   const height = Math.max(bounds.height || 0, 560);
   const next = items.map((item) => ({ ...item }));
   const limitCurrentVelocity = mobile ? limitMobileVelocity : limitVelocity;
-  const impulse = mobile ? 0 : 0.00005;
+  const impulse = mobile ? 0.003 : 0.01;
 
   for (let pass = 0; pass < COLLISION_PASSES; pass += 1) {
     for (let index = 0; index < next.length; index += 1) {
@@ -2592,7 +2625,7 @@ const constrainBubbleToAnchor = (bubble, bounds, mobile = false) => {
 
   const width = Math.max(bounds.width || 0, 320);
   const height = Math.max(bounds.height || 0, bubble.anchorY + bubble.size + EDGE_PADDING);
-  const drift = mobile ? 4 : Math.max(6, Math.min(12, bubble.size * 0.08));
+  const drift = mobile ? 7 : Math.max(10, Math.min(20, bubble.size * 0.14));
   const minX = clamp(bubble.anchorX - drift, EDGE_PADDING, width - bubble.size - EDGE_PADDING);
   const maxX = clamp(bubble.anchorX + drift, EDGE_PADDING, width - bubble.size - EDGE_PADDING);
   const minY = clamp(bubble.anchorY - drift, EDGE_PADDING, height - bubble.size - EDGE_PADDING);
@@ -4931,15 +4964,19 @@ function BubblesWorldCup() {
             radarGames.map((game) => {
               const hitState = getAiHitState(game);
               const bubbleInfo = getBubbleVisualInfo(game);
+              const bubbleDisplay = getBubbleDisplayConfig(game, mode);
+              const bubbleClassName = [
+                selectedGame?.id === game.id ? `bubble is-${game.tier} is-selected` : `bubble is-${game.tier}`,
+                bubbleDisplay.sizeClass,
+                bubbleDisplay.showScore ? "has-score" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
 
               return (
                 <button
                   aria-label={`Abrir previsoes de ${game.game}`}
-                  className={
-                    selectedGame?.id === game.id
-                      ? `bubble is-${game.tier} is-selected`
-                      : `bubble is-${game.tier}`
-                  }
+                  className={bubbleClassName}
                   key={game.id}
                   onBlur={() => setHoveredId(null)}
                   onFocus={() => setHoveredId(game.id)}
@@ -4948,6 +4985,7 @@ function BubblesWorldCup() {
                   onMouseLeave={() => setHoveredId(null)}
                   onTouchStart={() => setHoveredId(game.id)}
                   style={{
+                    "--bubble-size": `${game.size}px`,
                     width: `${game.size}px`,
                     height: `${game.size}px`,
                     transform: `translate(${game.x}px, ${game.y}px)`,
@@ -4956,24 +4994,26 @@ function BubblesWorldCup() {
                   type="button"
                 >
                   {hitState.state === "hit" ? <AiHitLogo state="hit" compact /> : null}
-                  <TeamLogo
-                    className="bubble-logo"
-                    name={bubbleInfo.primary}
-                    preferFlag={mode === "worldcup"}
-                    src={bubbleInfo.logo}
-                  />
+                  {bubbleDisplay.showLogo ? (
+                    <TeamLogo
+                      className="bubble-logo"
+                      name={bubbleInfo.primary}
+                      preferFlag={mode === "worldcup"}
+                      src={bubbleInfo.logo}
+                    />
+                  ) : null}
                   <span className="bubble-primary">{bubbleInfo.primary}</span>
                   <strong>{formatChance(game.displayProbability || game.probability)}</strong>
-                  <span className="bubble-tag">{bubbleInfo.tag}</span>
-                  {game.size >= 104 ? <span className="bubble-meta">{bubbleInfo.secondary}</span> : null}
-                  {mode === "worldcup" && !game.isLive ? (
+                  {bubbleDisplay.showTag ? <span className="bubble-tag">{bubbleInfo.tag}</span> : null}
+                  {bubbleDisplay.showMeta ? <span className="bubble-meta">{bubbleInfo.secondary}</span> : null}
+                  {bubbleDisplay.showSchedule ? (
                     <span className="bubble-schedule">{formatKickoffShort(game.commenceTime)}</span>
                   ) : null}
-                  {hasScoreLine(game) || game.isLive ? (
+                  {bubbleDisplay.showScore ? (
                     <span className={hasLiveMinute(game) ? "bubble-score-stack is-live" : "bubble-score-stack"}>
                       <span className="bubble-score">{formatScoreLine(game)}</span>
-                      {hasLiveMinute(game) ? (
-                        <span className="bubble-minute">{formatLiveMinute(game)}</span>
+                      {bubbleDisplay.showMinute ? (
+                        <span className="bubble-minute">{bubbleDisplay.minuteLabel}</span>
                       ) : null}
                     </span>
                   ) : null}
