@@ -2175,7 +2175,7 @@ const getBubbleDisplayConfig = (game, mode) => {
   return {
     minuteLabel: formatBubbleMinute(game, size < 116),
     showWorldCupBadge,
-    worldCupBadgeLabel: size < 102 ? "C26" : "COPA 26",
+    worldCupBadgeLabel: size < 98 ? "C26" : size < 126 ? "COPA" : "COPA 2026",
     showLogo: size >= (hasScore ? 76 : 64),
     showMeta: size >= (hasScore ? 126 : 108),
     showMinute: hasMinute && size >= 88,
