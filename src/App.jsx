@@ -2134,6 +2134,22 @@ const getBubbleVisualInfo = (game) => {
   };
 };
 
+const isWorldCupGame = (game) => {
+  const leagueText = normalizeBetText(`${game?.league || ""} ${game?.round || ""}`);
+  const stageText = normalizeBetText(game?.stage || "");
+  const season = Number(game?.season || 0);
+  const leagueId = Number(game?.leagueId || 0);
+
+  return (
+    leagueText.includes("world cup") ||
+    leagueText.includes("copa do mundo") ||
+    stageText.includes("worldcup") ||
+    stageText.includes("knockout") ||
+    stageText.includes("groups") ||
+    (leagueId === 1 && season === 2026)
+  );
+};
+
 const formatBubbleMinute = (game, compact = false) => {
   const minute = Math.round(Number(game?.minute) || 0);
 
@@ -2154,9 +2170,12 @@ const getBubbleDisplayConfig = (game, mode) => {
   const hasMinute = hasLiveMinute(game);
   const isTight = size < 90;
   const isCompact = size >= 90 && size < 116;
+  const showWorldCupBadge = mode !== "worldcup" && isWorldCupGame(game) && size >= 84;
 
   return {
     minuteLabel: formatBubbleMinute(game, size < 116),
+    showWorldCupBadge,
+    worldCupBadgeLabel: size < 102 ? "C26" : "COPA 26",
     showLogo: size >= (hasScore ? 76 : 64),
     showMeta: size >= (hasScore ? 126 : 108),
     showMinute: hasMinute && size >= 88,
@@ -5029,6 +5048,9 @@ function BubblesWorldCup() {
                   type="button"
                 >
                   {hitState.state === "hit" ? <AiHitLogo state="hit" compact /> : null}
+                  {bubbleDisplay.showWorldCupBadge ? (
+                    <span className="bubble-cup-badge">{bubbleDisplay.worldCupBadgeLabel}</span>
+                  ) : null}
                   {bubbleDisplay.showLogo ? (
                     <TeamLogo
                       className="bubble-logo"
