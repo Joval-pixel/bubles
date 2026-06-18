@@ -3560,6 +3560,81 @@ const buildWorldCupScheduleDays = (games) => {
   return Array.from(buckets.values());
 };
 
+const parseWorldCupScheduleDateKey = (key) => {
+  const match = String(key || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0);
+};
+
+const formatWorldCupAgendaHeroDate = (key) => {
+  const date = parseWorldCupScheduleDateKey(key);
+
+  return date
+    ? new Intl.DateTimeFormat("pt-BR", {
+        timeZone: BRASILIA_TIMEZONE,
+        day: "numeric",
+        month: "numeric",
+      }).format(date)
+    : "--/--";
+};
+
+const formatWorldCupAgendaWeekday = (key) => {
+  const date = parseWorldCupScheduleDateKey(key);
+
+  return date
+    ? new Intl.DateTimeFormat("pt-BR", {
+        timeZone: BRASILIA_TIMEZONE,
+        weekday: "long",
+      }).format(date)
+    : "Agenda principal";
+};
+
+const formatWorldCupAgendaChipLabel = (key) => {
+  const date = parseWorldCupScheduleDateKey(key);
+
+  return date
+    ? new Intl.DateTimeFormat("pt-BR", {
+        timeZone: BRASILIA_TIMEZONE,
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+      })
+        .format(date)
+        .replace(".", "")
+    : "A definir";
+};
+
+const getPreferredWorldCupScheduleDayKey = (scheduleDays) => {
+  if (!scheduleDays.length) {
+    return "";
+  }
+
+  const liveDay = scheduleDays.find((day) => day.games.some((game) => game.isLive));
+
+  if (liveDay) {
+    return liveDay.key;
+  }
+
+  const todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BRASILIA_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const todayDay = scheduleDays.find((day) => day.key === todayKey);
+
+  if (todayDay) {
+    return todayDay.key;
+  }
+
+  const nextDay = scheduleDays.find((day) => day.games.some((game) => !game.isFinished));
+  return nextDay?.key || scheduleDays[0].key;
+};
+
 function WorldCupHub({
   games,
   groups,
@@ -3936,6 +4011,171 @@ function WorldCupCalendarPanel({ games, loading, onOpenGame, scheduleDays }) {
   );
 }
 
+function WorldCupAgendaModal({
+  loading,
+  onClose,
+  onOpenGame,
+  onSelectDay,
+  scheduleDays,
+  selectedDayKey,
+  updatedAt,
+}) {
+  const selectedDay = scheduleDays.find((day) => day.key === selectedDayKey) || scheduleDays[0] || null;
+  const dayGames = selectedDay?.games || [];
+  const liveGames = dayGames.filter((game) => game.isLive).length;
+  const finishedGames = dayGames.filter((game) => game.isFinished).length;
+  const dayDate = formatWorldCupAgendaHeroDate(selectedDay?.key);
+  const weekdayLabel = formatWorldCupAgendaWeekday(selectedDay?.key);
+
+  return (
+    <div className="worldcup-agenda-backdrop" onClick={onClose} role="presentation">
+      <section
+        aria-label="Agenda da Copa 2026"
+        aria-modal="true"
+        className="worldcup-agenda-modal"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <header className="worldcup-agenda-header">
+          <div className="worldcup-agenda-hero">
+            <span>Agenda da Copa 2026</span>
+            <h2>
+              <small>Dia {dayDate}</small>
+              <strong>Agenda</strong>
+            </h2>
+            <p>
+              {weekdayLabel} | Horarios no {BRASILIA_TIMEZONE_LABEL}. Atualizado as{" "}
+              {formatBrasiliaUpdateTime(updatedAt)}.
+            </p>
+          </div>
+
+          <button
+            className="modal-close-button worldcup-agenda-close"
+            onClick={onClose}
+            type="button"
+            aria-label="Fechar agenda da Copa"
+          >
+            x
+          </button>
+        </header>
+
+        <div className="worldcup-agenda-stats">
+          <article>
+            <span>Jogos do dia</span>
+            <strong>{dayGames.length}</strong>
+            <small>Lista pronta para abrir os palpites de cada partida.</small>
+          </article>
+          <article>
+            <span>Ao vivo</span>
+            <strong>{liveGames}</strong>
+            <small>Partidas correndo neste recorte da Copa.</small>
+          </article>
+          <article>
+            <span>Encerrados</span>
+            <strong>{finishedGames}</strong>
+            <small>Jogos ja finalizados no mesmo dia de agenda.</small>
+          </article>
+        </div>
+
+        <div className="worldcup-agenda-days" aria-label="Dias da agenda">
+          {scheduleDays.map((day) => (
+            <button
+              className={selectedDay?.key === day.key ? "worldcup-agenda-day is-active" : "worldcup-agenda-day"}
+              key={day.key}
+              onClick={() => onSelectDay(day.key)}
+              type="button"
+            >
+              <span>{formatWorldCupAgendaChipLabel(day.key)}</span>
+              <strong>{day.games.length} jogos</strong>
+            </button>
+          ))}
+        </div>
+
+        <div className="worldcup-agenda-list">
+          {loading ? (
+            <div className="worldcup-agenda-empty">
+              <strong>Carregando agenda da Copa...</strong>
+              <span>Buscando datas, horarios e confrontos principais.</span>
+            </div>
+          ) : null}
+
+          {!loading && !dayGames.length ? (
+            <div className="worldcup-agenda-empty">
+              <strong>Sem jogos para este dia.</strong>
+              <span>Assim que a API devolver novas partidas, a agenda aparece aqui.</span>
+            </div>
+          ) : null}
+
+          {!loading
+            ? dayGames.map((game) => (
+                <article
+                  className={[
+                    "worldcup-agenda-match-card",
+                    game.isLive ? "is-live" : "",
+                    game.isFinished ? "is-finished" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  key={game.id}
+                >
+                  <div className="worldcup-agenda-match-top">
+                    <div className="worldcup-agenda-time">
+                      <strong>{game.isLive ? formatClock(game) : formatKickoffTime(game.commenceTime)}</strong>
+                      <small>{game.isLive ? "Ao vivo" : "Horario de Brasilia"}</small>
+                    </div>
+                    <span className="worldcup-agenda-status">{getGameStatusLabel(game)}</span>
+                  </div>
+
+                  <button
+                    className="worldcup-agenda-match-button"
+                    onClick={() => {
+                      onClose();
+                      onOpenGame(game.id);
+                    }}
+                    type="button"
+                  >
+                    <span className="worldcup-agenda-flag-shell is-home">
+                      <TeamLogo
+                        className="worldcup-agenda-flag"
+                        name={game.homeTeam}
+                        preferFlag
+                        src={game.homeLogo}
+                      />
+                    </span>
+
+                    <span className="worldcup-agenda-center">
+                      <span className="worldcup-agenda-round">{getWorldCupRoundLabel(game.round)}</span>
+                      <strong>{game.homeTeam}</strong>
+                      <em>{game.isLive || game.isFinished ? formatScoreLine(game) : "x"}</em>
+                      <strong>{game.awayTeam}</strong>
+                      <small>{[game.venue, game.city].filter(Boolean).join(" - ") || "Local a definir"}</small>
+                      <span className="worldcup-agenda-reading">
+                        <b>{getPrimaryBetText(game.displayPickLabel || game.pickLabel, game)}</b>
+                        <i>
+                          {formatChance(game.displayProbability || game.probability)} | Odd{" "}
+                          {formatOdd(game.displayOdd || game.oddHome)}
+                        </i>
+                      </span>
+                    </span>
+
+                    <span className="worldcup-agenda-flag-shell is-away">
+                      <TeamLogo
+                        className="worldcup-agenda-flag"
+                        name={game.awayTeam}
+                        preferFlag
+                        src={game.awayLogo}
+                      />
+                    </span>
+                  </button>
+                </article>
+              ))
+            : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function WorldCupTeamsPanel({ teams, selectedTeamId, onSelectTeam, onOpenGame }) {
   const selectedTeam =
     teams.find((team) => String(team.id) === String(selectedTeamId)) || teams[0] || null;
@@ -4210,6 +4450,7 @@ function BubblesWorldCup() {
   const animationRef = useRef(0);
   const lastFrameRef = useRef(0);
   const boundsRef = useRef({ width: 0, height: 0 });
+  const pendingWorldCupAgendaOpenRef = useRef(false);
   const [boardBounds, setBoardBounds] = useState({ width: 0, height: 0 });
   const [games, setGames] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -4232,6 +4473,7 @@ function BubblesWorldCup() {
   const [hoveredId, setHoveredId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTodayListOpen, setIsTodayListOpen] = useState(false);
+  const [isWorldCupAgendaOpen, setIsWorldCupAgendaOpen] = useState(false);
   const [todayListQuery, setTodayListQuery] = useState("");
   const [todaySelectedIds, setTodaySelectedIds] = useState(() => new Set());
   const [showOnlyTodaySelected, setShowOnlyTodaySelected] = useState(false);
@@ -4244,6 +4486,7 @@ function BubblesWorldCup() {
     return WORLD_CUP_VIEW_TABS.some((item) => item.id === initialView) ? initialView : "games";
   });
   const [selectedWorldCupTeamId, setSelectedWorldCupTeamId] = useState("");
+  const [selectedWorldCupAgendaDayKey, setSelectedWorldCupAgendaDayKey] = useState("");
 
   const openGameModal = (id) => {
     setSelectedId(id);
@@ -4266,6 +4509,27 @@ function BubblesWorldCup() {
   const closeTodayList = () => {
     setIsTodayListOpen(false);
     setShowOnlyTodaySelected(false);
+  };
+
+  const openWorldCupAgenda = () => {
+    setIsModalOpen(false);
+    setIsTodayListOpen(false);
+
+    if (mode !== "worldcup") {
+      pendingWorldCupAgendaOpenRef.current = true;
+      setMode("worldcup");
+      setFilter("best");
+      setWorldCupView("games");
+      return;
+    }
+
+    setWorldCupView("games");
+    setIsWorldCupAgendaOpen(true);
+  };
+
+  const closeWorldCupAgenda = () => {
+    pendingWorldCupAgendaOpenRef.current = false;
+    setIsWorldCupAgendaOpen(false);
   };
 
   const toggleTodayGameSelection = (id) => {
@@ -4394,8 +4658,17 @@ function BubblesWorldCup() {
     setIsModalOpen(false);
 
     if (mode !== "worldcup") {
+      pendingWorldCupAgendaOpenRef.current = false;
+      setIsWorldCupAgendaOpen(false);
       setWorldCupView("games");
       setSelectedWorldCupTeamId("");
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode === "worldcup" && pendingWorldCupAgendaOpenRef.current) {
+      setIsWorldCupAgendaOpen(true);
+      pendingWorldCupAgendaOpenRef.current = false;
     }
   }, [mode]);
 
@@ -4423,7 +4696,7 @@ function BubblesWorldCup() {
   }, [filter, mode, query]);
 
   useEffect(() => {
-    if (!isModalOpen && !isTodayListOpen) {
+    if (!isModalOpen && !isTodayListOpen && !isWorldCupAgendaOpen) {
       return undefined;
     }
 
@@ -4432,6 +4705,7 @@ function BubblesWorldCup() {
       if (event.key === "Escape") {
         setIsModalOpen(false);
         setIsTodayListOpen(false);
+        setIsWorldCupAgendaOpen(false);
       }
     };
 
@@ -4442,7 +4716,7 @@ function BubblesWorldCup() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isModalOpen, isTodayListOpen]);
+  }, [isModalOpen, isTodayListOpen, isWorldCupAgendaOpen]);
 
   useEffect(() => {
     if (!games.length) {
@@ -4720,12 +4994,37 @@ function BubblesWorldCup() {
       isReliable: stats.checked >= AI_STATS_MIN_SAMPLE,
     };
   }, [todayListGames]);
-  const worldCupGroupLookup = useMemo(() => buildWorldCupGroupLookup(games), [games]);
-  const worldCupTeams = useMemo(() => buildWorldCupTeams(games, worldCupGroupLookup), [games, worldCupGroupLookup]);
-  const worldCupGroups = useMemo(() => buildWorldCupGroups(games, worldCupGroupLookup), [games, worldCupGroupLookup]);
-  const worldCupScheduleDays = useMemo(() => buildWorldCupScheduleDays(games), [games]);
-  const worldCupStages = useMemo(() => buildWorldCupStages(games), [games]);
-  const topGames = [...filteredGames]
+  const worldCupSourceGames = useMemo(
+    () => (mode === "worldcup" ? games.filter((game) => isWorldCupGame(game)) : []),
+    [games, mode]
+  );
+  const worldCupGroupLookup = useMemo(() => buildWorldCupGroupLookup(worldCupSourceGames), [worldCupSourceGames]);
+  const worldCupTeams = useMemo(
+    () => buildWorldCupTeams(worldCupSourceGames, worldCupGroupLookup),
+    [worldCupSourceGames, worldCupGroupLookup]
+  );
+  const worldCupGroups = useMemo(
+    () => buildWorldCupGroups(worldCupSourceGames, worldCupGroupLookup),
+    [worldCupSourceGames, worldCupGroupLookup]
+  );
+  const worldCupScheduleDays = useMemo(() => buildWorldCupScheduleDays(worldCupSourceGames), [worldCupSourceGames]);
+  const worldCupStages = useMemo(() => buildWorldCupStages(worldCupSourceGames), [worldCupSourceGames]);
+  const preferredWorldCupScheduleDayKey = useMemo(
+    () => getPreferredWorldCupScheduleDayKey(worldCupScheduleDays),
+    [worldCupScheduleDays]
+  );
+  const selectedWorldCupAgendaDay =
+    worldCupScheduleDays.find((day) => day.key === selectedWorldCupAgendaDayKey) || worldCupScheduleDays[0] || null;
+
+  useEffect(() => {
+    setSelectedWorldCupAgendaDayKey((current) =>
+      worldCupScheduleDays.some((day) => day.key === current) ? current : preferredWorldCupScheduleDayKey
+    );
+  }, [preferredWorldCupScheduleDayKey, worldCupScheduleDays]);
+
+  const spotlightGames = radarSourceGames.length ? radarSourceGames : filteredGames;
+
+  const topGames = [...spotlightGames]
     .sort(
       (left, right) =>
         getAiScoreNumber(right) - getAiScoreNumber(left) ||
@@ -4874,15 +5173,16 @@ function BubblesWorldCup() {
           </button>
           <button
             className={mode === "worldcup" ? "chip-button is-active" : "chip-button"}
-            onClick={() => {
-              setMode("worldcup");
-              setFilter("best");
-              setWorldCupView("games");
-            }}
+            onClick={openWorldCupAgenda}
             type="button"
           >
             Copa 2026
           </button>
+          {mode === "worldcup" ? (
+            <button className="chip-button" onClick={openWorldCupAgenda} type="button">
+              Agenda do dia
+            </button>
+          ) : null}
         </nav>
 
         <nav className="cup-controls compact" aria-label="Atalhos">
@@ -4951,13 +5251,17 @@ function BubblesWorldCup() {
         ) : null}
 
         <article className="simple-guide-card">
-          <span>{mode === "worldcup" ? "Calendario da Copa" : "Todos jogos de hoje"}</span>
-          <strong>{mode === "today" ? `${games.length} jogos` : `${games.length} jogos`}</strong>
+          <span>{mode === "worldcup" ? "Agenda da Copa" : "Todos jogos de hoje"}</span>
+          <strong>
+            {mode === "worldcup"
+              ? `${selectedWorldCupAgendaDay?.games.length || games.length} jogos no dia`
+              : `${games.length} jogos`}
+          </strong>
           <button
             type="button"
-            onClick={mode === "worldcup" ? () => setWorldCupView("games") : openTodayList}
+            onClick={mode === "worldcup" ? openWorldCupAgenda : openTodayList}
           >
-            {mode === "worldcup" ? "Ver tabela de jogos" : "Ver todos os jogos"}
+            {mode === "worldcup" ? "Abrir agenda do dia" : "Ver todos os jogos"}
           </button>
         </article>
 
@@ -5052,26 +5356,32 @@ function BubblesWorldCup() {
                     <span className="bubble-cup-badge">{bubbleDisplay.worldCupBadgeLabel}</span>
                   ) : null}
                   <span className="bubble-content">
-                    {bubbleDisplay.showLogo ? (
-                      <TeamLogo
-                        className="bubble-logo"
-                        name={bubbleInfo.primary}
-                        preferFlag={mode === "worldcup"}
-                        src={bubbleInfo.logo}
-                      />
-                    ) : null}
-                    <span className="bubble-primary">{bubbleInfo.primary}</span>
-                    <strong>{formatChance(game.displayProbability || game.probability)}</strong>
-                    {bubbleDisplay.showTag ? <span className="bubble-tag">{bubbleInfo.tag}</span> : null}
-                    {bubbleDisplay.showMeta ? <span className="bubble-meta">{bubbleInfo.secondary}</span> : null}
-                    {bubbleDisplay.showSchedule ? (
-                      <span className="bubble-schedule">{formatKickoffShort(game.commenceTime)}</span>
-                    ) : null}
-                    {bubbleDisplay.showScore ? (
-                      <span className={hasLiveMinute(game) ? "bubble-score-stack is-live" : "bubble-score-stack"}>
-                        <span className="bubble-score">{formatScoreLine(game)}</span>
-                        {bubbleDisplay.showMinute ? (
-                          <span className="bubble-minute">{bubbleDisplay.minuteLabel}</span>
+                    <span className="bubble-main">
+                      {bubbleDisplay.showLogo ? (
+                        <TeamLogo
+                          className="bubble-logo"
+                          name={bubbleInfo.primary}
+                          preferFlag={mode === "worldcup"}
+                          src={bubbleInfo.logo}
+                        />
+                      ) : null}
+                      <span className="bubble-primary">{bubbleInfo.primary}</span>
+                      <strong>{formatChance(game.displayProbability || game.probability)}</strong>
+                    </span>
+                    {bubbleDisplay.showTag || bubbleDisplay.showMeta || bubbleDisplay.showSchedule || bubbleDisplay.showScore ? (
+                      <span className="bubble-footer">
+                        {bubbleDisplay.showTag ? <span className="bubble-tag">{bubbleInfo.tag}</span> : null}
+                        {bubbleDisplay.showMeta ? <span className="bubble-meta">{bubbleInfo.secondary}</span> : null}
+                        {bubbleDisplay.showSchedule ? (
+                          <span className="bubble-schedule">{formatKickoffShort(game.commenceTime)}</span>
+                        ) : null}
+                        {bubbleDisplay.showScore ? (
+                          <span className={hasLiveMinute(game) ? "bubble-score-stack is-live" : "bubble-score-stack"}>
+                            <span className="bubble-score">{formatScoreLine(game)}</span>
+                            {bubbleDisplay.showMinute ? (
+                              <span className="bubble-minute">{bubbleDisplay.minuteLabel}</span>
+                            ) : null}
+                          </span>
                         ) : null}
                       </span>
                     ) : null}
@@ -5367,6 +5677,18 @@ function BubblesWorldCup() {
             </div>
           </section>
         </div>
+      ) : null}
+
+      {isWorldCupAgendaOpen ? (
+        <WorldCupAgendaModal
+          loading={loading}
+          onClose={closeWorldCupAgenda}
+          onOpenGame={openGameModal}
+          onSelectDay={setSelectedWorldCupAgendaDayKey}
+          scheduleDays={worldCupScheduleDays}
+          selectedDayKey={selectedWorldCupAgendaDayKey}
+          updatedAt={updatedAt}
+        />
       ) : null}
 
       {isTodayListOpen ? (

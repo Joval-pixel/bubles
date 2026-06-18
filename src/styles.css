@@ -3124,6 +3124,414 @@ body .modal-widget-content {
   display: none;
 }
 
+.worldcup-agenda-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 79;
+  display: grid;
+  place-items: center;
+  padding: clamp(10px, 2vw, 24px);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 210, 76, 0.18), transparent 24rem),
+    linear-gradient(180deg, rgba(8, 22, 100, 0.84), rgba(3, 9, 48, 0.92));
+  backdrop-filter: blur(12px);
+}
+
+.worldcup-agenda-modal {
+  position: relative;
+  isolation: isolate;
+  width: min(980px, calc(100vw - 20px));
+  max-height: calc(100vh - 24px);
+  overflow: hidden;
+  display: grid;
+  gap: 12px;
+  padding: clamp(1rem, 2.2vw, 1.35rem);
+  border: 1px solid rgba(255, 214, 90, 0.4);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.14), transparent 18%),
+    linear-gradient(180deg, rgba(16, 62, 238, 0.98), rgba(6, 25, 116, 0.98));
+  box-shadow:
+    0 24px 90px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.worldcup-agenda-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 36%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.03) 0 22px,
+      transparent 22px 58px
+    );
+  opacity: 0.72;
+}
+
+.worldcup-agenda-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.worldcup-agenda-hero {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.worldcup-agenda-hero > span,
+.worldcup-agenda-stats span,
+.worldcup-agenda-day span,
+.worldcup-agenda-round {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.worldcup-agenda-hero > span,
+.worldcup-agenda-stats span,
+.worldcup-agenda-day span {
+  color: #dce7ff;
+}
+
+.worldcup-agenda-hero h2 {
+  margin: 0;
+  display: grid;
+  gap: 0.1rem;
+  line-height: 0.9;
+}
+
+.worldcup-agenda-hero h2 small {
+  color: rgba(255, 255, 255, 0.95);
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1.4rem, 3vw, 2.45rem);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.worldcup-agenda-hero h2 strong {
+  color: #ffd449;
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(2.7rem, 7vw, 5.2rem);
+  font-weight: 1000;
+  letter-spacing: -0.07em;
+  text-transform: uppercase;
+  text-shadow: 0 12px 24px rgba(0, 0, 0, 0.26);
+}
+
+.worldcup-agenda-hero p {
+  margin: 0;
+  color: rgba(236, 242, 255, 0.78);
+  font-weight: 800;
+  line-height: 1.38;
+}
+
+.worldcup-agenda-close {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.worldcup-agenda-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.worldcup-agenda-stats article {
+  min-height: 84px;
+  padding: 0.82rem 0.9rem;
+  border: 1px solid rgba(255, 214, 90, 0.26);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(8, 26, 118, 0.82), rgba(5, 15, 74, 0.76)),
+    rgba(6, 16, 72, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.worldcup-agenda-stats strong {
+  display: block;
+  margin-top: 0.28rem;
+  color: #ffffff;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.5rem;
+}
+
+.worldcup-agenda-stats small {
+  display: block;
+  margin-top: 0.22rem;
+  color: rgba(236, 242, 255, 0.72);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.28;
+}
+
+.worldcup-agenda-days {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.worldcup-agenda-days::-webkit-scrollbar {
+  display: none;
+}
+
+.worldcup-agenda-day {
+  flex: 0 0 auto;
+  min-width: 128px;
+  padding: 0.7rem 0.82rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  text-align: left;
+}
+
+.worldcup-agenda-day strong {
+  display: block;
+  margin-top: 0.26rem;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 0.94rem;
+}
+
+.worldcup-agenda-day.is-active,
+.worldcup-agenda-day:hover,
+.worldcup-agenda-day:focus-visible {
+  border-color: rgba(255, 214, 90, 0.84);
+  outline: none;
+  background: linear-gradient(145deg, rgba(255, 214, 90, 0.18), rgba(255, 255, 255, 0.08));
+  box-shadow: 0 0 0 1px rgba(255, 214, 90, 0.12) inset;
+}
+
+.worldcup-agenda-list {
+  display: grid;
+  gap: 14px;
+  max-height: min(58vh, 620px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.worldcup-agenda-match-card {
+  padding: 0.92rem;
+  border: 1px solid rgba(255, 214, 90, 0.34);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 20%),
+    rgba(4, 15, 78, 0.64);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.2);
+}
+
+.worldcup-agenda-match-card.is-live {
+  border-color: rgba(37, 243, 95, 0.5);
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(37, 243, 95, 0.12) inset;
+}
+
+.worldcup-agenda-match-card.is-finished {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.worldcup-agenda-match-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 0.8rem;
+}
+
+.worldcup-agenda-time strong {
+  display: block;
+  color: #ffffff;
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  line-height: 0.96;
+}
+
+.worldcup-agenda-time small {
+  display: block;
+  margin-top: 0.16rem;
+  color: rgba(236, 242, 255, 0.72);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.worldcup-agenda-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(255, 214, 90, 0.54);
+  border-radius: 999px;
+  background: rgba(255, 214, 90, 0.14);
+  color: #fff2b3;
+  font-size: 0.75rem;
+  font-weight: 950;
+  text-align: center;
+}
+
+.worldcup-agenda-match-card.is-live .worldcup-agenda-status {
+  border-color: rgba(37, 243, 95, 0.68);
+  background: rgba(37, 243, 95, 0.14);
+  color: #c8ffd8;
+}
+
+.worldcup-agenda-match-button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(130px, 0.36fr) minmax(0, 1fr) minmax(130px, 0.36fr);
+  gap: 14px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: center;
+}
+
+.worldcup-agenda-flag-shell {
+  display: grid;
+  place-items: center;
+  min-height: 116px;
+  padding: 0.82rem;
+  border: 3px solid rgba(255, 214, 90, 0.84);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04)),
+    rgba(12, 28, 112, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+.worldcup-agenda-flag-shell.is-home {
+  border-radius: 34px 16px 16px 34px;
+}
+
+.worldcup-agenda-flag-shell.is-away {
+  border-radius: 16px 34px 34px 16px;
+}
+
+.worldcup-agenda-flag {
+  width: 100%;
+  max-width: 118px;
+  height: 74px;
+  object-fit: cover;
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.worldcup-agenda-flag.team-logo-fallback {
+  width: 90px;
+  height: 90px;
+  border-radius: 24px;
+  font-size: 1.08rem;
+}
+
+.worldcup-agenda-center {
+  display: grid;
+  justify-items: center;
+  gap: 0.22rem;
+  min-width: 0;
+  padding: 0.95rem 1.25rem;
+  border: 2px solid rgba(255, 214, 90, 0.82);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(13, 49, 181, 0.98), rgba(8, 32, 137, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 14px 36px rgba(0, 0, 0, 0.22);
+}
+
+.worldcup-agenda-round {
+  color: #ffd449;
+}
+
+.worldcup-agenda-center strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1.3rem, 2.4vw, 2rem);
+  font-weight: 1000;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worldcup-agenda-center em {
+  color: #ffd449;
+  font-family: Sora, Inter, sans-serif;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.worldcup-agenda-center small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: rgba(236, 242, 255, 0.76);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worldcup-agenda-reading {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  margin-top: 0.16rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 214, 90, 0.28);
+}
+
+.worldcup-agenda-reading b,
+.worldcup-agenda-reading i {
+  display: block;
+  font-style: normal;
+}
+
+.worldcup-agenda-reading b {
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.worldcup-agenda-reading i {
+  color: #dce7ff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.worldcup-agenda-empty {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 240px;
+  place-items: center;
+  padding: 2rem;
+  color: rgba(236, 242, 255, 0.72);
+  text-align: center;
+}
+
+.worldcup-agenda-empty strong {
+  color: #ffffff;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 1.18rem;
+}
+
 .today-games-backdrop {
   position: fixed;
   inset: 0;
@@ -3860,6 +4268,23 @@ body .modal-widget-content {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .worldcup-agenda-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .worldcup-agenda-match-button {
+    grid-template-columns: 112px minmax(0, 1fr) 112px;
+  }
+
+  .worldcup-agenda-flag-shell {
+    min-height: 98px;
+  }
+
+  .worldcup-agenda-flag {
+    max-width: 92px;
+    height: 60px;
+  }
+
   .widgets-leagues,
   .widgets-side {
     position: static;
@@ -3938,6 +4363,65 @@ body .modal-widget-content {
 
   .search-suggestions {
     width: 100%;
+  }
+
+  .worldcup-agenda-modal {
+    width: min(100vw - 12px, 100%);
+    max-height: calc(100vh - 12px);
+    padding: 0.88rem;
+    border-radius: 22px;
+  }
+
+  .worldcup-agenda-header {
+    align-items: flex-start;
+  }
+
+  .worldcup-agenda-hero h2 strong {
+    font-size: clamp(2.15rem, 13vw, 3.6rem);
+  }
+
+  .worldcup-agenda-hero h2 small {
+    font-size: clamp(1.1rem, 6vw, 1.8rem);
+  }
+
+  .worldcup-agenda-list {
+    max-height: min(56vh, 520px);
+  }
+
+  .worldcup-agenda-match-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .worldcup-agenda-status {
+    min-height: 30px;
+  }
+
+  .worldcup-agenda-match-button {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .worldcup-agenda-flag-shell,
+  .worldcup-agenda-flag-shell.is-home,
+  .worldcup-agenda-flag-shell.is-away {
+    min-height: 84px;
+    border-radius: 18px;
+  }
+
+  .worldcup-agenda-flag {
+    max-width: 112px;
+    height: 64px;
+  }
+
+  .worldcup-agenda-center {
+    padding: 0.9rem 0.82rem;
+  }
+
+  .worldcup-agenda-center strong,
+  .worldcup-agenda-center small {
+    white-space: normal;
+    text-overflow: clip;
   }
 
   .cup-controls,
