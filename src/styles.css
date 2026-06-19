@@ -4968,3 +4968,149 @@ body .modal-widget-content {
     border-radius: 9px;
   }
 }
+
+@media (max-width: 760px) {
+  .cup-toolbar,
+  .widgets-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .cup-brand,
+  .widgets-brand {
+    min-width: 0;
+  }
+
+  .search-shell {
+    grid-column: 1 / -1;
+    order: 3;
+    min-width: 0;
+  }
+
+  .mode-controls {
+    grid-column: 1 / -1;
+    order: 4;
+    padding-bottom: 2px;
+  }
+
+  .cup-controls.compact {
+    grid-column: 2 / 3;
+    order: 2;
+    justify-self: end;
+    margin-left: 0;
+    overflow: visible;
+  }
+
+  .mode-controls .chip-button,
+  .worldcup-tabs .chip-button {
+    flex: 0 0 auto;
+  }
+
+  .worldcup-head {
+    gap: 8px;
+  }
+
+  .worldcup-head strong,
+  .worldcup-panel-header strong,
+  .worldcup-team-detail > strong {
+    font-size: 1.02rem;
+    line-height: 1.15;
+  }
+
+  .worldcup-head small,
+  .worldcup-panel-header small,
+  .worldcup-team-detail > small {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .worldcup-tabs,
+  .worldcup-shortcuts {
+    margin-top: 0.1rem;
+  }
+
+  .worldcup-widget-card,
+  .worldcup-widget-slot,
+  .worldcup-widget-card-game .worldcup-widget-slot,
+  .worldcup-widget-card-league .worldcup-widget-slot,
+  .worldcup-widget-card-standings .worldcup-widget-slot {
+    min-height: 0;
+  }
+
+  .worldcup-widget-card-head {
+    padding: 0.8rem 0.82rem 0.72rem;
+  }
+
+  .worldcup-widget-list,
+  .worldcup-widget-mini-groups {
+    max-height: none;
+    overflow: visible;
+    padding: 0.72rem;
+  }
+
+  .worldcup-widget-game-row-body strong,
+  .worldcup-calendar-row strong,
+  .worldcup-agenda-center strong {
+    white-space: normal;
+    text-overflow: clip;
+  }
+
+  .worldcup-widget-match {
+    padding: 0.78rem;
+  }
+
+  .worldcup-widget-match-shell {
+    gap: 8px;
+  }
+
+  .worldcup-widget-match-core {
+    padding: 0.82rem 0.72rem;
+  }
+
+  .worldcup-widget-match-core strong {
+    font-size: 1.58rem;
+  }
+
+  .worldcup-widget-match-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .worldcup-widget-match-actions .bookmaker-links,
+  .worldcup-widget-match-actions .bookmaker-links.is-compact {
+    width: 100%;
+  }
+
+  .worldcup-widget-match-actions .bookmaker-links a,
+  .worldcup-widget-match-actions .bookmaker-links.is-compact a {
+    flex: 1 1 0;
+  }
+
+  .worldcup-calendar-row,
+  .worldcup-team-fixtures button,
+  .worldcup-stage-card button {
+    align-items: start;
+  }
+
+  .worldcup-group-card,
+  .worldcup-stage-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .worldcup-standings-head,
+  .worldcup-standings-row {
+    min-width: 398px;
+  }
+
+  .worldcup-team-bubble strong {
+    white-space: normal;
+    line-height: 1.15;
+  }
+
+  .today-games-modal {
+    padding-bottom: max(0.72rem, env(safe-area-inset-bottom));
+  }
+}
